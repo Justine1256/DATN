@@ -1,0 +1,354 @@
+/* General styles */
+.header {
+    background-color: #fdb813;
+    padding: 10px 20px;
+    font-family: Arial, sans-serif;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: auto;
+}
+
+/* Logo */
+.logo {
+    font-size: 30px;
+    font-weight: bold;
+    text-decoration: none;
+    color: black;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    transition: color 0.3s ease;
+}
+
+.logo:hover {
+    color: white;
+}
+
+.logoAccent {
+    color: white;
+}
+
+/* Search Bar */
+.searchBar {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 5px;
+    border-radius: 25px;
+    position: relative;
+    flex: 1;
+    margin: 0 20px;
+}
+
+.categorySelect {
+    border: none;
+    background: none;
+    padding: 5px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.searchInput {
+    border: none;
+    padding: 5px;
+    flex: 1;
+    outline: none;
+    font-weight: bold;
+}
+
+.searchButton {
+    background: black;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 25px;
+}
+
+/* Thanh đen nhỏ dưới thanh tìm kiếm */
+.searchBarDivider {
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: #ddd;
+}
+
+/* Icons */
+.icons {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.icon {
+    cursor: pointer;
+    color: black;
+    width: 28px;
+    height: 28px;
+    transition: color 0.3s ease;
+}
+
+.icon:hover {
+    color: white;
+}
+
+/* Login/Register */
+.loginRegister {
+    cursor: pointer;
+    color: black;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.loginRegister:hover {
+    color: white;
+}
+
+/* Navbar */
+.navbar {
+    background-color: transparent;
+    padding: 5px 20px;
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.navItems {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.navLeft {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+}
+
+.navRight {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.navItem {
+    position: relative;
+}
+
+.navButton {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: black;
+    border-radius: 25px;
+    padding: 8px 12px;
+}
+
+.chevronIcon {
+    width: 16px;
+    height: 16px;
+    fill: black;
+}
+
+/* Dropdown Menu */
+.dropdownMenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+    min-width: 150px;
+}
+
+.navItem:hover .dropdownMenu,
+.departmentButton:hover+.dropdownMenu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdownItem {
+    text-decoration: none;
+    color: black;
+    padding: 8px 12px;
+    transition: background 0.3s;
+    font-size: 14px;
+}
+
+.dropdownItem:hover {
+    background: #ddd;
+}
+
+/* Department Button */
+.departmentButton {
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: black;
+    border-radius: 25px;
+    padding: 8px 12px;
+}
+
+/* Footer (Sell on Martfury, Track your order, USD, English) */
+.footer {
+    display: flex;
+    gap: 20px;
+    padding: 10px;
+    font-size: 14px;
+    color: black;
+}
+
+.footerText {
+    cursor: pointer;
+    text-decoration: none;
+    color: black;
+    transition: color 0.3s ease;
+}
+
+.footerText:hover {
+    color: #ccc;
+}
+
+/* Hover effects */
+.searchButton:hover {
+    background: #222;
+}
+
+/* Sticky header */
+.sticky {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: #fdb813;
+}
+
+/* Responsive styles */
+@media (max-width: 1024px) {
+    .container {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0 10px;
+    }
+
+    .logo {
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .searchBar {
+        margin: 10px 0;
+        padding: 10px;
+    }
+
+    .icons {
+        margin-top: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .navbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .navItems {
+        flex-direction: column;
+    }
+
+    .navLeft,
+    .navRight {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .navItem,
+    .footer {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .navButton,
+    .departmentButton,
+    .footerText {
+        text-align: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .searchBar {
+        flex-direction: column;
+    }
+
+    .categorySelect,
+    .searchInput,
+    .searchButton {
+        margin-bottom: 5px;
+        width: 100%;
+    }
+
+    .searchInput {
+        padding: 10px;
+    }
+
+    .icons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .icon {
+        margin: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo {
+        font-size: 24px;
+    }
+
+    .searchBar {
+        flex-direction: column;
+    }
+
+    .categorySelect,
+    .searchInput,
+    .searchButton {
+        margin-bottom: 5px;
+    }
+
+    .searchInput {
+        padding: 10px;
+    }
+
+    .icons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .icon {
+        margin: 5px;
+    }
+}
