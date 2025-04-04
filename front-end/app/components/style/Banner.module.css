@@ -1,0 +1,86 @@
+.bannerContainer {
+    display: grid;
+    grid-template-columns: 8fr 4fr;
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    box-sizing: border-box;
+    --border-radius: 10px;
+    /* Biến CSS cho border-radius */
+    --gap: 20px;
+    /* Biến CSS cho gap */
+}
+
+.bannerBox {
+    display: grid;
+    grid-template-columns: 8fr 4fr;
+    gap: var(--gap);
+    width: 100%;
+    max-width: 1200px;
+}
+
+.largeBanner {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--border-radius);
+}
+
+.largeBanner img {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: transform 0.3s ease-in-out;
+}
+
+.largeBanner:hover img {
+    transform: scale(1.05);
+}
+
+.smallBanners {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: var(--gap);
+}
+
+.smallBanner {
+    overflow: hidden;
+    border-radius: var(--border-radius);
+}
+
+.smallBanner img {
+    width: 90%;
+    height: auto;
+    display: block;
+    transition: transform 0.3s ease-in-out;
+    cursor: pointer;
+    /* Thêm cursor pointer */
+}
+
+.smallBanner:hover img {
+    transform: scale(1.05);
+}
+
+.navigationButton {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: 5px;
+    outline: none;
+    /* Thêm outline none */
+}
+
+.prevButton {
+    left: 10px;
+}
+
+.nextButton {
+    right: 10px;
+}

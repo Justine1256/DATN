@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import "./globals.css";
 /* import Header from "./components/Header"; */
-/* import BannerSection from "./components/BannerSection" */
+import BannerSection from "./components/BannerSection"
 /* import Footer from "./components/Footer"; */
 /* import HeroSection from "./components/HeroSection";  */
 
@@ -11,14 +11,9 @@ interface LayoutProps {
 
 export default function RootLayout({ children }: LayoutProps) {
     return (
-        <html lang="en">
-            <body>
-               
-              {/*   <BannerSection/>
-                <HeroSection /> */} {}
-                <main>{children}</main>
-                
-            </body>
-        </html>
+        <>
+            <BannerSection />
+            <main>{children}</main>
+        </>
     );
 }
