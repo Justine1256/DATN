@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('shop', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->references('id')->on('users');
             $table->string('name', 100)->unique();
             $table->string('description', 255);
             $table->tinyInteger('rating', 2,1);
