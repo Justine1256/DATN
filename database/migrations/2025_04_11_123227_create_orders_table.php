@@ -17,8 +17,8 @@ return new class extends Migration
             $table->enum('payment_status', ['Pending', 'Completed', 'Failed'])->default('Pending');
             $table->enum('order_status', ['Pending', 'Shipped', 'Delivered', 'Canceled'])->default('Pending');
             $table->text('shipping_address');
-            $table->foreignId('discount_id')->nullable()->constrained('discounts')->nullOnDelete(); // nullable FK
-            $table->timestamps(); // created_at & updated_at
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

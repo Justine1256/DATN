@@ -10,8 +10,10 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('category_id');
-            $table->unsignedBigInteger('shop_id');
+
+            // Dùng foreignId + constrained cho khóa ngoại
+            $table->foreignId('category_id')->constrained('categories')->cascadeOnDelete();
+            $table->foreignId('shop_id')->constrained('shops')->cascadeOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
             $table->decimal('price', 10, 2);
@@ -22,12 +24,9 @@ return new class extends Migration
             $table->string('option2')->nullable();
             $table->string('value2')->nullable();
             $table->enum('status', ['actived', 'deleted'])->default('actived');
+
             $table->timestamps();
             $table->softDeletes();
-
-            // Foreign keys đặt sau cùng
-            $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade');
-            $table->foreign('shop_id')->references('id')->on('shops')->onDelete('cascade');
         });
     }
 
