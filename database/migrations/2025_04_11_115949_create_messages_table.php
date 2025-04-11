@@ -20,6 +20,7 @@ return new class extends Migration
             $table->foreignId('receiver_id')->references('id')->on('users');
             $table->string('message');
             $table->string('image');
+            $table->enum('status', ['show', 'hidden'])->default('show');
             $table->softDeletes();
             $table->timestamps();
         });

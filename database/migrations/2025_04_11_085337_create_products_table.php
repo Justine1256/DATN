@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('value1')->nullable();
             $table->string('option2')->nullable();
             $table->string('value2')->nullable();
-            $table->enum('status', ['Active', 'Deleted'])->default('Active');
+            $table->enum('status', ['actived', 'deleted'])->default('actived');
             $table->timestamps();
             $table->softDeletes();
         });
