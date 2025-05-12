@@ -18,6 +18,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->decimal('price', 10, 2);
             $table->integer('stock')->default(0);
+            $table->integer('sold')->default(0);
             $table->string('image')->nullable();
             $table->string('option1')->nullable();
             $table->string('value1')->nullable();
