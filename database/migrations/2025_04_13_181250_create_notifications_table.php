@@ -11,11 +11,11 @@ class CreateNotificationsTable extends Migration
     public function up(): void
     {
         Schema::create('notifications', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->text('content');
-            $table->enum('type', ['Order', 'Message', 'Promotion', 'System']);
-            $table->timestamps();
+            $table->id(); // ID (PK)
+            $table->text('content'); // Nội dung
+            $table->enum('type', ['Order', 'Message', 'Promotion', 'System']); // Loại thông báo
+            $table->softDeletes(); // Deleted_At
+            $table->timestamps();  // Created_At, Updated_At
         });
     }
 
