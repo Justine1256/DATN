@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->references('id')->on('users');
             $table->string('name', 100)->unique();
             $table->string('description', 255);
-            $table->tinyInteger('rating', 2,1);
+            $table->decimal('rating', 2, 1)->nullable();
             $table->enum('status',['actived','locked','hidden'])->default('actived');
             $table->timestamps();
         });
