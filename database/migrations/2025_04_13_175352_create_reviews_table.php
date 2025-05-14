@@ -18,7 +18,6 @@ return new class extends Migration
         $table->integer('rating');
         $table->text('comment');
         $table->string('image')->nullable();
-        $table->dateTime('review_date');
         $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
         $table->timestamps();
     });
