@@ -12,8 +12,7 @@ class CreateNotificationsTable extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->id(); // ID (PK)
-            $table->text('content'); // Nội dung
-            $table->enum('type', ['Order', 'Message', 'Promotion', 'System']); // Loại thông báo
+            $table->string('content');
             $table->softDeletes(); // Deleted_At
             $table->timestamps();  // Created_At, Updated_At
         });
