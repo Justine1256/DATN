@@ -11,9 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('user_vouchers', function (Blueprint $table) {
+        Schema::create('voucher_products', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            $table->foreignId('product_id')->references('id')->on('products');
+            $table->foreignId('voucher_id')->references('id')->on('vouchers');
+            $table->softDeletes();
+            $table->timestamp('created_at')->useCurrent();
         });
     }
 
@@ -22,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('user_vouchers');
+        Schema::dropIfExists('voucher_products');
     }
 };
