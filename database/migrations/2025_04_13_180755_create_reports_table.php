@@ -12,9 +12,8 @@ class CreateReportsTable extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('shop_id')->constrained('shops')->onDelete('cascade');
             $table->text('reason');
-            $table->timestamp('report_date')->nullable();
             $table->enum('status', ['Pending', 'Resolved'])->default('Pending');
-            $table->timestamps(); 
+            $table->timestamps();
         });
     }
 
