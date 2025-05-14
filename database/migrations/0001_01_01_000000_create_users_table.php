@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('phone', 20)->unique();
             $table->enum('role',['admin','user','seller','staff'])->default('user');
             $table->enum('rank',['member','bronze','silver','gold','diamond'])->default('member');
-            $table->enum('status',['actived','locked','hidden'])->default('actived');
+            $table->enum('status',['activated','locked','hidden'])->default('activated');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('verify_token', 100)->nullable()->unique();
             $table->rememberToken();
