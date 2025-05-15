@@ -1,9 +1,9 @@
-
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 import { ReactNode } from "react";
 import "./globals.css";
 import Header from "./components/Header";
-import ImageSlider from "./components/Banner";
+
 import Footer from "./components/Footer";
 
 interface LayoutProps {
@@ -15,7 +15,7 @@ export default function RootLayout({ children }: LayoutProps) {
     <html lang="en">
       <body>
         <Header />
-        <ImageSlider/>
+      
         <main>{children}</main>
        {/*  <Footer /> */}
       </body>

@@ -1,246 +1,186 @@
-/* General styles */
-.header {
-    background-color: #fdb813;
-    padding: 10px 20px;
-    font-family: Arial, sans-serif;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
+/* header.module.css */
 
-.container {
+.topBar {
+    background-color: black;
+    color: white;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    max-width: 1200px;
-    margin: auto;
+    align-items: center;
 }
 
-/* Logo */
-.logo {
-    font-size: 30px;
-    font-weight: bold;
-    text-decoration: none;
+.topBarLink {
+    color: white;
+    text-decoration: underline;
+}
+
+.topBarLink:hover {
+    color: #ccc;
+}
+
+.languageDropdown {
+    position: relative;
+}
+
+.languageSelect {
+    background-color: transparent;
+    color: white;
+    font-size: 0.875rem;
+    outline: none;
+    cursor: pointer;
+    border: none;
+    padding-right: 1.5rem;
+    /* Khoảng trống cho icon */
+}
+
+.languageIcon {
+    width: 1rem;
+    height: 1rem;
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    fill: currentColor;
+}
+
+.mainHeader {
+    background-color: white;
     color: black;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-    transition: color 0.3s ease;
+    /* Đặt màu chữ mặc định là đen */
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Loại bỏ max-width để header trải dài trên toàn màn hình */
+    margin: 0 auto;
+    /* Vẫn giữ margin auto để căn giữa nội dung bên trong nếu cần */
 }
 
-.logo:hover {
-    color: white;
+.logo {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: inherit;
+    /* Kế thừa màu đen từ .mainHeader */
+    text-decoration: none;
 }
 
-.logoAccent {
-    color: white;
+.navLinks {
+    display: none;
+    /* Ẩn mặc định trên màn hình nhỏ */
+    gap: 1.5rem;
 }
 
-/* Search Bar */
-.searchBar {
+.navLink {
+    color: inherit;
+    /* Kế thừa màu đen từ .mainHeader */
+    text-decoration: none;
+    font-size: 1rem;
+}
+
+.navLink:hover {
+    color: #666;
+}
+
+.searchAndIcons {
     display: flex;
     align-items: center;
-    background: white;
-    padding: 5px;
-    border-radius: 25px;
-    position: relative;
-    flex: 1;
-    margin: 0 20px;
+    gap: 1.5rem;
 }
 
-.categorySelect {
-    border: none;
-    background: none;
-    padding: 5px;
-    font-size: 14px;
-    font-weight: bold;
+.searchInputWrapper {
+    position: relative;
 }
 
 .searchInput {
-    border: none;
-    padding: 5px;
-    flex: 1;
+    border: 1px solid #ccc;
+    border-radius: 2rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
     outline: none;
-    font-weight: bold;
+    width: 200px;
+    color: inherit;
+    /* Kế thừa màu đen từ .mainHeader */
 }
 
-.searchButton {
-    background: black;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    cursor: pointer;
-    border-radius: 25px;
+.searchInput:focus {
+    border-color: #333;
 }
 
-/* Thanh đen nhỏ dưới thanh tìm kiếm */
-.searchBarDivider {
+.searchIcon {
+    width: 1.2rem;
+    height: 1.2rem;
     position: absolute;
-    bottom: -10px;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background-color: #ddd;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    pointer-events: none;
 }
 
-/* Icons */
-.icons {
+.iconLink {
+    color: inherit;
+    /* Kế thừa màu đen từ .mainHeader */
+    text-decoration: none;
     display: flex;
-    gap: 20px;
     align-items: center;
 }
 
 .icon {
-    cursor: pointer;
-    color: black;
-    width: 28px;
-    height: 28px;
-    transition: color 0.3s ease;
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
 }
 
-.icon:hover {
-    color: white;
+.wishlistIcon {
+    margin-left: 0.5rem;
 }
 
-/* Login/Register */
-.loginRegister {
-    cursor: pointer;
-    color: black;
-    text-decoration: none;
-    transition: color 0.3s ease;
+.cartIcon {
+    margin-left: 0.5rem;
 }
 
-.loginRegister:hover {
-    color: white;
+/* Responsive cho màn hình trung bình trở lên */
+@media (min-width: 768px) {
+    .navLinks {
+        display: flex;
+        /* Hiển thị menu trên màn hình lớn hơn */
+    }
+
+    .searchInput {
+        width: 250px;
+        /* Tăng kích thước ô tìm kiếm trên màn hình lớn hơn */
+    }
 }
 
-/* Navbar */
-.navbar {
-    background-color: transparent;
-    padding: 5px 20px;
-    display: flex;
-    justify-content: center;
-    margin-top: 10px;
-}
+/* Responsive cho màn hình nhỏ hơn (ví dụ: mobile) */
+@media (max-width: 767px) {
+    .mainHeader {
+        padding: 0.75rem 1rem;
+        /* Giảm padding trên màn hình nhỏ */
+    }
 
-.navItems {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-}
+    .logo {
+        font-size: 1.5rem;
+        /* Giảm kích thước logo trên màn hình nhỏ */
+    }
 
-.navLeft {
-    display: flex;
-    gap: 30px;
-    align-items: center;
-}
+    .searchAndIcons {
+        gap: 0.75rem;
+        /* Giảm khoảng cách giữa các phần tử trên màn hình nhỏ */
+    }
 
-.navRight {
-    display: flex;
-    justify-content: flex-end;
-}
+    .searchInput {
+        width: 150px;
+        /* Giảm kích thước ô tìm kiếm trên màn hình nhỏ */
+        font-size: 0.8rem;
+        padding: 0.5rem 1rem;
+    }
 
-.navItem {
-    position: relative;
-}
-
-.navButton {
-    background: none;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    color: black;
-    border-radius: 25px;
-    padding: 8px 12px;
-}
-
-.chevronIcon {
-    width: 16px;
-    height: 16px;
-    fill: black;
-}
-
-/* Dropdown Menu */
-.dropdownMenu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    z-index: 10;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(10px);
-    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
-    min-width: 150px;
-}
-
-.navItem:hover .dropdownMenu,
-.departmentButton:hover+.dropdownMenu {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.dropdownItem {
-    text-decoration: none;
-    color: black;
-    padding: 8px 12px;
-    transition: background 0.3s;
-    font-size: 14px;
-}
-
-.dropdownItem:hover {
-    background: #ddd;
-}
-
-/* Department Button */
-.departmentButton {
-    background: none;
-    border: none;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    color: black;
-    border-radius: 25px;
-    padding: 8px 12px;
-}
-
-/* Footer (Sell on Martfury, Track your order, USD, English) */
-.footer {
-    display: flex;
-    gap: 20px;
-    padding: 10px;
-    font-size: 14px;
-    color: black;
-}
-
-.footerText {
-    cursor: pointer;
-    text-decoration: none;
-    color: black;
-    transition: color 0.3s ease;
-}
-
-.footerText:hover {
-    color: #ccc;
-}
-
-/* Hover effects */
-.searchButton:hover {
-    background: #222;
-}
-
-/* Sticky header */
-.sticky {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background-color: #fdb813;
-}
+    .icon {
+        width: 1.2rem;
+        height: 1.2rem;
+    } }
