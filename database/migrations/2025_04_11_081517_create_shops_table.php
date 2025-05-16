@@ -17,8 +17,10 @@ return new class extends Migration
             $table->string('name', 100)->unique();
             $table->string('description', 255);
             $table->decimal('rating', 2, 1)->nullable();
-            $table->enum('status',['actived','locked','hidden'])->default('actived');
+            $table->enum('status',['activated','locked','hidden'])->default('activated');
             $table->timestamps();
+            $table->softDeletes();
+
         });
     }
 

@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('voucher_products', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->references('id')->on('products');
-            $table->foreignId('voucher_id')->references('id')->on('vouchers');
+            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->foreignId('voucher_id')->constrained('vouchers')->onDelete('cascade');
             $table->softDeletes();
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
         });
     }
 

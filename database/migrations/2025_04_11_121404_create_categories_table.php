@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('image')->nullable();
-            $table->enum('status', ['actived', 'deleted'])->default('actived');
+            $table->enum('status', ['activated', 'deleted'])->default('activated');
             $table->timestamps();
 
             $table->foreign('parent_id')->references('id')->on('categories')->nullOnDelete();

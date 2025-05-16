@@ -4,7 +4,6 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-
 use function Laravel\Prompts\table;
 
 return new class extends Migration
@@ -19,7 +18,7 @@ return new class extends Migration
             $table->foreignId('sender_id')->references('id')->on('users');
             $table->foreignId('receiver_id')->references('id')->on('users');
             $table->string('message');
-            $table->string('image');
+            $table->string('image')->nullable();
             $table->enum('status', ['show', 'hidden'])->default('show');
             $table->softDeletes();
             $table->timestamps();

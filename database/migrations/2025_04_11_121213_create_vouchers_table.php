@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('vouchers', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 50);
+            $table->string('code', 50)->unique();
             $table->decimal('discount_value', 10, 2)->default(0);
             $table->enum('discount_type', ['percent', 'fixed'])->default('percent');
             $table->decimal('max_discount_value', 10, 2)->nullable();
@@ -22,8 +22,7 @@ return new class extends Migration
             $table->integer('usage_count')->default(0);
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
-            $table->unsignedBigInteger('created_by');
-            $table->foreign('created_by')->references('id')->on('users')->onDelete('cascade');
+            $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->timestamps();
         });
     }

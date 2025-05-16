@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('product_id')->references('id')->on('products');
             $table->string('content');
             $table->string('image');
-            $table->foreignId('parent_id')->references('id')->on('comments');
+            $table->foreignId('parent_id')->nullable()->constrained('comments')->onDelete('cascade');
             $table->softDeletes();
             $table->timestamps();
         });
