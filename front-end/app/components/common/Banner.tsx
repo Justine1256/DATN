@@ -62,6 +62,7 @@ const bannerImages = [
 const CategoryMenuWithBanner = () => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const bannerInterval = useRef<NodeJS.Timeout | null>(null);
+  
 
   const startBannerInterval = () => {
     bannerInterval.current = setInterval(() => {
@@ -103,8 +104,8 @@ const CategoryMenuWithBanner = () => {
   };
 
   return (
-    <div className="bg-white">
-      <div className="bg-gray-200 h-0.5 w-full mb-4 mt-2" />
+    <div className="bg-white mt-[${headerHeight}px]">
+      <div className="bg-gray-200 h-0.5 w-full mb-4" />
 
       <div className="container mx-auto flex items-start">
         {/* DANH MỤC BÊN TRÁI */}
@@ -127,6 +128,7 @@ const CategoryMenuWithBanner = () => {
                       width={30}
                       height={30}
                       className="rounded-full"
+                      loading="lazy" // Explicitly set lazy loading for category images
                     />
                     <span className="text-black font-medium relative whitespace-nowrap">
                       {category.name}
@@ -156,11 +158,15 @@ const CategoryMenuWithBanner = () => {
                 }`}
               >
                 <Image
+                  priority={index === 0} // Prioritize the first banner image
+                  loading={index !== 0 ? 'lazy' : undefined} // Lazy load subsequent banners
                   src={src}
                   alt={`Banner ${index + 1}`}
                   fill
                   className="object-cover rounded-md"
                   style={{ objectFit: 'cover' }}
+                  // Example sizes prop (adjust based on your layout)
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 50vw"
                 />
               </div>
             ))}
