@@ -1,14 +1,27 @@
-/** @type {import('next').NextConfig} */
+/** @type {import('next').Config} */
 const nextConfig = {
-  reactStrictMode: true,
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'salt.tikicdn.com',
-        pathname: '/cache/**',
       },
-      // Bạn có thể thêm các hostname khác nếu cần
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img4.thuthuatphanmem.vn', // Add this hostname
+      },
+      {
+        protocol: 'https',
+        hostname: 'thietbidiengiadung.io.vn', // Add this hostname
+      },
+      {
+        protocol: 'https',
+        hostname: 'shop.nagakawa.com.vn', // Add this hostname
+      },
     ],
   },
 };
