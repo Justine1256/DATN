@@ -37,7 +37,7 @@ const Header = () => {
       </div>
 
       {/* Bottom Navigation Header */}
-      <div className="bg-white py-4 px-6">
+      <div className="bg-white py-4 px-6 no-">
         <div className="container mx-auto grid grid-cols-12 items-center">
           {/* Logo and Mobile Menu */}
           <div className="col-span-6 md:col-span-3 flex items-center justify-between md:justify-start">
@@ -51,20 +51,20 @@ const Header = () => {
 
           {/* Navigation Links */}
           <nav
-            className={`col-span-12 md:col-span-6 justify-start md:justify-start no-underline${ // Adjusted md:justify-center to md:justify-start
-              isMobileMenuOpen ? 'flex flex-col space-y-4 mt-4 ' : 'hidden md:flex space-x-12 ml-[0rem]'   // Increased negative margin
+            className={`col-span-12 md:col-span-6 justify-start md:justify-start no-underline${ 
+              isMobileMenuOpen ? 'flex flex-col space-y-4 mt-4 ' : 'hidden md:flex space-x-12 ml-[0rem]'  
             }`}
           >
             {navLinks.map((link) => (
-              <div key={link.href} className="relative">
-                <Link
-                  href={link.href}
-                  className="text-black transition-all duration-200 no-underline"
-                >
-                  {link.label}
-                </Link>
-                <span className="absolute left-0 bottom-[-2px] w-0 h-[2px] bg-black transition-all duration-300 group-hover:w-full" />
-              </div>
+             <div key={link.href} className="relative group"> {/* Added the 'group' class */}
+             <Link
+               href={link.href}
+               className="text-black transition-all duration-200 !no-underline"
+             >
+               {link.label}
+             </Link>
+             <span className="absolute left-0 bottom-[-2px] w-0 h-[2px] bg-black transition-all duration-300 group-hover:w-full no-underline" />
+           </div>
             ))}
           </nav>
 
