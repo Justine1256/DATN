@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { HiChevronLeft, HiChevronRight } from 'react-icons/hi'; // Import icons
 
 const categories = [
   {
@@ -12,7 +13,7 @@ const categories = [
   },
   {
     name: "Men's Fashion",
-    image: 'https://salt.tikicdn.com/cache/100x100/ts/category/ed/20/60/afa9b3b474bf7ad70f10dd6443211d5f.png.webp',
+    image: 'https://salt.tikicdn.com/cache/100x100/ts/category/75/34/29/78e428fdd90408587181005f5cc3de32.png.webp',
     href: '/mens-fashion',
   },
   {
@@ -52,21 +53,53 @@ const categories = [
   },
 ];
 
-const bannerImages = [
-  'https://img4.thuthuatphanmem.vn/uploads/2020/06/26/mau-banner-quang-cao-dien-may_033707028.jpg',
-  'https://thietbidiengiadung.io.vn/wp-content/uploads/2025/01/banner-gia-dung-4.jpg',
-  'https://shop.nagakawa.com.vn/media/news/109_banner_bai_viet.jpg',
-  'https://shop.nagakawa.com.vn/media/news/193_banner_chung_b__i_web.png',
+const banners = [
+  {
+    imageUrl: 'https://img4.thuthuatphanmem.vn/uploads/2020/06/26/mau-banner-quang-cao-dien-may_033707028.jpg',
+    link: '/banner-1-link',
+    alt: 'Banner quảng cáo điện máy 1',
+  },
+  {
+    imageUrl: 'https://thietbidiengiadung.io.vn/wp-content/uploads/2025/01/banner-gia-dung-4.jpg',
+    link: '/banner-2-link',
+    alt: 'Banner đồ gia dụng 2',
+  },
+  {
+    imageUrl: 'https://shop.nagakawa.com.vn/media/news/109_banner_bai_viet.jpg',
+    link: '/banner-3-link',
+    alt: 'Banner sản phẩm nagakawa 3',
+  },
+  {
+    imageUrl: 'https://shop.nagakawa.com.vn/media/news/193_banner_chung_b__i_web.png',
+    link: '/banner-4-link',
+    alt: 'Banner khuyến mãi nagakawa 4',
+  },
 ];
 
-const CategoryMenuWithBanner = () => {
+const CategoryMenuWithBanner = ({ headerHeight }: { headerHeight: number }) => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const bannerInterval = useRef<NodeJS.Timeout | null>(null);
-  
+
+  const [isHovering, setIsHovering] = useState(false);
+
+  const bannerRef = useRef<HTMLDivElement>(null); // Ref cho container banner
+
+  // State để kiểm soát việc hiển thị component sau khi có headerHeight
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    if (headerHeight > 0) {
+      setIsMounted(true);
+      startBannerInterval();
+    }
+    return () => {
+      clearBannerInterval();
+    };
+  }, [headerHeight, banners.length]);
 
   const startBannerInterval = () => {
     bannerInterval.current = setInterval(() => {
-      setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % bannerImages.length);
+      setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % banners.length);
     }, 3000);
   };
 
@@ -76,24 +109,25 @@ const CategoryMenuWithBanner = () => {
     }
   };
 
-  useEffect(() => {
-    startBannerInterval();
-    return clearBannerInterval;
-  }, [bannerImages.length]);
-
   const handlePrev = () => {
-    setCurrentBannerIndex((prevIndex) =>
-      prevIndex === 0 ? bannerImages.length - 1 : prevIndex - 1
-    );
+    setCurrentBannerIndex((prevIndex) => (prevIndex === 0 ? banners.length - 1 : prevIndex - 1));
     clearBannerInterval();
     startBannerInterval();
   };
 
   const handleNext = () => {
-    setCurrentBannerIndex((prevIndex) =>
-      (prevIndex + 1) % bannerImages.length
-    );
+    setCurrentBannerIndex((prevIndex) => (prevIndex + 1) % banners.length);
     clearBannerInterval();
+    startBannerInterval();
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+    clearBannerInterval();
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
     startBannerInterval();
   };
 
@@ -103,32 +137,45 @@ const CategoryMenuWithBanner = () => {
     startBannerInterval();
   };
 
+  const currentBanner = banners[currentBannerIndex];
+
+  // Nếu headerHeight chưa được truyền hoặc component chưa mount, trả về null hoặc placeholder
+  if (!isMounted) {
+    return <div className="bg-white animate-pulse h-[315px] mt-0" />; // Match banner height
+  }
+
   return (
-    <div className="bg-white mt-[${headerHeight}px]">
-      <div className="bg-gray-200 h-0.5 w-full mb-4" />
+    <div className={`bg-white mt-[${headerHeight}px] pt-6`}>
+      {/* <div className="bg-gray-200 h-0.5 w-full mb-4" /> */}
 
       <div className="container mx-auto flex items-start">
         {/* DANH MỤC BÊN TRÁI */}
-        <div className="w-64 pr-8 sticky top-0 max-h-[340px] overflow-y-auto" style={{
-          WebkitOverflowScrolling: 'touch',
-          msOverflowStyle: 'none',
-          scrollbarWidth: 'none'
-        }}>
-          <div className="bg-gray-100 p-4 rounded-md shadow-sm">
+        <div
+          className="w-80 pr-10 sticky top-5 max-h-[340px] overflow-y-auto pt-4"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            msOverflowStyle: 'none',
+            scrollbarWidth: 'none',
+          }}
+        >
+          <div className="bg-gray-100 p-2 rounded-md shadow-sm">
             <ul style={{ listStyle: 'none', padding: 0 }}>
               {categories.map((category, index) => (
                 <li
                   key={index}
                   className="mb-3 group hover:bg-gray-200 rounded-md transition-all"
                 >
-                  <Link href={category.href} className="flex items-center gap-1 p-2 cursor-pointer relative !no-underline">
+                  <Link
+                    href={category.href}
+                    className="flex items-center gap-1 p-2 cursor-pointer relative !no-underline"
+                  >
                     <Image
                       src={category.image}
                       alt={category.name}
                       width={30}
                       height={30}
                       className="rounded-full"
-                      loading="lazy" // Explicitly set lazy loading for category images
+                      loading="lazy"
                     />
                     <span className="text-black font-medium relative whitespace-nowrap">
                       {category.name}
@@ -142,68 +189,97 @@ const CategoryMenuWithBanner = () => {
         </div>
 
         {/* THANH DỌC NGĂN */}
-        <div className="w-0.5 bg-gray-200 h-full mx-4" />
+        <div className="w-0.5 bg-gray-200 h-full mx-4 mt-0"></div>
 
         {/* BANNER BÊN PHẢI */}
-        <div className="pr-8" style={{ width: '50%', maxWidth: '500px' }}>
-          <div
-            className="relative overflow-hidden rounded-md shadow"
-            style={{ aspectRatio: '1400 / 500', height: '340px', maxHeight: '50%' }}
-          >
-            {bannerImages.map((src, index) => (
-              <div
-                key={index}
-                className={`absolute top-0 left-0 w-full h-full transition-opacity duration-700 ${
-                  index === currentBannerIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                }`}
+        <div className="w-full pr-8 mt-0 pt-4" ref={bannerRef}>
+          <div className="relative overflow-hidden rounded-md shadow" style={{ height: '315px', maxHeight: '40%' }} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+            {/* BANNER */}
+            <div className="relative cursor-pointer w-full h-full" onClick={() => handleDotClick(currentBannerIndex)}>
+              <Link
+                href={currentBanner.link}
+                aria-label={currentBanner.alt}
+                className="absolute top-0 left-0 w-full h-full block"
               >
                 <Image
-                  priority={index === 0} // Prioritize the first banner image
-                  loading={index !== 0 ? 'lazy' : undefined} // Lazy load subsequent banners
-                  src={src}
-                  alt={`Banner ${index + 1}`}
+                  priority
+                  loading="eager"
+                  src={currentBanner.imageUrl}
+                  alt={currentBanner.alt}
                   fill
                   className="object-cover rounded-md"
                   style={{ objectFit: 'cover' }}
-                  // Example sizes prop (adjust based on your layout)
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 50vw"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 1200px"
                 />
-              </div>
-            ))}
-
-            {/* NÚT PREV / NEXT */}
-            <div className="absolute top-1/2 left-0 -translate-y-1/2 flex justify-between w-full px-4 z-20">
-              <button
-                onClick={handlePrev}
-                className="w-10 h-10 bg-white/50 text-gray-800 rounded-full flex items-center justify-center hover:bg-white/80 transition duration-300 focus:outline-none"
-              >
-                {'<'}
-              </button>
-              <button
-                onClick={handleNext}
-                className="w-10 h-10 bg-white/50 text-gray-800 rounded-full flex items-center justify-center hover:bg-white/80 transition duration-300 focus:outline-none"
-              >
-                {'>'}
-              </button>
+              </Link>
             </div>
 
             {/* DOTS */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
-              {bannerImages.map((_, index: number) => (
+              {Array.from({ length: banners.length }).map((_, index: number) => (
                 <button
                   key={index}
-                  className={`w-3 h-3 rounded-full ${
+                  className={`w-6 h-1 rounded-full ${
                     index === currentBannerIndex ? 'bg-red-500' : 'bg-gray-300'
                   } cursor-pointer transition-colors duration-300 focus:outline-none`}
                   onClick={() => handleDotClick(index)}
+                  aria-label={`Go to slide ${index + 1}`}
                 />
               ))}
+            </div>
+
+            {/* NÚT PREV / NEXT */}
+            <div
+              className={`absolute top-1/2 left-0 -translate-y-1/2 flex justify-between w-full px-4 z-20 transition-opacity duration-300 ${
+                isHovering ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrev();
+                }}
+                style={{
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)', // Tăng độ đậm màu nền
+                  color: '#374151',
+                }}
+                className="hover:bg-white transition duration-300 focus:outline-none" // Thay đổi hover background
+                aria-label="Previous slide"
+              >
+                <HiChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
+                style={{
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)', // Tăng độ đậm màu nền
+                  color: '#374151',
+                }}
+                className="hover:bg-white transition duration-300 focus:outline-none" // Thay đổi hover background
+                aria-label="Next slide"
+              >
+                <HiChevronRight className="w-6 h-6" />
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-gray-200 h-0.5 w-full mt-4" />
+      <div className="bg-gray-200 h-0.5 w-full mt-6" />
     </div>
   );
 };

@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import "../app/styles/globals.css";
 import Header from "./components/common/Header";
-import Banner from "./components/common/Banner";
+import CategoryMenuWithBanner from "./components/common/Banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+
 
 export const metadata: Metadata = {
   title: "Marketo",
@@ -42,19 +39,20 @@ export const metadata: Metadata = {
     
   ],
 };
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+// In your layout.tsx (or similar layout file)
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+ 
+  const headerTopHeight = 38;
+  const headerBottomHeight = 60;
+  const headerHeight = headerTopHeight + headerBottomHeight;
+  // ... other header logic ...
+
   return (
     <html lang="en">
-      
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-         <Header/>
-         <Banner/>
+      <body className={geistSans.className}>
+        <Header />
+        <CategoryMenuWithBanner headerHeight={headerHeight} /> {/* Pass headerHeight here */}
         {children}
       </body>
     </html>
