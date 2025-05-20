@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    // Lấy tất cả danh mục cha + con cấp 1
     public function index()
     {
         $categories = Category::whereNull('parent_id')->with('children')->get();
@@ -81,4 +80,9 @@ class CategoryController extends Controller
 
         return response()->json(['message' => 'Xoá danh mục thành công']);
     }
+    public function viewList()
+{
+    $categories = Category::whereNull('parent_id')->with('children')->get();
+    return view('categories.index', compact('categories'));
+}
 }
