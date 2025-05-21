@@ -11,27 +11,34 @@ class PhoneProductSeeder extends Seeder
     {
         $shopId = 2;
 
-        // Lấy ID danh mục điện thoại (thay đổi tên cho đúng)
-        $phoneCategoryId = DB::table('categories')->where('name', 'Điện Thoại')->value('id');
+        // Lấy ID danh mục cha "Đồ công nghệ"
+        $parentTechId = DB::table('categories')->where('name', 'Đồ công nghệ')->value('id');
 
-        if (!$phoneCategoryId) {
-            // Nếu chưa có danh mục điện thoại thì tạo mới
-            $phoneCategoryId = DB::table('categories')->insertGetId([
-                'name' => 'Điện Thoại',
-                'description' => 'Danh mục điện thoại',
-                'status' => 'activated',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        if (!$parentTechId) {
+            throw new \Exception('Danh mục "Đồ công nghệ" chưa được tạo. Hãy chạy CategorySeeder trước.');
         }
 
-        // Tạo danh mục con "Phụ kiện" dưới "Điện Thoại"
-        $accessoryCategoryId = DB::table('categories')->where('name', 'Phụ kiện')->where('parent_id', $phoneCategoryId)->value('id');
+        // Lấy ID danh mục con "Điện thoại" trong "Đồ công nghệ"
+        $phoneCategoryId = DB::table('categories')
+            ->where('name', 'Điện thoại')
+            ->where('parent_id', $parentTechId)
+            ->value('id');
+
+        if (!$phoneCategoryId) {
+            throw new \Exception('Danh mục "Điện thoại" con của "Đồ công nghệ" chưa tồn tại.');
+        }
+
+        // Tạo danh mục con "Phụ kiện" (con của "Điện thoại" hoặc của "Đồ công nghệ", tùy bạn chọn)
+        $accessoryCategoryId = DB::table('categories')
+            ->where('name', 'Phụ kiện điện thoại')
+            ->where('parent_id', $phoneCategoryId)
+            ->value('id');
+
         if (!$accessoryCategoryId) {
             $accessoryCategoryId = DB::table('categories')->insertGetId([
-                'name' => 'Phụ kiện',
+                'name' => 'Phụ kiện điện thoại',
                 'description' => 'Danh mục phụ kiện điện thoại gồm cáp sạc, sim,...',
-                'parent_id' => $phoneCategoryId,
+                'parent_id' => $phoneCategoryId, // hoặc dùng $parentTechId nếu muốn cùng cấp với "Điện thoại"
                 'status' => 'activated',
                 'created_at' => now(),
                 'updated_at' => now(),
