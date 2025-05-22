@@ -1,22 +1,46 @@
 <?php
 
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\UserController;
+
+// test api
+    Route::get('/user', [UserController::class, 'index']);
+
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::get('/danh-muc', [CategoryController::class, 'index']);
-Route::get('/danh-muc/{id}', [CategoryController::class, 'show']);
-Route::post('/danh-muc', [CategoryController::class, 'store']);
-Route::patch('/danh-muc/{id}', [CategoryController::class, 'update']);
-Route::delete('/danh-muc/{id}', [CategoryController::class, 'delete']);
+Route::get('/category', [CategoryController::class, 'index']);
+Route::get('/category/{id}', [CategoryController::class, 'show']);
+Route::post('/category', [CategoryController::class, 'store']);
+Route::patch('/category/{id}', [CategoryController::class, 'update']);
+Route::delete('/category/{id}', [CategoryController::class, 'delete']);
 
-Route::get('/san-pham', [ProductController::class, 'index']);
-Route::get('/san-pham/{id}', [ProductController::class, 'show']);
-Route::post('/san-pham', [ProductController::class, 'store']);
-Route::patch('/san-pham/{id}', [ProductController::class, 'update']);
-Route::delete('/san-pham/{id}', [ProductController::class, 'delete']);
+Route::get('/product', [ProductController::class, 'index']);
+Route::get('/product/{slug}', [ProductController::class, 'show']);
+Route::post('/product', [ProductController::class, 'store']);
+Route::patch('/product/{id}', [ProductController::class, 'update']);
+Route::delete('/product/{id}', [ProductController::class, 'delete']);
+
+Route::post('/register', [UserController::class, 'register']);
+Route::post('/login', [UserController::class, 'login']);
+    Route::get('/user/{id}', [UserController::class, 'show']);
+    Route::put('/user/{id}', [UserController::class, 'update']);
+    Route::delete('/user/{id}', [UserController::class, 'destroy']);
+
+Route::middleware('auth')->group(function () {
+
+
+
+
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::post('/cart', [CartController::class, 'store']);
+    Route::patch('/cart/{id}', [CartController::class, 'update']);
+    Route::delete('/cart/{id}', [CartController::class, 'destroy']);
+});
