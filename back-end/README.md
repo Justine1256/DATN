@@ -22,12 +22,14 @@ Tạo bảng trong database theo các file migration.
 
 Nếu muốn reset và làm lại từ đầu:
 php artisan migrate:fresh
+
 5. Seed dữ liệu mẫu (nếu có)
 php artisan db:seed
 Chèn dữ liệu mẫu vào database, theo các Seeder đã viết.
 
 Hoặc seed từng class cụ thể:
 php artisan db:seed --class=UserSeeder
+
 6. (Tùy chọn) Chạy server local
 php artisan serve
 Khởi động server PHP tích hợp để test app tại địa chỉ http://localhost:8000
