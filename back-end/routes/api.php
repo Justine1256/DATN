@@ -23,6 +23,8 @@ Route::delete('/category/{id}', [CategoryController::class, 'delete']);
 
 Route::get('/product', [ProductController::class, 'index']);
 Route::get('/product/{slug}', [ProductController::class, 'show']);
+Route::get('/bestSellingProducts', [ProductController::class, 'bestSellingProducts']);
+Route::get('/topDiscountedProducts', [ProductController::class, 'topDiscountedProducts']);
 Route::post('/product', [ProductController::class, 'store']);
 Route::patch('/product/{id}', [ProductController::class, 'update']);
 Route::delete('/product/{id}', [ProductController::class, 'delete']);
