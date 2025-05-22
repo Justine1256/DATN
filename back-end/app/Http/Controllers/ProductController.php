@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Str;
 class ProductController extends Controller
 {
     // Danh sách sản phẩm
@@ -24,6 +24,8 @@ class ProductController extends Controller
     }
 
     // Tạo mới sản phẩm
+
+
 public function store(Request $request)
 {
     $validated = $request->validate([
@@ -32,7 +34,7 @@ public function store(Request $request)
         'name' => 'required|string|max:255',
         'description' => 'nullable|string',
         'price' => 'required|numeric|min:0',
-        'sale_price' => 'nullable|numeric|min:0|lt:price', // sale_price < price
+        'sale_price' => 'nullable|numeric|min:0|lt:price',
         'stock' => 'nullable|integer|min:0',
         'sold' => 'nullable|integer|min:0',
         'image' => 'nullable|string|max:255',
@@ -47,6 +49,19 @@ public function store(Request $request)
         'shop_id.exists' => 'Cửa hàng không hợp lệ.',
     ]);
 
+    // Tạo slug từ name
+    $baseSlug = Str::slug($validated['name']);
+    $slug = $baseSlug;
+    $shopId = $validated['shop_id'];
+    $count = 1;
+
+    // Kiểm tra trùng slug trong cùng 1 shop
+    while (Product::where('shop_id', $shopId)->where('slug', $slug)->exists()) {
+        $slug = $baseSlug . '-' . $count++;
+    }
+
+    $validated['slug'] = $slug;
+
     $product = Product::create($validated);
 
     return response()->json([
@@ -54,6 +69,7 @@ public function store(Request $request)
         'product' => $product
     ], 201);
 }
+
 
 
     // Cập nhật sản phẩm
@@ -152,4 +168,19 @@ public function update(Request $request, $id)
             'products' => $products
         ]);
     }
+    public function newProducts(Request $request)
+{
+    $limit = $request->input('limit', 10);
+
+    $products = Product::where('status', 'activated')
+        ->orderBy('created_at', 'desc')
+        ->take($limit)
+        ->get();
+
+    return response()->json([
+        'message' => 'Danh sách sản phẩm mới nhất',
+        'products' => $products
+    ]);
+}
+
 }

@@ -1,6 +1,6 @@
 <?php
 
-
+use App\Http\Controllers\AIController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CategoryController;
@@ -12,7 +12,7 @@ use App\Http\Controllers\UserController;
     Route::get('/userall', [UserController::class, 'index']);
 
 
-
+Route::post('/check-content', [AIController::class, 'check']);
 
 
 Route::get('/category', [CategoryController::class, 'index']);
@@ -25,6 +25,7 @@ Route::get('/product', [ProductController::class, 'index']);
 Route::get('/product/{slug}', [ProductController::class, 'show']);
 Route::get('/bestSellingProducts', [ProductController::class, 'bestSellingProducts']);
 Route::get('/topDiscountedProducts', [ProductController::class, 'topDiscountedProducts']);
+Route::get('/newProducts', [ProductController::class, 'newProducts']);
 Route::post('/product', [ProductController::class, 'store']);
 Route::patch('/product/{id}', [ProductController::class, 'update']);
 Route::delete('/product/{id}', [ProductController::class, 'delete']);
