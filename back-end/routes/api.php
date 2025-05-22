@@ -9,12 +9,11 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\UserController;
 
 // test api
-    Route::get('/user', [UserController::class, 'index']);
+    Route::get('/userall', [UserController::class, 'index']);
 
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+
+
 
 Route::get('/category', [CategoryController::class, 'index']);
 Route::get('/category/{id}', [CategoryController::class, 'show']);
@@ -30,14 +29,11 @@ Route::delete('/product/{id}', [ProductController::class, 'delete']);
 
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
-    Route::get('/user/{id}', [UserController::class, 'show']);
-    Route::put('/user/{id}', [UserController::class, 'update']);
-    Route::delete('/user/{id}', [UserController::class, 'destroy']);
 
-Route::middleware('auth')->group(function () {
-
-
-
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [UserController::class, 'show']);
+    Route::put('/user', [UserController::class, 'update']);
+    Route::delete('/user', [UserController::class, 'destroy']);
 
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'store']);
