@@ -78,3 +78,6 @@ Chứa các file CSS để định стилизация cho ứng dụng.
 ---
 
 Đây là cấu trúc thư mục được tổ chức để giúp quản lý một trang web thương mại điện tử xây dựng bằng Next.js. Nó tách biệt rõ ràng các routes, layouts, components, hooks, utilities và styles, giúp dự án dễ bảo trì và mở rộng hơn.
+
+
+// ✅ ĐÃ XONG api crud sản phẩm, danh mục, top 10 sp bán chạy, top 10 sp giảm nhiều, đăng nhập đăng ký, crud user, crud giỏ hàng
