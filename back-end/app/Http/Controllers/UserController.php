@@ -60,42 +60,33 @@ public function show()
     return response()->json($user);
 }
 
-    public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:100',
-            'username' => 'required|string|max:50|unique:users,username',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|string|max:20|unique:users,phone',
-            'password' => 'required|string|min:6',
-        ]);
+public function register(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'name' => 'required|string|max:100',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|string|min:6',
+        'phone' => 'required|string|max:20|unique:users,phone',
+        'username' => 'required|string|max:50|unique:users,username',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
-        }
-
-        $user = User::create([
-            'name' => $request->name,
-            'username' => $request->username,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'verify_token' => Str::random(100)
-        ]);
-
-        $userId = base64_encode($user->id);
-        $url = url('/verify/' . $userId . '/' . urlencode($user->verify_token));
-
-        try {
-            Mail::send('emails.verify', ['user' => $user, 'url' => $url], function ($message) use ($user) {
-                $message->to($user->email)->subject('Xác minh email của bạn');
-            });
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Không thể gửi email xác nhận: ' . $e->getMessage()], 500);
-        }
-
-        return response()->json(['message' => 'Đăng ký thành công! Kiểm tra email để xác nhận.', 'user' => $user], 201);
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 400);
     }
+
+    $user = User::create([
+        'name' => $request->name,
+        'username' => $request->username,
+        'email' => $request->email,
+        'phone' => $request->phone,
+        'password' => Hash::make($request->password),
+    ]);
+
+    return response()->json([
+        'message' => 'Đăng ký thành công!',
+        'user' => $user
+    ], 201);
+}
 
 
 public function update(Request $request)
