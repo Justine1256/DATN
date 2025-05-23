@@ -9,11 +9,12 @@ export default function SignupForm() {
     email: '',
     phone: '',
     password: '',
-    otp: '',
   });
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -27,19 +28,34 @@ export default function SignupForm() {
     try {
       const response = await axios.post('http://localhost:8000/api/register', {
         name: formData.name,
-        username: formData.email.split('@')[0], // tạo username từ email
+        username: formData.email.split('@')[0],
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
       });
 
       setMessage(response.data.message);
+      setShowOtpModal(true);
     } catch (err: any) {
       if (err.response?.data?.errors) {
         setError(JSON.stringify(err.response.data.errors));
       } else {
         setError('Đăng ký thất bại. Vui lòng thử lại.');
       }
+    }
+  };
+
+  const verifyOtp = async () => {
+    try {
+      const response = await axios.post('http://localhost:8000/api/verify-otp', {
+        email: formData.email,
+        otp: otpCode,
+      });
+      setMessage(response.data.message);
+      setShowOtpModal(false);
+      window.location.href = '/login';
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Xác minh OTP thất bại.');
     }
   };
 
@@ -80,13 +96,6 @@ export default function SignupForm() {
           onChange={handleChange}
           className="w-full border-b p-2 mt-2 focus:outline-none text-black placeholder-gray-400"
         />
-        <input
-          type="text"
-          name="otp"
-          placeholder="OTP"
-          onChange={handleChange}
-          className="w-full border-none p-2 mt-2 focus:outline-none text-black placeholder-gray-400"
-        />
         <button
           type="submit"
           className="w-full bg-[#DB4444] mt-3 hover:opacity-75 text-white py-2 rounded"
@@ -107,11 +116,32 @@ export default function SignupForm() {
       </button>
 
       <p className="text-center mt-6 text-sm text-black">
-        Already have an account?{" "}
+        Already have an account?{' '}
         <a href="/login" className="underline hover:text-blue-600">
           Log in
         </a>
       </p>
+
+      {showOtpModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h3 className="text-lg font-bold mb-4">Nhập mã OTP</h3>
+            <input
+              type="text"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value)}
+              className="w-full border p-2 mb-4"
+              placeholder="OTP"
+            />
+            <button
+              onClick={verifyOtp}
+              className="w-full bg-[#DB4444] text-white py-2 rounded hover:opacity-75"
+            >
+              Xác minh
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
