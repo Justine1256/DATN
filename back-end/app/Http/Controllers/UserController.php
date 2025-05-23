@@ -65,14 +65,16 @@ public function register(Request $request)
     $validator = Validator::make($request->all(), [
         'name' => 'required|string|max:100',
         'email' => 'required|email|unique:users,email',
-        'password' => 'required|string|min:6',
         'phone' => 'required|string|max:20|unique:users,phone',
         'username' => 'required|string|max:50|unique:users,username',
+        'password' => 'required|string|min:6',
     ]);
 
     if ($validator->fails()) {
         return response()->json(['errors' => $validator->errors()], 400);
     }
+
+    $otp = rand(100000, 999999);
 
     $user = User::create([
         'name' => $request->name,
@@ -80,12 +82,47 @@ public function register(Request $request)
         'email' => $request->email,
         'phone' => $request->phone,
         'password' => Hash::make($request->password),
+        'verify_token' => $otp,
+        'status' => 'deactivated',
     ]);
 
-    return response()->json([
-        'message' => 'Đăng ký thành công!',
-        'user' => $user
-    ], 201);
+    // Gửi OTP qua email
+    try {
+        Mail::raw("Mã xác minh OTP của bạn là: $otp", function ($message) use ($user) {
+            $message->to($user->email)->subject('Xác minh OTP');
+        });
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Không thể gửi email: ' . $e->getMessage()], 500);
+    }
+
+    return response()->json(['message' => 'Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP.']);
+}
+
+public function verifyOtp(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email',
+        'otp' => 'required|numeric|digits:6',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 400);
+    }
+
+    $user = User::where('email', $request->email)
+                ->where('verify_token', $request->otp)
+                ->first();
+
+    if (!$user) {
+        return response()->json(['error' => 'Mã OTP không chính xác.'], 400);
+    }
+
+    $user->status = 'activated';
+    $user->verify_token = null; // Xoá OTP sau khi xác minh
+    $user->email_verified_at = now();
+    $user->save();
+
+    return response()->json(['message' => 'Xác minh OTP thành công! Tài khoản đã được kích hoạt.']);
 }
 
 
