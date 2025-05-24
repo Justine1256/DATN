@@ -31,5 +31,5 @@ Hoặc seed từng class cụ thể:
 php artisan db:seed --class=UserSeeder
 
 6. (Tùy chọn) Chạy server local
-   php artisan server
+   php artisan serve
    Khởi động server PHP tích hợp để test app tại địa chỉ http://localhost:8000
