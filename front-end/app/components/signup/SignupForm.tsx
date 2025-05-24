@@ -60,7 +60,7 @@ export default function SignupForm() {
   };
 
   return (
-    <div className="w-full p-4 text-black">
+    <div className="w-[370px] max-w-md mx-auto text-black">
       <h2 className="text-2xl font-semibold mb-1">Create an account</h2>
       <p className="text-black mb-6">Enter your details below</p>
 

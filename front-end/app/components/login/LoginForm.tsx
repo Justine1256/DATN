@@ -46,7 +46,7 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-4 text-black">
+    <div className="w-[370px] max-w-md mx-auto text-black">
       <h2 className="text-2xl font-semibold mb-1">Log in to Exclusive</h2>
       <p className="text-black mb-6">Enter your details below</p>
 

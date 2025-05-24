@@ -14,7 +14,7 @@ export default function LoginPage() {
 
       {/* Right Form Section */}
       <div className="w-full md:w-1/2 flex items-center justify-center bg-white px-4">
-        <div className="w-full max-w-md p-8">
+        <div className="w-full max-w-full p-8">
           <LoginForm />
         </div>
       </div>
