@@ -19,15 +19,31 @@ class CartController extends Controller
     {
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
-            'quantity'   => 'required|integer|min:1',
+            'quantity'   => 'nullable|integer|min:1',
         ]);
 
-        $cart = Cart::create([
-            'user_id'    => Auth::id(),
-            'product_id' => $validated['product_id'],
-            'quantity'   => $validated['quantity'],
-            'is_active'  => true,
-        ]);
+        $userId = Auth::id();
+        $quantity = $validated['quantity'] ?? 1;
+
+        // Tìm sản phẩm trong giỏ đang active
+        $cart = Cart::where('user_id', $userId)
+            ->where('product_id', $validated['product_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if ($cart) {
+            // Tăng số lượng
+            $cart->quantity += $quantity;
+            $cart->save();
+        } else {
+            // Tạo mới
+            $cart = Cart::create([
+                'user_id'    => $userId,
+                'product_id' => $validated['product_id'],
+                'quantity'   => $quantity,
+                'is_active'  => true,
+            ]);
+        }
 
         return response()->json($cart, 201);
     }
@@ -41,10 +57,33 @@ class CartController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
+        if (isset($validated['quantity'])) {
+            // Kiểm tra tồn kho
+            $product = $cart->product;
+            if ($validated['quantity'] > $product->stock) {  // Giả sử cột tồn kho là stock
+                return response()->json([
+                    'message' => 'Số lượng vượt quá tồn kho (' . $product->stock . ')'
+                ], 400);
+            }
+        }
+
         $cart->update($validated);
 
         return response()->json($cart);
     }
+    public function getTotal()
+    {
+        $userId = Auth::id();
+        $carts = Cart::with('product')->where('user_id', $userId)->where('is_active', true)->get();
+
+        $total = 0;
+        foreach ($carts as $cart) {
+            $total += $cart->quantity * $cart->product->price;
+        }
+
+        return response()->json(['total' => $total]);
+    }
+
 
     public function destroy($id)
     {
