@@ -12,6 +12,7 @@ export default function LoginForm() {
   });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // New loading state
   const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,6 +23,7 @@ export default function LoginForm() {
     e.preventDefault();
     setError('');
     setMessage('');
+    setIsLoading(true); // Set loading to true when submission starts
 
     try {
       const response = await axios.post('http://localhost:8000/api/login', {
@@ -34,7 +36,7 @@ export default function LoginForm() {
       Cookies.set('authToken', token, { expires: 7 });
 
       setMessage('Đăng nhập thành công!');
-      // router.push('/');
+      router.push('/'); // Uncommented for actual redirection
 
     } catch (err: any) {
       if (err.response?.data?.error) {
@@ -42,12 +44,14 @@ export default function LoginForm() {
       } else {
         setError('Đăng nhập thất bại. Vui lòng thử lại.');
       }
+    } finally {
+      setIsLoading(false); // Set loading to false when submission finishes (success or error)
     }
   };
 
   return (
     <div className="w-full max-w-md mx-auto p-4 text-black">
-      <h2 className="text-2xl font-semibold mb-1">Log in to Exclusive</h2>
+      <h2 className="text-2xl font-semibold mb-1">Log in to MAKETO</h2>
       <p className="text-black mb-6">Enter your details below</p>
 
       {message && <p className="text-green-600 mb-4">{message}</p>}
@@ -60,6 +64,7 @@ export default function LoginForm() {
           placeholder="Email or Phone Number"
           onChange={handleChange}
           className="w-full border-b p-2 mt-2 focus:outline-none text-black placeholder-gray-400"
+          disabled={isLoading} // Disable input while loading
         />
         <input
           type="password"
@@ -67,14 +72,16 @@ export default function LoginForm() {
           placeholder="Password"
           onChange={handleChange}
           className="w-full border-b p-2 mt-2 focus:outline-none text-black placeholder-gray-400"
+          disabled={isLoading} // Disable input while loading
         />
 
         <div className="flex items-center justify-between h-[56px] mt-4">
           <button
             type="submit"
-            className="bg-[#DB4444] text-white w-[143px] h-full rounded hover:opacity-75"
+            className="bg-[#DB4444] text-white w-[120px] h-full rounded hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed" // Added disabled styles
+            disabled={isLoading} // Disable button while loading
           >
-            Log In
+            {isLoading ? 'Đang đăng nhập...' : 'Log In'} {/* Change button text/add spinner */}
           </button>
           <a
             href="/forgot-password"
