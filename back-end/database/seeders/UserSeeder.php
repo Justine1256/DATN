@@ -41,6 +41,21 @@ DB::table('users')->insert([
         'created_at' => now(),
         'updated_at' => now(),
     ],
+        [
+        'name' => 'baomuado',
+        'username' => 'baomuado',
+        'password' => Hash::make('123456799'),
+        'avatar' => null,
+        'email' => 'baotruong1082003@gmail.com',
+        'phone' => '0987654322',
+        'role' => 'user',
+        // 'rank' cũng không cần thiết ở đây
+        'status' => 'activated',
+        'email_verified_at' => now(),
+        'remember_token' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ],
 ]);
 
 

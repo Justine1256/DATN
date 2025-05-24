@@ -50,4 +50,8 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function getAvatarAttribute($value)
+    {
+        return $value ?? 'uploads/users/default-avatar.png';
+    }
 }

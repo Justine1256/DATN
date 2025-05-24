@@ -7,6 +7,8 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ShopController;
+
 
 // test api
     Route::get('/userall', [UserController::class, 'index']);
@@ -35,12 +37,19 @@ Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
 Route::post('/login', [UserController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    // User
     Route::get('/user', [UserController::class, 'show']);
     Route::put('/user', [UserController::class, 'update']);
     Route::delete('/user', [UserController::class, 'destroy']);
 
+    // Cart
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'store']);
     Route::patch('/cart/{id}', [CartController::class, 'update']);
     Route::delete('/cart/{id}', [CartController::class, 'destroy']);
+
+    // Shop
+    Route::post('/shopregister', [ShopController::class, 'sendOtp']);
+    Route::post('/shopotp', [ShopController::class, 'confirmOtp']);
+    Route::post('/shopexit', [ShopController::class, 'exitShop']);
 });
