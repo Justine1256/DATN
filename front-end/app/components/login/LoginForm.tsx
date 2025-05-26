@@ -12,7 +12,9 @@ export default function LoginForm() {
   });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // New loading state
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false); // ✅ Popup state
+
   const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,7 +25,7 @@ export default function LoginForm() {
     e.preventDefault();
     setError('');
     setMessage('');
-    setIsLoading(true); // Set loading to true when submission starts
+    setIsLoading(true);
 
     try {
       const response = await axios.post('http://localhost:8000/api/login', {
@@ -32,12 +34,13 @@ export default function LoginForm() {
       });
 
       const { token } = response.data;
-
       Cookies.set('authToken', token, { expires: 7 });
 
-      setMessage('Đăng nhập thành công!');
-      router.push('/'); // Uncommented for actual redirection
-
+      // ✅ Hiện popup và chờ chuyển trang
+      setShowSuccessPopup(true);
+      setTimeout(() => {
+        router.push('/');
+      }, 2000);
     } catch (err: any) {
       if (err.response?.data?.error) {
         setError(err.response.data.error);
@@ -45,13 +48,13 @@ export default function LoginForm() {
         setError('Đăng nhập thất bại. Vui lòng thử lại.');
       }
     } finally {
-      setIsLoading(false); // Set loading to false when submission finishes (success or error)
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-[370px] max-w-md mx-auto text-black">
-      <h2 className="text-2xl font-semibold mb-1">Log in to Exclusive</h2>
+    <div className="w-[370px] max-w-md mx-auto text-black relative">
+      <h2 className="text-2xl font-semibold mb-1">Log in to MAKETO</h2>
       <p className="text-black mb-6">Enter your details below</p>
 
       {message && <p className="text-green-600 mb-4">{message}</p>}
@@ -64,7 +67,7 @@ export default function LoginForm() {
           placeholder="Email or Phone Number"
           onChange={handleChange}
           className="w-full border-b p-2 mt-2 focus:outline-none text-black placeholder-gray-400"
-          disabled={isLoading} // Disable input while loading
+          disabled={isLoading}
         />
         <input
           type="password"
@@ -72,16 +75,16 @@ export default function LoginForm() {
           placeholder="Password"
           onChange={handleChange}
           className="w-full border-b p-2 mt-2 focus:outline-none text-black placeholder-gray-400"
-          disabled={isLoading} // Disable input while loading
+          disabled={isLoading}
         />
 
         <div className="flex items-center justify-between h-[56px] mt-4">
           <button
             type="submit"
-            className="bg-[#DB4444] text-white w-[120px] h-full rounded hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed" // Added disabled styles
-            disabled={isLoading} // Disable button while loading
+            className="bg-[#DB4444] text-white w-[120px] h-full rounded hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
           >
-            {isLoading ? 'Đang đăng nhập...' : 'Log In'} {/* Change button text/add spinner */}
+            {isLoading ? 'Đang đăng nhập...' : 'Log In'}
           </button>
           <a
             href="/forgot-password"
@@ -91,6 +94,22 @@ export default function LoginForm() {
           </a>
         </div>
       </form>
+
+      {/* ✅ Success popup */}
+      {showSuccessPopup && (
+        <div className="fixed top-5 right-5 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 z-50">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6 text-green-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <span>Đăng nhập thành công!</span>
+        </div>
+      )}
     </div>
   );
 }
