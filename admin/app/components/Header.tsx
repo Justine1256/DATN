@@ -68,7 +68,7 @@ export default function Header() {
               isOpen ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"
             } absolute right-0 mt-2 w-56 bg-white text-black rounded shadow-lg border p-2 text-sm z-50`}
           >
-            <div className="px-3 py-2 font-semibold border-b">Welcome Gaston!</div>
+            <div className="px-3 py-2 font-semibold border-b">Welcome Văn Nhật!</div>
             <div className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 cursor-pointer">
               <FaUser /> Profile
             </div>
