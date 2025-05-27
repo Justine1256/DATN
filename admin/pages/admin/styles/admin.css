@@ -1,6 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import "tailwindcss";
+// app/layout.tsx
+@import "bootstrap/dist/css/bootstrap.min.css";
 
 :root {
   --background: #ffffff;
