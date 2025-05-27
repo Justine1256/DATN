@@ -1,6 +1,7 @@
 import CategoryMenuWithBanner from "@/app/components/common/Banner";
 import Header from "@/app/components/common/Header";
 import { Geist } from "next/font/google";
+import FlashSaleSection from "@/app/components/home/FlashSaleSection";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,7 +19,17 @@ export default function HomeLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <CategoryMenuWithBanner headerHeight={headerHeight} />
         {children}
+        <div className="bg-white">
+        <div className="container mx-auto min-h-screen bg-white">
+      <FlashSaleSection />
+    </div>
+    </div>
       </body>
     </html>
   );
 }
+// pages/index.tsx
+
+
+
+
