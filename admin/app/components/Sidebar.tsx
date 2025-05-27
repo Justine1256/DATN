@@ -1,8 +1,8 @@
+// components/Sidebar.tsx
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import Image from "next/image";
 import {
   FaTshirt,
   FaChevronDown,
@@ -60,24 +60,10 @@ export default function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 w-64 h-screen bg-white border-r p-4 overflow-y-auto">
       {/* Logo */}
-      <div className="mb-6">
-     
-
-<Link href="/" prefetch>
-  <Image
-    src="/red-logo.svg"
-    alt="Venton Logo"
-    width={40}
-    height={40}
-    className="mx-auto"
-    priority
-  />
-</Link>
-
-      </div>
+      <div className="text-2xl font-bold mb-4">Venton</div>
 
       {/* Section title */}
-      <p className="text-xs font-semibold text-gray-500 uppercase mb-3 px-3">Overview</p>
+      <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Overview</p>
 
       <ul className="space-y-1">
         {menu.map((item) => (
@@ -86,9 +72,9 @@ export default function Sidebar() {
               <div>
                 <button
                   onClick={() => setOpen(open === item.label ? null : item.label)}
-                  className="flex justify-between items-center w-full px-3 py-2 rounded hover:bg-gray-100 text-gray-700 text-sm transition-colors"
+                  className="flex justify-between items-center w-full px-3 py-2 rounded hover:bg-gray-100 text-gray-700 text-sm transition-all"
                 >
-                  <span className="flex items-center">{item.icon} {item.label}</span>
+                  <span className="flex items-center">{item.icon}{item.label}</span>
                   {open === item.label ? (
                     <FaChevronUp className="text-xs" />
                   ) : (
@@ -101,9 +87,8 @@ export default function Sidebar() {
                       <li key={sub.href}>
                         <Link
                           href={sub.href}
-                          prefetch
-                          className={`block px-3 py-2 rounded hover:bg-gray-100 text-sm transition-colors ${
-                            pathname === sub.href ? "bg-gray-100 text-blue-600 font-medium" : "text-gray-700"
+                          className={`block px-3 py-2 rounded hover:bg-gray-100 text-sm transition-all ${
+                            pathname === sub.href ? "bg-gray-100 text-blue-600" : "text-gray-700"
                           }`}
                         >
                           {sub.label}
@@ -116,8 +101,7 @@ export default function Sidebar() {
             ) : (
               <Link
                 href={item.href || "#"}
-                prefetch
-                className={`flex items-center px-3 py-2 rounded hover:bg-gray-100 text-sm font-medium transition-colors ${
+                className={`flex items-center px-3 py-2 rounded hover:bg-gray-100 text-sm font-medium transition-all ${
                   pathname === item.href ? "bg-gray-100 text-blue-600" : "text-gray-700"
                 }`}
               >

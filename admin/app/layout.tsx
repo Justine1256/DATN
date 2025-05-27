@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
-import Head from "next/head";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,10 +26,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} bg-white`}>
-      <head>
-        <link rel="icon" href="/favicon.ico" />
-       
-      </head>
       <body className="bg-gray-100 text-gray-900 font-sans antialiased">
         <Sidebar />
         <div className="ml-64 flex-1 flex flex-col min-h-screen">
