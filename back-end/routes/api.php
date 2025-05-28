@@ -28,9 +28,14 @@ Route::get('/product/{slug}', [ProductController::class, 'show']);
 Route::get('/bestSellingProducts', [ProductController::class, 'bestSellingProducts']);
 Route::get('/topDiscountedProducts', [ProductController::class, 'topDiscountedProducts']);
 Route::get('/newProducts', [ProductController::class, 'newProducts']);
+
+
 Route::post('/product', [ProductController::class, 'store']);
 Route::patch('/product/{id}', [ProductController::class, 'update']);
 Route::delete('/product/{id}', [ProductController::class, 'delete']);
+
+
+
 
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
@@ -53,4 +58,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shopregister', [ShopController::class, 'sendOtp']);
     Route::post('/shopotp', [ShopController::class, 'confirmOtp']);
     Route::post('/shopexit', [ShopController::class, 'exitShop']);
+    // shop management
+    Route::get('/showShopProducts', [ProductController::class, 'showShopProducts']);
+    Route::post('/product/shop', [ProductController::class, 'addProductByShop']);
+    Route::patch('/product/shop', [ProductController::class, 'updProductByShop']);
+    Route::delete('/product/shop', [ProductController::class, 'delProductByShop']);
 });
