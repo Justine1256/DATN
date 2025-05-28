@@ -54,4 +54,9 @@ class User extends Authenticatable
     {
         return $value ?? 'uploads/users/default-avatar.png';
     }
+    public function shop()
+{
+    return $this->hasOne(Shop::class);
+}
+
 }

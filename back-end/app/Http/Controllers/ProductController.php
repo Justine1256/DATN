@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 class ProductController extends Controller
 {
@@ -181,6 +182,84 @@ public function update(Request $request, $id)
         'message' => 'Danh sách sản phẩm mới nhất',
         'products' => $products
     ]);
+}
+
+public function showShopProducts(Request $request)
+{
+    $user = $request->user();
+
+    if (!$user || !$user->shop) {
+        return response()->json(['error' => 'User chưa có shop.'], 403);
+    }
+
+    $shopId = $user->shop->id;
+
+    $perPage = $request->query('per_page', 10);
+
+    $products = Product::where('shop_id', $shopId)
+        ->where('status', 'activated')
+        ->with('category')
+        ->orderBy('created_at', 'desc')
+        ->paginate($perPage); // <-- paginate thay vì get
+
+    return response()->json([
+        'shop_id' => $shopId,
+        'products' => $products
+    ]);
+}
+
+public function addProductByShop(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'category_id' => 'required|exists:categories,id',
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'price' => 'required|numeric|min:0',
+        'sale_price' => 'nullable|numeric|min:0|lte:price',
+        'stock' => 'nullable|integer|min:0',
+        'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        'option1' => 'nullable|string|max:255',
+        'value1' => 'nullable|string|max:255',
+        'option2' => 'nullable|string|max:255',
+        'value2' => 'nullable|string|max:255',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+    }
+
+    $user = $request->user();
+
+    if (!$user || !$user->shop) {
+        return response()->json(['status' => false, 'message' => 'Người dùng chưa có shop.'], 403);
+    }
+
+    $imagePath = null;
+    if ($request->hasFile('image')) {
+        $imagePath = $request->file('image')->store('products', 'public');
+    }
+
+    $product = Product::create([
+        'shop_id' => $user->shop->id,
+        'category_id' => $request->category_id,
+        'name' => $request->name,
+        'description' => $request->description,
+        'price' => $request->price,
+        'sale_price' => $request->sale_price,
+        'stock' => $request->stock ?? 0,
+        'image' => $imagePath,
+        'option1' => $request->option1,
+        'value1' => $request->value1,
+        'option2' => $request->option2,
+        'value2' => $request->value2,
+        'status' => 'activated',
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Sản phẩm đã được thêm thành công.',
+        'data' => $product
+    ], 201);
 }
 
 }

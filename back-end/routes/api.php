@@ -15,7 +15,7 @@ use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
 
 // test api
-    Route::get('/userall', [UserController::class, 'index']);
+Route::get('/userall', [UserController::class, 'index']);
 
 
 Route::post('/check-content', [AIController::class, 'check']);
@@ -32,9 +32,14 @@ Route::get('/product/{slug}', [ProductController::class, 'show']);
 Route::get('/bestSellingProducts', [ProductController::class, 'bestSellingProducts']);
 Route::get('/topDiscountedProducts', [ProductController::class, 'topDiscountedProducts']);
 Route::get('/newProducts', [ProductController::class, 'newProducts']);
+
+
 Route::post('/product', [ProductController::class, 'store']);
 Route::patch('/product/{id}', [ProductController::class, 'update']);
 Route::delete('/product/{id}', [ProductController::class, 'delete']);
+
+
+
 
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
@@ -71,4 +76,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/voucher', [VoucherController::class, 'apply']);
     Route::post('/voucher-users', [VoucherUserController::class, 'assignToUser']);
     Route::post('/voucher-categories', [VoucherCategoryController::class, 'assignToCategory']);
+    // shop management
+    Route::get('/showShopProducts', [ProductController::class, 'showShopProducts']);
+    Route::post('/product/shop', [ProductController::class, 'addProductByShop']);
+    Route::patch('/product/shop', [ProductController::class, 'updProductByShop']);
+    Route::delete('/product/shop', [ProductController::class, 'delProductByShop']);
 });
