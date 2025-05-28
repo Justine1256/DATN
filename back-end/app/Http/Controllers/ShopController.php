@@ -34,41 +34,46 @@ class ShopController extends Controller
         ], 200);
     }
     public function sendOtp(Request $request)
-    {
-        $user = Auth::user();
+{
+    $user = Auth::user();
 
-        if ($user->shop) {
-            return response()->json(['error' => 'Bạn đã có shop rồi!'], 400);
-        }
+    if ($user->shop) {
+        return response()->json(['error' => 'Bạn đã có shop rồi!'], 400);
+    }
 
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:100|unique:shops,name',
-            'description' => 'required|string|max:255',
-            'phone' => ['required', 'regex:/^0\d{9,19}$/'],
-            'email' => 'required|email|max:100',
-        ]);
+    $validator = Validator::make($request->all(), [
+        'name' => 'required|string|max:100|unique:shops,name',
+        'description' => 'required|string|max:255',
+        'phone' => ['required', 'regex:/^0\d{9,19}$/'],
+        'email' => 'required|email|max:100|unique:shops,email', // ✅ Đảm bảo email duy nhất
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
 
-        $otp = rand(100000, 999999);
+    $otp = rand(100000, 999999);
 
-        // Lưu thông tin tạm vào cache trong 10 phút
-        Cache::put('shop_otp_' . $user->id, [
-            'otp' => $otp,
-            'data' => $request->only(['name', 'description', 'phone', 'email']),
-        ], now()->addMinutes(10));
+    // Lưu thông tin tạm vào cache trong 10 phút
+    Cache::put('shop_otp_' . $user->id, [
+        'otp' => $otp,
+        'data' => $request->only(['name', 'description', 'phone', 'email']),
+    ], now()->addMinutes(10));
 
-        // Gửi email chứa OTP
+    // Gửi email chứa OTP với xử lý lỗi
+    try {
         Mail::raw("Mã OTP xác thực tạo shop của bạn là: $otp", function ($message) use ($request) {
             $message->to($request->email)->subject('Xác thực OTP tạo Shop');
         });
-
-        return response()->json([
-            'message' => 'Mã OTP đã được gửi đến email của bạn. Vui lòng nhập mã để xác nhận.'
-        ]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Không thể gửi email OTP. Vui lòng thử lại sau.'], 500);
     }
+
+    return response()->json([
+        'message' => 'Mã OTP đã được gửi đến email của bạn. Vui lòng nhập mã để xác nhận.'
+    ]);
+}
+
 
     public function confirmOtp(Request $request)
     {
