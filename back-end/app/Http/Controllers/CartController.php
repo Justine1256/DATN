@@ -16,34 +16,45 @@ class CartController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'quantity'   => 'nullable|integer|min:1',
-        ]);
+{
+    $validated = $request->validate([
+        'product_id' => 'required|exists:products,id',
+        'quantity'   => 'nullable|integer|min:1',
+    ]);
 
-        $userId = Auth::id();
-        $quantity = $validated['quantity'] ?? 1;
+    $userId = Auth::id();
+    $quantity = $validated['quantity'] ?? 1;
 
-        $cart = Cart::where('user_id', $userId)
-            ->where('product_id', $validated['product_id'])
-            ->where('is_active', true)
-            ->first();
+    // Kiểm tra sản phẩm có status = 'activated' hay không
+    $product = \App\Models\Product::where('id', $validated['product_id'])
+        ->where('status', 'activated')
+        ->first();
 
-        if ($cart) {
-            $cart->quantity += $quantity;
-            $cart->save();
-        } else {
-            $cart = Cart::create([
-                'user_id'    => $userId,
-                'product_id' => $validated['product_id'],
-                'quantity'   => $quantity,
-                'is_active'  => true,
-            ]);
-        }
-
-        return response()->json($cart, 201);
+    if (!$product) {
+        return response()->json([
+            'message' => 'Sản phẩm không tồn tại hoặc đã bị xóa/bị ẩn'
+        ], 404);
     }
+
+    $cart = Cart::where('user_id', $userId)
+        ->where('product_id', $validated['product_id'])
+        ->where('is_active', true)
+        ->first();
+
+    if ($cart) {
+        $cart->quantity += $quantity;
+        $cart->save();
+    } else {
+        $cart = Cart::create([
+            'user_id'    => $userId,
+            'product_id' => $validated['product_id'],
+            'quantity'   => $quantity,
+            'is_active'  => true,
+        ]);
+    }
+
+    return response()->json($cart, 201);
+}
 
     public function update(Request $request, $id)
     {

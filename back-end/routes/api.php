@@ -61,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Shop
     Route::post('/shopregister', [ShopController::class, 'sendOtp']);
     Route::post('/shopotp', [ShopController::class, 'confirmOtp']);
+    Route::get('/shopdashboard', [ShopController::class, 'index']);
     Route::post('/shopexit', [ShopController::class, 'exitShop']);
 
     Route::get('/addresses', [AddressController::class, 'index']);
