@@ -14,10 +14,15 @@ return new class extends Migration
         Schema::create('addresses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->string('full_name')->nullable();
-            $table->string('address')->nullable();
-            $table->string('city')->nullable();
-            $table->string('province')->nullable();
+            $table->string('full_name');
+            $table->string('phone');
+            $table->string('address'); // Số nhà, tên đường
+            $table->string('ward');    // Phường/Xã
+            $table->string('district'); // Quận/Huyện
+            $table->string('city');    // Tỉnh/Thành phố
+            $table->string('province'); // Tên tỉnh nếu bạn vẫn muốn giữ (hoặc có thể gộp chung với city)
+            $table->text('note')->nullable(); // Ghi chú giao hàng
+            $table->boolean('is_default')->default(false);
             $table->timestamps();
         });
     }

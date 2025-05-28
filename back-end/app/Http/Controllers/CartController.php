@@ -25,18 +25,15 @@ class CartController extends Controller
         $userId = Auth::id();
         $quantity = $validated['quantity'] ?? 1;
 
-        // Tìm sản phẩm trong giỏ đang active
         $cart = Cart::where('user_id', $userId)
             ->where('product_id', $validated['product_id'])
             ->where('is_active', true)
             ->first();
 
         if ($cart) {
-            // Tăng số lượng
             $cart->quantity += $quantity;
             $cart->save();
         } else {
-            // Tạo mới
             $cart = Cart::create([
                 'user_id'    => $userId,
                 'product_id' => $validated['product_id'],
@@ -58,9 +55,8 @@ class CartController extends Controller
         ]);
 
         if (isset($validated['quantity'])) {
-            // Kiểm tra tồn kho
             $product = $cart->product;
-            if ($validated['quantity'] > $product->stock) {  // Giả sử cột tồn kho là stock
+            if ($validated['quantity'] > $product->stock) {
                 return response()->json([
                     'message' => 'Số lượng vượt quá tồn kho (' . $product->stock . ')'
                 ], 400);

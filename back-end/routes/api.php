@@ -8,7 +8,11 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ShopController;
-
+use App\Http\Controllers\AddressController;
+use App\Http\Controllers\VoucherController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\VoucherUserController;
+use App\Http\Controllers\VoucherCategoryController;
 
 // test api
     Route::get('/userall', [UserController::class, 'index']);
@@ -53,4 +57,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shopregister', [ShopController::class, 'sendOtp']);
     Route::post('/shopotp', [ShopController::class, 'confirmOtp']);
     Route::post('/shopexit', [ShopController::class, 'exitShop']);
+
+    Route::get('/addresses', [AddressController::class, 'index']);
+    Route::post('/addresses', [AddressController::class, 'store']);
+    Route::patch('/addresses/{id}', [AddressController::class, 'update']);
+    Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);
+
+    Route::post('/dathang', [OrderController::class, 'checkout']);
+    Route::get('/showdh', [OrderController::class, 'show']);
+    Route::post('/cancel', [OrderController::class, 'cancel']);
+
+    // Mã giảm giá
+    Route::post('/voucher', [VoucherController::class, 'apply']);
+    Route::post('/voucher-users', [VoucherUserController::class, 'assignToUser']);
+    Route::post('/voucher-categories', [VoucherCategoryController::class, 'assignToCategory']);
 });
