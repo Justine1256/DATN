@@ -197,7 +197,6 @@ class OrderController extends Controller
         if (!$order) {
             return response()->json(['message' => 'Đơn hàng không tồn tại hoặc không thuộc quyền truy cập'], 404);
         }
-
         if ($order->order_status === 'Pending') {
             $order->update([
                 'order_status' => 'Canceled',
