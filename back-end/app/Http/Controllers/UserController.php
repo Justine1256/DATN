@@ -131,18 +131,24 @@ public function update(Request $request)
     /** @var \App\Models\User $user */
     $user = Auth::user();
 
-    $validated = $request->validate([
-        'name' => 'sometimes|string|max:255|unique:users,name,' . $user->id,
-        'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
-        'phone' => 'sometimes|string|min:9|max:15|unique:users,phone,' . $user->id,
-        'password' => 'nullable|string|min:6',
-        'current_password' => 'required_with:email,password|string',
-    ], [
-        'name.unique' => 'Tên tài khoản này đã tồn tại.',
-        'email.unique' => 'Email này đã tồn tại.',
-        'phone.unique' => 'Số điện thoại này đã được sử dụng.',
-        'current_password.required_with' => 'Vui lòng nhập mật khẩu hiện tại để xác nhận thay đổi.',
-    ]);
+    $rules = [
+            'name' => 'sometimes|string|max:255|unique:users,name,' . $user->id,
+            'email' => 'sometimes|nullable|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'sometimes|string|min:9|max:15|unique:users,phone,' . $user->id,
+            'password' => 'nullable|string|min:6',
+        ];
+
+        if ($request->has('email') || $request->has('password')) {
+            $rules['current_password'] = 'required|string';
+        }
+
+        $validated = $request->validate($rules, [
+            'name.unique' => 'Tên tài khoản này đã tồn tại.',
+            'email.unique' => 'Email này đã tồn tại.',
+            'phone.unique' => 'Số điện thoại này đã được sử dụng.',
+            'current_password.required' => 'Vui lòng nhập mật khẩu hiện tại để xác nhận thay đổi.',
+        ]);
+
 
     $changingEmail = $request->filled('email');
     $changingPassword = $request->filled('password');
