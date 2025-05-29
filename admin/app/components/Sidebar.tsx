@@ -17,22 +17,22 @@ import {
 } from "react-icons/fa";
 
 const menu = [
-  {
-    label: "Dashboard",
-    href: "/admin/dashboard",
-    icon: <FaClipboardList className="mr-2" />,
-  },
-  {
-    label: "Products",
-    icon: <FaTshirt className="mr-2" />,
-    children: [
-      { label: "List", href: "/admin/product" },
-      { label: "Grid", href: "/admin/product/grid" },
-      { label: "Details", href: "/admin/product/details" },
-      { label: "Edit", href: "/admin/product/edit" },
-      { label: "Create", href: "/admin/product/create" },
-    ],
-  },
+    {
+        label: "Dashboard",
+        href: "/dashboard",
+        icon: <FaClipboardList className="mr-2" />,
+      },
+      {
+        label: "Products",
+        icon: <FaTshirt className="mr-2" />,
+        children: [
+          { label: "List", href: "/product" },
+          { label: "Grid", href: "/product/grid" },
+          { label: "Details", href: "/product/details" },
+          { label: "Edit", href: "/product/edit" },
+          { label: "Create", href: "/product/create" },
+        ],
+      },
   {
     label: "Category",
     icon: <FaTags className="mr-2" />,

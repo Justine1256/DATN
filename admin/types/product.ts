@@ -9,13 +9,16 @@ export interface Product {
   sale_price?: number;
   stock: number;
   sold: number;
-image: string | string[];
+  image: string[];
   option1?: string;
   value1?: string;
   option2?: string;
   value2?: string;
-  status: 'activated' | 'deleted';
+  status: "activated" | "deleted";
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;
+  size?: string[];
+  category?: string;
+  rating?: number;
 }

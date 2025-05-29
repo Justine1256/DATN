@@ -12,8 +12,10 @@ const data = [
 
 export default function DashboardChart() {
   return (
-    <div className="bg-white rounded-xl shadow p-6">
+    // Thay đổi col-span-8 thành col-span-12 để chiếm toàn bộ chiều rộng có thể
+    <div className="bg-white rounded-xl shadow p-6 col-span-12">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Product Performance</h2>
+      {/* Quay lại width="100%" vì ResponsiveContainer sẽ tự điều chỉnh theo cha */}
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -26,4 +28,4 @@ export default function DashboardChart() {
       </ResponsiveContainer>
     </div>
   );
-}
+} 

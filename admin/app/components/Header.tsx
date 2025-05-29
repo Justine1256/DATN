@@ -10,7 +10,7 @@ export default function Header() {
 
   return (
     <header className="flex justify-between items-center px-6 py-4 bg-white shadow-sm sticky top-0 z-50">
-      {/* Search Bar */}
+      {/* Search */}
       <div className="relative w-64">
         <input
           type="text"
@@ -20,23 +20,28 @@ export default function Header() {
         <FiSearch className="absolute left-3 top-2.5 text-gray-400" />
       </div>
 
-      {/* Right Icons */}
-      <div className="flex items-center gap-5 relative">
-        <FaMoon className="text-gray-500 text-lg cursor-pointer hover:text-blue-500 transition" />
+      {/* Icons + Avatar */}
+      <div className="flex items-center gap-4 relative">
+        {/* Rounded Icons */}
+        {[FaMoon, FaBell, FaCog, FaClock].map((Icon, i) => (
+          <div
+            key={i}
+            className="bg-gray-100 hover:bg-blue-100 p-2 rounded-full cursor-pointer relative"
+          >
+            <Icon className="text-gray-600 hover:text-blue-600" />
+            {Icon === FaBell && (
+              <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full px-1.5">
+                3
+              </span>
+            )}
+          </div>
+        ))}
 
-        <div className="relative">
-          <FaBell className="text-gray-500 text-lg cursor-pointer hover:text-blue-500 transition" />
-          <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full px-1.5">3</span>
-        </div>
-
-        <FaCog className="text-gray-500 text-lg cursor-pointer hover:text-blue-500 transition" />
-        <FaClock className="text-gray-500 text-lg cursor-pointer hover:text-blue-500 transition" />
-
-        {/* Avatar */}
+        {/* Avatar Dropdown */}
         <div className="relative">
           <Image
             src="/avatar.jpg"
-            alt="User Avatar"
+            alt="User"
             width={32}
             height={32}
             className="rounded-full cursor-pointer border border-gray-300 hover:ring hover:ring-blue-100"
@@ -47,32 +52,23 @@ export default function Header() {
               <div className="px-4 py-3 border-b border-gray-100">
                 <p className="text-gray-800 font-semibold">Welcome Gaston!</p>
               </div>
-              <ul className="divide-y divide-gray-100">
-                <li>
-                  <a href="#" className="block px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
-                    <FaUser className="text-gray-400" /> Profile
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="block px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
-                    <FaBell className="text-gray-400" /> Messages
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="block px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
-                    <FaCog className="text-gray-400" /> Pricing
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="block px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
-                    <FaClock className="text-gray-400" /> Help
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="block px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
-                    <FaMoon className="text-gray-400" /> Lock screen
-                  </a>
-                </li>
+              <ul className="divide-y divide-gray-100 font-medium">
+                {[
+                  { icon: FaUser, label: "Profile" },
+                  { icon: FaBell, label: "Messages" },
+                  { icon: FaCog, label: "Pricing" },
+                  { icon: FaClock, label: "Help" },
+                  { icon: FaMoon, label: "Lock screen" },
+                ].map(({ icon: Icon, label }, idx) => (
+                  <li key={idx}>
+                    <a
+                      href="#"
+                      className="block px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-700 no-underline"
+                    >
+                      <Icon className="text-gray-500" /> {label}
+                    </a>
+                  </li>
+                ))}
               </ul>
               <div className="border-t border-gray-100">
                 <button className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 font-semibold">
