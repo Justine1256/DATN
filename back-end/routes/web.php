@@ -9,3 +9,6 @@ Route::get('/', function () {
 
 
 Route::get('/danh-muc-hien-thi', [CategoryController::class, 'viewList']);
+Route::get('/phpinfo', function () {
+    phpinfo();
+});

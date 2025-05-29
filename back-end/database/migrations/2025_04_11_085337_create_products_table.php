@@ -22,7 +22,7 @@ return new class extends Migration
             $table->decimal('sale_price', 10, 2)->nullable();
             $table->integer('stock')->default(0);
             $table->integer('sold')->default(0);
-            $table->string('image')->nullable();
+            $table->text('image')->nullable();
             $table->string('option1')->nullable();
             $table->string('value1')->nullable();
             $table->string('option2')->nullable();

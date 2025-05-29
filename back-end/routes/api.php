@@ -77,9 +77,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/voucher', [VoucherController::class, 'apply']);
     Route::post('/voucher-users', [VoucherUserController::class, 'assignToUser']);
     Route::post('/voucher-categories', [VoucherCategoryController::class, 'assignToCategory']);
+
     // shop management
-    Route::get('/showShopProducts', [ProductController::class, 'showShopProducts']);
-    Route::post('/product/shop', [ProductController::class, 'addProductByShop']);
-    Route::patch('/product/shop', [ProductController::class, 'updProductByShop']);
-    Route::delete('/product/shop', [ProductController::class, 'delProductByShop']);
+    Route::get('/shop/products', [ProductController::class, 'showShopProducts']);
+    Route::post('/shop/products', [ProductController::class, 'addProductByShop']);
+    Route::patch('/shop/products', [ProductController::class, 'updProductByShop']);
+    Route::delete('/shop/products', [ProductController::class, 'delProductByShop']);
+
+
 });

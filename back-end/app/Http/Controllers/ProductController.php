@@ -123,7 +123,6 @@ public function update(Request $request, $id)
     ]);
 }
 
-    // Xóa sản phẩm
     public function delete($id)
     {
         $product = Product::find($id);
@@ -217,11 +216,16 @@ public function addProductByShop(Request $request)
         'price' => 'required|numeric|min:0',
         'sale_price' => 'nullable|numeric|min:0|lte:price',
         'stock' => 'nullable|integer|min:0',
-        'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        'image' => 'nullable|array',
+        'image.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         'option1' => 'nullable|string|max:255',
         'value1' => 'nullable|string|max:255',
         'option2' => 'nullable|string|max:255',
         'value2' => 'nullable|string|max:255',
+    ], [
+        'sale_price.lte' => 'Giá khuyến mãi phải nhỏ hơn hoặc bằng giá gốc.',
+        'image.*.image' => 'Mỗi tệp phải là hình ảnh hợp lệ.',
+        'image.*.max' => 'Kích thước ảnh không vượt quá 2MB.',
     ]);
 
     if ($validator->fails()) {
@@ -229,25 +233,40 @@ public function addProductByShop(Request $request)
     }
 
     $user = $request->user();
-
     if (!$user || !$user->shop) {
         return response()->json(['status' => false, 'message' => 'Người dùng chưa có shop.'], 403);
     }
+$slug = Str::slug($request->name);
 
-    $imagePath = null;
+$exists = \App\Models\Product::where('shop_id', $user->shop->id)
+    ->where('slug', $slug)
+    ->exists();
+
+if ($exists) {
+    return response()->json([
+        'status' => false,
+        'message' => 'Tên sản phẩm đã tồn tại trong cửa hàng. Vui lòng chọn tên khác.'
+    ], 422);
+}
+
+    $imagePaths = [];
     if ($request->hasFile('image')) {
-        $imagePath = $request->file('image')->store('products', 'public');
+        foreach ($request->file('image') as $image) {
+            $path = $image->store('products', 'public');
+            $imagePaths[] = $path;
+        }
     }
 
-    $product = Product::create([
+    $product = \App\Models\Product::create([
         'shop_id' => $user->shop->id,
         'category_id' => $request->category_id,
         'name' => $request->name,
+        'slug' => $slug,
         'description' => $request->description,
         'price' => $request->price,
         'sale_price' => $request->sale_price,
         'stock' => $request->stock ?? 0,
-        'image' => $imagePath,
+        'image' => json_encode($imagePaths), // Lưu JSON
         'option1' => $request->option1,
         'value1' => $request->value1,
         'option2' => $request->option2,
@@ -258,8 +277,12 @@ public function addProductByShop(Request $request)
     return response()->json([
         'status' => true,
         'message' => 'Sản phẩm đã được thêm thành công.',
-        'data' => $product
+        'data' => [
+            ...$product->toArray(),
+            'image' => $imagePaths, // Trả mảng ảnh cho FE
+        ]
     ], 201);
 }
+
 
 }
