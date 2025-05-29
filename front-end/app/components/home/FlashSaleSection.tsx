@@ -1,32 +1,42 @@
-// components/FlashSaleSection.tsx
 "use client";
-
-import { useEffect, useState } from "react";
+import { Product } from "@/types/product";
+import { useEffect, useState, useRef, useCallback } from "react";
 import ProductCard from "./ProductCard";
-import { useRef } from "react";
-
+import Image from "next/image";
 export default function FlashSaleSection() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
   const scrollLeft = useRef(0);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Pointer event handlers để hỗ trợ cả touch và mouse
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     isDragging.current = true;
     startX.current = e.pageX - (scrollRef.current?.offsetLeft || 0);
     scrollLeft.current = scrollRef.current?.scrollLeft || 0;
-  };
+    if (scrollRef.current) {
+      scrollRef.current.style.cursor = "grabbing";
+    }
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handlePointerUp = useCallback(() => {
     isDragging.current = false;
-  };
+    if (scrollRef.current) {
+      scrollRef.current.style.cursor = "grab";
+    }
+  }, []);
 
-  const handleMouseUp = () => {
+  const handlePointerLeave = useCallback(() => {
     isDragging.current = false;
-  };
+    if (scrollRef.current) {
+      scrollRef.current.style.cursor = "grab";
+    }
+  }, []);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return;
     e.preventDefault();
     const x = e.pageX - (scrollRef.current?.offsetLeft || 0);
@@ -34,7 +44,35 @@ export default function FlashSaleSection() {
     if (scrollRef.current) {
       scrollRef.current.scrollLeft = scrollLeft.current - walk;
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        setLoading(true);
+        const res = await fetch("http://127.0.0.1:8000/api/product");
+        const data = await res.json();
+
+        // Kiểm tra nếu API trả về mảng sản phẩm trực tiếp
+        if (Array.isArray(data)) {
+          setProducts(data);
+        }
+        // Nếu API trả về object có status và data thì dùng data.data
+        else if (data.status && data.data) {
+          setProducts(data.data);
+        } else {
+          console.error("Lỗi khi lấy sản phẩm flash sale, response không đúng định dạng:", data);
+          setProducts([]);
+        }
+      } catch (error) {
+        console.error("Lỗi kết nối server:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, []);
 
   return (
     <section className="px-6 py-10">
@@ -48,25 +86,30 @@ export default function FlashSaleSection() {
         </button>
       </div>
 
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scroll-hidden cursor-grab active:cursor-grabbing select-none"
-        onMouseDown={handleMouseDown}
-        onMouseLeave={handleMouseLeave}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
-      >
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+      {loading ? (
+        <p className="text-center text-gray-500">Đang tải sản phẩm...</p>
+      ) : products.length === 0 ? (
+        <p className="text-center text-gray-500">Không có sản phẩm flash sale nào.</p>
+      ) : (
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto scroll-hidden cursor-grab select-none"
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
+          onPointerMove={handlePointerMove}
+        >
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
 
       <style jsx>{`
         .scroll-hidden {
           scrollbar-width: none;
           -ms-overflow-style: none;
         }
-
         .scroll-hidden::-webkit-scrollbar {
           display: none;
         }
