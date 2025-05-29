@@ -10,17 +10,17 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Shop;
 
-
 class ShopController extends Controller
 {
     public function index()
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         if (!$user->shop) {
             return response()->json([
                 'message' => 'Bạn chưa có shop, vui lòng đăng ký.'
-            ], 403); // 403 Forbidden hoặc 404 nếu cần
+            ], 403);
         }
 
         if (!session()->has('temporary_role')) {
@@ -33,8 +33,10 @@ class ShopController extends Controller
             'message' => 'Truy cập dashboard thành công.'
         ], 200);
     }
+
     public function sendOtp(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         if ($user->shop) {
@@ -45,7 +47,7 @@ class ShopController extends Controller
             'name' => 'required|string|max:100|unique:shops,name',
             'description' => 'required|string|max:255',
             'phone' => ['required', 'regex:/^0\d{9,19}$/'],
-            'email' => 'required|email|max:100|unique:shops,email', // ✅ Đảm bảo email duy nhất
+            'email' => 'required|email|max:100|unique:shops,email',
         ]);
 
         if ($validator->fails()) {
@@ -54,13 +56,11 @@ class ShopController extends Controller
 
         $otp = rand(100000, 999999);
 
-        // Lưu thông tin tạm vào cache trong 10 phút
         Cache::put('shop_otp_' . $user->id, [
             'otp' => $otp,
             'data' => $request->only(['name', 'description', 'phone', 'email']),
         ], now()->addMinutes(10));
 
-        // Gửi email chứa OTP với xử lý lỗi
         try {
             Mail::raw("Mã OTP xác thực tạo shop của bạn là: $otp", function ($message) use ($request) {
                 $message->to($request->email)->subject('Xác thực OTP tạo Shop');
@@ -74,9 +74,9 @@ class ShopController extends Controller
         ]);
     }
 
-
     public function confirmOtp(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         if ($user->shop) {
@@ -91,7 +91,6 @@ class ShopController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Lấy dữ liệu từ cache
         $cache = Cache::get('shop_otp_' . $user->id);
 
         if (!$cache) {
@@ -116,15 +115,13 @@ class ShopController extends Controller
             'status' => 'activated',
         ]);
 
-        // Xoá cache sau khi tạo shop
+        $user->role = 'seller';
+        $user->save();
+
         Cache::forget('shop_otp_' . $user->id);
 
-        // (Không bắt buộc) Gán role tạm
-        Session::put('temporary_role', 'seller');
-        Session::put('shop_id', $shop->id);
-
         return response()->json([
-            'message' => 'Tạo shop thành công!',
+            'message' => 'Tạo shop thành công! Bạn đã trở thành người bán.',
             'shop' => $shop,
         ]);
     }
