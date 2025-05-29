@@ -81,8 +81,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // shop management
     Route::get('/shop/products', [ProductController::class, 'showShopProducts']);
     Route::post('/shop/products', [ProductController::class, 'addProductByShop']);
-    Route::patch('/shop/products', [ProductController::class, 'updProductByShop']);
-    Route::delete('/shop/products', [ProductController::class, 'delProductByShop']);
-
+    Route::patch('/shop/products/{id}', [ProductController::class, 'update']);
+    Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
+    Route::post('/shop/products/{id}', [ProductController::class, 'restoreProduct']);
 
 });

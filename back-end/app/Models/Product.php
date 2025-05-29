@@ -10,23 +10,27 @@ class Product extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = [
-        'category_id',
-        'shop_id',
-        'name',
-        'slug',
-        'description',
-        'price',
-        'sale_price',
-        'stock',
-        'sold',
-        'image',
-        'option1',
-        'value1',
-        'option2',
-        'value2',
-        'status',
-    ];
+   protected $fillable = [
+    'category_id',
+    'shop_id',
+    'name',
+    'slug',
+    'description',
+    'price',
+    'sale_price',
+    'stock',
+    'sold',
+    'image',
+    'option1',
+    'value1',
+    'option2',
+    'value2',
+    'status',
+];
+protected $casts = [
+    'image' => 'array',
+];
+
 
     /**
      * Tự động tạo slug duy nhất theo shop_id.
