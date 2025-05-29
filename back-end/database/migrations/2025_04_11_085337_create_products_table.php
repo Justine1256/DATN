@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string('value1')->nullable();
             $table->string('option2')->nullable();
             $table->string('value2')->nullable();
+            $table->decimal('rating', 2, 1)->default(0.0);
             $table->enum('status', ['activated', 'deleted'])->default('activated');
 
             $table->timestamps();
