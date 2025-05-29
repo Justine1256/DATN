@@ -46,33 +46,34 @@ export default function FlashSaleSection() {
     }
   }, []);
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        setLoading(true);
-        const res = await fetch("http://127.0.0.1:8000/api/product");
-        const data = await res.json();
+useEffect(() => {
+  async function fetchProducts() {
+    try {
+      setLoading(true);
+      const res = await fetch("http://127.0.0.1:8000/api/topdiscountedproducts");
+      const data = await res.json();
 
-        // Kiểm tra nếu API trả về mảng sản phẩm trực tiếp
-        if (Array.isArray(data)) {
-          setProducts(data);
-        }
-        // Nếu API trả về object có status và data thì dùng data.data
-        else if (data.status && data.data) {
-          setProducts(data.data);
-        } else {
-          console.error("Lỗi khi lấy sản phẩm flash sale, response không đúng định dạng:", data);
-          setProducts([]);
-        }
-      } catch (error) {
-        console.error("Lỗi kết nối server:", error);
-        setProducts([]);
-      } finally {
-        setLoading(false);
+      let products: Product[] = [];
+
+      if (Array.isArray(data.products)) {
+        products = data.products.map((p: any) => ({
+          ...p,
+          image: typeof p.image === "string" ? [p.image] : p.image,
+        }));
       }
+
+      setProducts(products);
+    } catch (error) {
+      console.error("Lỗi kết nối server:", error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
-    fetchProducts();
-  }, []);
+  }
+
+  fetchProducts();
+}, []);
+
 
   return (
     <section className="px-6 py-10">

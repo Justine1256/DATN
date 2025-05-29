@@ -30,8 +30,8 @@ Route::delete('/category/{id}', [CategoryController::class, 'delete']);
 Route::get('/product', [ProductController::class, 'index']);
 Route::get('/product/{slug}', [ProductController::class, 'show']);
 Route::get('/bestSellingProducts', [ProductController::class, 'bestSellingProducts']);
-Route::get('/topDiscountedProducts', [ProductController::class, 'topDiscountedProducts']);
-Route::get('/newProducts', [ProductController::class, 'newProducts']);
+Route::get('/topdiscountedproducts', [ProductController::class, 'topDiscountedProducts']);
+Route::get('/newproducts', [ProductController::class, 'newProducts']);
 
 
 Route::post('/product', [ProductController::class, 'store']);
