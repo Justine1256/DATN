@@ -7,8 +7,12 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/dashboard"); // Chuyển hướng sang dashboard
+    router.replace("/dashboard");
   }, [router]);
 
-  return null; // Không render gì tại trang gốc
+  return (
+    <div className="min-h-screen flex items-center justify-center text-gray-600 text-sm">
+      Đang chuyển hướng đến trang dashboard...
+    </div>
+  );
 }
