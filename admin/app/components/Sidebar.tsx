@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -16,6 +17,7 @@ import {
   FaBars,
 } from "react-icons/fa";
 
+// ✅ Menu cấu hình tĩnh – đã xoá mục Edit vì cần id động
 const menu = [
   {
     label: "Dashboard",
@@ -27,9 +29,6 @@ const menu = [
     icon: <FaTshirt />,
     children: [
       { label: "List", href: "/product" },
-      { label: "Grid", href: "/product/grid" },
-      { label: "Details", href: "/product/details" },
-      { label: "Edit", href: "/product/edit" },
       { label: "Create", href: "/product/create" },
     ],
   },
@@ -141,7 +140,6 @@ export default function Sidebar() {
                     ))}
                 </button>
 
-                {/* Submenu chỉ hiện khi sidebar mở */}
                 {open === item.label && !isCollapsed && (
                   <ul className="ml-7 mt-1 space-y-1">
                     {item.children.map((sub) => (
