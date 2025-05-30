@@ -1,6 +1,5 @@
 "use client";
-
-import React from "react";
+import React, { useEffect } from "react";
 
 // 📊 Biểu đồ hiệu suất và lợi nhuận
 import PerformanceChart from "../components/dashboard/PerformanceChart";
@@ -11,6 +10,11 @@ import SummaryCards from "../components/dashboard/SummaryCards";
 import RecentOrders from "../components/dashboard/RecentOrders";
 
 export default function DashboardPage() {
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    console.log("Access Token:", token);
+  }, []);
+
   return (
     <div className="p-6 space-y-6">
       {/* Tiêu đề Dashboard */}
@@ -25,7 +29,7 @@ export default function DashboardPage() {
           <PerformanceChart />
         </div>
         <div>
-          <ProfitChart /> {/* ✅ Gắn biểu đồ Profit bên phải */}
+          <ProfitChart />
         </div>
       </div>
 

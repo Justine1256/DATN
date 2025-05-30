@@ -39,7 +39,7 @@ export default function LoginForm() {
       // ✅ Hiện popup và chờ chuyển trang
       setShowSuccessPopup(true);
       setTimeout(() => {
-        router.push('/');
+        router.push('http://localhost:3002/dashboard');
       }, 2000);
     } catch (err: any) {
       if (err.response?.data?.error) {
