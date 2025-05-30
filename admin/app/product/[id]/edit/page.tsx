@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
+import EditableOptionInput from "@/app/components/EditableOptionInput";
 import ProductPreviewCard from "@/app/components/ProductPreviewCard";
 const mockProducts = [
   {
@@ -130,36 +131,12 @@ export default function EditProductMockPage() {
                 </select>
               </div>
             )}
+<EditableOptionInput
+  selectedSizes={selectedSizes}
+  setSelectedSizes={setSelectedSizes}
+  toggleSize={toggleSize}
+/>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Size / Storage</label>
-              <div className="flex gap-2 flex-wrap">
-                {selectedSizes.map((size) => (
-                  <div
-                    key={size}
-                    className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full flex items-center gap-1 border border-gray-300 hover:bg-red-100 cursor-pointer"
-                    onClick={() => toggleSize(size)}
-                  >
-                    {size} <span className="text-red-500 font-bold">✕</span>
-                  </div>
-                ))}
-                <input
-                  type="text"
-                  placeholder="Add size/storage..."
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const val = (e.target as HTMLInputElement).value.trim();
-                      if (val && !selectedSizes.includes(val)) {
-                        setSelectedSizes([...selectedSizes, val]);
-                        (e.target as HTMLInputElement).value = "";
-                      }
-                    }
-                  }}
-                  className="border border-gray-300 px-2 py-1 rounded w-40 font-semibold text-gray-800"
-                />
-              </div>
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Colors</label>
