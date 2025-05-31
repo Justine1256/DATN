@@ -11,6 +11,7 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\FollowController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
@@ -113,6 +114,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/wishlist', [WishlistController::class, 'index']);           // Lấy danh sách wishlist
     Route::post('/wishlist', [WishlistController::class, 'store']);          // Thêm sản phẩm vào wishlist
     Route::delete('/wishlist/{product_id}', [WishlistController::class, 'destroy']); // Xoá sản phẩm
+
+    // tin nhắn
+    Route::get('/messages', [MessageController::class, 'index']);         // Lấy tin nhắn giữa 2 user
+    Route::post('/messages', [MessageController::class, 'store']);        // Gửi tin nhắn mới
+    Route::patch('/messages/{id}/hide', [MessageController::class, 'hide']);   // Ẩn tin nhắn (status = hidden)
+    Route::delete('/messages/{id}', [MessageController::class, 'destroy']);    // Xoá mềm tin nhắn
+
 
     // shop management
     // quản lý sản phẩm  của shop
