@@ -2,107 +2,126 @@
 
 namespace Database\Seeders;
 
+use App\Models\Product;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class PhoneProductSeeder extends Seeder
 {
     public function run(): void
     {
-        $shopId = 2;
+        $products = [
+            [
+                "shop_id" => 2,
+                "category_id" => 8,
+                "name" => "iPhone 14 Pro Max",
+                "description" => "Apple iPhone 14 Pro Max, màn hình 6.7 inch, chip A16 Bionic.",
+                "price" => 32000000,
+                "stock" => 15,
+                "sold" => 4,
+                "image" => "iphone14promax.jpg",
+                "option1" => "Màu sắc",
+                "value1" => "Đen",
+                "option2" => "Bộ nhớ",
+                "value2" => "256GB",
+                "status" => "activated",
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            [
+                "shop_id" => 2,
+                "category_id" => 8,
+                "name" => "Samsung Galaxy S23 Ultra",
+                "description" => "Samsung Galaxy S23 Ultra, màn hình 6.8 inch, camera 200MP.",
+                "price" => 30000000,
+                "stock" => 12,
+                "sold" => 5,
+                "image" => "samsung_s23ultra.jpg",
+                "option1" => "Màu sắc",
+                "value1" => "Xanh",
+                "option2" => "Bộ nhớ",
+                "value2" => "512GB",
+                "status" => "activated",
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            // Tạo thêm 18 sản phẩm tương tự, mình ví dụ tiếp 3 cái nữa:
+            [
+                "shop_id" => 2,
+                "category_id" => 8,
+                "name" => "Xiaomi Mi 13 Pro",
+                "description" => "Xiaomi Mi 13 Pro, màn hình 6.73 inch, chip Snapdragon 8 Gen 2.",
+                "price" => 22000000,
+                "stock" => 20,
+                "sold" => 7,
+                "image" => "xiaomi_mi13pro.jpg",
+                "option1" => "Màu sắc",
+                "value1" => "Trắng",
+                "option2" => "Bộ nhớ",
+                "value2" => "256GB",
+                "status" => "activated",
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            [
+                "shop_id" => 2,
+                "category_id" => 8,
+                "name" => "Google Pixel 7 Pro",
+                "description" => "Google Pixel 7 Pro, màn hình 6.7 inch, chip Google Tensor G2.",
+                "price" => 19000000,
+                "stock" => 10,
+                "sold" => 3,
+                "image" => "google_pixel7pro.jpg",
+                "option1" => "Màu sắc",
+                "value1" => "Đen",
+                "option2" => "Bộ nhớ",
+                "value2" => "128GB",
+                "status" => "activated",
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            [
+                "shop_id" => 2,
+                "category_id" => 8,
+                "name" => "OnePlus 11",
+                "description" => "OnePlus 11, màn hình 6.7 inch, Snapdragon 8 Gen 2, pin 5000mAh.",
+                "price" => 18000000,
+                "stock" => 18,
+                "sold" => 6,
+                "image" => "oneplus_11.jpg",
+                "option1" => "Màu sắc",
+                "value1" => "Đỏ",
+                "option2" => "Bộ nhớ",
+                "value2" => "256GB",
+                "status" => "activated",
+                "created_at" => now(),
+                "updated_at" => now(),
+            ],
+            // ... tiếp tục tạo thêm 15 sản phẩm tương tự để đủ 20 cái
+        ];
 
-        // Lấy ID danh mục cha "Đồ công nghệ"
-        $parentTechId = DB::table('categories')->where('name', 'Đồ công nghệ')->value('id');
-
-        if (!$parentTechId) {
-            throw new \Exception('Danh mục "Đồ công nghệ" chưa được tạo. Hãy chạy CategorySeeder trước.');
-        }
-
-        // Lấy ID danh mục con "Điện thoại"
-        $phoneCategoryId = DB::table('categories')
-            ->where('name', 'Điện thoại')
-            ->where('parent_id', $parentTechId)
-            ->value('id');
-
-        if (!$phoneCategoryId) {
-            throw new \Exception('Danh mục "Điện thoại" con của "Đồ công nghệ" chưa tồn tại.');
-        }
-
-        // Lấy hoặc tạo danh mục "Phụ kiện điện thoại"
-        $accessoryCategoryId = DB::table('categories')
-            ->where('name', 'Phụ kiện điện thoại')
-            ->where('parent_id', $phoneCategoryId)
-            ->value('id');
-
-        if (!$accessoryCategoryId) {
-            $accessoryCategoryId = DB::table('categories')->insertGetId([
-                'name' => 'Phụ kiện điện thoại',
-                'description' => 'Danh mục phụ kiện điện thoại gồm cáp sạc, sim,...',
-                'parent_id' => $phoneCategoryId,
-                'status' => 'activated',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
-
-        // Tạo 20 sản phẩm điện thoại
-        $phoneProducts = [];
-        for ($i = 1; $i <= 20; $i++) {
-            $name = "Điện thoại mẫu $i";
-            $value1 = ["Đen", "Trắng", "Xanh", "Đỏ"][array_rand(["Đen", "Trắng", "Xanh", "Đỏ"])];
-            $value2 = ["64GB", "128GB", "256GB"][array_rand(["64GB", "128GB", "256GB"])];
-
-            $phoneProducts[] = [
-                'shop_id' => $shopId,
-                'category_id' => $phoneCategoryId,
-                'name' => $name,
-                'slug' => Str::slug($name),
-                'description' => "Mô tả sản phẩm điện thoại mẫu số $i",
-                'price' => rand(3000000, 15000000),
-                'sale_price' => rand(3000000, 15000000),
-                'stock' => rand(10, 100),
-                'sold' => rand(0, 50),
-                'image' => "phone_sample_$i.jpg",
-                'option1' => "Màu sắc",
-                'value1' => $value1,
-                'option2' => "Dung lượng",
-                'value2' => $value2,
-                'status' => 'activated',
-                'created_at' => now(),
-                'updated_at' => now(),
+        // Mình sẽ tự động tạo thêm sản phẩm mẫu để đủ 20 sản phẩm
+        for ($i = count($products); $i < 20; $i++) {
+            $products[] = [
+                "shop_id" => 2,
+                "category_id" => 8,
+                "name" => "Điện thoại mẫu $i",
+                "description" => "Mô tả cho điện thoại mẫu số $i.",
+                "price" => 10000000 + $i * 500000,
+                "stock" => 10 + $i,
+                "sold" => $i,
+                "image" => "phone_sample_$i.jpg",
+                "option1" => "Màu sắc",
+                "value1" => "Đen",
+                "option2" => "Bộ nhớ",
+                "value2" => "128GB",
+                "status" => "activated",
+                "created_at" => now(),
+                "updated_at" => now(),
             ];
         }
-        DB::table('products')->insert($phoneProducts);
 
-        // Tạo 20 sản phẩm phụ kiện (cáp sạc + sim)
-        $accessories = ['Cáp sạc', 'Sim'];
-        $accessoryProducts = [];
-        for ($i = 1; $i <= 20; $i++) {
-            $type = $accessories[array_rand($accessories)];
-            $name = "$type mẫu $i";
-            $imageName = strtolower(str_replace(' ', '_', $name)) . ".jpg";
-
-            $accessoryProducts[] = [
-                'shop_id' => $shopId,
-                'category_id' => $accessoryCategoryId,
-                'name' => $name,
-                'slug' => Str::slug($name),
-                'description' => "Sản phẩm $name chất lượng cao",
-                'price' => rand(100000, 500000),
-                'sale_price' => rand(100000, 500000),
-                'stock' => rand(20, 100),
-                'sold' => rand(0, 50),
-                'image' => $imageName,
-                'option1' => '',
-                'value1' => '',
-                'option2' => '',
-                'value2' => '',
-                'status' => 'activated',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+        foreach ($products as $product) {
+            Product::create($product);
         }
-        DB::table('products')->insert($accessoryProducts);
     }
 }

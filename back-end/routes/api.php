@@ -78,11 +78,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/voucher-users', [VoucherUserController::class, 'assignToUser']);
     Route::post('/voucher-categories', [VoucherCategoryController::class, 'assignToCategory']);
 
-    // shop management
-    Route::get('/shop/products', [ProductController::class, 'showShopProducts']);
-    Route::post('/shop/products', [ProductController::class, 'addProductByShop']);
-    Route::patch('/shop/products/{id}', [ProductController::class, 'update']);
-    Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
-    Route::post('/shop/products/{id}', [ProductController::class, 'restoreProduct']);
+// shop management
+    // quản lý sản phẩm  của shop
+        Route::get('/shop/products', [ProductController::class, 'showShopProducts']);
+        Route::post('/shop/products', [ProductController::class, 'addProductByShop']);
+        Route::patch('/shop/products/{id}', [ProductController::class, 'update']);
+        Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
+        Route::post('/shop/products/{id}', [ProductController::class, 'restoreProduct']);
+    // quản lý danh mục của shop
+        Route::get('/shop/categories', [CategoryController::class, 'getShopCategories']);
+        Route::post('/shop/categories', [CategoryController::class, 'addCategoryByShop']);
+        Route::patch('/shop/categories/{id}', [CategoryController::class, 'updateCategoryByShop']);
+        Route::delete('/shop/categories/{id}', [CategoryController::class, 'destroyCategoryByShop']);
+        Route::post('/shop/categories/{id}', [CategoryController::class, 'restoreCategory']);
+    // quản lý bình luận của shop
+        Route::get('/shop/comments', [ProductController::class, 'getShopComments']);
+        Route::post('/shop/comments/{id}', [ProductController::class, 'restoreComment']);
+        Route::delete('/shop/comments/{id}', [ProductController::class, 'deleteComment']);
+
 
 });
