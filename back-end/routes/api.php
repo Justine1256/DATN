@@ -25,9 +25,6 @@ use App\Http\Controllers\WishlistController;
 Route::get('/userall', [UserController::class, 'index']);
 
 
-Route::post('/check-content', [AIController::class, 'check']);
-
-
 Route::get('/category', [CategoryController::class, 'index']);
 Route::get('/category/{id}', [CategoryController::class, 'show']);
 Route::post('/category', [CategoryController::class, 'store']);

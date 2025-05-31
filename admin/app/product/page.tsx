@@ -5,6 +5,7 @@ import ProductListHeader from "../components/product/list/ListHeader";
 import ProductRow from "../components/product/list/Row";
 import Pagination from "../components/product/list/Pagination";
 import { Product } from "../../types/product";
+import Cookies from 'js-cookie';
 
 export default function ProductListPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,24 +17,24 @@ export default function ProductListPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = Cookies.get('authToken');
       if (!token) {
         console.error("Không có token. Hãy đăng nhập.");
+        setProducts([]);
+        setLoading(false);
         return;
       }
 
-      const res = await fetch("http://127.0.0.1:8000/api/product", {
+      const res = await fetch("http://127.0.0.1:8000/api/shop/products", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) throw new Error("Lỗi fetch sản phẩm");
 
       const data = await res.json();
-      const rawProducts = Array.isArray(data)
-        ? data
-        : Array.isArray(data.products)
-        ? data.products
-        : [];
+
+      // data.products.data là mảng sản phẩm
+      const rawProducts = Array.isArray(data.products?.data) ? data.products.data : [];
 
       const mapped: Product[] = rawProducts.map((p: any): Product => ({
         id: p.id,
@@ -42,22 +43,35 @@ export default function ProductListPage() {
         name: p.name,
         slug: p.slug,
         description: p.description,
-        price: p.price,
-        sale_price: p.sale_price,
+        price: parseFloat(p.price),
+        sale_price:
+          p.sale_price !== null && p.sale_price !== undefined
+            ? parseFloat(p.sale_price)
+            : null,
         stock: p.stock,
         sold: p.sold,
-        image: typeof p.image === "string" ? [p.image] : p.image || [],
-        option1: p.option1,
-        value1: p.value1,
-        option2: p.option2,
-        value2: p.value2,
+        image:
+          typeof p.image === "string"
+            ? [p.image]
+            : Array.isArray(p.image)
+            ? p.image
+            : [],
+        option1: p.option1 ?? null,
+        value1: p.value1 ?? null,
+        option2: p.option2 ?? null,
+        value2: p.value2 ?? null,
         status: p.status,
         created_at: p.created_at,
         updated_at: p.updated_at,
         deleted_at: p.deleted_at,
-        size: typeof p.size === "string" ? p.size.split(",").map((s: string) => s.trim()) : Array.isArray(p.size) ? p.size : [],
-        category: p.category || "Unknown",
-        rating: p.rating || 0,
+        size:
+          typeof p.size === "string"
+            ? p.size.split(",").map((s: string) => s.trim())
+            : Array.isArray(p.size)
+            ? p.size
+            : [],
+        category: p.category?.name || "Unknown",
+        rating: p.rating ? parseFloat(p.rating) : 0,
       }));
 
       setProducts(mapped);
@@ -117,11 +131,23 @@ export default function ProductListPage() {
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={6} className="text-center py-8 text-gray-500">Loading...</td>
+              <td colSpan={6} className="text-center py-8 text-gray-500">
+                Loading...
+              </td>
+            </tr>
+          ) : paginatedProducts.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="text-center py-8 text-gray-500">
+                Không có sản phẩm nào.
+              </td>
             </tr>
           ) : (
             paginatedProducts.map((product) => (
-              <ProductRow key={product.id} product={product} onDelete={handleDelete} />
+              <ProductRow
+                key={product.id}
+                product={product}
+                onDelete={handleDelete}
+              />
             ))
           )}
         </tbody>
