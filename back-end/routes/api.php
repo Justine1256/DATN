@@ -14,6 +14,7 @@ use App\Http\Controllers\FollowController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
 
@@ -99,6 +100,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/shops/{shopId}/unfollow', [FollowController::class, 'unfollowShop']);
     Route::get('/my/followed-shops', [FollowController::class, 'getFollowedShops']);
     Route::get('/shops/{shopId}/followers', [FollowController::class, 'getFollowersByShop']);
+
+    // báo cáo shop
+    Route::get('/reports', [ReportController::class, 'index']);       // admin xem danh sách
+    Route::post('/reports', [ReportController::class, 'store']);      // user gửi report
+    Route::get('/reports/{id}', [ReportController::class, 'show']);   // xem chi tiết report
+    Route::put('/reports/{id}', [ReportController::class, 'update']); // admin đổi trạng thái
+    Route::delete('/reports/{id}', [ReportController::class, 'destroy']); // tuỳ chọn
 
     // shop management
     // quản lý sản phẩm  của shop
