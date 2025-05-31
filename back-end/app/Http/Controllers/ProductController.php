@@ -17,9 +17,13 @@ class ProductController extends Controller
     }
 
     // Chi tiết 1 sản phẩm
-public function show($slug)
+public function show($shopslug, $productslug)
 {
-    $product = Product::where('slug', $slug)->first();
+    $product = Product::where('slug', $productslug)
+        ->whereHas('shop', function($query) use ($shopslug) {
+            $query->where('slug', $shopslug);
+        })
+        ->first();
 
     if (!$product) {
         return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
@@ -27,6 +31,7 @@ public function show($slug)
 
     return response()->json($product);
 }
+
 
 
     // Tạo mới sản phẩm

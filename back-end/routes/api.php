@@ -35,7 +35,7 @@ Route::patch('/category/{id}', [CategoryController::class, 'update']);
 Route::delete('/category/{id}', [CategoryController::class, 'delete']);
 
 Route::get('/product', [ProductController::class, 'index']);
-Route::get('/product/{slug}', [ProductController::class, 'show']);
+Route::get('/{shopslug}/product/{productslug}', [ProductController::class, 'show']);
 Route::get('/bestSellingProducts', [ProductController::class, 'bestSellingProducts']);
 Route::get('/topdiscountedproducts', [ProductController::class, 'topDiscountedProducts']);
 Route::get('/newproducts', [ProductController::class, 'newProducts']);
