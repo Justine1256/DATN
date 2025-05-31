@@ -78,4 +78,10 @@ protected $casts = [
     {
         return $this->belongsTo(Shop::class);
     }
+    // Quan hệ với bảng wishlists
+        public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
 }

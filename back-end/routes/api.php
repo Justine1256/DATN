@@ -17,6 +17,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
+use App\Http\Controllers\WishlistController;
 
 // test api
 Route::get('/userall', [UserController::class, 'index']);
@@ -107,6 +108,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/{id}', [ReportController::class, 'show']);   // xem chi tiết report
     Route::put('/reports/{id}', [ReportController::class, 'update']); // admin đổi trạng thái
     Route::delete('/reports/{id}', [ReportController::class, 'destroy']); // tuỳ chọn
+
+    // wish list
+    Route::get('/wishlist', [WishlistController::class, 'index']);           // Lấy danh sách wishlist
+    Route::post('/wishlist', [WishlistController::class, 'store']);          // Thêm sản phẩm vào wishlist
+    Route::delete('/wishlist/{product_id}', [WishlistController::class, 'destroy']); // Xoá sản phẩm
 
     // shop management
     // quản lý sản phẩm  của shop
