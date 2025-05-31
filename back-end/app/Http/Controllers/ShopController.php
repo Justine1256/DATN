@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Shop;
+use Illuminate\Support\Str;
+
 
 class ShopController extends Controller
 {
@@ -106,6 +108,7 @@ class ShopController extends Controller
         $shop = Shop::create([
             'user_id' => $user->id,
             'name' => $shopData['name'],
+            'slug' => Str::slug($shopData['name']),
             'description' => $shopData['description'],
             'phone' => $shopData['phone'],
             'email' => $shopData['email'],

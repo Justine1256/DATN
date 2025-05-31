@@ -14,6 +14,7 @@ class Shop extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'slug',
         'description',
         'logo',
         'phone',
@@ -29,9 +30,10 @@ class Shop extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function followers()
-{
-    return $this->hasMany(Follow::class);
+    {
+        return $this->hasMany(Follow::class);
+    }
 }
 
-}

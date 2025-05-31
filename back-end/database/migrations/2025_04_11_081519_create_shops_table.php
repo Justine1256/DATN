@@ -11,6 +11,7 @@ class CreateShopsTable extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('name', 100)->unique(); // Tên shop
+            $table->string('slug')->unique();
             $table->string('description', 255); // Mô tả shop
             $table->string('logo')->nullable(); // Logo của shop
             $table->string('phone', 20)->nullable(); // Số điện thoại shop
