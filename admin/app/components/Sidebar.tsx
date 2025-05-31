@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import {
   FaTshirt,
   FaClipboardList,
@@ -17,7 +17,7 @@ import {
   FaBars,
 } from "react-icons/fa";
 
-// ✅ Menu cấu hình tĩnh – đã xoá mục Edit vì cần id động
+// ✅ Menu tĩnh
 const menu = [
   {
     label: "Dashboard",
@@ -35,7 +35,10 @@ const menu = [
   {
     label: "Category",
     icon: <FaTags />,
-    children: [],
+    children: [
+      { label: "List", href: "/Category" },
+      { label: "Create", href: "/Category/create" },
+    ],
   },
   {
     label: "Inventory",
@@ -69,9 +72,27 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [hoverEnabled, setHoverEnabled] = useState(false);
-  const [open, setOpen] = useState<string | null>("Products");
+  const [open, setOpen] = useState<string | null>(null);
 
   const isCollapsed = collapsed && !hovered;
+
+  // ✅ Khôi phục trạng thái từ localStorage
+  useEffect(() => {
+    const storedCollapsed = localStorage.getItem("sidebar_collapsed");
+    const storedOpen = localStorage.getItem("sidebar_open");
+
+    if (storedCollapsed !== null) setCollapsed(storedCollapsed === "true");
+    if (storedOpen) setOpen(storedOpen);
+  }, []);
+
+  // ✅ Lưu lại khi thay đổi
+  useEffect(() => {
+    localStorage.setItem("sidebar_collapsed", String(collapsed));
+  }, [collapsed]);
+
+  useEffect(() => {
+    localStorage.setItem("sidebar_open", open ?? "");
+  }, [open]);
 
   return (
     <aside
@@ -85,13 +106,12 @@ export default function Sidebar() {
       <div className="flex items-center justify-between mt-4 mb-6">
         <Link href="/">
           <div className="flex items-center space-x-2">
-            {!isCollapsed && (
+            {!isCollapsed ? (
               <>
                 <img src="/logo.svg" alt="Logo" className="w-8 h-8" />
                 <span className="font-bold text-sm text-gray-800">Venton</span>
               </>
-            )}
-            {isCollapsed && (
+            ) : (
               <img src="/logo.svg" alt="Logo" className="w-8 h-8 mx-auto" />
             )}
           </div>
@@ -101,7 +121,7 @@ export default function Sidebar() {
           onClick={() => {
             setCollapsed((prev) => !prev);
             setHoverEnabled((prev) => !prev);
-            setHovered(false); // reset hover
+            setHovered(false);
           }}
         >
           <FaBars />

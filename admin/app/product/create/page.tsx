@@ -7,7 +7,7 @@ import ImageDrop from "@/app/components/product/create/ImageDrop";
 import Form from "@/app/components/product/create/Form";
 import Options from "@/app/components/product/create/Option";
 
-import ActionButtons from "@/app/components/product/edit/ActionButtons";
+import ActionButtons from "@/app/components/product/create/ActionButtons";
 
 const mockProducts = [
   {
