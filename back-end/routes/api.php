@@ -10,6 +10,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
@@ -121,6 +122,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/messages/{id}/hide', [MessageController::class, 'hide']);   // Ẩn tin nhắn (status = hidden)
     Route::delete('/messages/{id}', [MessageController::class, 'destroy']);    // Xoá mềm tin nhắn
 
+    // tính hoa hồng
+    Route::get('/commissions', [CommissionController::class, 'index']); // DS hoa hồng
+    Route::post('/commissions/calculate', [CommissionController::class, 'calculateAndStore']); // Tính & lưu hoa hồng
+    Route::patch('/commissions/{id}/status', [CommissionController::class, 'updateStatus']); // Cập nhật trạng thái hoa hồng
 
     // shop management
     // quản lý sản phẩm  của shop
