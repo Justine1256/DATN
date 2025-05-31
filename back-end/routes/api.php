@@ -36,7 +36,7 @@ Route::delete('/category/{id}', [CategoryController::class, 'delete']);
 
 Route::get('/product', [ProductController::class, 'index']);
 Route::get('/{shopslug}/product/{productslug}', [ProductController::class, 'show']);
-Route::get('/bestSellingProducts', [ProductController::class, 'bestSellingProducts']);
+Route::get('/bestsellingproducts', [ProductController::class, 'bestSellingProducts']);
 Route::get('/topdiscountedproducts', [ProductController::class, 'topDiscountedProducts']);
 Route::get('/newproducts', [ProductController::class, 'newProducts']);
 
@@ -52,11 +52,12 @@ Route::post('/register', [UserController::class, 'register']);
 Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
 Route::post('/login', [UserController::class, 'login']);
 
+Route::get('/{shopslug}/product/{productslug}/comments', [CommentController::class, 'getCommentsInProduct']);
 
-    Route::get('/notification', [NotificationController::class, 'index']);
-    Route::post('/notification', [NotificationController::class, 'store']);
-    Route::get('/notification/{id}', [NotificationController::class, 'show']);
-    Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
+Route::get('/notification', [NotificationController::class, 'index']);
+Route::post('/notification', [NotificationController::class, 'store']);
+Route::get('/notification/{id}', [NotificationController::class, 'show']);
+Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // User
@@ -92,11 +93,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/voucher-categories', [VoucherCategoryController::class, 'assignToCategory']);
 
     // bình luận
-    Route::post('/product/{slug}/comment', [CommentController::class, 'addCommentIntoProduct']);
-    Route::get('/product/{slug}/comments', [CommentController::class, 'getCommentsInProduct']);
-    Route::delete('/comments/{id}', [CommentController::class, 'destroy']);
-    Route::post('/comments/{id}/restore', [CommentController::class, 'restore']);
-    Route::patch('/comments/{id}', [CommentController::class, 'update']);
+    Route::post('/{shopslug}/product/{productslug}/comment', [CommentController::class, 'addCommentIntoProduct']);
+    Route::delete('/comment/{id}', [CommentController::class, 'destroy']);
+    Route::post('/comment/{id}/restore', [CommentController::class, 'restore']);
+    Route::patch('/comment/{id}', [CommentController::class, 'update']);
 
     // Theo dõi shop
     Route::post('/shops/{shopId}/follow', [FollowController::class, 'followShop']);
