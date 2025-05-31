@@ -9,6 +9,8 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\FollowController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\VoucherUserController;
@@ -78,7 +80,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/voucher-users', [VoucherUserController::class, 'assignToUser']);
     Route::post('/voucher-categories', [VoucherCategoryController::class, 'assignToCategory']);
 
-// shop management
+    // bình luận
+    Route::post('/product/{slug}/comment', [CommentController::class, 'addCommentIntoProduct']);
+    Route::get('/product/{slug}/comments', [CommentController::class, 'getCommentsInProduct']);
+    Route::delete('/comments/{id}', [CommentController::class, 'destroy']);
+    Route::post('/comments/{id}/restore', [CommentController::class, 'restore']);
+    Route::patch('/comments/{id}', [CommentController::class, 'update']);
+
+    // Theo dõi shop
+    Route::post('/shops/{shopId}/follow', [FollowController::class, 'followShop']);
+    Route::delete('/shops/{shopId}/unfollow', [FollowController::class, 'unfollowShop']);
+    Route::get('/my/followed-shops', [FollowController::class, 'getFollowedShops']);
+    Route::get('/shops/{shopId}/followers', [FollowController::class, 'getFollowersByShop']);
+
+    // shop management
     // quản lý sản phẩm  của shop
         Route::get('/shop/products', [ProductController::class, 'showShopProducts']);
         Route::post('/shop/products', [ProductController::class, 'addProductByShop']);
@@ -93,8 +108,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/shop/categories/{id}', [CategoryController::class, 'restoreCategory']);
     // quản lý bình luận của shop
         Route::get('/shop/comments', [ProductController::class, 'getShopComments']);
-        Route::post('/shop/comments/{id}', [ProductController::class, 'restoreComment']);
         Route::delete('/shop/comments/{id}', [ProductController::class, 'deleteComment']);
+        Route::post('/shop/comments/{id}', [ProductController::class, 'restoreComment']);
 
 
 });
