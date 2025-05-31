@@ -11,6 +11,7 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\FollowController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\VoucherUserController;
@@ -46,6 +47,12 @@ Route::delete('/product/{id}', [ProductController::class, 'delete']);
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
 Route::post('/login', [UserController::class, 'login']);
+
+
+    Route::get('/notification', [NotificationController::class, 'index']);
+    Route::post('/notification', [NotificationController::class, 'store']);
+    Route::get('/notification/{id}', [NotificationController::class, 'show']);
+    Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // User
