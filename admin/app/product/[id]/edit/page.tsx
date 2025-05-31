@@ -2,12 +2,12 @@
 
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import ProductPreviewCard from "@/app/components/product/ProductPreviewCard";
-import ImageDrop from "@/app/components/product/ImageDrop";
-import ProductInfoForm from "@/app/components/product/ProductInfoForm";
-import OptionsInputAndColorPicker from "@/app/components/product/OptionsInputAndColorPicker";
+import PreviewCard from "@/app/components/product/edit/PreviewCard";
+import ImageDrop from "@/app/components/product/edit/ImageDrop";
+import Form from "@/app/components/product/edit/Form";
+import Options from "@/app/components/product/edit/Options";
 
-import ActionButtons from "@/app/components/product/ActionButtons";
+import ActionButtons from "@/app/components/product/edit/ActionButtons";
 
 const mockProducts = [
   {
@@ -81,7 +81,7 @@ export default function EditProductMockPage() {
         Product Edit (ID: {id})
       </h1>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <ProductPreviewCard
+        <PreviewCard
           image={data?.image || "/placeholder.png"}
           name={data?.name || ""}
           category={category}
@@ -94,13 +94,13 @@ export default function EditProductMockPage() {
 
         <div className="xl:col-span-2 space-y-6">
           <ImageDrop />
-          <ProductInfoForm
+          <Form
             data={data}
             category={category}
             setCategory={setCategory}
             isFashion={isFashion}
           />
- <OptionsInputAndColorPicker
+ <Options
   selectedSizes={selectedSizes}
   toggleSize={toggleSize}
   selectedColors={selectedColors}

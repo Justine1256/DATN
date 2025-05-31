@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { FaStar } from "react-icons/fa";
-import { FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
+import ProductListHeader from "../components/product/list/ListHeader";
+import ProductRow from "../components/product/list/Row";
+import Pagination from "../components/product/list/Pagination";
 import { Product } from "../../types/product";
 
 export default function ProductListPage() {
@@ -13,7 +12,7 @@ export default function ProductListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 6;
 
-  // ✅ Load danh sách sản phẩm
+  // Fetch Products
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -70,7 +69,6 @@ export default function ProductListPage() {
     }
   };
 
-  // ✅ Xoá sản phẩm
   const handleDelete = async (id: number) => {
     if (!confirm("Bạn có chắc muốn xoá sản phẩm này?")) return;
 
@@ -104,22 +102,7 @@ export default function ProductListPage() {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">All Product List</h1>
-        <div className="flex gap-2">
-          <Link
-            href="/admin/product/create"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium"
-          >
-            Add Product
-          </Link>
-          <select className="border rounded px-2 py-1 text-sm text-gray-700">
-            <option>This Month</option>
-            <option>Last Month</option>
-          </select>
-        </div>
-      </div>
-
+      <ProductListHeader />
       <table className="w-full text-sm text-left">
         <thead>
           <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
@@ -138,101 +121,17 @@ export default function ProductListPage() {
             </tr>
           ) : (
             paginatedProducts.map((product) => (
-              <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50 text-gray-700">
-                <td className="py-2 px-3 flex items-center gap-3">
-                  <Image
-                    src={product.image?.[0] || "/default-image.jpg"}
-                    alt={product.name}
-                    width={40}
-                    height={40}
-                    className="rounded object-cover"
-                  />
-                  <div>
-                    <p className="font-medium text-gray-900">{product.name}</p>
-                    {(product.option1 || product.option2) ? (
-                      <>
-                        {product.option1 && product.value1 && (
-                          <p className="text-xs text-gray-500">{product.option1}: {product.value1}</p>
-                        )}
-                        {product.option2 && product.value2 && (
-                          <p className="text-xs text-gray-500">{product.option2}: {product.value2}</p>
-                        )}
-                      </>
-                    ) : (
-                      <p className="text-xs text-gray-400 italic">Thuộc tính: Không có</p>
-                    )}
-                  </div>
-                </td>
-                <td className="py-2 px-3 font-medium text-gray-800">${product.price}</td>
-                <td className="py-2 px-3">
-                  <span className="font-semibold text-gray-800">{product.stock} Item</span><br />
-                  <span className="text-gray-500">{product.sold} Sold</span>
-                </td>
-                <td className="py-2 px-3 text-gray-700">{product.category}</td>
-                <td className="py-2 px-3 text-gray-700">
-                  <div className="flex items-center gap-1">
-                    <FaStar className="text-yellow-400" />
-                    <span>{product.rating} Review</span>
-                  </div>
-                </td>
-                <td className="py-2 px-3">
-                  <div className="flex justify-center gap-2">
-                    <button className="bg-gray-100 p-2 rounded hover:bg-gray-200">
-                      <FiEye />
-                    </button>
-                    <Link
-                      href={`/admin/product/${product.id}/edit`}
-                      className="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200"
-                    >
-                      <FiEdit />
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(product.id)}
-                      className="bg-red-100 text-red-600 p-2 rounded hover:bg-red-200"
-                    >
-                      <FiTrash2 />
-                    </button>
-                  </div>
-                </td>
-              </tr>
+              <ProductRow key={product.id} product={product} onDelete={handleDelete} />
             ))
           )}
         </tbody>
       </table>
 
-      <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
-        <p>
-          Showing <strong>{paginatedProducts.length}</strong> of{" "}
-          <strong>{products.length}</strong> items
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-2 py-1 rounded hover:bg-gray-100 disabled:text-gray-400"
-          >
-            Previous
-          </button>
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`px-3 py-1 rounded text-sm font-medium ${
-                currentPage === i + 1 ? "bg-blue-600 text-white" : "hover:bg-gray-100"
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-2 py-1 rounded hover:bg-gray-100 disabled:text-gray-400"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        setCurrentPage={setCurrentPage}
+      />
     </div>
   );
 }
