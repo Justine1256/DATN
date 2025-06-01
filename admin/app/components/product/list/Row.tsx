@@ -6,7 +6,7 @@ import { Category } from "@/types/category";
 type ProductRowProps = {
   product: Product;
   onDelete: (id: number) => void;
-  categoriesMap: Map<number, Category>; // map id -> category object
+  categoriesMap: Map<number, Category>;
 };
 
 const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
@@ -14,24 +14,21 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
     ? `http://127.0.0.1:8000/storage/images/${product.image[0]}`
     : "/default-image.jpg";
 
-  let parentCategoryName = "Unknown";
-  let subcategoryName = "Unknown";
+  let parentCategoryName = "Không rõ";
+  let subcategoryName = "Không rõ";
 
   if (product.category && typeof product.category === "object") {
-    subcategoryName = product.category.name || "Unknown";
-
+    subcategoryName = product.category.name || "Không rõ";
     if (product.category.parent_id) {
       const parent = categoriesMap.get(product.category.parent_id);
-      parentCategoryName = parent ? parent.name : `Không tìm thấy parent id=${product.category.parent_id}`;
+      parentCategoryName = parent?.name || `Không tìm thấy (#${product.category.parent_id})`;
     } else {
-      parentCategoryName = "No parent";
+      parentCategoryName = "Không có cha";
     }
   }
 
   return (
-    <tr
-      className="min-h-[60px] border-b border-gray-100 hover:bg-gray-50 text-gray-700 animate-fade-fast"
-    >
+    <tr className="min-h-[60px] border-b border-gray-100 hover:bg-gray-50 text-gray-700 animate-fade-fast">
       <td className="py-2 px-3 flex items-center gap-3">
         <Image
           src={imageSrc}
@@ -60,6 +57,7 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
           </div>
         </div>
       </td>
+
       <td className="py-2 px-3 text-gray-700">{product.price.toLocaleString()}</td>
       <td className="py-2 px-3 text-gray-700">{product.stock}</td>
       <td className="py-2 px-3 text-gray-700">{parentCategoryName}</td>

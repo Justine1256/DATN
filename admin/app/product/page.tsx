@@ -13,9 +13,8 @@ export default function ProductListPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 6;
+  const productsPerPage = 5; // ✅ Cố định 5 sản phẩm / trang
 
-  // ⚙️ Map category id => category object
   const categoriesMap = new Map<number, Category>();
   categories.forEach((c) => {
     categoriesMap.set(c.id, c);
@@ -24,7 +23,6 @@ export default function ProductListPage() {
     }
   });
 
-  // 🛒 Fetch sản phẩm
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -92,7 +90,6 @@ export default function ProductListPage() {
     }
   };
 
-  // 📦 Fetch danh mục
   const fetchCategories = async () => {
     try {
       const token = Cookies.get("authToken");
@@ -174,14 +171,23 @@ export default function ProductListPage() {
                 </td>
               </tr>
             ) : (
-              paginatedProducts.map((product) => (
-                <ProductRow
-                  key={product.id}
-                  product={product}
-                  onDelete={handleDelete}
-                  categoriesMap={categoriesMap}
-                />
-              ))
+              <>
+                {paginatedProducts.map((product) => (
+                  <ProductRow
+                    key={product.id}
+                    product={product}
+                    onDelete={handleDelete}
+                    categoriesMap={categoriesMap}
+                  />
+                ))}
+
+                {/* ✅ Thêm hàng trống nếu thiếu để luôn đủ 5 dòng */}
+                {Array.from({ length: Math.max(0, 5 - paginatedProducts.length) }).map((_, i) => (
+                  <tr key={`empty-${i}`} className="h-[64px] border-b border-gray-100">
+                    <td colSpan={7}></td>
+                  </tr>
+                ))}
+              </>
             )}
           </tbody>
         </table>
