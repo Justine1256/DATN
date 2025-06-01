@@ -108,8 +108,11 @@ export default function ProductListPage() {
   };
 
   useEffect(() => {
+    const token = Cookies.get("authToken");
+    console.log("✅ authToken từ cookie:", token);
     fetchProducts();
   }, []);
+  
 
   const totalPages = Math.ceil(products.length / productsPerPage);
   const startIndex = (currentPage - 1) * productsPerPage;
