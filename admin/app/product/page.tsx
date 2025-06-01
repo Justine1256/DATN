@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ProductListHeader from "../components/product/list/ListHeader";
 import ProductRow from "../components/product/list/Row";
 import Pagination from "../components/product/list/Pagination";
+import ProductRowSkeleton from "../components/loading/loading"; // ✅ dùng import đã tách riêng
 import { Product } from "@/types/product";
 import { Category } from "@/types/category";
 import Swal from "sweetalert2";
@@ -154,7 +155,7 @@ export default function ProductListPage() {
 
       if (res.ok) {
         Swal.fire("Đã xoá!", "Sản phẩm đã được xoá.", "success");
-        fetchProducts(currentPage); // Reload current page
+        fetchProducts(currentPage);
       } else {
         Swal.fire("Thất bại", "Không thể xoá sản phẩm.", "error");
       }
