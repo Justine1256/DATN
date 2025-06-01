@@ -153,7 +153,7 @@ public function showShopProducts(Request $request)
 
     $shopId = $user->shop->id;
 
-    $perPage = $request->query('per_page', 10);
+    $perPage = $request->query('per_page', 5);
 
     $products = Product::where('shop_id', $shopId)
         ->where('status', 'activated')

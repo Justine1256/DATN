@@ -66,7 +66,7 @@ const CategoryRow = ({ category, onDelete }: CategoryRowProps) => {
             <FiEye />
           </button>
           <Link
-            href={`/Category/${category.id}/edit`} 
+            href={`/category/${category.id}/edit`} 
             className="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200"
           >
             <FiEdit />

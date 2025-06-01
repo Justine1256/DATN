@@ -9,8 +9,6 @@ import { Category } from "@/types/category";
 import Swal from "sweetalert2";
 import Cookies from "js-cookie";
 
-//
-// { ✅ Skeleton hiển thị loading từng hàng sản phẩm }
 const ProductRowSkeleton = () => (
   <tr className="border-b border-gray-100 animate-pulse">
     <td className="py-4 px-3 flex items-center gap-3">
@@ -31,16 +29,13 @@ const ProductRowSkeleton = () => (
   </tr>
 );
 
-//
-// { ✅ Component chính hiển thị danh sách sản phẩm }
 export default function ProductListPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 5;
+  const [totalPages, setTotalPages] = useState(1);
 
-  // { ✅ Map danh mục để lấy thông tin cha - con }
   const categoriesMap = new Map<number, Category>();
   categories.forEach((c) => {
     categoriesMap.set(c.id, c);
@@ -49,8 +44,7 @@ export default function ProductListPage() {
     }
   });
 
-  // { ✅ Lấy danh sách sản phẩm }
-  const fetchProducts = async () => {
+  const fetchProducts = async (page = 1) => {
     try {
       setLoading(true);
       const token = Cookies.get("authToken");
@@ -60,7 +54,7 @@ export default function ProductListPage() {
         return;
       }
 
-      const res = await fetch("http://127.0.0.1:8000/api/shop/products", {
+      const res = await fetch(`http://127.0.0.1:8000/api/shop/products?page=${page}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -77,18 +71,10 @@ export default function ProductListPage() {
         slug: p.slug,
         description: p.description,
         price: parseFloat(p.price),
-        sale_price:
-          p.sale_price !== null && p.sale_price !== undefined
-            ? parseFloat(p.sale_price)
-            : null,
+        sale_price: p.sale_price ? parseFloat(p.sale_price) : null,
         stock: p.stock,
         sold: p.sold,
-        image:
-          typeof p.image === "string"
-            ? [p.image]
-            : Array.isArray(p.image)
-            ? p.image
-            : [],
+        image: typeof p.image === "string" ? [p.image] : Array.isArray(p.image) ? p.image : [],
         option1: p.option1 ?? null,
         value1: p.value1 ?? null,
         option2: p.option2 ?? null,
@@ -97,18 +83,18 @@ export default function ProductListPage() {
         created_at: p.created_at,
         updated_at: p.updated_at,
         deleted_at: p.deleted_at,
-        size:
-          typeof p.size === "string"
-            ? p.size.split(",").map((s: string) => s.trim())
-            : Array.isArray(p.size)
-            ? p.size
-            : [],
+        size: typeof p.size === "string"
+          ? p.size.split(",").map((s: string) => s.trim())
+          : Array.isArray(p.size)
+          ? p.size
+          : [],
         category: p.category ?? null,
         rating: p.rating ? parseFloat(p.rating) : 0,
       }));
 
       setProducts(mapped);
-      setCurrentPage(1);
+      setTotalPages(data.products?.last_page || 1);
+      setCurrentPage(data.products?.current_page || 1);
     } catch (error) {
       console.error("Lỗi khi load sản phẩm:", error);
       setProducts([]);
@@ -117,7 +103,6 @@ export default function ProductListPage() {
     }
   };
 
-  // { ✅ Lấy danh sách danh mục }
   const fetchCategories = async () => {
     try {
       const token = Cookies.get("authToken");
@@ -136,7 +121,6 @@ export default function ProductListPage() {
     }
   };
 
-  // { ✅ Xác nhận xoá bằng SweetAlert2 }
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Bạn chắc chắn?",
@@ -162,7 +146,7 @@ export default function ProductListPage() {
 
       if (res.ok) {
         Swal.fire("Đã xoá!", "Sản phẩm đã được xoá.", "success");
-        fetchProducts();
+        fetchProducts(currentPage); // Reload current page
       } else {
         Swal.fire("Thất bại", "Không thể xoá sản phẩm.", "error");
       }
@@ -172,22 +156,19 @@ export default function ProductListPage() {
     }
   };
 
-  const totalPages = Math.ceil(products.length / productsPerPage);
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const paginatedProducts = products.slice(startIndex, startIndex + productsPerPage);
-
-  // { ✅ Gọi API khi component mount }
   useEffect(() => {
     fetchCategories();
-    fetchProducts();
   }, []);
 
-  // { ✅ Giao diện chính }
+  useEffect(() => {
+    fetchProducts(currentPage);
+  }, [currentPage]);
+
   return (
-    <div className="p-6">
+    <div className="p-6 flex flex-col">
       <ProductListHeader />
-      <div className="flex flex-col gap-8">
-        <div className="border border-gray-200 rounded-md overflow-x-auto">
+      <div className="flex-1 flex flex-col gap-8">
+        <div className="h-[600px] border border-gray-200 rounded-md overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="sticky top-0 bg-white z-10">
               <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
@@ -202,17 +183,17 @@ export default function ProductListPage() {
             </thead>
             <tbody key={currentPage}>
               {loading ? (
-                Array.from({ length: productsPerPage }).map((_, i) => (
+                Array.from({ length: 5 }).map((_, i) => (
                   <ProductRowSkeleton key={i} />
                 ))
-              ) : paginatedProducts.length === 0 ? (
+              ) : products.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-gray-500">
                     Không có sản phẩm nào.
                   </td>
                 </tr>
               ) : (
-                paginatedProducts.map((product) => (
+                products.map((product) => (
                   <ProductRow
                     key={product.id}
                     product={product}
@@ -225,8 +206,7 @@ export default function ProductListPage() {
           </table>
         </div>
 
-        {/* ✅ Phân trang */}
-        <div className="pt-4">
+        <div className="pt-4 mt-auto">
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

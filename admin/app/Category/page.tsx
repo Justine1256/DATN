@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import CategoryListHeader from "../components/Categories/list/Header";
-import CategoryRow from "../components/Categories/list/Row";
-import Pagination from "../components/Categories/list/Pagination";
+import CategoryListHeader from "../components/categories/list/Header";
+import CategoryRow from "../components/categories/list/Row";
+import Pagination from "../components/categories/list/Pagination";
 import Cookies from "js-cookie";
 import Swal from "sweetalert2";
 
