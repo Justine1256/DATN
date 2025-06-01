@@ -13,14 +13,16 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false); // ✅ Popup state
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false); // ✅ Popup trạng thái đăng nhập thành công
 
   const router = useRouter();
 
+  // ✅ Cập nhật input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // ✅ Xử lý đăng nhập
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -28,27 +30,35 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
+      // ✅ Gửi dữ liệu login lên server
       const response = await axios.post('http://localhost:8000/api/login', {
         email: formData.email,
         password: formData.password,
       });
 
       const { token } = response.data;
+
+      // ✅ Lưu token vào cookie
       Cookies.set('authToken', token, { expires: 7 });
 
-      // ✅ Hiện popup và chờ chuyển trang
+      // ✅ Mở tab mới (trang web chính)
+      window.open("http://localhost:3000", "_blank"); // <-- Trang client/public site
+
+      // ✅ Hiện popup và chuẩn bị chuyển hướng đến dashboard
       setShowSuccessPopup(true);
+
+      // ✅ Chuyển tab hiện tại sang dashboard (sau 2s)
       setTimeout(() => {
         router.push(`http://localhost:3001/dashboard?token=${token}`);
       }, 2000);
     } catch (err: any) {
       if (err.response?.data?.error) {
-        setError(err.response.data.error);
+        setError(err.response.data.error); // ✅ Lỗi từ backend
       } else {
-        setError('Đăng nhập thất bại. Vui lòng thử lại.');
+        setError('Đăng nhập thất bại. Vui lòng thử lại.'); // ✅ Lỗi không xác định
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // ✅ Kết thúc trạng thái loading
     }
   };
 
@@ -60,6 +70,7 @@ export default function LoginForm() {
       {message && <p className="text-green-600 mb-4">{message}</p>}
       {error && <p className="text-red-600 mb-4 whitespace-pre-wrap">{error}</p>}
 
+      {/* ✅ Form đăng nhập */}
       <form onSubmit={handleSubmit} className="space-y-10">
         <input
           type="text"
@@ -95,7 +106,7 @@ export default function LoginForm() {
         </div>
       </form>
 
-      {/* ✅ Success popup */}
+      {/* ✅ Popup thông báo thành công */}
       {showSuccessPopup && (
         <div className="fixed top-5 right-5 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2 z-50">
           <svg
