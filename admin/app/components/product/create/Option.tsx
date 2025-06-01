@@ -1,272 +1,278 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface Props {
-  selectedSizes: string[];
-  toggleSize: (size: string) => void;
-  selectedColors: string[];
-  toggleColor: (color: string) => void;
-  setSelectedColors: (colors: string[]) => void;
-  description?: string;
-  data: any;
-  category: string;
+  selectedOption1: string[];
+  toggleOption1: (val: string) => void;
+  selectedOption2: string[];
+  toggleOption2: (val: string) => void;
+  option1Label: string;
+  setOption1Label: (val: string) => void;
+  option2Label: string;
+  setOption2Label: (val: string) => void;
 }
 
-export default function OptionsInputAndColorPicker({
-  selectedSizes,
-  toggleSize,
-  selectedColors,
-  toggleColor,
-  setSelectedColors,
-  description = "",
-  data,
-  category
+export default function OptionsInput({
+  selectedOption1,
+  toggleOption1,
+  selectedOption2,
+  toggleOption2,
+  option1Label,
+  setOption1Label,
+  option2Label,
+  setOption2Label,
 }: Props) {
-  const defaultColors = ["#222", "#facc15", "#60a5fa", "#f87171", "#10b981", "#e5e7eb"];
-  const presetOptions: string[] =
-    category === "fashion"
-      ? ["XS", "S", "M", "L", "XL", "XXL", "3XL"]
-      : ["32GB", "64GB", "128GB", "256GB"];
+  const [showInput1, setShowInput1] = useState(false);
+  const [showInput2, setShowInput2] = useState(false);
+  const [editingOption1, setEditingOption1] = useState(false);
+  const [editingOption2, setEditingOption2] = useState(false);
 
-  const [customLabel, setCustomLabel] = useState("Input / Label");
-  const [editingLabel, setEditingLabel] = useState(false);
-  
-  const [colorLabel, setColorLabel] = useState("Colors");
-  const [editingColorLabel, setEditingColorLabel] = useState(false);
-  const handleAddSize = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const val = (e.target as HTMLInputElement).value.trim();
-      if (val && !selectedSizes.includes(val)) {
-        toggleSize(val);
-        (e.target as HTMLInputElement).value = "";
+  const [inputValue1, setInputValue1] = useState("");
+  const [inputValue2, setInputValue2] = useState("");
+
+  const inputRef1 = useRef<HTMLInputElement>(null);
+  const inputRef2 = useRef<HTMLInputElement>(null);
+  const labelInputRef1 = useRef<HTMLInputElement>(null);
+  const labelInputRef2 = useRef<HTMLInputElement>(null);
+
+  const defaultOption1Label = "Option 1";
+  const defaultOption2Label = "Option 2";
+
+  useEffect(() => {
+    if (editingOption1) labelInputRef1.current?.focus();
+  }, [editingOption1]);
+
+  useEffect(() => {
+    if (editingOption2) labelInputRef2.current?.focus();
+  }, [editingOption2]);
+
+  useEffect(() => {
+    if (showInput1) inputRef1.current?.focus();
+  }, [showInput1]);
+
+  useEffect(() => {
+    if (showInput2) inputRef2.current?.focus();
+  }, [showInput2]);
+
+  const handleAdd = (value: string, option: number) => {
+    const val = value.trim();
+    if (val) {
+      if (option === 1) {
+        toggleOption1(val);
+        setInputValue1("");
+        setShowInput1(false);
+      } else {
+        toggleOption2(val);
+        setInputValue2("");
+        setShowInput2(false);
+      }
+    } else {
+      if (option === 1) {
+        setInputValue1("");
+        setShowInput1(false);
+      } else {
+        setInputValue2("");
+        setShowInput2(false);
       }
     }
   };
 
-  const handleAddColor = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleLabelKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    option: number
+  ) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      const val = (e.target as HTMLInputElement).value.trim();
-      if (/^#([0-9A-F]{3}){1,2}$/i.test(val) && !selectedColors.includes(val)) {
-        setSelectedColors([...selectedColors, val]);
-        (e.target as HTMLInputElement).value = "";
+      let val = (e.target as HTMLInputElement).value.trim();
+      if (!val) {
+        val = option === 1 ? defaultOption1Label : defaultOption2Label;
       }
+      option === 1 ? setOption1Label(val) : setOption2Label(val);
+      option === 1 ? setEditingOption1(false) : setEditingOption2(false);
+    }
+
+    if (e.key === "Escape") {
+      option === 1 ? setEditingOption1(false) : setEditingOption2(false);
     }
   };
 
-  const priceFields = [
-    { label: "Price", icon: "$", key: "price" },
-    {
-      label: "Discount (%)",
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 13l3 3L22 4M2 20h.01M2 2h.01M12 12h.01" />
-        </svg>
-      ),
-      key: "discount"
-    },
-    {
-      label: "Tax",
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h18M3 21h18M5 7h14M5 11h14M5 15h14" />
-        </svg>
-      ),
-      key: "tax"
+  const handleLabelBlur = (option: number) => {
+    let val =
+      option === 1
+        ? labelInputRef1.current?.value.trim()
+        : labelInputRef2.current?.value.trim();
+
+    if (!val) {
+      val = option === 1 ? defaultOption1Label : defaultOption2Label;
     }
-  ];
+    option === 1 ? setOption1Label(val) : setOption2Label(val);
+    option === 1 ? setEditingOption1(false) : setEditingOption2(false);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Size / Storage + Color */}
-      <div className="bg-white p-4 rounded shadow-sm">
-        <div className="grid md:grid-cols-2 gap-6">
-          <div>
-          {editingLabel ? (
-  <input
-    type="text"
-    value={customLabel}
-    onChange={(e) => setCustomLabel(e.target.value)}
-    onBlur={() => setEditingLabel(false)}
-    className="block text-base font-semibold text-gray-700 mb-1 ..."
-
-    autoFocus
-  />
-) : (
-  <label
-  className="block text-base font-semibold text-gray-700 mb-1 cursor-pointer hover:text-blue-600 flex items-center gap-1"
-  onClick={() => setEditingLabel(true)}
->
-  {customLabel}
-  <svg
-    className="w-4 h-4 text-gray-400 hover:text-blue-500 transition"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6H9v-3z"
-    />
-  </svg>
-</label>
-
-)}
-
-
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              {selectedSizes.map((size) => (
-                <span
-                  key={size}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm font-medium bg-gray-100 text-gray-700 flex items-center gap-1"
+      <div className="bg-white p-4 rounded shadow-sm min-h-[130px]">
+        <div className="flex flex-wrap gap-6">
+          {/* OPTION 1 */}
+          <div className="relative max-w-[480px] w-full h-[220px] rounded overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 bg-white z-10 p-2">
+              {editingOption1 ? (
+                <input
+                  ref={labelInputRef1}
+                  defaultValue={option1Label}
+                  placeholder={defaultOption1Label}
+                  onKeyDown={(e) => handleLabelKeyDown(e, 1)}
+                  onBlur={() => handleLabelBlur(1)}
+                  className="rounded px-2 py-1 w-[80px] text-black"
+                />
+              ) : (
+                <div
+                  className="flex items-center gap-1 cursor-pointer"
+                  onClick={() => setEditingOption1(true)}
                 >
-                  {size}
-                  <span onClick={() => toggleSize(size)} className="text-red-500 cursor-pointer">
-                    ✕
+                  <span className="text-base font-medium text-black line-clamp-1">
+                    {option1Label}
                   </span>
-                </span>
-              ))}
-              <input
-                type="text"
-                placeholder="Add ..."
-                onKeyDown={handleAddSize}
-                className="border border-gray-300 px-2 py-1 rounded font-medium text-gray-800"
-              />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 512 512"
+                    className="w-4 h-4 shrink-0"
+                    fill="none"
+                  >
+                    <circle cx="256" cy="256" r="256" fill="#2196f3" />
+                    <path
+                      d="M384.7 106.4c-4.7-4.4-12-4.3-16.5 0.3L208.1 274.3c-0.9 0.9-1.6 2-1.9 3.2l-14.9 51.6c-0.8 2.9 1.7 5.5 4.6 4.7l51.7-16.1c1.2-0.4 2.3-1 3.2-1.9l160.2-172.1c4.4-4.7 4.2-12.1-0.5-16.4l-26.8-24.9zM279.7 177.6H120c-8.8 0-16 7.2-16 16v200c0 8.8 7.2 16 16 16h208c8.8 0 16-7.2 16-16V239.6l-32 34.4V392H136V208h121.7l22-23.9z"
+                      fill="#fff"
+                    />
+                  </svg>
+                </div>
+              )}
             </div>
 
-            {/* Gợi ý size/dung lượng */}
-            <div className="flex flex-wrap gap-2">
-              {presetOptions.map((val) => (
+            <div className="absolute top-[48px] bottom-0 left-0 right-0 overflow-y-auto p-2">
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedOption1.map((val) => (
+                  <span
+                    key={val}
+                    className="px-3 py-1 rounded bg-gray-100 text-black flex items-center gap-1"
+                  >
+                    {val}
+                    <span
+                      onClick={() => toggleOption1(val)}
+                      className="text-red-500 cursor-pointer"
+                    >
+                      ✕
+                    </span>
+                  </span>
+                ))}
+              </div>
+              {showInput1 ? (
+                <input
+                  ref={inputRef1}
+                  type="text"
+                  placeholder="Add value"
+                  value={inputValue1}
+                  onChange={(e) => setInputValue1(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAdd(inputValue1, 1);
+                    }
+                  }}
+                  onBlur={() => handleAdd(inputValue1, 1)}
+                  className="w-full px-2 py-1 rounded text-black"
+                />
+              ) : (
                 <button
-                  key={val}
-                  onClick={() => toggleSize(val)}
-                  className={`px-3 py-1 rounded text-sm font-semibold border transition ${
-                    selectedSizes.includes(val)
-                      ? "bg-blue-100 text-blue-900 border-blue-300"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
+                  onClick={() => setShowInput1(true)}
+                  className="text-blue-600 hover:underline"
                 >
-                  {val}
+                  + Add value
                 </button>
-              ))}
+              )}
             </div>
           </div>
 
-        
-         {/* Color Picker */}
-        {/* Color Picker */}
-<div>
-  {editingColorLabel ? (
-    <input
-      type="text"
-      value={colorLabel}
-      onChange={(e) => setColorLabel(e.target.value)}
-      onBlur={() => setEditingColorLabel(false)}
-      className="block text-base font-semibold text-gray-700 mb-1 border border-gray-300 px-2 py-1 rounded"
-      autoFocus
-    />
-  ) : (
-    <label
-      className="block text-base font-semibold text-gray-700 mb-1 cursor-pointer hover:text-blue-600 flex items-center gap-1"
-      onClick={() => setEditingColorLabel(true)}
-    >
-      {colorLabel}
-      <svg
-        className="w-4 h-4 text-gray-400 hover:text-blue-500 transition"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6H9v-3z"
-        />
-      </svg>
-    </label>
-  )}
-
-  <div className="flex gap-2 flex-wrap mb-2">
-    {selectedColors.map((color) => (
-      <div key={color} className="flex items-center gap-1">
-        <div
-          className="w-8 h-8 rounded-full border border-gray-300 cursor-pointer"
-          style={{ backgroundColor: color }}
-          title={color}
-        />
-        <span
-          onClick={() => toggleColor(color)}
-          className="text-red-500 font-bold cursor-pointer hover:scale-125 transition"
-        >
-          ✕
-        </span>
-      </div>
-    ))}
-  </div>
-
-  <input
-    type="text"
-    placeholder="Add hex color (#...)"
-    onKeyDown={handleAddColor}
-    className="border border-gray-300 px-2 py-1 rounded w-52 font-semibold text-gray-800"
-  />
-
-  <div className="flex gap-2 flex-wrap mt-2">
-    {defaultColors.map((color) => (
-      <button
-        key={color}
-        onClick={() => toggleColor(color)}
-        className={`w-8 h-8 rounded-full border border-gray-300 transition ${
-          selectedColors.includes(color)
-            ? "ring-2 ring-blue-500"
-            : "opacity-50 hover:opacity-100 hover:ring-2 hover:ring-gray-300"
-        }`}
-        style={{ backgroundColor: color }}
-        type="button"
-      />
-    ))}
-  </div>
-</div>
-
-
-        </div>
-      </div>
-
-      {/* Description */}
-      <div className="bg-white p-4 rounded shadow-sm">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-        <textarea
-          className="w-full border border-gray-200 p-2 font-medium text-gray-800 rounded"
-          rows={4}
-          defaultValue={description}
-        />
-      </div>
-
-      {/* Price fields */}
-      <div className="bg-white p-4 rounded shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {priceFields.map(({ label, icon, key }) => (
-            <div key={label}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                  {icon}
-                </span>
+          {/* OPTION 2 */}
+          <div className="relative max-w-[480px] w-full h-[220px] rounded overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 bg-white z-10 p-2">
+              {editingOption2 ? (
                 <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  className="w-full border border-gray-200 p-2 pl-8 font-medium text-gray-800 rounded"
-                  defaultValue={data?.[key] ?? (key === "tax" ? 3 : 0)}
+                  ref={labelInputRef2}
+                  defaultValue={option2Label}
+                  placeholder={defaultOption2Label}
+                  onKeyDown={(e) => handleLabelKeyDown(e, 2)}
+                  onBlur={() => handleLabelBlur(2)}
+                  className="rounded px-2 py-1 w-[80px] text-black"
                 />
-              </div>
+              ) : (
+                <div
+                  className="flex items-center gap-1 cursor-pointer"
+                  onClick={() => setEditingOption2(true)}
+                >
+                  <span className="text-base font-medium text-black line-clamp-1">
+                    {option2Label}
+                  </span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 512 512"
+                    className="w-4 h-4 shrink-0"
+                    fill="none"
+                  >
+                    <circle cx="256" cy="256" r="256" fill="#2196f3" />
+                    <path
+                      d="M384.7 106.4c-4.7-4.4-12-4.3-16.5 0.3L208.1 274.3c-0.9 0.9-1.6 2-1.9 3.2l-14.9 51.6c-0.8 2.9 1.7 5.5 4.6 4.7l51.7-16.1c1.2-0.4 2.3-1 3.2-1.9l160.2-172.1c4.4-4.7 4.2-12.1-0.5-16.4l-26.8-24.9zM279.7 177.6H120c-8.8 0-16 7.2-16 16v200c0 8.8 7.2 16 16 16h208c8.8 0 16-7.2 16-16V239.6l-32 34.4V392H136V208h121.7l22-23.9z"
+                      fill="#fff"
+                    />
+                  </svg>
+                </div>
+              )}
             </div>
-          ))}
+
+            <div className="absolute top-[48px] bottom-0 left-0 right-0 overflow-y-auto p-2">
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedOption2.map((val) => (
+                  <span
+                    key={val}
+                    className="px-3 py-1 rounded bg-gray-100 text-black flex items-center gap-1"
+                  >
+                    {val}
+                    <span
+                      onClick={() => toggleOption2(val)}
+                      className="text-red-500 cursor-pointer"
+                    >
+                      ✕
+                    </span>
+                  </span>
+                ))}
+              </div>
+              {showInput2 ? (
+                <input
+                  ref={inputRef2}
+                  type="text"
+                  placeholder="Add value"
+                  value={inputValue2}
+                  onChange={(e) => setInputValue2(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAdd(inputValue2, 2);
+                    }
+                  }}
+                  onBlur={() => handleAdd(inputValue2, 2)}
+                  className="w-full px-2 py-1 rounded text-black"
+                />
+              ) : (
+                <button
+                  onClick={() => setShowInput2(true)}
+                  className="text-blue-600 hover:underline"
+                >
+                  + Add value
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
