@@ -5,6 +5,8 @@ type PaginationProps = {
 };
 
 const Pagination = ({ currentPage, totalPages, setCurrentPage }: PaginationProps) => {
+  if (totalPages === 0) return null; // ✅ Ẩn pagination nếu không có trang nào
+
   return (
     <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
       <p>
@@ -17,7 +19,7 @@ const Pagination = ({ currentPage, totalPages, setCurrentPage }: PaginationProps
           disabled={currentPage === 1}
           className="px-2 py-1 rounded hover:bg-gray-100 disabled:text-gray-400"
         >
-          Trang trước
+          ← Trước
         </button>
 
         {[...Array(totalPages)].map((_, i) => {
@@ -42,7 +44,7 @@ const Pagination = ({ currentPage, totalPages, setCurrentPage }: PaginationProps
           disabled={currentPage === totalPages}
           className="px-2 py-1 rounded hover:bg-gray-100 disabled:text-gray-400"
         >
-          Trang sau
+          Sau →
         </button>
       </div>
     </div>
