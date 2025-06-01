@@ -16,10 +16,13 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderDetailController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
 use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\ReviewController;
+
 
 // test api
 Route::get('/userall', [UserController::class, 'index']);
@@ -56,6 +59,9 @@ Route::post('/notification', [NotificationController::class, 'store']);
 Route::get('/notification/{id}', [NotificationController::class, 'show']);
 Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 
+Route::get('/reviews', [ReviewController::class, 'index']);
+Route::get('/reviews/{id}', [ReviewController::class, 'show']);
+
 Route::middleware('auth:sanctum')->group(function () {
     // User
     Route::get('/user', [UserController::class, 'show']);
@@ -83,6 +89,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/dathang', [OrderController::class, 'checkout']);
     Route::get('/showdh', [OrderController::class, 'show']);
     Route::post('/cancel', [OrderController::class, 'cancel']);
+
+    Route::get('/order-details', [OrderDetailController::class, 'index']);
+    Route::post('/order-details', [OrderDetailController::class, 'store']);
+    Route::get('/order-details/{id}', [OrderDetailController::class, 'show']);
+    Route::patch('/order-details/{id}', [OrderDetailController::class, 'update']);
+    Route::delete('/order-details/{id}', [OrderDetailController::class, 'destroy']);
+
+    Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::patch('/reviews/{id}', [ReviewController::class, 'update']);
+    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
 
     // Mã giảm giá
     Route::post('/voucher', [VoucherController::class, 'apply']);
@@ -126,21 +142,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // shop management
     // quản lý sản phẩm  của shop
-        Route::get('/shop/products', [ProductController::class, 'showShopProducts']);
-        Route::post('/shop/products', [ProductController::class, 'addProductByShop']);
-        Route::patch('/shop/products/{id}', [ProductController::class, 'update']);
-        Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
-        Route::post('/shop/products/{id}', [ProductController::class, 'restoreProduct']);
+    Route::get('/shop/products', [ProductController::class, 'showShopProducts']);
+    Route::post('/shop/products', [ProductController::class, 'addProductByShop']);
+    Route::patch('/shop/products/{id}', [ProductController::class, 'update']);
+    Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
+    Route::post('/shop/products/{id}', [ProductController::class, 'restoreProduct']);
     // quản lý danh mục của shop
-        Route::get('/shop/categories', [CategoryController::class, 'getShopCategories']);
-        Route::post('/shop/categories', [CategoryController::class, 'addCategoryByShop']);
-        Route::patch('/shop/categories/{id}', [CategoryController::class, 'updateCategoryByShop']);
-        Route::delete('/shop/categories/{id}', [CategoryController::class, 'destroyCategoryByShop']);
-        Route::post('/shop/categories/{id}', [CategoryController::class, 'restoreCategory']);
+    Route::get('/shop/categories', [CategoryController::class, 'getShopCategories']);
+    Route::post('/shop/categories', [CategoryController::class, 'addCategoryByShop']);
+    Route::patch('/shop/categories/{id}', [CategoryController::class, 'updateCategoryByShop']);
+    Route::delete('/shop/categories/{id}', [CategoryController::class, 'destroyCategoryByShop']);
+    Route::post('/shop/categories/{id}', [CategoryController::class, 'restoreCategory']);
     // quản lý bình luận của shop
-        Route::get('/shop/comments', [ProductController::class, 'getShopComments']);
-        Route::delete('/shop/comments/{id}', [ProductController::class, 'deleteComment']);
-        Route::post('/shop/comments/{id}', [ProductController::class, 'restoreComment']);
-
-
+    Route::get('/shop/comments', [ProductController::class, 'getShopComments']);
+    Route::delete('/shop/comments/{id}', [ProductController::class, 'deleteComment']);
+    Route::post('/shop/comments/{id}', [ProductController::class, 'restoreComment']);
 });
