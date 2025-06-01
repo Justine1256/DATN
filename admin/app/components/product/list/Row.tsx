@@ -1,42 +1,37 @@
 import Image from "next/image";
 import { FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
 import { Product } from "@/types/product";
+
 type ProductRowProps = {
   product: Product;
   onDelete: (id: number) => void;
-  
 };
 
 const ProductRow = ({ product, onDelete }: ProductRowProps) => {
-const imageSrc = product.image
-  ? `http://127.0.0.1:8000/storage/images/${product.image}`
-  : "/default-image.jpg";
-console.log("Type of product.category:", typeof product.category);
-console.log("Is product.category an array?", Array.isArray(product.category));
-console.log("product.category JSON:", JSON.stringify(product.category));
-
-
-
+  const imageSrc = product.image?.[0]
+    ? `http://127.0.0.1:8000/storage/images/${product.image[0]}`
+    : "/default-image.jpg";
 
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50 text-gray-700">
-      <td className="py-2 px-3">
-        <input type="checkbox" />
-      </td>
       <td className="py-2 px-3 flex items-center gap-3">
         <Image
-  src={imageSrc}
-  alt={product.name}
-  width={40}
-  height={40}
-  className="rounded object-cover"
-/>
-
+          src={imageSrc}
+          alt={product.name}
+          width={40}
+          height={40}
+          className="rounded object-cover"
+        />
         <p className="font-medium text-gray-900">{product.name}</p>
       </td>
-      <td className="py-2 px-3 text-gray-700">{typeof product.category === "string" ? product.category : product.category?.name || "Unknown"}</td>
-      <td className="py-2 px-3 text-gray-700">{product.price}</td>
+
+      <td className="py-2 px-3 text-gray-700">{product.price.toLocaleString()}</td>
       <td className="py-2 px-3 text-gray-700">{product.stock}</td>
+      <td className="py-2 px-3 text-gray-700">
+        {typeof product.category === "string"
+          ? product.category
+          : product.category?.name || "Unknown"}
+      </td>
       <td className="py-2 px-3 text-gray-700">{product.rating}</td>
       <td className="py-2 px-3">
         <div className="flex justify-center gap-2">

@@ -17,25 +17,25 @@ export default function ProductListPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const token = Cookies.get('authToken');
+      const token = Cookies.get("authToken");
       if (!token) {
         console.error("Không có token. Hãy đăng nhập.");
         setProducts([]);
         setLoading(false);
         return;
       }
-
+  
       const res = await fetch("http://127.0.0.1:8000/api/shop/products", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
+  
       if (!res.ok) throw new Error("Lỗi fetch sản phẩm");
-
+  
       const data = await res.json();
-
-      // data.products.data là mảng sản phẩm
-      const rawProducts = Array.isArray(data.products?.data) ? data.products.data : [];
-
+      const rawProducts = Array.isArray(data.products?.data)
+        ? data.products.data
+        : [];
+  
       const mapped: Product[] = rawProducts.map((p: any): Product => ({
         id: p.id,
         category_id: p.category_id,
@@ -73,8 +73,9 @@ export default function ProductListPage() {
         category: p.category?.name || "Unknown",
         rating: p.rating ? parseFloat(p.rating) : 0,
       }));
-
+  
       setProducts(mapped);
+      setCurrentPage(1); // ✅ THÊM DÒNG NÀY để reset lại trang đầu
     } catch (error) {
       console.error("Lỗi khi load sản phẩm:", error);
       setProducts([]);
@@ -82,7 +83,7 @@ export default function ProductListPage() {
       setLoading(false);
     }
   };
-
+  
   const handleDelete = async (id: number) => {
     if (!confirm("Bạn có chắc muốn xoá sản phẩm này?")) return;
 
