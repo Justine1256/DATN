@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Category } from "@/types/category";
+import useCategories from "@/app/hooks/useCategories";
 
 interface ProductInfoFormProps {
   data: any;
@@ -8,111 +10,153 @@ interface ProductInfoFormProps {
   setCategory: (value: string) => void;
 }
 
-const categoryOptions = [
-  { value: "fashion", label: "Thời trang", sub: ["Áo", "Quần", "Giày"] },
-  { value: "phone", label: "Điện thoại", sub: ["iPhone", "Samsung", "Xiaomi"] },
-];
-
 export default function ProductInfoForm({
   data,
   category,
   setCategory,
 }: ProductInfoFormProps) {
+  const { categories, loading, error } = useCategories();
+
   const [subCategory, setSubCategory] = useState("");
 
-  const currentCategory = categoryOptions.find((cat) => cat.value === category);
-
-  // Khi thay đổi danh mục cha, reset danh mục con
   useEffect(() => {
     setSubCategory("");
   }, [category]);
+
+  const currentCategory = categories.find(
+    (cat) => cat.id.toString() === category
+  );
+
+  const subCategories = categories.filter(
+    (cat) => cat.parent_id === currentCategory?.id
+  );
+
+  if (loading) return <p className="text-gray-600">Đang tải danh mục...</p>;
+  if (error)
+    return <p className="text-red-500">Lỗi khi tải danh mục: {error.message}</p>;
 
   return (
     <div className="bg-white p-4 rounded shadow-sm space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Tên sản phẩm */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tên sản phẩm</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tên sản phẩm
+          </label>
           <input
-            type="text"
-            className="w-full border border-gray-200 p-2 font-medium text-gray-800 rounded"
+            name="name"
             defaultValue={data?.name || ""}
+            required
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            placeholder="Tên sản phẩm"
           />
         </div>
 
-        {/* Giá */}
+        {/* Giá gốc */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Giá gốc</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Giá gốc
+          </label>
           <input
+            name="price"
+            defaultValue={data?.price || 0}
+            required
             type="number"
-            className="w-full border border-gray-200 p-2 font-medium text-gray-800 rounded"
-            defaultValue={data?.price || ""}
+            min={0}
+            className="w-full border rounded px-3 py-2"
+            placeholder="Giá gốc"
           />
         </div>
 
         {/* Giá khuyến mãi */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Giá khuyến mãi (nếu có)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Giá khuyến mãi
+          </label>
           <input
+            name="sale_price"
+            defaultValue={data?.sale_price || 0}
             type="number"
-            className="w-full border border-gray-200 p-2 font-medium text-gray-800 rounded"
-            defaultValue={data?.sale_price || ""}
+            min={0}
+            className="w-full border rounded px-3 py-2"
+            placeholder="Giá khuyến mãi"
           />
         </div>
 
-        {/* Số lượng tồn kho */}
+        {/* Số lượng */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Số lượng
+          </label>
           <input
+            name="stock"
+            defaultValue={data?.stock || 0}
+            required
             type="number"
-            className="w-full border border-gray-200 p-2 font-medium text-gray-800 rounded"
-            defaultValue={data?.stock || ""}
+            min={0}
+            className="w-full border rounded px-3 py-2"
+            placeholder="Số lượng"
           />
         </div>
 
         {/* Danh mục cha */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Danh mục sản phẩm</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Danh mục
+          </label>
           <select
+            name="category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full border border-gray-200 p-2 font-medium text-gray-800 rounded"
+            className="w-full border rounded px-3 py-2"
+            required
           >
-            <option value="">-- Chọn danh mục --</option>
-            {categoryOptions.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
+            <option value="">Chọn danh mục</option>
+            {categories
+              .filter((cat) => cat.parent_id === null)
+              .map((cat) => (
+                <option key={cat.id} value={cat.id.toString()}>
+                  {cat.name}
+                </option>
+              ))}
           </select>
         </div>
 
         {/* Danh mục con */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Danh mục con</label>
-          <select
-            value={subCategory}
-            onChange={(e) => setSubCategory(e.target.value)}
-            className="w-full border border-gray-200 p-2 font-medium text-gray-800 rounded"
-            disabled={!currentCategory}
-          >
-            <option value="">-- Chọn danh mục con --</option>
-            {currentCategory?.sub.map((sub) => (
-              <option key={sub} value={sub}>
-                {sub}
-              </option>
-            ))}
-          </select>
-        </div>
+        {subCategories.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Danh mục con
+            </label>
+            <select
+              name="sub_category_id"
+              value={subCategory}
+              onChange={(e) => setSubCategory(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+            >
+              <option value="">Chọn danh mục con</option>
+              {subCategories.map((sub) => (
+                <option key={sub.id} value={sub.id.toString()}>
+                  {sub.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Mô tả sản phẩm */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả sản phẩm</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Mô tả sản phẩm
+        </label>
         <textarea
-          className="w-full border border-gray-200 p-2 font-medium text-gray-800 rounded"
-          rows={4}
+          name="description"
           defaultValue={data?.description || ""}
+          className="w-full border rounded px-3 py-2"
+          rows={4}
+          placeholder="Mô tả sản phẩm"
         />
       </div>
     </div>

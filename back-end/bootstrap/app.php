@@ -17,3 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+$app->routeMiddleware([
+    'auth' => App\Http\Middleware\Authenticate::class,
+    // nếu cần thêm 'auth:sanctum' thì đăng ký ở đây nữa
+]);

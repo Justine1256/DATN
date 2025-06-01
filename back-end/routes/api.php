@@ -26,7 +26,29 @@ use App\Http\Controllers\ReviewController;
 
 // test api
 Route::get('/userall', [UserController::class, 'index']);
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
 
+Route::post('/upload-image', function (Request $request) {
+    if (!$request->hasFile('file')) {
+        return response()->json(['error' => 'No file provided'], 400);
+    }
+
+    $file = $request->file('file');
+
+    if (!$file->isValid()) {
+        return response()->json(['error' => 'Invalid file upload'], 400);
+    }
+
+    // Lưu file vào thư mục public/storage/uploads
+    $path = $file->store('uploads', 'public');
+
+    // Trả về url file vừa lưu (dùng asset helper hoặc Storage facade)
+    $url = asset('storage/' . $path);
+
+    return response()->json(['url' => $url]);
+});
 
 Route::get('/category', [CategoryController::class, 'index']);
 Route::get('/category/{id}', [CategoryController::class, 'show']);

@@ -14,10 +14,8 @@ import {
   FaChevronUp,
   FaShoppingCart,
   FaMagic,
-  FaBars,
 } from "react-icons/fa";
 
-// ✅ Menu tĩnh
 const menu = [
   {
     label: "Dashboard",
@@ -36,8 +34,8 @@ const menu = [
     label: "Category",
     icon: <FaTags />,
     children: [
-      { label: "List", href: "/Category" },
-      { label: "Create", href: "/Category/create" },
+      { label: "List", href: "/category" },
+      { label: "Create", href: "/category/create" },
     ],
   },
   {
@@ -69,133 +67,101 @@ const menu = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [hoverEnabled, setHoverEnabled] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
 
-  const isCollapsed = collapsed && !hovered;
-
-  // ✅ Khôi phục trạng thái từ localStorage
   useEffect(() => {
-    const storedCollapsed = localStorage.getItem("sidebar_collapsed");
     const storedOpen = localStorage.getItem("sidebar_open");
-
-    if (storedCollapsed !== null) setCollapsed(storedCollapsed === "true");
     if (storedOpen) setOpen(storedOpen);
   }, []);
-
-  // ✅ Lưu lại khi thay đổi
-  useEffect(() => {
-    localStorage.setItem("sidebar_collapsed", String(collapsed));
-  }, [collapsed]);
 
   useEffect(() => {
     localStorage.setItem("sidebar_open", open ?? "");
   }, [open]);
 
   return (
-    <aside
-      onMouseEnter={() => hoverEnabled && setHovered(true)}
-      onMouseLeave={() => hoverEnabled && setHovered(false)}
-      className={`fixed top-0 left-0 h-screen bg-white border-r shadow-sm overflow-y-auto transition-all duration-300 z-40 ${
-        isCollapsed ? "w-20 px-2" : "w-64 px-5"
-      }`}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mt-4 mb-6">
-        <Link href="/">
-          <div className="flex items-center space-x-2">
-            {!isCollapsed ? (
-              <>
-                <img src="/logo.svg" alt="Logo" className="w-8 h-8" />
-                <span className="font-bold text-sm text-gray-800">Venton</span>
-              </>
-            ) : (
-              <img src="/logo.svg" alt="Logo" className="w-8 h-8 mx-auto" />
-            )}
-          </div>
-        </Link>
-        <button
-          className="text-gray-500 hover:text-gray-700"
-          onClick={() => {
-            setCollapsed((prev) => !prev);
-            setHoverEnabled((prev) => !prev);
-            setHovered(false);
-          }}
-        >
-          <FaBars />
-        </button>
+    <aside className="fixed top-0 left-0 h-screen w-64 bg-white border-r shadow-sm overflow-y-auto z-40 px-5 py-4">
+      {/* Logo */}
+      <div className="flex items-center mb-6">
+        <img src="/reg-logo.png" alt="Logo" className="w-50 h-20 mr-2" />
+        
       </div>
 
-      {!isCollapsed && (
-        <p className="text-[11px] font-bold text-gray-400 uppercase mb-3 px-1 tracking-wider">
-          GENERAL
-        </p>
-      )}
+      <p className="text-[11px] font-bold text-gray-400 uppercase mb-3 tracking-wider">
+        GENERAL
+      </p>
 
-      {/* Menu Items */}
-      <ul className="space-y-1">
-        {menu.map((item) => (
-          <li key={item.label}>
-            {item.children && item.children.length > 0 ? (
-              <div>
-                <button
-                  onClick={() =>
-                    setOpen(open === item.label ? null : item.label)
-                  }
-                  className="flex items-center justify-between w-full py-2 px-3 rounded-lg hover:bg-gray-100 transition text-sm font-medium text-gray-700"
-                >
-                  <span className="flex items-center space-x-2">
-                    <span className="text-lg w-5 h-5 flex items-center justify-center">
-                      {item.icon}
+      <ul className="space-y-1 text-[15px]">
+        {menu.map((item) => {
+          const isOpen = open === item.label;
+
+          const isCurrentParent =
+            item.href === pathname ||
+            item.children?.some((child) => pathname.startsWith(child.href));
+
+          return (
+            <li key={item.label}>
+              {item.children && item.children.length > 0 ? (
+                <div>
+                  <button
+                    onClick={() =>
+                      setOpen(isOpen ? null : item.label)
+                    }
+                    className={`flex items-center justify-between w-full py-2 px-3 rounded-lg transition font-medium ${
+                      isCurrentParent
+                        ? "bg-blue-100 text-blue-700"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <span className="flex items-center space-x-2">
+                      <span className="text-lg w-5 h-5 flex items-center justify-center">
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
                     </span>
-                    {!isCollapsed && <span>{item.label}</span>}
-                  </span>
-                  {!isCollapsed &&
-                    (open === item.label ? (
+                    {isOpen ? (
                       <FaChevronUp className="text-xs" />
                     ) : (
                       <FaChevronDown className="text-xs" />
-                    ))}
-                </button>
+                    )}
+                  </button>
 
-                {open === item.label && !isCollapsed && (
-                  <ul className="ml-7 mt-1 space-y-1">
-                    {item.children.map((sub) => (
-                      <li key={sub.href}>
-                        <Link
-                          href={sub.href}
-                          className={`block px-3 py-2 rounded-lg text-sm transition hover:bg-blue-50 ${
-                            pathname === sub.href
-                              ? "bg-blue-100 text-blue-700 font-semibold"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          {sub.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ) : (
-              <Link
-                href={item.href || "#"}
-                className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition hover:bg-blue-50 ${
-                  pathname === item.href
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-600"
-                }`}
-              >
-                <span className="text-lg w-5 h-5 flex items-center justify-center">
-                  {item.icon}
-                </span>
-                {!isCollapsed && <span className="ml-2">{item.label}</span>}
-              </Link>
-            )}
-          </li>
-        ))}
+                  {isOpen && (
+                    <ul className="ml-7 mt-1 space-y-1">
+                      {item.children.map((sub) => (
+                        <li key={sub.href}>
+                          <Link
+                            href={sub.href}
+                            className={`block px-3 py-2 rounded-lg transition font-medium ${
+                              pathname === sub.href
+                                ? "bg-blue-100 text-blue-700 font-semibold"
+                                : "text-gray-600 hover:bg-blue-50"
+                            }`}
+                          >
+                            {sub.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href={item.href || "#"}
+                  className={`flex items-center px-3 py-2 rounded-lg font-medium transition ${
+                    pathname === item.href
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-600 hover:bg-blue-50"
+                  }`}
+                >
+                  <span className="text-lg w-5 h-5 flex items-center justify-center">
+                    {item.icon}
+                  </span>
+                  <span className="ml-2">{item.label}</span>
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </aside>
   );

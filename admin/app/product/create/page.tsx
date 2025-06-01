@@ -1,66 +1,21 @@
 "use client";
 
-import { useParams } from "next/navigation";
 import { useState } from "react";
 import PreviewCard from "@/app/components/product/create/PreviewCard";
 import ImageDrop from "@/app/components/product/create/ImageDrop";
 import ProductInfoForm from "@/app/components/product/create/Form";
 import Options from "@/app/components/product/create/Option";
 import ActionButtons from "@/app/components/product/create/ActionButtons";
+import Category from "@/types/category";
 
-const mockProducts = [
-  {
-    id: "1",
-    name: "Váy Suông Công Sở",
-    category: "fashion",
-    brand: "NEM",
-    image: "https://techzaa.in/venton/assets/images/product/p-1.png",
-    price: 300000,
-    discount: 0,
-    weight: "250g",
-    stock: 10,
-    sold: 1,
-    tag: "Váy",
-    size: ["M"],
-    color: ["#f472b6"],
-    description: "Váy suông công sở thanh lịch phù hợp môi trường làm việc."
-  },
-  {
-    id: "2",
-    name: "Điện thoại mẫu 1",
-    category: "phone",
-    brand: "Samsung",
-    image: "/phone.png",
-    price: 9931725,
-    discount: 0,
-    weight: "180g",
-    stock: 64,
-    sold: 28,
-    tag: "Điện thoại",
-    storage: "64GB",
-    manufacturer: "Samsung",
-    color: ["#60a5fa"],
-    description: "Smartphone mẫu với đầy đủ chức năng, thiết kế hiện đại."
-  }
-];
-
-export default function EditProductMockPage() {
-  const id = useParams()?.id as string;
-  const data = mockProducts.find((p) => p.id === id);
-
-  const [category, setCategory] = useState(data?.category || "fashion");
-  const [option1Values, setOption1Values] = useState<string[]>(
-    data?.category === "phone"
-      ? data?.storage
-        ? [data.storage]
-        : []
-      : data?.size || []
-  );
-  const [option2Values, setOption2Values] = useState<string[]>(data?.color || []);
-
-  // Thêm state quản lý label option
+export default function AddProductPage() {
+  const [images, setImages] = useState<{ id: string; url: string }[]>([]);
+  const [category, setCategory] = useState("fashion");
+  const [option1Values, setOption1Values] = useState<string[]>([]);
+  const [option2Values, setOption2Values] = useState<string[]>([]);
   const [option1Label, setOption1Label] = useState("Option 1");
   const [option2Label, setOption2Label] = useState("Option 2");
+  const {  loading } = Category();
 
   const toggleOption1 = (val: string) => {
     setOption1Values((prev) =>
@@ -76,31 +31,81 @@ export default function EditProductMockPage() {
 
   const isFashion = category === "fashion";
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
+    const name = formData.get("name") as string;
+    const price = Number(formData.get("price"));
+    const sale_price = Number(formData.get("sale_price"));
+    const stock = Number(formData.get("stock"));
+    const description = formData.get("description") as string;
+
+    const payload = {
+      name,
+      price,
+      sale_price,
+      stock,
+      description,
+      category,
+      images: images.map((img) => img.url),
+      option1Values,
+      option2Values,
+      option1Label,
+      option2Label,
+    };
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/shop/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization:
+            "Bearer 11|93aV9h4PlwtJ2i4jsHtzNsLZnGIsxJTaruFcb9kLa31fc58a",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        let errorMessage = text;
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.message || text;
+        } catch {}
+        throw new Error(errorMessage);
+      }
+
+      alert("Product added successfully!");
+    } catch (error) {
+      alert("Error: " + (error as Error).message);
+    }
+  };
+
+  if (loading) return <p>Đang tải danh mục...</p>;
+
   return (
-    <form className="p-6 space-y-6">
-      <h1 className="text-xl font-bold text-gray-800 mb-4">
-        Product Edit (ID: {id})
-      </h1>
+    <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <h1 className="text-xl font-bold text-gray-800 mb-4">Add New Product</h1>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <PreviewCard
-          image={data?.image || "/placeholder.png"}
-          name={data?.name || ""}
+          image={images[0]?.url || "/placeholder.png"}
+          name=""
           category={category}
-          price={data?.price || 0}
-          discount={data?.discount || 0}
+          price={0}
+          discount={0}
           sizes={option1Values}
           colors={option2Values}
           isFashion={isFashion}
         />
 
         <div className="xl:col-span-2 space-y-6">
-          <ImageDrop />
+          <ImageDrop images={images} setImages={setImages} />
           <ProductInfoForm
-            data={data}
+            data={{}}
             category={category}
             setCategory={setCategory}
           />
-
           <Options
             selectedOption1={option1Values}
             toggleOption1={toggleOption1}
@@ -111,11 +116,9 @@ export default function EditProductMockPage() {
             option2Label={option2Label}
             setOption2Label={setOption2Label}
           />
-
           <ActionButtons />
         </div>
       </div>
     </form>
   );
 }
-

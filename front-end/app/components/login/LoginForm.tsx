@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState , useEffect} from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
@@ -39,7 +39,23 @@ export default function LoginForm() {
       setIsLoading(false);
     }
   };
-  
+  useEffect(() => {
+  const token = Cookies.get('authToken');
+  if (token) {
+    axios.get('http://localhost:8000/api/user', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      withCredentials: true,
+    })
+    .then(res => {
+      console.log('User data:', res.data);
+    })
+    .catch(err => {
+      console.error('Token không hợp lệ hoặc hết hạn:', err);
+    });
+  }
+}, []);
 
   return (
     <div className="w-[370px] max-w-md mx-auto text-black relative">
