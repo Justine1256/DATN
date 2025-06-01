@@ -4,9 +4,8 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import PreviewCard from "@/app/components/product/create/PreviewCard";
 import ImageDrop from "@/app/components/product/create/ImageDrop";
-import Form from "@/app/components/product/create/Form";
+import ProductInfoForm from "@/app/components/product/create/Form";
 import Options from "@/app/components/product/create/Option";
-
 import ActionButtons from "@/app/components/product/create/ActionButtons";
 
 const mockProducts = [
@@ -50,33 +49,35 @@ export default function EditProductMockPage() {
   const data = mockProducts.find((p) => p.id === id);
 
   const [category, setCategory] = useState(data?.category || "fashion");
-  const [selectedSizes, setSelectedSizes] = useState<string[]>(
+  const [option1Values, setOption1Values] = useState<string[]>(
     data?.category === "phone"
       ? data?.storage
         ? [data.storage]
         : []
       : data?.size || []
   );
+  const [option2Values, setOption2Values] = useState<string[]>(data?.color || []);
 
-  const [selectedColors, setSelectedColors] = useState<string[]>(data?.color || []);
+  // Thêm state quản lý label option
+  const [option1Label, setOption1Label] = useState("Option 1");
+  const [option2Label, setOption2Label] = useState("Option 2");
 
-  const toggleSize = (size: string) => {
-    setSelectedSizes((prev) =>
-      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
+  const toggleOption1 = (val: string) => {
+    setOption1Values((prev) =>
+      prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]
     );
   };
 
-  const toggleColor = (color: string) => {
-    setSelectedColors((prev) =>
-      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
+  const toggleOption2 = (val: string) => {
+    setOption2Values((prev) =>
+      prev.includes(val) ? prev.filter((v) => v !== val) : [...prev, val]
     );
   };
 
   const isFashion = category === "fashion";
-  // const isPhone = category === "phone";
 
   return (
-    <div className="p-6 space-y-6">
+    <form className="p-6 space-y-6">
       <h1 className="text-xl font-bold text-gray-800 mb-4">
         Product Edit (ID: {id})
       </h1>
@@ -87,37 +88,34 @@ export default function EditProductMockPage() {
           category={category}
           price={data?.price || 0}
           discount={data?.discount || 0}
-          sizes={selectedSizes}
-          colors={selectedColors}
+          sizes={option1Values}
+          colors={option2Values}
           isFashion={isFashion}
         />
 
         <div className="xl:col-span-2 space-y-6">
           <ImageDrop />
-          <Form
+          <ProductInfoForm
             data={data}
             category={category}
             setCategory={setCategory}
-            isFashion={isFashion}
           />
- <Options
-  selectedSizes={selectedSizes}
-  toggleSize={toggleSize}
-  selectedColors={selectedColors}
-  toggleColor={toggleColor}
-  setSelectedColors={setSelectedColors}
-  description={data?.description}
-  data={data}
-  category={category} 
-/>
 
+          <Options
+            selectedOption1={option1Values}
+            toggleOption1={toggleOption1}
+            selectedOption2={option2Values}
+            toggleOption2={toggleOption2}
+            option1Label={option1Label}
+            setOption1Label={setOption1Label}
+            option2Label={option2Label}
+            setOption2Label={setOption2Label}
+          />
 
-
-         
-         
           <ActionButtons />
         </div>
       </div>
-    </div>
+    </form>
   );
 }
+
