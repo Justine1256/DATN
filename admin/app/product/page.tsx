@@ -9,8 +9,7 @@ import { Category } from "@/types/category";
 import Swal from "sweetalert2";
 import Cookies from "js-cookie";
 
-//
-// { ✅ Skeleton hiển thị loading từng hàng sản phẩm }
+// ✅ Skeleton hiển thị loading từng hàng sản phẩm
 const ProductRowSkeleton = () => (
   <tr className="border-b border-gray-100 animate-pulse">
     <td className="py-4 px-3 flex items-center gap-3">
@@ -31,8 +30,6 @@ const ProductRowSkeleton = () => (
   </tr>
 );
 
-//
-// { ✅ Component chính hiển thị danh sách sản phẩm }
 export default function ProductListPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -40,7 +37,6 @@ export default function ProductListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 5;
 
-  // { ✅ Map danh mục để lấy thông tin cha - con }
   const categoriesMap = new Map<number, Category>();
   categories.forEach((c) => {
     categoriesMap.set(c.id, c);
@@ -49,7 +45,6 @@ export default function ProductListPage() {
     }
   });
 
-  // { ✅ Lấy danh sách sản phẩm }
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -117,7 +112,6 @@ export default function ProductListPage() {
     }
   };
 
-  // { ✅ Lấy danh sách danh mục }
   const fetchCategories = async () => {
     try {
       const token = Cookies.get("authToken");
@@ -136,7 +130,6 @@ export default function ProductListPage() {
     }
   };
 
-  // { ✅ Xác nhận xoá bằng SweetAlert2 }
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Bạn chắc chắn?",
@@ -176,13 +169,11 @@ export default function ProductListPage() {
   const startIndex = (currentPage - 1) * productsPerPage;
   const paginatedProducts = products.slice(startIndex, startIndex + productsPerPage);
 
-  // { ✅ Gọi API khi component mount }
   useEffect(() => {
     fetchCategories();
     fetchProducts();
   }, []);
 
-  // { ✅ Giao diện chính }
   return (
     <div className="p-6">
       <ProductListHeader />
@@ -196,6 +187,7 @@ export default function ProductListPage() {
                 <th className="py-2 px-3">Stock</th>
                 <th className="py-2 px-3">Category</th>
                 <th className="py-2 px-3">Subcategory</th>
+                <th className="py-2 px-3">Status</th>
                 <th className="py-2 px-3">Rating</th>
                 <th className="py-2 px-3 text-center">Action</th>
               </tr>
@@ -207,7 +199,7 @@ export default function ProductListPage() {
                 ))
               ) : paginatedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-500">
+                  <td colSpan={8} className="text-center py-8 text-gray-500">
                     Không có sản phẩm nào.
                   </td>
                 </tr>
@@ -225,7 +217,6 @@ export default function ProductListPage() {
           </table>
         </div>
 
-        {/* ✅ Phân trang */}
         <div className="pt-4">
           <Pagination
             currentPage={currentPage}

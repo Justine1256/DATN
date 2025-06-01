@@ -119,7 +119,7 @@ export default function CategoryListPage() {
       preConfirm: async () => {
         try {
           const token = Cookies.get("authToken");
-          const res = await fetch(`http://127.0.0.1:8000/api/product/${id}`, {
+          const res = await fetch(`http://127.0.0.1:8000/api/categories/${id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
           });

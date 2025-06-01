@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
-import { AiFillStar } from "react-icons/ai"; // ✅ Thêm icon sao
+import { AiFillStar } from "react-icons/ai";
 import { Product } from "@/types/product";
 import { Category } from "@/types/category";
 
@@ -30,6 +30,7 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
 
   return (
     <tr className="min-h-[60px] border-b border-gray-100 hover:bg-gray-50 text-gray-700 animate-fade-fast">
+      {/* ✅ Cột hình ảnh + tên + tuỳ chọn */}
       <td className="py-2 px-3 flex items-center gap-3">
         <Image
           src={imageSrc}
@@ -45,45 +46,48 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
           <div className="text-xs text-gray-500 mt-1 space-y-0.5">
             {product.option1 && product.value1 && (
               <div>
-                <span className="font-semibold">{product.option1}:</span>{" "}
-                {product.value1}
+                <span className="font-semibold">{product.option1}:</span> {product.value1}
               </div>
             )}
             {product.option2 && product.value2 && (
               <div>
-                <span className="font-semibold">{product.option2}:</span>{" "}
-                {product.value2}
+                <span className="font-semibold">{product.option2}:</span> {product.value2}
               </div>
             )}
           </div>
         </div>
       </td>
 
-      <td className="py-2 px-3 text-gray-700">{product.price.toLocaleString()}</td>
-      <td className="py-2 px-3 text-gray-700 ">{product.stock}</td>
-      <td className="py-2 px-3 text-gray-700">{parentCategoryName}</td>
-      <td className="py-2 px-3 text-gray-700">{subcategoryName}</td>
+      {/* ✅ Cột giá, tồn kho, danh mục */}
+      <td className="py-2 px-3">{product.price.toLocaleString()}</td>
+      <td className="py-2 px-3">{product.stock}</td>
+      <td className="py-2 px-3">{parentCategoryName}</td>
+      <td className="py-2 px-3">{subcategoryName}</td>
 
-      {/* ✅ Rating cân chỉnh thẳng hàng, số và sao */}
-      <td className="py-2 px-3 text-gray-700 whitespace-nowrap">
-        <div className="flex items-center gap-1">
-        <span className="text-sm font-medium w-6 text-center">
-          {(product.rating / 2).toFixed(1)} {/* ⚠️ Chia 2 để chuyển thang 10 → thang 5 sao */}
-        </span>
-        {[...Array(5)].map((_, i) => (
-          <AiFillStar
-            key={i}
-            className={`text-base ${
-              i < Math.round(product.rating / 2) // ⚠️ chia 2 để chuyển thang 10 → thang 5 sao
-                ? "text-yellow-400"
-                : "text-gray-300"
-            }`}
-          />
-        ))}
-      </div>
-
+      {/* ✅ Cột trạng thái với tô màu */}
+      <td className="py-2 px-3">
+        {product.status?.toLowerCase().trim() === "active" ? (
+          <span className="text-green-700 font-semibold bg-green-100 px-3 py-1 rounded-full inline-block">
+            Hoạt động
+          </span>
+        ) : (
+          <span className="text-red-600 font-semibold bg-red-100 px-3 py-1 rounded-full inline-block">
+            {product.status || "Không rõ"}
+          </span>
+        )}
       </td>
 
+      {/* ✅ Cột Rating  */}
+      <td className="py-2 px-3">
+        <div className="inline-flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-md w-fit">
+          <AiFillStar className="text-yellow-400" />
+          <span className="text-sm font-medium text-gray-800">
+            {(product.rating / 2).toFixed(1)}
+          </span>
+        </div>
+      </td>
+
+      {/* ✅ Cột hành động */}
       <td className="py-2 px-3">
         <div className="flex justify-center gap-2">
           <button
