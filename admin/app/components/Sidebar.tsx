@@ -34,8 +34,8 @@ const menu = [
     label: "Category",
     icon: <FaTags />,
     children: [
-      { label: "List", href: "/category" },
-      { label: "Create", href: "/category/create" },
+      { label: "List", href: "/Category" },
+      { label: "Create", href: "/Category/create" },
     ],
   },
   {

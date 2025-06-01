@@ -1,32 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import CategoryListHeader from "../components/categories/list/Header";
-import CategoryRow from "../components/categories/list/Row";
-import Pagination from "../components/categories/list/Pagination";
+import CategoryListHeader from "../components/Categories/list/Header";
+import CategoryRow from "../components/Categories/list/Row";
+import Pagination from "../components/Categories/list/Pagination";
 import Cookies from "js-cookie";
+import { CategoryRowSkeleton } from "../components/loading/loading";
 import Swal from "sweetalert2";
-
-// ✅ Skeleton hiển thị loading từng dòng danh mục
-const CategoryRowSkeleton = () => (
-  <tr className="border-b border-gray-100 animate-pulse">
-    <td className="py-4 px-3">
-      <div className="h-4 w-3/4 bg-gray-300 rounded"></div>
-    </td>
-    <td className="py-4 px-3">
-      <div className="h-4 w-2/3 bg-gray-300 rounded"></div>
-    </td>
-    <td className="py-4 px-3 text-center">
-      <div className="h-4 w-8 bg-gray-300 rounded mx-auto"></div>
-    </td>
-    <td className="py-4 px-3 text-center">
-      <div className="h-4 w-20 bg-gray-300 rounded mx-auto"></div>
-    </td>
-    <td className="py-4 px-3">
-      <div className="h-8 w-20 bg-gray-300 rounded"></div>
-    </td>
-  </tr>
-);
 
 // ✅ Kiểu dữ liệu danh mục (tạm dùng Local để tránh đụng global)
 type LocalCategory = {
@@ -49,14 +29,12 @@ type Product = {
 };
 
 export default function CategoryListPage() {
-  // 🧠 State quản lý dữ liệu
   const [categories, setCategories] = useState<LocalCategory[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const categoriesPerPage = 5;
+  const categoriesPerPage = 4;
 
-  // ✅ Lấy danh sách danh mục từ API
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
@@ -78,7 +56,6 @@ export default function CategoryListPage() {
     }
   }, []);
 
-  // ✅ Lấy danh sách sản phẩm từ API
   const fetchProducts = useCallback(async () => {
     try {
       const token = Cookies.get("authToken");
@@ -97,13 +74,11 @@ export default function CategoryListPage() {
     }
   }, []);
 
-  // ✅ Tính tổng số sản phẩm thuộc danh mục
   const getProductCountForCategory = (categoryId: number) => {
     if (!Array.isArray(products)) return 0;
     return products.filter((p) => p.category_id === categoryId).length;
   };
 
-  // ✅ Xoá danh mục - hiệu ứng xác nhận trước xoá
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Bạn chắc chắn muốn xoá?",
@@ -138,20 +113,19 @@ export default function CategoryListPage() {
       await Swal.fire({
         icon: "success",
         title: "Đã xoá!",
-        text: "Sản phẩm đã được xoá thành công.",
+        text: "Danh mục đã được xoá thành công.",
         timer: 1500,
         showConfirmButton: false,
       });
-      fetchProducts(); // làm mới danh sách
+      fetchCategories(); // ✅ làm mới danh sách danh mục
+      fetchProducts();    // ✅ cập nhật lại số lượng sản phẩm
     }
   };
 
-  // ✅ Phân trang dữ liệu
   const totalPages = Math.ceil(categories.length / categoriesPerPage);
   const startIndex = (currentPage - 1) * categoriesPerPage;
   const paginatedCategories = categories.slice(startIndex, startIndex + categoriesPerPage);
 
-  // ✅ Gọi API khi component mount
   useEffect(() => {
     fetchCategories();
     fetchProducts();
