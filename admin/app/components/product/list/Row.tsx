@@ -67,20 +67,21 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
       {/* ✅ Rating cân chỉnh thẳng hàng, số và sao */}
       <td className="py-2 px-3 text-gray-700 whitespace-nowrap">
         <div className="flex items-center gap-1">
-          <span className="text-sm font-medium w-6 text-center">
-            {product.rating.toFixed(1)}
-          </span>
-          {[...Array(5)].map((_, i) => (
-            <AiFillStar
-              key={i}
-              className={`text-base ${
-                i < Math.round(product.rating)
-                  ? "text-yellow-400"
-                  : "text-gray-300"
-              }`}
-            />
-          ))}
-        </div>
+        <span className="text-sm font-medium w-6 text-center">
+          {(product.rating / 2).toFixed(1)} {/* ⚠️ Chia 2 để chuyển thang 10 → thang 5 sao */}
+        </span>
+        {[...Array(5)].map((_, i) => (
+          <AiFillStar
+            key={i}
+            className={`text-base ${
+              i < Math.round(product.rating / 2) // ⚠️ chia 2 để chuyển thang 10 → thang 5 sao
+                ? "text-yellow-400"
+                : "text-gray-300"
+            }`}
+          />
+        ))}
+      </div>
+
       </td>
 
       <td className="py-2 px-3">
