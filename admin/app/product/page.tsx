@@ -13,7 +13,7 @@ export default function ProductListPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 6; // ✅ Cố định 5 sản phẩm / trang
+  const productsPerPage = 5;
 
   const categoriesMap = new Map<number, Category>();
   categories.forEach((c) => {
@@ -144,15 +144,9 @@ export default function ProductListPage() {
   return (
     <div className="p-6">
       <ProductListHeader />
-  
-      <div className="flex flex-col">
-        {/* VÙNG BẢNG CHIỀU CAO CỐ ĐỊNH */}
-        <div
-  className="overflow-auto border border-gray-200 rounded-md scrollbar-custom"
-  style={{ minHeight: "500px", maxHeight: "500px" }}
->
-
-
+      <div className="flex flex-col gap-8">
+        {/* ✅ VÙNG HIỂN THỊ SẢN PHẨM: Không cố định chiều cao */}
+        <div className="border border-gray-200 rounded-md overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="sticky top-0 bg-white z-10">
               <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
@@ -169,7 +163,7 @@ export default function ProductListPage() {
               {loading ? (
                 Array.from({ length: productsPerPage }).map((_, i) => (
                   <tr key={`loading-${i}`} className="h-[64px] border-b border-gray-100">
-                    <td colSpan={7}>
+                    <td colSpan={8}>
                       <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse mx-auto"></div>
                     </td>
                   </tr>
@@ -181,30 +175,21 @@ export default function ProductListPage() {
                   </td>
                 </tr>
               ) : (
-                <>
-                  {paginatedProducts.map((product) => (
-                    <ProductRow
-                      key={product.id}
-                      product={product}
-                      onDelete={handleDelete}
-                      categoriesMap={categoriesMap}
-                    />
-                  ))}
-                  {Array.from({
-                    length: Math.max(0, productsPerPage - paginatedProducts.length),
-                  }).map((_, i) => (
-                    <tr key={`empty-${i}`} className="h-[64px] border-b border-gray-100">
-                      <td colSpan={7}></td>
-                    </tr>
-                  ))}
-                </>
+                paginatedProducts.map((product) => (
+                  <ProductRow
+                    key={product.id}
+                    product={product}
+                    onDelete={handleDelete}
+                    categoriesMap={categoriesMap}
+                  />
+                ))
               )}
             </tbody>
           </table>
         </div>
   
-        {/* PHÂN TRANG DƯỚI */}
-        <div className="mt-4">
+        {/* ✅ PHÂN TRANG */}
+        <div className="pt-4">
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -215,4 +200,5 @@ export default function ProductListPage() {
     </div>
   );
   
+
 }

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
+import { AiFillStar } from "react-icons/ai"; // ✅ Thêm icon sao
 import { Product } from "@/types/product";
 import { Category } from "@/types/category";
 
@@ -62,7 +63,26 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
       <td className="py-2 px-3 text-gray-700">{product.stock}</td>
       <td className="py-2 px-3 text-gray-700">{parentCategoryName}</td>
       <td className="py-2 px-3 text-gray-700">{subcategoryName}</td>
-      <td className="py-2 px-3 text-gray-700">{product.rating}</td>
+
+      {/* ✅ Rating cân chỉnh thẳng hàng, số và sao */}
+      <td className="py-2 px-3 text-gray-700 whitespace-nowrap">
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-medium w-6 text-center">
+            {product.rating.toFixed(1)}
+          </span>
+          {[...Array(5)].map((_, i) => (
+            <AiFillStar
+              key={i}
+              className={`text-base ${
+                i < Math.round(product.rating)
+                  ? "text-yellow-400"
+                  : "text-gray-300"
+              }`}
+            />
+          ))}
+        </div>
+      </td>
+
       <td className="py-2 px-3">
         <div className="flex justify-center gap-2">
           <button
