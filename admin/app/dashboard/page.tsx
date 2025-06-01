@@ -5,11 +5,16 @@ import ProfitChart from "../components/dashboard/ProfitChart";
 import SummaryCards from "../components/dashboard/SummaryCards";
 import RecentOrders from "../components/dashboard/RecentOrders";
 import Swal from "sweetalert2";
+import Cookies from 'js-cookie';
 
 export default function DashboardPage() {
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    console.log("Access Token:", token);
+useEffect(() => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    // Chưa login, redirect về trang login hoặc show message
+    window.location.href = '/login';
+    return;
+  }
 
     // ✅ Tùy chỉnh style SweetAlert2: hover nút đóng thành đỏ, không viền
     const style = document.createElement("style");

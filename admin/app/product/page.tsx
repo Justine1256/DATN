@@ -29,6 +29,8 @@ const ProductRowSkeleton = () => (
   </tr>
 );
 
+
+
 export default function ProductListPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -43,7 +45,13 @@ export default function ProductListPage() {
       categoriesMap.set(c.parent.id, c.parent);
     }
   });
-
+  useEffect(() => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    // Chưa login, redirect về trang login hoặc show message
+    window.location.href = '/login';
+    return;
+  }}, []);
   const fetchProducts = async (page = 1) => {
     try {
       setLoading(true);

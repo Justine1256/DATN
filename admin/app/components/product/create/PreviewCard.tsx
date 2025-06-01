@@ -49,7 +49,7 @@ export default function ProductPreviewCard({
           <div className="text-sm text-gray-700 mt-1 mb-1">
             <span className="font-medium">Price:</span>{" "}
             <span className="line-through text-gray-400">${price}</span>{" "}
-            <span className="text-blue-600 font-semibold">${finalPrice}</span>
+            <span className="text-blue-600 font-semibold">${finalPrice.toFixed(2)}</span>
             {discount > 0 && (
               <span className="text-green-500 text-xs ml-1">({discount}% Off)</span>
             )}
