@@ -148,9 +148,10 @@ export default function ProductListPage() {
       <div className="flex flex-col">
         {/* VÙNG BẢNG CHIỀU CAO CỐ ĐỊNH */}
         <div
-  className="overflow-auto border border-gray-200 rounded-md scrollbar-hide"
-  style={{ minHeight: "500px", maxHeight: "500px" }} // chiều cao cố định
+  className="overflow-auto border border-gray-200 rounded-md scrollbar-custom"
+  style={{ minHeight: "500px", maxHeight: "500px" }}
 >
+
 
           <table className="w-full text-sm text-left">
             <thead className="sticky top-0 bg-white z-10">
