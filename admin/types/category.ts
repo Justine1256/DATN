@@ -8,3 +8,9 @@ export type Category = {
   parent_id?: number | null;
   parent?: Category | null; // parent category có thể null hoặc object
 };
+export type Product = {
+  id: number;
+  name: string;
+  category_id: number;
+  // Các thuộc tính khác của sản phẩm
+};

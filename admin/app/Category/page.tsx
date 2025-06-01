@@ -1,262 +1,197 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import CategoryListHeader from "../components/Categories/list/Header";
 import CategoryRow from "../components/Categories/list/Row";
 import Pagination from "../components/Categories/list/Pagination";
+import Cookies from "js-cookie";
+import Swal from "sweetalert2";
 
-type Category = {
-  id: string;
+// ✅ Skeleton hiển thị loading từng dòng danh mục
+const CategoryRowSkeleton = () => (
+  <tr className="border-b border-gray-100 animate-pulse">
+    <td className="py-4 px-3">
+      <div className="h-4 w-3/4 bg-gray-300 rounded"></div>
+    </td>
+    <td className="py-4 px-3">
+      <div className="h-4 w-2/3 bg-gray-300 rounded"></div>
+    </td>
+    <td className="py-4 px-3 text-center">
+      <div className="h-4 w-8 bg-gray-300 rounded mx-auto"></div>
+    </td>
+    <td className="py-4 px-3 text-center">
+      <div className="h-4 w-20 bg-gray-300 rounded mx-auto"></div>
+    </td>
+    <td className="py-4 px-3">
+      <div className="h-8 w-20 bg-gray-300 rounded"></div>
+    </td>
+  </tr>
+);
+
+// ✅ Kiểu dữ liệu danh mục (tạm dùng Local để tránh đụng global)
+type LocalCategory = {
+  id: number;
   name: string;
-  image: string;
-  priceRange: string;
-  createdBy: string;
-  stock: number;
+  image: string[] | null;
+  priceRange?: string;
+  slug?: string;
+  description?: string;
+  status?: string;
+  parent_id?: number | null;
+  parent?: { name: string } | null;
 };
 
-// export default function CategoryListPage() {
-//   const [categories, setCategories] = useState<Category[]>([]);
-//   const [loading, setLoading] = useState(false);
-//   const [currentPage, setCurrentPage] = useState(1);
-//   const categoriesPerPage = 6;
+// ✅ Kiểu dữ liệu sản phẩm cơ bản
+type Product = {
+  id: number;
+  name: string;
+  category_id: number;
+};
 
-//   const fetchCategories = async () => {
-//     try {
-//       setLoading(true);
-//       const token = localStorage.getItem("token");
-//       if (!token) {
-//         console.error("Không có token. Hãy đăng nhập.");
-//         return;
-//       }
+export default function CategoryListPage() {
+  // 🧠 State quản lý dữ liệu
+  const [categories, setCategories] = useState<LocalCategory[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const categoriesPerPage = 5;
 
-//       const res = await fetch("http://127.0.0.1:8000/api/category", {
-//         headers: { Authorization: `Bearer ${token}` },
-//       });
+  // ✅ Lấy danh sách danh mục từ API
+  const fetchCategories = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = Cookies.get("authToken");
+      if (!token) return;
 
-//       if (!res.ok) throw new Error("Lỗi fetch category");
+      const res = await fetch("http://127.0.0.1:8000/api/shop/categories", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-//       const data = await res.json();
-//       const rawCategories = Array.isArray(data)
-//         ? data
-//         : Array.isArray(data.categories)
-//         ? data.categories
-//         : [];
+      if (!res.ok) throw new Error("Lỗi khi lấy danh mục");
 
-//       const mapped: Category[] = rawCategories.map((c: any): Category => ({
-//         id: c.id,
-//         name: c.name,
-//         image: c.image,
-//         priceRange: c.price_range || "$0 - $0",
-//         createdBy: c.created_by || "Admin",
-//         stock: c.product_stock || 0,
-//       }));
+      const data = await res.json();
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error("Lỗi khi tải danh mục:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-//       setCategories(mapped);
-//     } catch (error) {
-//       console.error("Lỗi khi load danh mục:", error);
-//       setCategories([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+  // ✅ Lấy danh sách sản phẩm từ API
+  const fetchProducts = useCallback(async () => {
+    try {
+      const token = Cookies.get("authToken");
+      if (!token) return;
 
-//   const handleDelete = async (id: string) => {
-//     if (!confirm("Bạn có chắc muốn xoá danh mục này?")) return;
+      const res = await fetch("http://127.0.0.1:8000/api/shop/products", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-//     const token = localStorage.getItem("token");
-//     try {
-//       const res = await fetch(`http://127.0.0.1:8000/api/category/${id}`, {
-//         method: "DELETE",
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//         },
-//       });
+      if (!res.ok) throw new Error("Lỗi khi lấy sản phẩm");
 
-//       if (res.ok) {
-//         alert("Xoá thành công");
-//         fetchCategories(); // Reload lại danh sách
-//       } else {
-//         alert("Không thể xoá danh mục");
-//       }
-//     } catch (err) {
-//       console.error("Lỗi xoá danh mục:", err);
-//     }
-//   };
+      const data = await res.json();
+      setProducts(data.products || []);
+    } catch (error) {
+      console.error("Lỗi khi tải sản phẩm:", error);
+    }
+  }, []);
 
-//   useEffect(() => {
-//     fetchCategories();
-//   }, []);
+  // ✅ Tính tổng số sản phẩm thuộc danh mục
+  const getProductCountForCategory = (categoryId: number) => {
+    if (!Array.isArray(products)) return 0;
+    return products.filter((p) => p.category_id === categoryId).length;
+  };
 
-//   const totalPages = Math.ceil(categories.length / categoriesPerPage);
-//   const startIndex = (currentPage - 1) * categoriesPerPage;
-//   const paginatedCategories = categories.slice(startIndex, startIndex + categoriesPerPage);
+  // ✅ Xoá danh mục - hiệu ứng xác nhận trước xoá
+  const handleDelete = async (id: number) => {
+    const result = await Swal.fire({
+      title: "Bạn chắc chắn muốn xoá?",
+      text: "Thao tác này không thể hoàn tác!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#e53e3e",
+      cancelButtonColor: "#d1d5db",
+      confirmButtonText: "Vâng, xoá đi",
+      cancelButtonText: "Huỷ",
+      reverseButtons: true,
+      showLoaderOnConfirm: true,
+      preConfirm: async () => {
+        try {
+          const token = Cookies.get("authToken");
+          const res = await fetch(`http://127.0.0.1:8000/api/product/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
 
-//   return (
-//     <div className="p-6">
-//       <CategoryListHeader />
-//       <table className="w-full text-sm text-left">
-//         <thead>
-//           <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
-//             <th className="py-2 px-3">
-//               <input type="checkbox" disabled />
-//             </th>
-//             <th className="py-2 px-3">Categories</th>
-//             <th className="py-2 px-3">Starting Price</th>
-//             <th className="py-2 px-3">Create by</th>
-//             <th className="py-2 px-3">ID</th>
-//             <th className="py-2 px-3">Product Stock</th>
-//             <th className="py-2 px-3 text-center">Action</th>
-//           </tr>
-//         </thead>
-//         <tbody>
-//           {loading ? (
-//             <tr>
-//               <td colSpan={7} className="text-center py-8 text-gray-500">
-//                 Loading...
-//               </td>
-//             </tr>
-//           ) : (
-//             paginatedCategories.map((category) => (
-//               <CategoryRow key={category.id} category={category} onDelete={handleDelete} />
-//             ))
-//           )}
-//         </tbody>
-//       </table>
+          if (!res.ok) throw new Error("Xoá thất bại");
+          return true;
+        } catch {
+          Swal.showValidationMessage("Không thể xoá sản phẩm");
+          return false;
+        }
+      },
+      allowOutsideClick: () => !Swal.isLoading(),
+    });
 
-//       <Pagination
-//         currentPage={currentPage}
-//         totalPages={totalPages}
-//         setCurrentPage={setCurrentPage}
-//       />
-//     </div>
-//   );
-// }
-// ✅ Dữ liệu giả
-const mockCategories: Category[] = [
-    {
-      id: "FS16276",
-      name: "Fashion Men , Women & Kid's",
-      image: "/images/categories/fashion.png",
-      priceRange: "$80 to $400",
-      createdBy: "Seller",
-      stock: 46233,
-    },
-    {
-      id: "HB73029",
-      name: "Women Hand Bag",
-      image: "/images/categories/bag.png",
-      priceRange: "$120 to $500",
-      createdBy: "Admin",
-      stock: 2739,
-    },
-    {
-      id: "CH492-9",
-      name: "Cap and Hat",
-      image: "/images/categories/hat.png",
-      priceRange: "$50 to $200",
-      createdBy: "Admin",
-      stock: 1829,
-    },
-    {
-      id: "EC23818",
-      name: "Electronics Headphone",
-      image: "/images/categories/headphone.png",
-      priceRange: "$100 to $700",
-      createdBy: "Seller",
-      stock: 1902,
-    },
-    {
-      id: "FW11009",
-      name: "Foot Wares",
-      image: "/images/categories/shoes.png",
-      priceRange: "$70 to $400",
-      createdBy: "Seller",
-      stock: 2733,
-    },
-    {
-      id: "WL38299",
-      name: "Wallet Categories",
-      image: "/images/categories/wallet.png",
-      priceRange: "$120 to $300",
-      createdBy: "Admin",
-      stock: 890,
-    },
-    {
-      id: "SM37817",
-      name: "Electronics Watch",
-      image: "/images/categories/watch.png",
-      priceRange: "$60 to $400",
-      createdBy: "Seller",
-      stock: 250,
-    },
-  ];
-  
-  export default function CategoryListPage() {
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
-    const categoriesPerPage = 6;
-  
-    const fetchCategories = async () => {
-      setLoading(true);
-      try {
-        // 👉 Dùng dữ liệu mock
-        setCategories(mockCategories);
-      } catch (err) {
-        console.error("Lỗi khi load danh mục:", err);
-        setCategories([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-  
-    const handleDelete = async (id: string) => {
-      if (!confirm("Bạn có chắc muốn xoá danh mục này?")) return;
-      setCategories((prev) => prev.filter((c) => c.id !== id));
-      alert("Xoá thành công (mock)");
-    };
-  
-    useEffect(() => {
-      fetchCategories();
-    }, []);
-  
-    const totalPages = Math.ceil(categories.length / categoriesPerPage);
-    const startIndex = (currentPage - 1) * categoriesPerPage;
-    const paginatedCategories = categories.slice(startIndex, startIndex + categoriesPerPage);
-  
-    return (
-      <div className="p-6">
-        <CategoryListHeader />
-        <table className="w-full text-sm text-left">
-          <thead>
-            <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
-              <th className="py-2 px-3"><input type="checkbox" disabled /></th>
-              <th className="py-2 px-3">Categories</th>
-              <th className="py-2 px-3">Starting Price</th>
-              <th className="py-2 px-3">Create by</th>
-              <th className="py-2 px-3">ID</th>
-              <th className="py-2 px-3">Product Stock</th>
-              <th className="py-2 px-3 text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="text-center py-8 text-gray-500">Loading...</td>
-              </tr>
-            ) : (
-              paginatedCategories.map((category) => (
-                <CategoryRow key={category.id} category={category} onDelete={handleDelete} />
+    if (result.isConfirmed) {
+      await Swal.fire({
+        icon: "success",
+        title: "Đã xoá!",
+        text: "Sản phẩm đã được xoá thành công.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      fetchProducts(); // làm mới danh sách
+    }
+  };
+
+  // ✅ Phân trang dữ liệu
+  const totalPages = Math.ceil(categories.length / categoriesPerPage);
+  const startIndex = (currentPage - 1) * categoriesPerPage;
+  const paginatedCategories = categories.slice(startIndex, startIndex + categoriesPerPage);
+
+  // ✅ Gọi API khi component mount
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts();
+  }, [fetchCategories, fetchProducts]);
+
+  return (
+    <div className="p-6">
+      <CategoryListHeader />
+
+      <table className="w-full text-sm text-left table-fixed">
+        <thead>
+          <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
+            <th className="py-2 px-3 w-1/5">Categories</th>
+            <th className="py-2 px-3 w-1/5">Description</th>
+            <th className="py-2 px-3 w-1/5 text-center">Product Count</th>
+            <th className="py-2 px-3 w-1/5 text-center">Status</th>
+            <th className="py-2 px-3 w-1/5">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading
+            ? Array.from({ length: categoriesPerPage }).map((_, i) => (
+                <CategoryRowSkeleton key={i} />
               ))
-            )}
-          </tbody>
-        </table>
-  
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          setCurrentPage={setCurrentPage}
-        />
-      </div>
-    );
-  }
+            : paginatedCategories.map((category) => (
+                <CategoryRow
+                  key={category.id}
+                  category={category}
+                  onDelete={handleDelete}
+                  productCount={getProductCountForCategory(category.id)}
+                />
+              ))}
+        </tbody>
+      </table>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        setCurrentPage={setCurrentPage}
+      />
+    </div>
+  );
+}

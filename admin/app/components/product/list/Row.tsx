@@ -60,7 +60,7 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
       </td>
 
       <td className="py-2 px-3 text-gray-700">{product.price.toLocaleString()}</td>
-      <td className="py-2 px-3 text-gray-700">{product.stock}</td>
+      <td className="py-2 px-3 text-gray-700 ">{product.stock}</td>
       <td className="py-2 px-3 text-gray-700">{parentCategoryName}</td>
       <td className="py-2 px-3 text-gray-700">{subcategoryName}</td>
 

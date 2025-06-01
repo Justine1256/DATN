@@ -6,8 +6,33 @@ import ProductRow from "../components/product/list/Row";
 import Pagination from "../components/product/list/Pagination";
 import { Product } from "@/types/product";
 import { Category } from "@/types/category";
+import Swal from "sweetalert2";
 import Cookies from "js-cookie";
 
+//
+// { ✅ Skeleton hiển thị loading từng hàng sản phẩm }
+const ProductRowSkeleton = () => (
+  <tr className="border-b border-gray-100 animate-pulse">
+    <td className="py-4 px-3 flex items-center gap-3">
+      <div className="w-10 h-10 bg-gray-300 rounded-full" />
+      <div className="flex flex-col gap-1">
+        <div className="h-4 w-32 bg-gray-300 rounded"></div>
+        <div className="h-3 w-20 bg-gray-200 rounded"></div>
+      </div>
+    </td>
+    <td className="py-4 px-3"><div className="h-4 w-16 bg-gray-300 rounded"></div></td>
+    <td className="py-4 px-3"><div className="h-4 w-10 bg-gray-300 rounded"></div></td>
+    <td className="py-4 px-3"><div className="h-4 w-24 bg-gray-300 rounded"></div></td>
+    <td className="py-4 px-3"><div className="h-4 w-24 bg-gray-300 rounded"></div></td>
+    <td className="py-4 px-3"><div className="h-4 w-12 bg-gray-300 rounded"></div></td>
+    <td className="py-4 px-3 text-center">
+      <div className="h-8 w-12 bg-gray-300 rounded mx-auto"></div>
+    </td>
+  </tr>
+);
+
+//
+// { ✅ Component chính hiển thị danh sách sản phẩm }
 export default function ProductListPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -15,6 +40,7 @@ export default function ProductListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 5;
 
+  // { ✅ Map danh mục để lấy thông tin cha - con }
   const categoriesMap = new Map<number, Category>();
   categories.forEach((c) => {
     categoriesMap.set(c.id, c);
@@ -23,6 +49,7 @@ export default function ProductListPage() {
     }
   });
 
+  // { ✅ Lấy danh sách sản phẩm }
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -90,6 +117,7 @@ export default function ProductListPage() {
     }
   };
 
+  // { ✅ Lấy danh sách danh mục }
   const fetchCategories = async () => {
     try {
       const token = Cookies.get("authToken");
@@ -108,16 +136,22 @@ export default function ProductListPage() {
     }
   };
 
-  useEffect(() => {
-    fetchCategories();
-    fetchProducts();
-  }, []);
-
+  // { ✅ Xác nhận xoá bằng SweetAlert2 }
   const handleDelete = async (id: number) => {
-    if (!confirm("Bạn có chắc muốn xoá sản phẩm này?")) return;
+    const result = await Swal.fire({
+      title: "Bạn chắc chắn?",
+      text: "Sản phẩm sẽ bị xoá vĩnh viễn!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#e53e3e",
+      cancelButtonColor: "#aaa",
+      confirmButtonText: "Xoá",
+      cancelButtonText: "Huỷ",
+    });
+
+    if (!result.isConfirmed) return;
 
     const token = Cookies.get("authToken");
-
     try {
       const res = await fetch(`http://127.0.0.1:8000/api/product/${id}`, {
         method: "DELETE",
@@ -127,13 +161,14 @@ export default function ProductListPage() {
       });
 
       if (res.ok) {
-        alert("Xoá thành công");
+        Swal.fire("Đã xoá!", "Sản phẩm đã được xoá.", "success");
         fetchProducts();
       } else {
-        alert("Không thể xoá sản phẩm");
+        Swal.fire("Thất bại", "Không thể xoá sản phẩm.", "error");
       }
     } catch (err) {
       console.error("Lỗi xoá sản phẩm:", err);
+      Swal.fire("Lỗi", "Đã có lỗi khi xoá.", "error");
     }
   };
 
@@ -141,11 +176,17 @@ export default function ProductListPage() {
   const startIndex = (currentPage - 1) * productsPerPage;
   const paginatedProducts = products.slice(startIndex, startIndex + productsPerPage);
 
+  // { ✅ Gọi API khi component mount }
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts();
+  }, []);
+
+  // { ✅ Giao diện chính }
   return (
     <div className="p-6">
       <ProductListHeader />
       <div className="flex flex-col gap-8">
-        {/* ✅ VÙNG HIỂN THỊ SẢN PHẨM: Không cố định chiều cao */}
         <div className="border border-gray-200 rounded-md overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="sticky top-0 bg-white z-10">
@@ -162,11 +203,7 @@ export default function ProductListPage() {
             <tbody key={currentPage}>
               {loading ? (
                 Array.from({ length: productsPerPage }).map((_, i) => (
-                  <tr key={`loading-${i}`} className="h-[64px] border-b border-gray-100">
-                    <td colSpan={8}>
-                      <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse mx-auto"></div>
-                    </td>
-                  </tr>
+                  <ProductRowSkeleton key={i} />
                 ))
               ) : paginatedProducts.length === 0 ? (
                 <tr>
@@ -187,8 +224,8 @@ export default function ProductListPage() {
             </tbody>
           </table>
         </div>
-  
-        {/* ✅ PHÂN TRANG */}
+
+        {/* ✅ Phân trang */}
         <div className="pt-4">
           <Pagination
             currentPage={currentPage}
@@ -199,6 +236,4 @@ export default function ProductListPage() {
       </div>
     </div>
   );
-  
-
 }

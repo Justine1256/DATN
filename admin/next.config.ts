@@ -1,8 +1,9 @@
-import type { NextConfig } from "next";
-
+// ✅ Dùng CommonJS
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['127.0.0.1', 'localhost'],
+    domains: ['127.0.0.1', 'localhost', 'example.com', 'res.cloudinary.com', 'cdn.example.org'],
   },
 };
-export default nextConfig;
+
+module.exports = nextConfig;

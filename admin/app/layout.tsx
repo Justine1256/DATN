@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Admin Dashboard",
   description: "Modern and responsive admin panel",
+  icons: {
+    icon: "favicon.ico", // hoặc "/favicon.png"
+  },
 };
 
 export default function RootLayout({
