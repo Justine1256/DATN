@@ -4,16 +4,29 @@ import { useEffect, useState } from "react";
 import ProductListHeader from "../components/product/list/ListHeader";
 import ProductRow from "../components/product/list/Row";
 import Pagination from "../components/product/list/Pagination";
-import { Product } from "../../types/product";
-import Cookies from 'js-cookie';
+import { Product } from "@/types/product";
+import { Category } from "@/types/category";
+import Cookies from "js-cookie";
 
 export default function ProductListPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 6;
 
-  // Fetch Products
+  // ⚙️ Map category id => category object (bao gồm cả category cha)
+  const categoriesMap = new Map<number, Category>();
+
+  categories.forEach((c) => {
+    categoriesMap.set(c.id, c);
+    // Thêm parent category vào map nếu có
+    if (c.parent && c.parent.id) {
+      categoriesMap.set(c.parent.id, c.parent);
+    }
+  });
+
+  // 🛒 Fetch sản phẩm
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -21,21 +34,20 @@ export default function ProductListPage() {
       if (!token) {
         console.error("Không có token. Hãy đăng nhập.");
         setProducts([]);
-        setLoading(false);
         return;
       }
-  
+
       const res = await fetch("http://127.0.0.1:8000/api/shop/products", {
         headers: { Authorization: `Bearer ${token}` },
       });
-  
+
       if (!res.ok) throw new Error("Lỗi fetch sản phẩm");
-  
+
       const data = await res.json();
       const rawProducts = Array.isArray(data.products?.data)
         ? data.products.data
         : [];
-  
+
       const mapped: Product[] = rawProducts.map((p: any): Product => ({
         id: p.id,
         category_id: p.category_id,
@@ -70,12 +82,12 @@ export default function ProductListPage() {
             : Array.isArray(p.size)
             ? p.size
             : [],
-        category: p.category?.name || "Unknown",
+        category: p.category ?? null,
         rating: p.rating ? parseFloat(p.rating) : 0,
       }));
-  
+
       setProducts(mapped);
-      setCurrentPage(1); // ✅ THÊM DÒNG NÀY để reset lại trang đầu
+      setCurrentPage(1);
     } catch (error) {
       console.error("Lỗi khi load sản phẩm:", error);
       setProducts([]);
@@ -83,11 +95,36 @@ export default function ProductListPage() {
       setLoading(false);
     }
   };
-  
+
+  // 📦 Fetch danh mục (bao gồm cả danh mục cha)
+  const fetchCategories = async () => {
+    try {
+      const token = Cookies.get("authToken");
+      if (!token) return;
+      const res = await fetch("http://127.0.0.1:8000/api/shop/categories", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Lỗi fetch categories");
+
+      const data = await res.json();
+      console.log("📦 Fetched categories:", data.categories); // kiểm tra
+
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error("Lỗi khi load categories:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts();
+  }, []);
+
   const handleDelete = async (id: number) => {
     if (!confirm("Bạn có chắc muốn xoá sản phẩm này?")) return;
 
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("authToken");
+
     try {
       const res = await fetch(`http://127.0.0.1:8000/api/product/${id}`, {
         method: "DELETE",
@@ -98,7 +135,7 @@ export default function ProductListPage() {
 
       if (res.ok) {
         alert("Xoá thành công");
-        fetchProducts(); // reload lại danh sách
+        fetchProducts();
       } else {
         alert("Không thể xoá sản phẩm");
       }
@@ -106,10 +143,6 @@ export default function ProductListPage() {
       console.error("Lỗi xoá sản phẩm:", err);
     }
   };
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
 
   const totalPages = Math.ceil(products.length / productsPerPage);
   const startIndex = (currentPage - 1) * productsPerPage;
@@ -124,7 +157,8 @@ export default function ProductListPage() {
             <th className="py-2 px-3">Product Name & Size</th>
             <th className="py-2 px-3">Price</th>
             <th className="py-2 px-3">Stock</th>
-            <th className="py-2 px-3">Category</th>
+            <th className="py-2 px-3">Category</th> {/* Parent category */}
+            <th className="py-2 px-3">Subcategory</th> {/* Child category */}
             <th className="py-2 px-3">Rating</th>
             <th className="py-2 px-3 text-center">Action</th>
           </tr>
@@ -132,13 +166,13 @@ export default function ProductListPage() {
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={6} className="text-center py-8 text-gray-500">
+              <td colSpan={7} className="text-center py-8 text-gray-500">
                 Loading...
               </td>
             </tr>
           ) : paginatedProducts.length === 0 ? (
             <tr>
-              <td colSpan={6} className="text-center py-8 text-gray-500">
+              <td colSpan={7} className="text-center py-8 text-gray-500">
                 Không có sản phẩm nào.
               </td>
             </tr>
@@ -148,6 +182,7 @@ export default function ProductListPage() {
                 key={product.id}
                 product={product}
                 onDelete={handleDelete}
+                categoriesMap={categoriesMap}
               />
             ))
           )}

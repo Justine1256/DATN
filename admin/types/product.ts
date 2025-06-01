@@ -1,6 +1,5 @@
 import { Category } from "./category";
 
-// Product dùng trong frontend
 export interface Product {
   id: number;
   category_id: number;
@@ -22,32 +21,6 @@ export interface Product {
   updated_at: string;
   deleted_at?: string | null;
   size: string[];
-  category: Category | string;
+  category: Category | string | null; // category có thể là object hoặc string (nếu API)
   rating: number;
-}
-
-// RawProduct dùng để parse dữ liệu từ API
-export interface RawProduct {
-  id: number;
-  category_id: number;
-  shop_id: number;
-  name: string;
-  slug: string;
-  description: string;
-  price: string;
-  sale_price?: string | null;
-  stock: number;
-  sold: number;
-  image?: string | string[];
-  option1?: string;
-  value1?: string;
-  option2?: string;
-  value2?: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
-  size?: string | string[];
-  category?: { name: string };
-  rating?: string | number;
 }
