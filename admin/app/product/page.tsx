@@ -13,7 +13,7 @@ export default function ProductListPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 5; // ✅ Cố định 5 sản phẩm / trang
+  const productsPerPage = 6; // ✅ Cố định 5 sản phẩm / trang
 
   const categoriesMap = new Map<number, Category>();
   categories.forEach((c) => {
@@ -144,55 +144,66 @@ export default function ProductListPage() {
   return (
     <div className="p-6">
       <ProductListHeader />
-      <div className="min-h-[600px] flex flex-col justify-between">
-        <table className="w-full text-sm text-left">
-          <thead>
-            <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
-              <th className="py-2 px-3">Product Name & Size</th>
-              <th className="py-2 px-3">Price</th>
-              <th className="py-2 px-3">Stock</th>
-              <th className="py-2 px-3">Category</th>
-              <th className="py-2 px-3">Subcategory</th>
-              <th className="py-2 px-3">Rating</th>
-              <th className="py-2 px-3 text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody key={currentPage}>
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="text-center py-8 text-gray-500">
-                  Loading...
-                </td>
-              </tr>
-            ) : paginatedProducts.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center py-8 text-gray-500">
-                  Không có sản phẩm nào.
-                </td>
-              </tr>
-            ) : (
-              <>
-                {paginatedProducts.map((product) => (
-                  <ProductRow
-                    key={product.id}
-                    product={product}
-                    onDelete={handleDelete}
-                    categoriesMap={categoriesMap}
-                  />
-                ))}
+  
+      <div className="flex flex-col">
+        {/* VÙNG BẢNG CHIỀU CAO CỐ ĐỊNH */}
+        <div
+  className="overflow-auto border border-gray-200 rounded-md scrollbar-hide"
+  style={{ minHeight: "500px", maxHeight: "500px" }} // chiều cao cố định
+>
 
-                {/* ✅ Thêm hàng trống nếu thiếu để luôn đủ 5 dòng */}
-                {Array.from({ length: Math.max(0, 5 - paginatedProducts.length) }).map((_, i) => (
-                  <tr key={`empty-${i}`} className="h-[64px] border-b border-gray-100">
-                    <td colSpan={7}></td>
+          <table className="w-full text-sm text-left">
+            <thead className="sticky top-0 bg-white z-10">
+              <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
+                <th className="py-2 px-3">Product Name & Size</th>
+                <th className="py-2 px-3">Price</th>
+                <th className="py-2 px-3">Stock</th>
+                <th className="py-2 px-3">Category</th>
+                <th className="py-2 px-3">Subcategory</th>
+                <th className="py-2 px-3">Rating</th>
+                <th className="py-2 px-3 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody key={currentPage}>
+              {loading ? (
+                Array.from({ length: productsPerPage }).map((_, i) => (
+                  <tr key={`loading-${i}`} className="h-[64px] border-b border-gray-100">
+                    <td colSpan={7}>
+                      <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse mx-auto"></div>
+                    </td>
                   </tr>
-                ))}
-              </>
-            )}
-          </tbody>
-        </table>
-
-        <div className="mt-6">
+                ))
+              ) : paginatedProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-gray-500">
+                    Không có sản phẩm nào.
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  {paginatedProducts.map((product) => (
+                    <ProductRow
+                      key={product.id}
+                      product={product}
+                      onDelete={handleDelete}
+                      categoriesMap={categoriesMap}
+                    />
+                  ))}
+                  {Array.from({
+                    length: Math.max(0, productsPerPage - paginatedProducts.length),
+                  }).map((_, i) => (
+                    <tr key={`empty-${i}`} className="h-[64px] border-b border-gray-100">
+                      <td colSpan={7}></td>
+                    </tr>
+                  ))}
+                </>
+              )}
+            </tbody>
+          </table>
+        </div>
+  
+        {/* PHÂN TRANG DƯỚI */}
+        <div className="mt-4">
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -202,4 +213,5 @@ export default function ProductListPage() {
       </div>
     </div>
   );
+  
 }
