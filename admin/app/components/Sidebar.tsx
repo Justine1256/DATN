@@ -44,9 +44,11 @@ const menu = [
     children: [],
   },
   {
-    label: "Orders",
+    label: "Order",
     icon: <FaTruck />,
-    href: "/admin/orders",
+    children: [
+      { label: "List", href: "/order" },
+    ],
   },
   {
     label: "Purchases",
