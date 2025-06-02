@@ -46,8 +46,7 @@ class ReviewController extends Controller
             return response()->json(['message' => 'Bạn không có quyền đánh giá sản phẩm này'], 403);
         }
 
-        // ⚠️ SỬA TÊN CỘT tại đây: 'order_status' thay vì 'status'
-        if ($orderDetail->order->order_status !== 'delivered') {
+        if ($orderDetail->order->order_status !== 'Delivered') {
             return response()->json(['message' => 'Chỉ được đánh giá sau khi nhận hàng'], 403);
         }
 

@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             PhoneProductSeeder::class,
             AddressesSeeder::class,
             CartSeeder::class,
+            OrdersSeeder::class,
+            OrderDetailsSeeder::class,
             VouchersSeeder::class,
             UserVoucherSeeder::class,
         ]);
