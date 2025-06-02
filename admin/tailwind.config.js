@@ -7,7 +7,16 @@ module.exports = {
     theme: {
         extend: {
             lineClamp: {
-                2: '2', // Thêm hỗ trợ line-clamp-2 cho Tailwind CSS
+                2: '2',
+            },
+            keyframes: {
+                'fade-in': {
+                    '0%': { opacity: 0, transform: 'translateY(10px)' },
+                    '100%': { opacity: 1, transform: 'translateY(0)' },
+                },
+            },
+            animation: {
+                'fade-in': 'fade-in 0.5s ease-out',
             },
         },
     },
