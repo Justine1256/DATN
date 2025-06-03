@@ -71,7 +71,7 @@ export default function SignupForm() {
       setTimeout(() => {
         setShowSuccessPopup(false);
         router.push('/login');
-      }, 2000);
+      }, 1000);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Xác minh OTP thất bại.');
     }
