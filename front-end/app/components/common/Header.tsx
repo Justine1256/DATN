@@ -1,24 +1,46 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   AiOutlineSearch,
   AiOutlineHeart,
   AiOutlineShoppingCart,
 } from 'react-icons/ai';
+import { FiUser, FiLogOut } from 'react-icons/fi';
 import Image from 'next/image';
 import logoImage from '../../../public/logo.png';
+import axios from 'axios';
+import Cookies from 'js-cookie';
 
 const Header = () => {
-  const [isSticky, setIsSticky] = useState(false);
+  const [user, setUser] = useState<{ name: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSticky, setIsSticky] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const headerHeight = 98;
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // 🔁 Đóng dropdown khi click ra ngoài
   useEffect(() => {
-    const handleScroll = () => {
-      setIsSticky(window.scrollY > 50);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
     };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // 🔁 Sticky header khi scroll
+  useEffect(() => {
+    const handleScroll = () => setIsSticky(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     document.body.style.paddingTop = `${headerHeight}px`;
     return () => {
@@ -27,11 +49,29 @@ const Header = () => {
     };
   }, []);
 
+  // 🔁 Lấy user từ token (nếu có)
+  useEffect(() => {
+    const token = Cookies.get('authToken');
+    if (token) {
+      axios
+        .get('http://localhost:8000/api/user', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((res) => setUser(res.data))
+        .catch(() => {
+          Cookies.remove('authToken');
+          setUser(null);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/contact', label: 'Contact' },
     { href: '/about', label: 'About' },
-    { href: '/signup', label: 'Sign Up' },
   ];
 
   const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
@@ -39,6 +79,12 @@ const Header = () => {
     if (searchQuery.trim()) {
       console.log('Searching for:', searchQuery);
     }
+  };
+
+  // ✅ Đăng xuất: chỉ cần redirect, không setState để tránh giật
+  const handleLogout = () => {
+    Cookies.remove('authToken');
+    window.location.href = '/';
   };
 
   return (
@@ -49,37 +95,37 @@ const Header = () => {
           : 'bg-white transition-all duration-300'
       }`}
     >
-      {/* Top Black Bar */}
+      {/* 🔝 Top Black Bar */}
       <div className="bg-black text-white py-2 text-center text-sm tracking-wider">
         <div className="container mx-auto max-w-[1200px]">
           <span className="text-gray-400">
             Summer Sale For All Swim Suits And Free Express Delivery - OFF 50%!
           </span>{' '}
-          <Link href="/shop" className="no-underline text-white">
+          <Link href="/shop" className="no-underline text-white ml-2 hover:underline">
             ShopNow
           </Link>
         </div>
       </div>
 
-      {/* Bottom Header */}
-      <div className="py-4 px-6">
-        <div className="container mx-auto grid grid-cols-12 items-center max-w-[1200px]">
-          {/* Logo */}
-          <div className="col-span-4 md:col-span-3 flex items-center justify-start">
+      {/* 🔻 Main Header */}
+      <div className="py-0 px-2">
+        <div className="flex items-center justify-between px-6 py-4 max-w-[1200px] mx-auto">
+          {/* 🔹 Logo */}
+          <div className="flex items-center justify-start">
             <Link href="/" shallow>
               <Image
                 src={logoImage}
-                alt="Exclusive Logo"
-                width={130}
-                height={30}
-                className="cursor-pointer"
+                alt="Logo"
+                width={150}
+                height={90}
+                className="rounded-full cursor-pointer"
                 priority
               />
             </Link>
           </div>
 
-          {/* Nav Links */}
-          <nav className="col-span-8 md:col-span-6 flex space-x-8">
+          {/* 🔸 Navigation */}
+          <nav className="flex items-center space-x-6">
             {navLinks.map((link) => (
               <div key={link.href} className="relative group">
                 <Link
@@ -91,10 +137,23 @@ const Header = () => {
                 <span className="absolute left-0 bottom-[-2px] w-0 h-[2px] bg-black transition-all duration-300 group-hover:w-full" />
               </div>
             ))}
+            {/* ✅ Sign Up chỉ hiển thị nếu !user và loading xong */}
+            {!loading && !user && (
+              <div className="relative group">
+                <Link
+                  href="/signup"
+                  className="text-black text-base !no-underline transition duration-200"
+                >
+                  Sign Up
+                </Link>
+                <span className="absolute left-0 bottom-[-2px] w-0 h-[2px] bg-black transition-all duration-300 group-hover:w-full" />
+              </div>
+            )}
           </nav>
 
-          {/* Search + Icons */}
-          <div className="col-span-12 md:col-span-3 flex justify-end items-center space-x-3 mt-2 md:mt-0">
+          {/* 🔍 Search + Icons + Avatar */}
+          <div className="flex justify-end items-center space-x-2">
+            {/* 🔍 Search Box */}
             <div className="relative">
               <input
                 type="text"
@@ -109,19 +168,62 @@ const Header = () => {
                 onClick={handleSearchSubmit}
               />
             </div>
-            <div className="flex items-center space-x-2">
-              <Link href="/wishlist" shallow>
-                <AiOutlineHeart className="h-5 w-5 text-black hover:text-red-500 transition" />
-              </Link>
-              <Link href="/cart" shallow>
-                <AiOutlineShoppingCart className="h-5 w-5 text-black hover:text-blue-500 transition" />
-              </Link>
-            </div>
+
+            {/* ❤️ Wishlist & 🛒 Cart */}
+            <Link href="/wishlist" shallow>
+              <AiOutlineHeart className="h-5 w-5 text-black hover:text-red-500 transition" />
+            </Link>
+            <Link href="/cart" shallow>
+              <AiOutlineShoppingCart className="h-5 w-5 text-black hover:text-blue-500 transition" />
+            </Link>
+
+            {/* 👤 User Dropdown */}
+            {user && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="h-8 w-8 bg-red-500 text-white !rounded-full flex items-center justify-center uppercase"
+                >
+                  {user.name[0]}
+                </button>
+
+                {dropdownOpen && (
+                  <div
+                    className="absolute right-0 mt-3 w-[224px] rounded-md shadow-xl z-50"
+                    style={{
+                      backgroundColor: 'rgba(30,30,30,0.7)',
+                      backdropFilter: 'blur(6px)',
+                    }}
+                  >
+                    <ul className="text-sm text-white p-3 space-y-2">
+                      <li className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer">
+                        <FiUser /> Manage My Account
+                      </li>
+                      <li className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer">
+                        <AiOutlineShoppingCart /> My Order
+                      </li>
+                      <li className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer">
+                        <AiOutlineHeart /> My Reviews
+                      </li>
+                      <li className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer">
+                        🏪 Open a Shop
+                      </li>
+                      <li
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer text-red-400"
+                      >
+                        <FiLogOut /> Logout
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Divider */}
+      {/* 📏 Divider */}
       <div className="bg-gray-200 h-0.5 w-full" />
     </header>
   );
