@@ -63,7 +63,7 @@ export default function FlashSale() {
         <div className="w-full h-[1px] bg-gray-300 mb-6" />
 
         {/* Header Flash Sale and Timer */}
-        <div className="flex items-start justify-between !gap-10 pb-7">
+        <div className="flex items-start justify-between !gap-10 pb-8">
           <div className="flex items-start gap-10">
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-2">
@@ -73,7 +73,7 @@ export default function FlashSale() {
               <div className="flex items-end gap-10 mt-2">
                 <h2 className="text-3xl font-bold text-black">Flash Sales</h2>
                 {/* Timer Display */}
-                <div className="relative flex items-end gap-6 text-black translate-y-[-10px]">
+                <div className="relative flex items-end gap-6 text-black">
                   {[
                     { label: "Days", value: timeLeft.days },
                     { label: "Hours", value: timeLeft.hours },

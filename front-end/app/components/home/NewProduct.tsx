@@ -50,7 +50,7 @@ export default function NewProducts() {
               This Week
             </p>
           </div>
-          <h2 className="text-3xl font-bold text-black mt-2">New Products</h2>
+          <h2 className="text-3xl font-bold text-black mt-4">New Products</h2>
           {/* The short horizontal line below "New Products" has been removed */}
         </div>
 
