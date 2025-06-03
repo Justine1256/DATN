@@ -1,23 +1,44 @@
-@import "tailwindcss";
-@import "bootstrap/dist/css/bootstrap.min.css";
+
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
 
-/* ========== CSS Variables ========== */
+.animate-slide-in {
+  animation: slide-in 0.5s ease-out;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;     /* Firefox */
+}
 :root {
   --background: #ffffff;
-  --foreground: #000000;
 
+}
+
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* Dark Mode */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -25,63 +46,16 @@
   }
 }
 
-/* ========== Body Style ========== */
 body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
 }
-
-/* ========== Hide Scrollbar ========== */
 .scroll-hidden {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE 10+ */
 }
+
 .scroll-hidden::-webkit-scrollbar {
   display: none; /* Chrome, Safari */
-}
-
-/* ========== Custom Scrollbar (if used) ========== */
-/* Requires tailwind-scrollbar plugin */
-.scrollbar-custom {
-  scrollbar-width: thin;
-}
-.scrollbar-custom::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-.scrollbar-custom::-webkit-scrollbar-thumb {
-  background-color: #bbb;
-  border-radius: 9999px;
-}
-.scrollbar-custom::-webkit-scrollbar-track {
-  background-color: #eee;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-in-out;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-in-out;
 }
