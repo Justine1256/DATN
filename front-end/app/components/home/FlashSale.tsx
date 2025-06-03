@@ -30,47 +30,47 @@ export default function FlashSaleHeader() {
   }, []);
 
   return (
-    <div className="flex items-center justify-between max-w-screen-xl mx-auto px-4 pb-6">
-      {/* LEFT: Title + Timer */}
+    <div className="flex items-center justify-between max-w-screen-xl mx-auto px-4 py-6">
+      {/* LEFT side */}
       <div className="flex items-center gap-10">
-        {/* Today's + Flash Sales */}
+        {/* Left title */}
         <div className="flex flex-col justify-center">
-          <div className="flex items-center gap-2">
-            <div className="w-[12px] h-6 bg-red-500 rounded-md" />
-            <p className="text-red-500 font-semibold text-sm">Today’s</p>
+          {/* Gạch đỏ + Today */}
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-[10px] h-[22px] bg-red-500 rounded-md" />
+            <p className="text-red-500 font-semibold text-sm mt-[1px]">Today’s</p>
           </div>
-          <h2 className="text-3xl font-bold text-black mt-1">Flash Sales</h2>
+          <h2 className="text-3xl font-bold text-black">Flash Sales</h2>
         </div>
 
-        {/* Countdown Timer */}
-        <div className="flex items-center gap-4 text-black">
+        {/* TIME BLOCK */}
+        <div className="relative flex items-end gap-6 text-black">
           {[
             { label: "Days", value: timeLeft.days },
             { label: "Hours", value: timeLeft.hours },
             { label: "Minutes", value: timeLeft.minutes },
             { label: "Seconds", value: timeLeft.seconds },
           ].map((item, idx) => (
-            <div key={idx} className="flex flex-col items-center">
-              <span className="text-sm text-gray-500 mb-1 text-center w-14">{item.label}</span>
-              <div className="text-2xl font-bold w-14 text-center">
-                {String(item.value).padStart(2, "0")}
-              </div>
+            <div key={idx} className="flex flex-col items-center w-14 relative">
+              <span className="text-xs text-gray-500 mb-1">{item.label}</span>
+              <span className="text-2xl font-bold text-center">{String(item.value).padStart(2, "0")}</span>
+              {/* Dấu :  */}
+              {idx < 3 && (
+                <div className="absolute top-[40%] -right-[14px] text-red-400 font-semibold text-xl">
+                  :
+                </div>
+              )}
             </div>
           ))}
-
-          {/* Custom colons between groups */}
-          <div className="absolute ml-[77px] mt-[26px] text-red-400 font-semibold text-xl">:</div>
-          <div className="absolute ml-[164px] mt-[26px] text-red-400 font-semibold text-xl">:</div>
-          <div className="absolute ml-[251px] mt-[26px] text-red-400 font-semibold text-xl">:</div>
         </div>
       </div>
 
-      {/* RIGHT: Arrows */}
+      {/* RIGHT side: Arrows */}
       <div className="flex gap-3 items-center">
-        <button className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-300 hover:bg-gray-400 text-2xl text-black">
+        <button className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-300 hover:bg-gray-400 text-xl text-black">
           <FiChevronLeft />
         </button>
-        <button className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-300 hover:bg-gray-400 text-2xl text-black">
+        <button className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-300 hover:bg-gray-400 text-xl text-black">
           <FiChevronRight />
         </button>
       </div>
