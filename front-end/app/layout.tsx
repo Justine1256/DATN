@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import "@/app/styles/globals.css";
-
+import "@/app/globals.css";
 import Header from "@/app/components/common/Header";
-import Footer from "@/app/components/home/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,8 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head />
       <body className={`${geistSans.className} scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200`}>
         <Header />
-        <main className="pb-24">{children}</main>
-        <Footer />
+        {children}
       </body>
     </html>
   );
