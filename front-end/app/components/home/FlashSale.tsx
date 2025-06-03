@@ -1,11 +1,26 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+
+import ProductCard from "../product/ProductCard";
+
+export interface Product {
+  id: number;
+  name: string;
+  image: string;
+  slug: string;
+  price: number;
+  oldPrice: number;
+  rating: number;
+  discount: number;
+}
 
 const endTime = new Date().getTime() + 3 * 24 * 60 * 60 * 1000 + 23 * 3600 * 1000 + 19 * 60 * 1000 + 56 * 1000;
 
-export default function FlashSaleHeader() {
+export default function FlashSale() {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -29,58 +44,80 @@ export default function FlashSaleHeader() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/api/topdiscountedproducts/")
+      .then((res) => res.json())
+      .then((data) => {
+        setProducts(Array.isArray(data.products) ? data.products : []);
+      })
+      .catch((err) => {
+        console.error("Lỗi khi fetch sản phẩm flash sale:", err);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
-    <div className="flex items-start justify-between max-w-screen-xl mx-auto px-4 py-6">
-      {/* LEFT side */}
-      <div className="flex items-start gap-10">
-        {/* Left title */}
-        <div className="flex flex-col justify-center">
-          {/* Gạch đỏ + Today */}
-          <div className="flex items-center gap-2 -translate-y-[-6px]">
-            <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm translate-y-[-3px]" />
-            <p className="text-red-500 font-semibold text-sm leading-none translate-y-[5px]">Today’s</p>
-          </div>
+    <section className="bg-white py-10">
+      <div className="max-w-[1170px] mx-auto px-4">
+        {/* Short horizontal line at the very top */}
+        <div className="w-full h-[1px] bg-gray-300 mb-6" />
 
-          {/* Flash Sale + Time block */}
-          <div className="flex items-end gap-10 mt-2">
-            {/* Flash Sale */}
-            <h2 className="text-3xl font-bold text-black">Flash Sales</h2>
-
-            {/* TIME BLOCK */}
-            <div className="relative flex items-end gap-6 text-black translate-y-[-10px]">
-              {[
-                { label: "Days", value: timeLeft.days },
-                { label: "Hours", value: timeLeft.hours },
-                { label: "Minutes", value: timeLeft.minutes },
-                { label: "Seconds", value: timeLeft.seconds },
-              ].map((item, idx) => (
-                <div key={idx} className="flex flex-col items-center w-14 relative">
-                  <span className="text-xs font-semibold text-gray-600 mb-1">{item.label}</span>
-                  <span className="text-2xl font-bold text-center">{String(item.value).padStart(2, "0")}</span>
-                  {idx < 3 && (
-                    <div className="absolute top-[40%] -right-[14px] text-red-400 font-semibold text-xl">
-                      :
+        {/* Header Flash Sale and Timer */}
+        <div className="flex items-start justify-between !gap-10 pb-7">
+          <div className="flex items-start gap-10">
+            <div className="flex flex-col justify-center">
+              <div className="flex items-center gap-2">
+                <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
+                <p className="text-red-500 font-semibold text-sm translate-y-[8px]">Today’s</p>
+              </div>
+              <div className="flex items-end gap-10 mt-2">
+                <h2 className="text-3xl font-bold text-black">Flash Sales</h2>
+                {/* Timer Display */}
+                <div className="relative flex items-end gap-6 text-black translate-y-[-10px]">
+                  {[
+                    { label: "Days", value: timeLeft.days },
+                    { label: "Hours", value: timeLeft.hours },
+                    { label: "Minutes", value: timeLeft.minutes },
+                    { label: "Seconds", value: timeLeft.seconds },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex flex-col items-center w-14 relative">
+                      <span className="text-xs font-semibold text-gray-600 mb-1">{item.label}</span>
+                      <span className="text-2xl font-bold text-center">{String(item.value).padStart(2, "0")}</span>
+                      {idx < 3 && (
+                        <div className="absolute top-[40%] -right-[14px] text-red-400 font-semibold text-xl">
+                          :
+                        </div>
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
+          {/* View All Button is now removed from here */}
         </div>
+
+        {/* Products List */}
+        {loading ? (
+          <p className="text-center text-gray-500">Đang tải sản phẩm...</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
+
+        {/* View All Button (moved to the bottom) */}
+        <div className="mt-10 text-center">
+          <button className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
+            View All Product
+          </button>
+        </div>
+
+        {/* Short horizontal line at the very bottom */}
+        <div className="w-full h-[1px] bg-gray-300 mt-10" />
       </div>
-
-      {/* RIGHT side: Arrows */}
-      <div className="flex gap-3 translate-y-[30px]">
-  <button className="w-11 h-11 !rounded-full bg-[#E3E3E3] text-black text-xl flex items-center justify-center hover:bg-gray-400 transition">
-    <FiChevronLeft />
-  </button>
-  <button className="w-11 h-11 !rounded-full bg-[#E3E3E3] text-black text-xl flex items-center justify-center hover:bg-gray-400 transition">
-    <FiChevronRight />
-  </button>
-</div>
-
-
-
-    </div>
+    </section>
   );
 }
