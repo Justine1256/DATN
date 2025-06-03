@@ -19,7 +19,7 @@ class PhoneProductSeeder extends Seeder
                 "sale_price" => 1900000,
                 "stock" => 15,
                 "sold" => 4,
-                "image" => "iphone14promax.jpg",
+                "image" => "products/sample-product.png",
                 "option1" => "Màu sắc",
                 "value1" => "Đen",
                 "option2" => "Bộ nhớ",
@@ -37,7 +37,7 @@ class PhoneProductSeeder extends Seeder
                 "sale_price" => 1900000,
                 "stock" => 12,
                 "sold" => 5,
-                "image" => "samsung_s23ultra.jpg",
+                "image" => "products/sample-product.png",
                 "option1" => "Màu sắc",
                 "value1" => "Xanh",
                 "option2" => "Bộ nhớ",
@@ -46,7 +46,6 @@ class PhoneProductSeeder extends Seeder
                 "created_at" => now(),
                 "updated_at" => now(),
             ],
-            // Tạo thêm 18 sản phẩm tương tự, mình ví dụ tiếp 3 cái nữa:
             [
                 "shop_id" => 2,
                 "category_id" => 8,
@@ -56,7 +55,7 @@ class PhoneProductSeeder extends Seeder
                 "sale_price" => 1900000,
                 "stock" => 20,
                 "sold" => 7,
-                "image" => "xiaomi_mi13pro.jpg",
+                "image" => "products/sample-product.png",
                 "option1" => "Màu sắc",
                 "value1" => "Trắng",
                 "option2" => "Bộ nhớ",
@@ -74,7 +73,7 @@ class PhoneProductSeeder extends Seeder
                 "sale_price" => 1800000,
                 "stock" => 10,
                 "sold" => 3,
-                "image" => "google_pixel7pro.jpg",
+                "image" => "products/sample-product.png",
                 "option1" => "Màu sắc",
                 "value1" => "Đen",
                 "option2" => "Bộ nhớ",
@@ -92,7 +91,7 @@ class PhoneProductSeeder extends Seeder
                 "sale_price" => 1700000,
                 "stock" => 18,
                 "sold" => 6,
-                "image" => "oneplus_11.jpg",
+                "image" => "products/sample-product.png",
                 "option1" => "Màu sắc",
                 "value1" => "Đỏ",
                 "option2" => "Bộ nhớ",
@@ -101,10 +100,8 @@ class PhoneProductSeeder extends Seeder
                 "created_at" => now(),
                 "updated_at" => now(),
             ],
-            // ... tiếp tục tạo thêm 15 sản phẩm tương tự để đủ 20 cái
         ];
 
-        // Mình sẽ tự động tạo thêm sản phẩm mẫu để đủ 20 sản phẩm
         for ($i = count($products); $i < 20; $i++) {
             $products[] = [
                 "shop_id" => 2,
@@ -115,7 +112,7 @@ class PhoneProductSeeder extends Seeder
                 "sale_price" => 1000000 + $i * 50000,
                 "stock" => 10 + $i,
                 "sold" => $i,
-                "image" => "phone_sample_$i.jpg",
+                "image" => "products/sample-product.png",
                 "option1" => "Màu sắc",
                 "value1" => "Đen",
                 "option2" => "Bộ nhớ",

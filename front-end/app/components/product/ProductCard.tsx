@@ -92,7 +92,7 @@ export default function ProductCard({ product }: { product: Product }) {
       {/* Ảnh sản phẩm có thể click */}
       <Link href={`/product/${product.slug}`} className="w-full flex justify-center items-center h-[140px] mt-2">
         <Image
-          src={safeImageSrc}
+          src={`http://localhost:8000/api/image/${product.image}`}
           alt={product.name}
           width={120}
           height={120}

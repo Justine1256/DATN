@@ -12,6 +12,7 @@ use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\FollowController;
+use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VoucherController;
@@ -30,25 +31,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/upload-image', function (Request $request) {
-    if (!$request->hasFile('file')) {
-        return response()->json(['error' => 'No file provided'], 400);
-    }
-
-    $file = $request->file('file');
-
-    if (!$file->isValid()) {
-        return response()->json(['error' => 'Invalid file upload'], 400);
-    }
-
-    // Lưu file vào thư mục public/storage/uploads
-    $path = $file->store('uploads', 'public');
-
-    // Trả về url file vừa lưu (dùng asset helper hoặc Storage facade)
-    $url = asset('storage/' . $path);
-
-    return response()->json(['url' => $url]);
-});
+Route::get('/images', [ImageController::class, 'index']);
+Route::get('/image/{path}', [ImageController::class, 'show'])->where('path', '.*');
+Route::post('/upload-image',[ImageController::class, 'store']);
 
 Route::get('/category', [CategoryController::class, 'index']);
 Route::get('/category/{id}', [CategoryController::class, 'show']);
