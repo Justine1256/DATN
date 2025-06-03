@@ -1,33 +1,19 @@
+import LandingSlider from "@/app/components/home/LandingSlider";
+import FlashSale from "./components/home/FlashSale";
 
-import Header from "@/app/components/common/Header";
-import { Geist } from "next/font/google";
-import FlashSaleSection from "@/app/components/home/FlashSaleSection";
+// import ProductList from "@/app/components/home/ProductList";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-export default function HomeLayout({ children }: { children: React.ReactNode }) {
-      
-
+export default function HomePage() {
   return (
-    <html lang="en">
-      <body className={geistSans.className}>
-        <Header />
-       
-        {children}
-        <div className="bg-white">
-        <div className="container mx-auto min-h-screen bg-white">
-      <FlashSaleSection />
-    </div>
-    </div>
-      </body>
-    </html>
+    <main className="bg-white">
+      {/* Khoảng cách với header */}
+      <section className="max-w-screen-xl mx-auto px-4 pt-20">
+        <LandingSlider />
+      </section>
+
+      <section className="max-w-screen-xl mx-auto px-4 pt-12">
+        <FlashSale />
+      </section>
+    </main>
   );
 }
-// pages/index.tsx
-
-
-
-
