@@ -7,7 +7,7 @@ export default function HomePage() {
   return (
     <main className="bg-white">
       {/* Khoảng cách với header */}
-      <section className="max-w-screen-xl mx-auto px-4 pt-20">
+      <section className="max-w-screen-xl mx-auto px-4 pt-16">
         <LandingSlider />
       </section>
 

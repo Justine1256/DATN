@@ -1,39 +1,52 @@
 "use client";
 import { useEffect, useState } from "react";
 
+// Slide data
 const slides = [
   {
     id: 1,
-    image: "/images/banner-1.jpg",
-    title: "Summer Sale",
-    subtitle: "Up to 50% off",
-    button: "Shop Now",
+    image: "/Banner3.png",
+    buttonText: "Shop now",
+    variant: "red", // red background
   },
   {
     id: 2,
-    image: "/images/banner-2.jpg",
-    title: "New Arrivals",
-    subtitle: "Latest Trends",
-    button: "Discover",
+    image: "/Banner4.png",
+    buttonText: "Shop now",
+    variant: "black", // black background
+  },
+  {
+    id: 3,
+    image: "/Banner2.png",
+    buttonText: "Shop now",
+    variant: "red",
   },
 ];
 
 export default function LandingSlider() {
   const [current, setCurrent] = useState(0);
 
+  // Tự động chuyển slide sau mỗi 5 giây
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrent((prev) => (prev + 1) % slides.length);
     }, 5000);
-    return () => clearInterval(interval);
+
+    return () => clearInterval(interval); // Clear interval khi component unmount
   }, []);
 
+  // Xử lý khi click dot nhỏ
+  const handleDotClick = (index: number) => {
+    setCurrent(index);
+  };
+
   return (
-    <div className="relative w-full h-96 overflow-hidden rounded-lg">
+    <div className="relative max-w-[1170px] h-[344px] mx-auto overflow-hidden rounded-lg">
+      {/* Vòng lặp qua từng slide */}
       {slides.map((slide, index) => (
         <div
           key={slide.id}
-          className={`absolute w-full h-full transition-opacity duration-700 ease-in-out ${
+          className={`absolute inset-0 transition-all duration-700 ease-in-out ${
             index === current ? "opacity-100 z-10" : "opacity-0 z-0"
           }`}
           style={{
@@ -42,15 +55,35 @@ export default function LandingSlider() {
             backgroundPosition: "center",
           }}
         >
-          <div className="w-full h-full bg-black/50 flex items-center justify-center">
-            <div className="text-center text-white">
-              <h2 className="text-4xl font-bold">{slide.title}</h2>
-              <p className="text-xl mb-4">{slide.subtitle}</p>
-              <button className="bg-blue-600 px-4 py-2 rounded">{slide.button}</button>
+          {/* Nút Shop now chỉ hiển thị ở slide hiện tại */}
+          {index === current && (
+            <div className="absolute left-17 bottom-12 z-20">
+              <button
+                className={`w-[143px] h-[43px] !rounded-md text-white font-semibold transition ${
+                  slide.variant === "red"
+                    ? "bg-[#DB4444] hover:bg-red-600"
+                    : "bg-black hover:bg-neutral-700"
+                }`}
+              >
+                {slide.buttonText}
+              </button>
             </div>
-          </div>
+          )}
         </div>
       ))}
+
+      {/* Dots điều khiển slide */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 z-30">
+        {slides.map((_, index) => (
+          <div
+            key={index}
+            onClick={() => handleDotClick(index)}
+            className={`w-2 h-2 rounded-full cursor-pointer transition-all duration-300 ${
+              index === current ? "bg-[#DB4444]" : "bg-gray-300"
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 }

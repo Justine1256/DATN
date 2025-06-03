@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head />
-      <body className={geistSans.className}>
+      <body className={`${geistSans.className} scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200`}>
         <Header />
         <main className="pb-24">{children}</main>
         <Footer />
@@ -27,3 +27,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+
