@@ -95,7 +95,7 @@ public function store(Request $request)
     // Lấy danh sách sản phẩm bán chạy
     public function bestSellingProducts(Request $request)
     {
-        $limit = $request->input('limit', 10); // giới hạn số sản phẩm trả về
+        $limit = $request->input('limit', 8); // giới hạn số sản phẩm trả về
 
         $products = Product::where('status', 'activated')
             ->orderByDesc('sold')
@@ -110,7 +110,7 @@ public function store(Request $request)
     // Lấy danh sách sản phẩm giảm giá nhiều nhất
     public function topDiscountedProducts(Request $request)
     {
-        $limit = $request->input('limit', 10);
+        $limit = $request->input('limit', 8);
 
         $products = Product::whereNotNull('sale_price')
             ->whereColumn('sale_price', '<', 'price')
@@ -130,7 +130,7 @@ public function store(Request $request)
     // Lấy danh sách sản phẩm mới nhất
     public function newProducts(Request $request)
 {
-    $limit = $request->input('limit', 10);
+    $limit = $request->input('limit', 8);
 
     $products = Product::where('status', 'activated')
         ->orderBy('created_at', 'desc')
