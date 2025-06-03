@@ -55,7 +55,7 @@ export default function HeroSpeakerBanner() {
 
         {/* Clickable button */}
         <Link href="/checkout" className="w-fit">
-          <button className="bg-[#22C55E] hover:bg-[#A0BCE0] transition text-white font-semibold px-8 py-3 mt-8 rounded-md">
+          <button className="bg-[#22C55E] hover:bg-[#A0BCE0] transition text-white font-semibold px-8 py-3 mt-15 rounded-md">
             Buy Now
           </button>
         </Link>

@@ -46,7 +46,7 @@ export default function NewProducts() {
         <div className="flex flex-col items-start gap-2 mb-6">
           <div className="flex items-center gap-2">
             <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-            <p className="text-red-500 font-semibold text-sm translate-y-[8px]">
+            <p className="text-red-500 font-semibold text-sm translate-y-[1px]">
               This Week
             </p>
           </div>

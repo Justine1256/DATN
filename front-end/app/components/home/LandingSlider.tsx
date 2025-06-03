@@ -57,7 +57,7 @@ export default function LandingSlider() {
         >
           {/* Nút Shop now chỉ hiển thị ở slide hiện tại */}
           {index === current && (
-            <div className="absolute left-17 bottom-12 z-20">
+            <div className="absolute left-20 bottom-12 z-20">
               <button
                 className={`w-[143px] h-[43px] !rounded-md text-white font-semibold transition ${
                   slide.variant === "red"

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from "react";
-import axios from "axios";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
+import { useRouter } from 'next/navigation';
 
 export default function SignupForm() {
   const [formData, setFormData] = useState({
@@ -16,9 +16,16 @@ export default function SignupForm() {
   const [error, setError] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false); // popup thành công
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
+  const otpRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (showOtpModal && otpRef.current) {
+      otpRef.current.focus();
+    }
+  }, [showOtpModal]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,44 +36,42 @@ export default function SignupForm() {
     setError('');
     setMessage('');
 
+    const { name, email, phone, password } = formData;
+    if (!name || !email || !phone || !password) {
+      setError('Vui lòng điền đầy đủ thông tin.');
+      return;
+    }
+
     try {
-      const response = await axios.post('http://localhost:8000/api/register', {
-        name: formData.name,
-        username: formData.email.split('@')[0],
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
+      const res = await axios.post('http://localhost:8000/api/register', {
+        name,
+        username: email.split('@')[0],
+        email,
+        phone,
+        password,
       });
 
-      setMessage(response.data.message);
+      setMessage(res.data.message || 'Gửi mã OTP thành công.');
       setShowOtpModal(true);
     } catch (err: any) {
-      if (err.response?.data?.errors) {
-        setError(JSON.stringify(err.response.data.errors));
-      } else {
-        setError('Đăng ký thất bại. Vui lòng thử lại.');
-      }
+      setError(err.response?.data?.message || 'Đăng ký thất bại.');
     }
   };
 
   const verifyOtp = async () => {
     try {
-      const response = await axios.post('http://localhost:8000/api/verify-otp', {
+      const res = await axios.post('http://localhost:8000/api/verify-otp', {
         email: formData.email,
         otp: otpCode,
       });
-      setMessage(response.data.message);
-      setShowOtpModal(false);
 
-      // Hiện popup thành công
+      setShowOtpModal(false);
       setShowSuccessPopup(true);
 
-      // 2s sau tự động chuyển về /login
       setTimeout(() => {
         setShowSuccessPopup(false);
         router.push('/login');
       }, 2000);
-
     } catch (err: any) {
       setError(err.response?.data?.message || 'Xác minh OTP thất bại.');
     }
@@ -77,10 +82,13 @@ export default function SignupForm() {
       <h2 className="text-2xl font-semibold mb-1">Create an account</h2>
       <p className="text-black mb-6">Enter your details below</p>
 
-      {message && <p className="text-green-600 mb-4">{message}</p>}
-      {error && <p className="text-red-600 mb-4 whitespace-pre-wrap">{error}</p>}
+      {(message || error) && (
+        <p className={`mb-4 ${error ? 'text-red-600' : 'text-green-600'} whitespace-pre-wrap`}>
+          {error || message}
+        </p>
+      )}
 
-      <form onSubmit={handleSubmit} className="space-y-10">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <input
           type="text"
           name="name"
@@ -93,25 +101,25 @@ export default function SignupForm() {
           name="email"
           placeholder="Email"
           onChange={handleChange}
-          className="w-full border-b p-2 mt-2 focus:outline-none text-black placeholder-gray-400"
+          className="w-full border-b p-2 focus:outline-none text-black placeholder-gray-400"
         />
         <input
-          type="text"
+          type="tel"
           name="phone"
           placeholder="Phone"
           onChange={handleChange}
-          className="w-full border-b p-2 mt-2 focus:outline-none text-black placeholder-gray-400"
+          className="w-full border-b p-2 focus:outline-none text-black placeholder-gray-400"
         />
         <input
           type="password"
           name="password"
           placeholder="Password"
           onChange={handleChange}
-          className="w-full border-b p-2 mt-2 focus:outline-none text-black placeholder-gray-400"
+          className="w-full border-b p-2 focus:outline-none text-black placeholder-gray-400"
         />
         <button
           type="submit"
-          className="w-full bg-[#DB4444] mt-3 hover:opacity-75 text-white py-2 rounded"
+          className="w-full bg-[#DB4444] hover:opacity-75 text-white py-2 rounded"
         >
           Create Account
         </button>
@@ -124,7 +132,7 @@ export default function SignupForm() {
       </div>
 
       <button className="w-full mb-2 border flex items-center justify-center py-2 rounded text-black hover:bg-gray-100">
-        <img src="/google-logo.png" alt="Google" className="w-8 h-8 mr-2" />
+        <img src="/google-logo.png" alt="Google" className="w-6 h-6 mr-2" />
         Sign up with Google
       </button>
 
@@ -142,14 +150,15 @@ export default function SignupForm() {
               <h3 className="text-lg font-bold">Nhập mã OTP</h3>
               <button
                 onClick={() => setShowOtpModal(false)}
-                className="text-2xl font-bold text-gray-600 hover:text-red-500 transition duration-200 relative top-[-4px]"
+                className="text-2xl font-bold text-gray-600 hover:text-red-500 transition duration-200"
                 aria-label="Đóng modal"
               >
-                X
+                ×
               </button>
             </div>
 
             <input
+              ref={otpRef}
               type="text"
               value={otpCode}
               onChange={(e) => setOtpCode(e.target.value)}
@@ -166,7 +175,6 @@ export default function SignupForm() {
         </div>
       )}
 
-      {/* Popup đăng ký thành công */}
       {showSuccessPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white rounded-lg p-6 w-80 flex flex-col items-center">

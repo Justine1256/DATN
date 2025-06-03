@@ -68,7 +68,7 @@ export default function FlashSale() {
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-2">
                 <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-                <p className="text-red-500 font-semibold text-sm translate-y-[8px]">Today’s</p>
+                <p className="text-red-500 font-semibold text-sm translate-y-[1px]">Today’s</p>
               </div>
               <div className="flex items-end gap-10 mt-2">
                 <h2 className="text-3xl font-bold text-black">Flash Sales</h2>
