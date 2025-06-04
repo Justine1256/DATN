@@ -83,10 +83,10 @@ export default function Sidebar() {
   return (
     <aside className="fixed top-0 left-0 h-screen w-64 bg-white border-r shadow-sm overflow-y-auto z-40 px-5 py-4">
       {/* Logo */}
-      <div className="flex items-center mb-6">
-        <img src="/reg-logo.png" alt="Logo" className="w-50 h-20 mr-2" />
-        
-      </div>
+      <div className="w-full flex justify-center mb-6">
+  <img src="/logo.png" alt="Logo" className="w-[120px] h-[60px]" />
+</div>
+
 
       <p className="text-[11px] font-bold text-gray-400 uppercase mb-3 tracking-wider">
         GENERAL
