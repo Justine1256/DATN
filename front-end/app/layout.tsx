@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+// import { Geist } from "next/font/google";
 import LoadingBar from './components/common/LoadingBar'; // ✅ Đã import đúng
 import "@/app/globals.css";
 import Header from "@/app/components/common/Header";
 import Footer from "./components/common/Footer";
+import { Inter } from "next/font/google";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+  // const geistSans = Geist({
+  //   variable: "--font-geist-sans",
+  //   subsets: ["latin"],
+  // });
+  const inter = Inter({
+    subsets: ["latin"],
+    variable: "--font-inter",
+  });
 
 export const metadata: Metadata = {
   title: "Marketo",
@@ -19,8 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head />
-      <body className={`${geistSans.className} scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200`}>
-        <LoadingBar /> {/* ✅ Thêm dòng này để hiển thị thanh loading khi chuyển route */}
+      <body className={`${inter.className} scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200`}>
+        <LoadingBar /> 
         <Header />
 
         <div className="pt-[98px]">

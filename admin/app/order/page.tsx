@@ -20,7 +20,10 @@ export default function OrdersPage() {
   return (
     <div className="p-4 pt-2 space-y-6">
       <div>
-        <h1 className="text-[22px] font-bold text-[#313B5E] mb-3">Orders List</h1>
+      <h1 className="text-2xl font-bold text-[#DC4B47] mb-3 flex items-center gap-2">
+  Orders List
+</h1>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {orderData.map((item, index) => (
             <OrderStatusCard key={index} {...item} />

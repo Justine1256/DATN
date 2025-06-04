@@ -9,16 +9,12 @@ import ServiceBanner from "./components/home/ServiceBanner";
 export default function HomePage() {
   return (
     <main className="bg-white !pb-10">
-      {/* Banner / Slider */}
       <section className="max-w-screen-xl mx-auto px-4 pt-16">
         <LandingSlider />
       </section>
-
-      {/* Flash Sale or Category Header */}
       <section className="max-w-screen-xl mx-auto px-4 pt-12">
         <FlashSale />
       </section>
-       {/* Browse by Category */}
        <section className="pt-10">
         <CategoryGrid />
       </section>

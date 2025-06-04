@@ -68,6 +68,7 @@ const Header = () => {
     { href: '/', label: 'Home' },
     { href: '/contact', label: 'Contact' },
     { href: '/about', label: 'About' },
+    { href: '/voucher', label: 'Voucher' },
   ];
 
   const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
@@ -192,18 +193,53 @@ const Header = () => {
                       }}
                     >
                       <ul className="text-sm text-white p-3 space-y-2">
-                        <li className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer">
-                          <FiUser /> Manage My Account
-                        </li>
-                        <li className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer">
-                          <AiOutlineShoppingCart /> My Order
-                        </li>
-                        <li className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer">
-                          <AiOutlineHeart /> My Reviews
-                        </li>
-                        <li className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer">
-                          🏪 Open a Shop
-                        </li>
+                      <ul className="space-y-1 text-sm font-medium">
+  <li>
+  <Link
+  href="/account"
+  className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer whitespace-nowrap"
+>
+  <FiUser className="text-lg" /> {/* ✅ Đảm bảo icon có kích thước ổn */}
+  <span>Manage My Account</span>
+</Link>
+
+  </li>
+
+  <li>
+    <Link
+      href="/orders"
+      className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer"
+    >
+      <AiOutlineShoppingCart /> My Order
+    </Link>
+  </li>
+
+  <li>
+    <Link
+      href="/reviews"
+      className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer"
+    >
+      <AiOutlineHeart /> My Reviews
+    </Link>
+  </li>
+{/* ✅ Thêm mục voucher cho người dùng */}
+<li>
+    <Link
+      href="/voucher"
+      className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer"
+    >
+      🎁 My Vouchers
+    </Link>
+  </li>
+  <li>
+    <Link
+      href="/shop/open"
+      className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer"
+    >
+      🏪 Open a Shop
+    </Link>
+  </li>
+</ul>
                         <li
                           onClick={handleLogout}
                           className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer text-red-400"

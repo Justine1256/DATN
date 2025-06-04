@@ -244,9 +244,10 @@ export default function OrderListTable() {
               <tr>
                 <th colSpan={10} className="px-4 py-3">
                   <div className="flex flex-wrap justify-between items-center">
-                    <h2 className="text-[20px] font-semibold text-[#313B5E] capitalize normal-case">
-                      All order list
-                    </h2>
+                  <h2 className="text-xl font-semibold text-[#DC4B47] capitalize">
+  All Order List
+</h2>
+
   
                     <div className="flex flex-wrap gap-3">
                       <div className="relative w-[140px]">
