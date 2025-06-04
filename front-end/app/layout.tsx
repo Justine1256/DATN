@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import LoadingBar from './components/common/LoadingBar'; // ✅ Đã import đúng
 import "@/app/globals.css";
 import Header from "@/app/components/common/Header";
 import Footer from "./components/common/Footer";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -18,11 +20,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head />
       <body className={`${geistSans.className} scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200`}>
+        <LoadingBar /> {/* ✅ Thêm dòng này để hiển thị thanh loading khi chuyển route */}
         <Header />
-        {children}
+
+        <div className="pt-[98px]">
+          <main className="bg-white">{children}</main>
+          <Footer />
+        </div>
       </body>
-      <Footer/>
     </html>
   );
 }
-

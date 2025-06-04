@@ -58,13 +58,13 @@ export default function BestSelling() {
     <div className="flex flex-col justify-center">
       <div className="flex items-center gap-2">
         <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-        <p className="text-red-500 font-semibold text-sm translate-y-[8px]">This month</p>
+        <p className="text-red-500 font-semibold text-sm translate-y-[1px]">This month</p>
       </div>
-      <h2 className="text-3xl font-bold text-black mt-2">Best Selling Products</h2>
+      <h2 className="text-3xl font-bold text-black mt-4">Best Selling Products</h2>
     </div>
 
     {/* Bên phải: nút View All */}
-    <button className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300 translate-y-[20px]">
+    <button className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-2 px-10 rounded transition-colors duration-300 translate-y-[40px]">
       View All
     </button>
   </div>
@@ -73,7 +73,7 @@ export default function BestSelling() {
 
     {/* Nội dung sản phẩm */}
     {loading ? (
-      <p className="text-center text-gray-500 mt-6">Đang tải sản phẩm...</p>
+      <p className="text-center text-gray-500 mt-6">Skeleton...</p>
     ) : (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
         {products.map((product) => (

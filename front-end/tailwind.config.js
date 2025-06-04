@@ -13,7 +13,7 @@ module.exports = {
   theme: {
     container: {
       center: true,
-      padding: '1rem',
+      padding: '0rem',
       screens: {
         sm: '640px',
         md: '768px',
@@ -25,7 +25,6 @@ module.exports = {
       colors: {
         // Định nghĩa màu custom 'brand' hoặc 'myprimary'
         brand: '#DB4444',
-        myprimary: '#DB4444',
       },
       animation: {
         'loading-bar': 'loading 2s ease-in-out infinite',

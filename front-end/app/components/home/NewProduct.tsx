@@ -46,18 +46,18 @@ export default function NewProducts() {
         <div className="flex flex-col items-start gap-2 mb-6">
           <div className="flex items-center gap-2">
             <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-            <p className="text-red-500 font-semibold text-sm translate-y-[8px]">
+            <p className="text-red-500 font-semibold text-sm translate-y-[1px]">
               This Week
             </p>
           </div>
-          <h2 className="text-3xl font-bold text-black mt-2">New Products</h2>
+          <h2 className="text-3xl font-bold text-black mt-4">New Products</h2>
           {/* The short horizontal line below "New Products" has been removed */}
         </div>
 
         {/* Product List */}
         {loading ? (
           <p className="text-center text-gray-500 mt-6">
-            Đang tải sản phẩm mới...
+            Skeleton...
           </p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 mt-6">

@@ -63,17 +63,17 @@ export default function FlashSale() {
         <div className="w-full h-[1px] bg-gray-300 mb-6" />
 
         {/* Header Flash Sale and Timer */}
-        <div className="flex items-start justify-between !gap-10 pb-7">
+        <div className="flex items-start justify-between !gap-10 pb-8">
           <div className="flex items-start gap-10">
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-2">
                 <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-                <p className="text-red-500 font-semibold text-sm translate-y-[8px]">Today’s</p>
+                <p className="text-red-500 font-semibold text-sm translate-y-[1px]">Today’s</p>
               </div>
               <div className="flex items-end gap-10 mt-2">
                 <h2 className="text-3xl font-bold text-black">Flash Sales</h2>
                 {/* Timer Display */}
-                <div className="relative flex items-end gap-6 text-black translate-y-[-10px]">
+                <div className="relative flex items-end gap-6 text-black">
                   {[
                     { label: "Days", value: timeLeft.days },
                     { label: "Hours", value: timeLeft.hours },
@@ -99,7 +99,7 @@ export default function FlashSale() {
 
         {/* Products List */}
         {loading ? (
-          <p className="text-center text-gray-500">Đang tải sản phẩm...</p>
+          <p className="text-center text-gray-500">Skeleton...</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
             {products.map((product) => (

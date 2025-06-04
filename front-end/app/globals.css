@@ -1,9 +1,8 @@
-
-
+@import "bootstrap/dist/css/bootstrap.min.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import 'bootstrap/dist/css/bootstrap.min.css';
+
 @keyframes slide-in {
   from {
     transform: translateX(100%);
@@ -24,12 +23,11 @@
 }
 
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE/Edge */
-  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
 }
 :root {
   --background: #ffffff;
-
 }
 
 :root {
@@ -58,4 +56,52 @@ body {
 
 .scroll-hidden::-webkit-scrollbar {
   display: none; /* Chrome, Safari */
+}
+/* NProgress custom style */
+#nprogress .bar {
+  background: #db4444 !important;
+  height: 3px;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #db4444, 0 0 5px #db4444;
+}
+/* Ẩn thanh progress bar */
+#nprogress .bar {
+  display: none !important;
+}
+@keyframes slideInFade {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  30% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-slideInFade {
+  animation: slideInFade 2.5s ease forwards;
+}
+/* Scrollbar tùy chỉnh chuẩn giống ảnh */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #2e2e2e; /* màu nền ngoài - đen xám */
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #b5b5b5; /* màu phần kéo - xám nhạt */
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #999999;
 }

@@ -3,36 +3,36 @@
 import Image from "next/image";
 import Link from "next/link";
 
-const newArrivals = [
-  {
-    title: "PlayStation 5",
-    desc: "Black and White version of the PS5 coming out on sale.",
-    image: "/ps5.png",
-    href: "/category/playstation",
-    colSpan: "col-span-6 aspect-[550/600]",
-  },
-  {
-    title: "Women’s Collections",
-    desc: "Featured woman collections that give you another vibe.",
-    image: "/phuba.png",
-    href: "/category/women",
-    colSpan: "col-span-6 aspect-[570/284]",
-  },
-  {
-    title: "Speakers",
-    desc: "Amazon wireless speakers",
-    image: "/hang.png",
-    href: "/category/speakers",
-    colSpan: "col-span-3 aspect-[270/284]",
-  },
-  {
-    title: "Perfume",
-    desc: "GUCCI INTENSE OUD EDP",
-    image: "/per.webp",
-    href: "/category/perfume",
-    colSpan: "col-span-3 aspect-[270/284]",
-  },
-];
+// const newArrivals = [
+//   {
+//     title: "PlayStation 5",
+//     desc: "Black and White version of the PS5 coming out on sale.",
+//     image: "/ps5.png",
+//     href: "/category/playstation",
+//     colSpan: "col-span-6 aspect-[550/600]",
+//   },
+//   {
+//     title: "Women’s Collections",
+//     desc: "Featured woman collections that give you another vibe.",
+//     image: "/phuba.png",
+//     href: "/category/women",
+//     colSpan: "col-span-6 aspect-[570/284]",
+//   },
+//   {
+//     title: "Speakers",
+//     desc: "Amazon wireless speakers",
+//     image: "/hang.png",
+//     href: "/category/speakers",
+//     colSpan: "col-span-3 aspect-[270/284]",
+//   },
+//   {
+//     title: "Perfume",
+//     desc: "GUCCI INTENSE OUD EDP",
+//     image: "/per.webp",
+//     href: "/category/perfume",
+//     colSpan: "col-span-3 aspect-[270/284]",
+//   },
+// ];
 
 export default function NewArrival() {
   return (
@@ -45,9 +45,9 @@ export default function NewArrival() {
         {/* Short red bar */}
         <div className="flex items-center gap-2 mb-2">
           <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-          <p className="text-red-500 font-semibold text-sm translate-y-[8px]">Featured</p>
+          <p className="text-red-500 font-semibold text-sm translate-y-[1px]">Featured</p>
         </div>
-        <h2 className="text-3xl font-bold text-black mt-2">New Arrival</h2>
+        <h2 className="text-3xl font-bold text-black mt-4">New Arrival</h2>
         {/* The short gray line below the title has been removed from here */}
       </div>
 
@@ -88,7 +88,7 @@ export default function NewArrival() {
           </Link>
 
           {/* Bottom right: Speakers */}
-          <Link href="/category/speakers" className="relative overflow-hidden rounded-lg group aspect-[270/284] bg-black">
+          <Link href="/category/speakers" className="relative overflow-hidden rounded-lg group aspect-[270/296] bg-black">
             <Image
               src="/hang.png"
               alt="Speakers"
@@ -104,7 +104,7 @@ export default function NewArrival() {
           </Link>
 
           {/* Bottom right: Perfume */}
-          <Link href="/category/perfume" className="relative overflow-hidden rounded-lg group aspect-[270/284] bg-black">
+          <Link href="/category/perfume" className="relative overflow-hidden rounded-lg group aspect-[270/296] bg-black">
             <Image
               src="/per.webp"
               alt="Perfume"
