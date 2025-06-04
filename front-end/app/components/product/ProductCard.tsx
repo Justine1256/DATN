@@ -145,12 +145,14 @@ export default function ProductCard({ product }: { product: Product }) {
 
       {/* Nút Add to Cart */}
       <button
-        onClick={handleAddToCart}
-        className="absolute bottom-0 left-0 right-0 bg-black text-white text-xs py-2 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
-      >
-        <FiShoppingCart className="text-sm" />
-        Add to cart
-      </button>
+  onClick={handleAddToCart}
+  className="absolute bottom-0 left-0 right-0 bg-[#DC4B47] text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
+>
+  <FiShoppingCart className="text-base" />
+  Add to cart
+</button>
+
+
     </div>
   );
 }

@@ -93,7 +93,7 @@ export default function LoginForm() {
             {isLoading ? 'Đang đăng nhập...' : 'Log In'}
           </button>
           <a
-            href="/forgot-password"
+            href="/signup"
             className="!text-[#DB4444] text-sm self-center !no-underline hover:opacity-75"
           >
             Forget Password?
