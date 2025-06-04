@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { FaBell, FaCog, FaClock, FaMoon, FaUser } from "react-icons/fa";
+import { FaBell, FaCog, FaUser } from "react-icons/fa"; // 🔔 Chỉ giữ lại các icon cần thiết
 import { FiSearch } from "react-icons/fi";
 import Image from "next/image";
 
 export default function Header() {
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false); // 👤 Dropdown toggle
 
   return (
     <header className="flex justify-between items-center px-6 py-4 bg-white shadow-sm sticky top-0 z-50">
-      {/* Search */}
+      {/* 🔍 Ô tìm kiếm */}
       <div className="relative w-64">
         <input
           type="text"
@@ -20,15 +20,16 @@ export default function Header() {
         <FiSearch className="absolute left-3 top-2.5 text-gray-400" />
       </div>
 
-      {/* Icons + Avatar */}
+      {/* 🔘 Các icon điều hướng + Avatar người dùng */}
       <div className="flex items-center gap-4 relative">
-        {/* Rounded Icons */}
-        {[FaMoon, FaBell, FaCog, FaClock].map((Icon, i) => (
+        {/* 🟠 Các icon tròn (loại bỏ FaMoon và FaClock) */}
+        {[FaBell, FaCog].map((Icon, i) => (
           <div
             key={i}
             className="bg-gray-100 hover:bg-blue-100 p-2 rounded-full cursor-pointer relative"
           >
             <Icon className="text-gray-600 hover:text-blue-600" />
+            {/* 🔔 Thông báo có badge số lượng */}
             {Icon === FaBell && (
               <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full px-1.5">
                 3
@@ -37,7 +38,7 @@ export default function Header() {
           </div>
         ))}
 
-        {/* Avatar Dropdown */}
+        {/* 👤 Avatar và menu dropdown */}
         <div className="relative">
           <Image
             src="/avatar.jpg"
@@ -49,16 +50,17 @@ export default function Header() {
           />
           {showDropdown && (
             <div className="absolute right-0 mt-3 w-56 bg-white shadow-lg rounded-xl overflow-hidden text-sm border border-gray-100 z-50">
+              {/* 👋 Lời chào */}
               <div className="px-4 py-3 border-b border-gray-100">
                 <p className="text-gray-800 font-semibold">Welcome Gaston!</p>
               </div>
+
+              {/* 📄 Danh sách menu */}
               <ul className="divide-y divide-gray-100 font-medium">
                 {[
                   { icon: FaUser, label: "Profile" },
                   { icon: FaBell, label: "Messages" },
                   { icon: FaCog, label: "Pricing" },
-                  { icon: FaClock, label: "Help" },
-                  { icon: FaMoon, label: "Lock screen" },
                 ].map(({ icon: Icon, label }, idx) => (
                   <li key={idx}>
                     <a
@@ -70,6 +72,8 @@ export default function Header() {
                   </li>
                 ))}
               </ul>
+
+              {/* 🔓 Nút đăng xuất */}
               <div className="border-t border-gray-100">
                 <button className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 font-semibold">
                   Logout
