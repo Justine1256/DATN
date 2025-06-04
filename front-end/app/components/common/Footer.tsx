@@ -7,7 +7,7 @@ export default function Footer() {
   return (
     <footer className="w-full bg-neutral-900 text-white pt-8 pb-6">
       {/* Container chia 12 cột, căn giữa toàn footer */}
-      <div className="max-w-screen-xl mx-auto px-4 grid grid-cols-12 gap-6">
+      <div className="max-w-screen-xl mx-auto px-16 grid grid-cols-12 gap-10">
 
         {/* Logo + Subscribe (chiếm 3 cột) */}
         <div className="col-span-12 md:col-span-3">

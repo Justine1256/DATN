@@ -88,7 +88,7 @@ export default function NewArrival() {
           </Link>
 
           {/* Bottom right: Speakers */}
-          <Link href="/category/speakers" className="relative overflow-hidden rounded-lg group aspect-[270/284] bg-black">
+          <Link href="/category/speakers" className="relative overflow-hidden rounded-lg group aspect-[270/296] bg-black">
             <Image
               src="/hang.png"
               alt="Speakers"
@@ -104,7 +104,7 @@ export default function NewArrival() {
           </Link>
 
           {/* Bottom right: Perfume */}
-          <Link href="/category/perfume" className="relative overflow-hidden rounded-lg group aspect-[270/284] bg-black">
+          <Link href="/category/perfume" className="relative overflow-hidden rounded-lg group aspect-[270/296] bg-black">
             <Image
               src="/per.webp"
               alt="Perfume"

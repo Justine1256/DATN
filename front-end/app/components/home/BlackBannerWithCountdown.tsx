@@ -31,9 +31,9 @@ export default function HeroSpeakerBanner() {
   }, []);
 
   return (
-    <section className="bg-black rounded-lg overflow-hidden max-w-[1130px] h-[450px] mx-auto px-10 py-10 grid grid-cols-12 items-center">
+    <section className="bg-black rounded-lg overflow-hidden max-w-[1110px] h-[450px] mx-auto px-10 py-10 grid grid-cols-12 items-center">
       {/* Left: col-span-5 */}
-      <div className="col-span-5 text-white flex flex-col gap-4">
+      <div className="col-span-5 text-white flex flex-col gap-2">
         <p className="text-green-400 text-lg font-semibold">Categories</p>
         <h2 className="text-5xl font-bold leading-tight">
           Enchance Your<br />Music Experience
@@ -55,7 +55,7 @@ export default function HeroSpeakerBanner() {
 
         {/* Clickable button */}
         <Link href="/checkout" className="w-fit">
-          <button className="bg-[#22C55E] hover:bg-[#A0BCE0] transition text-white font-semibold px-8 py-3 mt-15 rounded-md">
+          <button className="bg-[#22C55E] hover:bg-[#A0BCE0] transition text-white font-semibold px-8 py-3 mt-6 rounded-md">
             Buy Now
           </button>
         </Link>

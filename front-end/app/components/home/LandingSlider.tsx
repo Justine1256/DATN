@@ -70,7 +70,7 @@ export default function LandingSlider() {
   return (
     <div
       ref={containerRef}
-      className="relative max-w-[1170px] h-[344px] mx-auto overflow-hidden rounded-lg cursor-grab"
+      className="relative max-w-[1120px] h-[344px] mx-auto overflow-hidden rounded-lg cursor-grab"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
@@ -94,7 +94,7 @@ export default function LandingSlider() {
           }}
         >
           {index === current && (
-            <div className="absolute left-20 bottom-12 z-20">
+            <div className="absolute left-10 bottom-12 z-20">
               <button
                 className={`w-[143px] h-[43px] rounded-md text-white font-semibold transition ${
                   slide.variant === "red"

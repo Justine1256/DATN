@@ -109,7 +109,7 @@ const Header = () => {
 
         {/* 🔻 Main Header */}
         <div className="py-0 px-2">
-          <div className="flex items-center justify-between py-4 px-6 max-w-[1200px] mx-auto">
+          <div className="flex items-center justify-between py-4 px-8 max-w-[1200px] mx-auto">
             {/* Logo */}
             <div className="flex items-center justify-start">
               <Link href="/" shallow>
@@ -140,10 +140,10 @@ const Header = () => {
               {!loading && !user && (
                 <div className="relative group">
                   <Link
-                    href="/signup"
+                    href="/login"
                     className="text-black text-base !no-underline transition duration-200"
                   >
-                    Sign Up
+                    Sign In
                   </Link>
                   <span className="absolute left-0 bottom-[-2px] w-0 h-[2px] bg-black transition-all duration-300 group-hover:w-full" />
                 </div>

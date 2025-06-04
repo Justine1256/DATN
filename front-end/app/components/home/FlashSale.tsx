@@ -99,7 +99,7 @@ export default function FlashSale() {
 
         {/* Products List */}
         {loading ? (
-          <p className="text-center text-gray-500">Đang tải sản phẩm...</p>
+          <p className="text-center text-gray-500">Skeleton...</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
             {products.map((product) => (

@@ -70,3 +70,38 @@ body {
 #nprogress .bar {
   display: none !important;
 }
+@keyframes slideInFade {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  30% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-slideInFade {
+  animation: slideInFade 2.5s ease forwards;
+}
+/* Scrollbar tùy chỉnh chuẩn giống ảnh */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #2e2e2e; /* màu nền ngoài - đen xám */
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #b5b5b5; /* màu phần kéo - xám nhạt */
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #999999;
+}

@@ -73,7 +73,7 @@ export default function BestSelling() {
 
     {/* Nội dung sản phẩm */}
     {loading ? (
-      <p className="text-center text-gray-500 mt-6">Đang tải sản phẩm...</p>
+      <p className="text-center text-gray-500 mt-6">Skeleton...</p>
     ) : (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
         {products.map((product) => (
