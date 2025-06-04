@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FiHeart, FiShoppingCart } from 'react-icons/fi';
 import { AiFillHeart, AiFillStar } from 'react-icons/ai';
@@ -20,7 +20,6 @@ export interface Product {
   sale_price?: number;
 }
 
-// Hàm chuyển tên màu tiếng Việt sang mã HEX
 const convertColorNameToHex = (color: string): string => {
   const map: Record<string, string> = {
     'đen': '#000000',
@@ -38,6 +37,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const [liked, setLiked] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [selectedOption1, setSelectedOption1] = useState(product.value1 || '');
+  const router = useRouter();
 
   const option1List = product.value1?.split(',').map((v) => v.trim()) || [];
 
@@ -56,48 +56,45 @@ export default function ProductCard({ product }: { product: Product }) {
     alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
   };
 
+  const handleViewDetail = () => {
+    router.push(`/product/${product.slug}`, { state: product });
+  };
+
   return (
     <div className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition">
-      {/* Thông báo yêu thích */}
       {showPopup && (
-  <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
-    {liked ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích'}
-  </div>
-)}
+        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
+          {liked ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích'}
+        </div>
+      )}
 
-
-      {/* Badge giảm giá */}
       {hasDiscount && discountPercentage > 0 && (
         <div className="absolute top-2 left-2 bg-[#DC4B47] text-white text-xs px-2 py-0.5 rounded">
           -{discountPercentage}%
         </div>
       )}
 
-      {/* Nút like */}
       <button onClick={handleLike} className="absolute top-2 right-2 text-xl z-10">
         {liked ? <AiFillHeart className="text-red-500" /> : <FiHeart className="text-gray-500" />}
       </button>
 
-      {/* Ảnh sản phẩm */}
-      <Link
-  href={`/product/${product.slug}`}
-  className="w-full h-[140px] mt-8 flex items-center justify-center bg-transparent"
->
-  <Image
-    src={`http://localhost:8000/storage/${product.image}`}
-    alt={product.name}
-    width={2220}
-    height={120}
-    className="object-contain max-h-[2220px] transition-transform duration-300 group-hover:scale-105 bg-transparent"
-  />
-</Link>
+      {/* ✅ Click ảnh để điều hướng có truyền dữ liệu */}
+      <div
+        onClick={handleViewDetail}
+        className="w-full h-[140px] mt-8 flex items-center justify-center bg-transparent cursor-pointer"
+      >
+        <Image
+          src={`http://localhost:8000/storage/${product.image}`}
+          alt={product.name}
+          width={2220}
+          height={120}
+          className="object-contain max-h-[2220px] transition-transform duration-300 group-hover:scale-105 bg-transparent"
+        />
+      </div>
 
-
-      {/* Thông tin sản phẩm */}
       <div className="flex flex-col mt-4 w-full px-1 pb-14">
         <h4 className="text-[16px] font-semibold text-black truncate capitalize">{product.name}</h4>
 
-        {/* Giá */}
         <div className="flex gap-2 text-sm mt-1 items-center">
           <span className="text-red-500 font-semibold">
             {new Intl.NumberFormat('vi-VN').format(
@@ -111,7 +108,6 @@ export default function ProductCard({ product }: { product: Product }) {
           )}
         </div>
 
-        {/* Đánh giá sao */}
         <div className="flex items-center gap-1 text-yellow-500 text-sm mt-1">
           {Array(5)
             .fill(0)
@@ -121,7 +117,6 @@ export default function ProductCard({ product }: { product: Product }) {
           <span className="text-gray-600 text-xs">(88)</span>
         </div>
 
-        {/* Màu sắc */}
         {option1List.length > 0 && (
           <div className="mt-3 flex items-center gap-2 text-sm text-gray-800 flex-wrap">
             <span className="text-[14px] text-gray-600">Màu sắc:</span>
@@ -130,10 +125,7 @@ export default function ProductCard({ product }: { product: Product }) {
                 <button
                   key={color}
                   onClick={() => setSelectedOption1(color)}
-                  className={`w-5 h-5 rounded-full  ${
-                    selectedOption1 === color ? 'ring-2 ring-black' : ''
-                  }`}
-                  
+                  className={`w-5 h-5 rounded-full ${selectedOption1 === color ? 'ring-2 ring-black' : ''}`}
                   style={{ backgroundColor: convertColorNameToHex(color) }}
                   title={color}
                 />
@@ -143,16 +135,13 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
-      {/* Nút Add to Cart */}
       <button
-  onClick={handleAddToCart}
-  className="absolute bottom-0 left-0 right-0 bg-[#DC4B47] text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
->
-  <FiShoppingCart className="text-base" />
-  Add to cart
-</button>
-
-
+        onClick={handleAddToCart}
+        className="absolute bottom-0 left-0 right-0 bg-[#DC4B47] text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
+      >
+        <FiShoppingCart className="text-base" />
+        Add to cart
+      </button>
     </div>
   );
 }
