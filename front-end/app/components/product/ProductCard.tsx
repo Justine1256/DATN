@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FiHeart, FiShoppingCart } from 'react-icons/fi';
 import { AiFillHeart, AiFillStar } from 'react-icons/ai';
+import { LoadingSkeleton } from '../loading/loading'; // ✅ import đúng
 
 export interface Product {
   id: number;
@@ -18,43 +19,33 @@ export interface Product {
   option1?: string;
   value1?: string;
   sale_price?: number;
-  shop_slug: string; // 👈 phải có trong API response
+  shop_slug: string;
 }
 
-const convertColorNameToHex = (color: string): string => {
-  const map: Record<string, string> = {
-    'đen': '#000000',
-    'trắng': '#ffffff',
-    'xanh': '#00bcd4',
-    'xanh lá': '#00ff00',
-    'vàng': '#ffff00',
-    'đỏ': '#ff0000',
-    'xám': '#cccccc',
-  };
-  return map[color.toLowerCase()] || '#999999';
-};
-
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({ product }: { product?: Product }) {
   const [liked, setLiked] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [selectedOption1, setSelectedOption1] = useState(product.value1 || '');
   const router = useRouter();
 
-  const option1List = product.value1?.split(',').map((v) => v.trim()) || [];
+  // ✅ Khi chưa có dữ liệu thì hiện loading
+  if (!product) {
+    return <LoadingSkeleton />;
+  }
 
   const hasDiscount = !!(product.sale_price && product.sale_price > 0);
   const discountPercentage = hasDiscount
     ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
     : 0;
 
-  const handleLike = () => {
+  const handleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setLiked(!liked);
     setShowPopup(true);
     setTimeout(() => setShowPopup(false), 2000);
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation(); // ❌ ngăn click lan lên card
+    e.stopPropagation();
     alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
   };
 
@@ -94,16 +85,18 @@ export default function ProductCard({ product }: { product: Product }) {
       </div>
 
       <div className="flex flex-col mt-4 w-full px-1 pb-14">
-        <h4 className="text-[16px] font-semibold text-black truncate capitalize">{product.name}</h4>
+        <h4 className="text-[16px] font-semibold text-black truncate capitalize">
+          {product.name}
+        </h4>
 
-        <div className="flex gap-2 text-sm mt-1 items-center">
-          <span className="text-red-500 font-semibold">
+        <div className="flex gap-2 mt-1 items-center">
+          <span className="text-red-500 font-bold text-lg">
             {new Intl.NumberFormat('vi-VN').format(
               hasDiscount ? product.sale_price! : product.price
             )}đ
           </span>
           {hasDiscount && (
-            <span className="text-gray-400 line-through text-[13px]">
+            <span className="text-gray-400 line-through text-sm">
               {new Intl.NumberFormat('vi-VN').format(product.price)}đ
             </span>
           )}
@@ -117,26 +110,6 @@ export default function ProductCard({ product }: { product: Product }) {
             ))}
           <span className="text-gray-600 text-xs">(88)</span>
         </div>
-
-        {option1List.length > 0 && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-gray-800 flex-wrap">
-            <span className="text-[14px] text-gray-600">Màu sắc:</span>
-            <div className="flex gap-1">
-              {option1List.map((color) => (
-                <button
-                  key={color}
-                  onClick={(e) => {
-                    e.stopPropagation(); // ⛔ tránh trigger card click
-                    setSelectedOption1(color);
-                  }}
-                  className={`w-5 h-5 rounded-full ${selectedOption1 === color ? 'ring-2 ring-black' : ''}`}
-                  style={{ backgroundColor: convertColorNameToHex(color) }}
-                  title={color}
-                />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       <button
