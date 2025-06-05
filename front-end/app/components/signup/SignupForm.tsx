@@ -92,7 +92,7 @@ export default function SignupForm() {
       <p className="mb-6">Enter your details below</p>
 
       {(message || error) && (
-        <p className={`mb-4 text-sm ${error ? 'text-red-600' : 'text-green-600'}`}>
+        <p className={`mb-4 text-sm ${error ? 'text-brand' : 'text-green-600'}`}>
           {error || message}
         </p>
       )}
@@ -139,7 +139,7 @@ export default function SignupForm() {
         />
         <button
           type="submit"
-          className="w-full bg-[#DB4444] hover:opacity-75 text-white py-2 rounded"
+          className="w-full bg-brand hover:opacity-75 text-white py-2 rounded"
         >
           Create Account
         </button>
@@ -176,7 +176,7 @@ export default function SignupForm() {
                   setOtpCode('');
                   setShowOtpModal(false);
                 }}
-                className="text-2xl font-bold text-gray-600 hover:text-red-500"
+                className="text-2xl font-bold text-gray-600 hover:text-brand"
                 aria-label="Đóng"
               >
                 ×
@@ -192,7 +192,7 @@ export default function SignupForm() {
             />
             <button
               onClick={verifyOtp}
-              className="w-full bg-[#DB4444] text-white py-2 rounded hover:opacity-75"
+              className="w-full bg-brand text-white py-2 rounded hover:opacity-75"
             >
               Xác minh
             </button>
