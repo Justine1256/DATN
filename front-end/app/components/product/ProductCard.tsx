@@ -18,6 +18,7 @@ export interface Product {
   option1?: string;
   value1?: string;
   sale_price?: number;
+  shop_slug: string; // 👈 phải có trong API response
 }
 
 const convertColorNameToHex = (color: string): string => {
@@ -52,24 +53,28 @@ export default function ProductCard({ product }: { product: Product }) {
     setTimeout(() => setShowPopup(false), 2000);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation(); // ❌ ngăn click lan lên card
     alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
   };
 
   const handleViewDetail = () => {
-    router.push(`/product/${product.slug}`, { state: product });
+    router.push(`/shop/${product.shop_slug}/product/${product.slug}`);
   };
 
   return (
-    <div className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition">
+    <div
+      onClick={handleViewDetail}
+      className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
+    >
       {showPopup && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
+        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
           {liked ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích'}
         </div>
       )}
 
       {hasDiscount && discountPercentage > 0 && (
-        <div className="absolute top-2 left-2 bg-[#DC4B47] text-white text-xs px-2 py-0.5 rounded">
+        <div className="absolute top-2 left-2 bg-brand text-white text-xs px-2 py-0.5 rounded">
           -{discountPercentage}%
         </div>
       )}
@@ -78,11 +83,7 @@ export default function ProductCard({ product }: { product: Product }) {
         {liked ? <AiFillHeart className="text-red-500" /> : <FiHeart className="text-gray-500" />}
       </button>
 
-      {/* ✅ Click ảnh để điều hướng có truyền dữ liệu */}
-      <div
-        onClick={handleViewDetail}
-        className="w-full h-[140px] mt-8 flex items-center justify-center bg-transparent cursor-pointer"
-      >
+      <div className="w-full h-[140px] mt-8 flex items-center justify-center bg-transparent">
         <Image
           src={`http://localhost:8000/storage/${product.image}`}
           alt={product.name}
@@ -124,7 +125,10 @@ export default function ProductCard({ product }: { product: Product }) {
               {option1List.map((color) => (
                 <button
                   key={color}
-                  onClick={() => setSelectedOption1(color)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // ⛔ tránh trigger card click
+                    setSelectedOption1(color);
+                  }}
                   className={`w-5 h-5 rounded-full ${selectedOption1 === color ? 'ring-2 ring-black' : ''}`}
                   style={{ backgroundColor: convertColorNameToHex(color) }}
                   title={color}
@@ -137,7 +141,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
       <button
         onClick={handleAddToCart}
-        className="absolute bottom-0 left-0 right-0 bg-[#DC4B47] text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
+        className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
       >
         <FiShoppingCart className="text-base" />
         Add to cart

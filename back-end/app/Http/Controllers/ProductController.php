@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -93,55 +94,80 @@ public function store(Request $request)
         return response()->json(['message' => 'Đã xóa sản phẩm']);
     }
     // Lấy danh sách sản phẩm bán chạy
-    public function bestSellingProducts(Request $request)
-    {
-        $limit = $request->input('limit', 8); // giới hạn số sản phẩm trả về
-
-        $products = Product::where('status', 'activated')
-            ->orderByDesc('sold')
-            ->take($limit)
-            ->get();
-
-        return response()->json([
-            'message' => 'Sản phẩm bán chạy nhất',
-            'products' => $products
-        ]);
-    }
-    // Lấy danh sách sản phẩm giảm giá nhiều nhất
-    public function topDiscountedProducts(Request $request)
-    {
-        $limit = $request->input('limit', 8);
-
-        $products = Product::whereNotNull('sale_price')
-            ->whereColumn('sale_price', '<', 'price')
-            ->where('status', 'activated')
-            ->get()
-            ->sortByDesc(function ($product) {
-                return (($product->price - $product->sale_price) / $product->price) * 100;
-            })
-            ->take($limit)
-            ->values(); // reset index
-
-        return response()->json([
-            'message' => 'Sản phẩm ưu đãi nhiều nhất',
-            'products' => $products
-        ]);
-    }
-    // Lấy danh sách sản phẩm mới nhất
-    public function newProducts(Request $request)
+public function bestSellingProducts(Request $request)
 {
     $limit = $request->input('limit', 8);
 
-    $products = Product::where('status', 'activated')
+    $products = Product::with(['shop:id,slug']) // chỉ lấy slug
+        ->where('status', 'activated')
+        ->orderByDesc('sold')
+        ->take($limit)
+        ->get();
+
+    // Gắn thêm shop_slug vào từng product
+    $products->each(function ($product) {
+        $product->shop_slug = $product->shop->slug ?? null;
+        unset($product->shop); // xóa object shop nếu không cần
+    });
+
+    return response()->json([
+        'message' => 'Sản phẩm bán chạy nhất',
+        'products' => $products
+    ]);
+}
+
+
+    // Lấy danh sách sản phẩm giảm giá nhiều nhất
+public function topDiscountedProducts(Request $request)
+{
+    $limit = $request->input('limit', 8);
+
+    $products = Product::with('shop') // 👈 Load quan hệ shop
+        ->whereNotNull('sale_price')
+        ->whereColumn('sale_price', '<', 'price')
+        ->where('status', 'activated')
+        ->get()
+        ->sortByDesc(function ($product) {
+            return (($product->price - $product->sale_price) / $product->price) * 100;
+        })
+        ->take($limit)
+        ->values();
+
+    // Gắn thêm shop_slug vào từng sản phẩm
+    $products->transform(function ($product) {
+        $product->shop_slug = $product->shop->slug ?? null;
+        return $product;
+    });
+
+    return response()->json([
+        'message' => 'Sản phẩm ưu đãi nhiều nhất',
+        'products' => $products
+    ]);
+}
+
+    // Lấy danh sách sản phẩm mới nhất
+public function newProducts(Request $request)
+{
+    $limit = $request->input('limit', 8);
+
+    $products = Product::with('shop') // Load quan hệ shop
+        ->where('status', 'activated')
         ->orderBy('created_at', 'desc')
         ->take($limit)
         ->get();
+
+    // Gắn thêm shop_slug
+    $products->transform(function ($product) {
+        $product->shop_slug = $product->shop->slug ?? null;
+        return $product;
+    });
 
     return response()->json([
         'message' => 'Danh sách sản phẩm mới nhất',
         'products' => $products
     ]);
 }
+
     // Lấy danh sách sản phẩm của shop
 public function showShopProducts(Request $request)
 {
