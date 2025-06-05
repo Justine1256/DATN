@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "@/app/globals.css";
-
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import LoadingBar from './components/common/LoadingBar';
 import Header from "@/app/components/common/Header";
 import Footer from "./components/common/Footer";

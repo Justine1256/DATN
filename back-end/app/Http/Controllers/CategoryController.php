@@ -3,16 +3,53 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class CategoryController extends Controller
 {
-    public function index()
-    {
-        $categories = Category::whereNull('parent_id')->with('children')->get();
-        return response()->json($categories);
+
+public function index()
+{
+    // Lấy danh sách danh mục cha
+    $parentCategories = Category::whereNull('parent_id')->get();
+
+    // Map từng danh mục cha với tổng số sản phẩm của nó (bao gồm cả con)
+    $categoriesWithProductCount = $parentCategories->map(function ($category) {
+        // Lấy ID tất cả danh mục con (đệ quy nếu cần)
+        $childIds = $this->getAllChildCategoryIds($category); // bao gồm cả $category->id
+
+        // Đếm số sản phẩm thuộc các category này
+        $productCount = Product::whereIn('category_id', $childIds)
+            ->where('status', 'activated')
+            ->count();
+
+        // Thêm số lượng vào object
+        $category->product_count = $productCount;
+        return $category;
+    });
+
+    // Sắp xếp giảm dần theo số lượng sản phẩm, lấy top 6
+    $topCategories = $categoriesWithProductCount
+        ->sortByDesc('product_count')
+        ->take(6)
+        ->values(); // reset lại index
+
+    return response()->json($topCategories);
+}
+
+private function getAllChildCategoryIds(Category $category)
+{
+    $allIds = [$category->id];
+
+    foreach ($category->children as $child) {
+        $allIds = array_merge($allIds, $this->getAllChildCategoryIds($child));
     }
+
+    return $allIds;
+}
+
 
     // Xem một danh mục + danh mục con
     public function show($id)
