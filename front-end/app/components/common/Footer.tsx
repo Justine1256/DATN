@@ -6,11 +6,11 @@ import Link from 'next/link';
 export default function Footer() {
   return (
     <footer className="w-full bg-neutral-900 text-white pt-8 pb-6">
-      {/* Container chia 12 cột, căn giữa toàn footer */}
-      <div className="max-w-screen-xl mx-auto px-16 grid grid-cols-12 gap-10">
+      {/* 🧱 Grid container chia 12 cột - tự động responsive */}
+      <div className="max-w-screen-xl mx-auto px-6 md:px-16 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-10">
 
-        {/* Logo + Subscribe (chiếm 3 cột) */}
-        <div className="col-span-12 md:col-span-3">
+        {/* 🌐 Logo + Subscribe (3 cột trên desktop, full trên mobile) */}
+        <div className="md:col-span-3 col-span-1">
           <Link href="/" className="inline-block mb-2">
             <Image src="/logoft.png" alt="Company Logo" width={120} height={40} />
           </Link>
@@ -26,16 +26,16 @@ export default function Footer() {
           </form>
         </div>
 
-        {/* Support (2 cột) */}
-        <div className="col-span-6 md:col-span-2">
+        {/* 🛠 Support Info */}
+        <div className="md:col-span-2 col-span-1">
           <h3 className="text-lg font-bold mb-2">Support</h3>
           <p className="text-sm">111 Bijoy sarani, Dhaka, DH 1515, Bangladesh.</p>
           <p className="text-sm">vannhatcr123@gmail.com</p>
           <p className="text-sm">0978740071</p>
         </div>
 
-        {/* Account (2 cột) */}
-        <div className="col-span-6 md:col-span-2">
+        {/* 👤 Account Links */}
+        <div className="md:col-span-2 col-span-1">
           <h3 className="text-lg font-bold mb-2">Account</h3>
           <ul className="space-y-1 text-sm">
             <li><Link href="#">My Account</Link></li>
@@ -46,8 +46,8 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Quick Link (2 cột) */}
-        <div className="col-span-6 md:col-span-2">
+        {/* ⚡ Quick Link */}
+        <div className="md:col-span-2 col-span-1">
           <h3 className="text-lg font-bold mb-2">Quick Link</h3>
           <ul className="space-y-1 text-sm">
             <li><Link href="#">Privacy Policy</Link></li>
@@ -57,11 +57,11 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Download App (3 cột) */}
-        <div className="col-span-12 md:col-span-3">
+        {/* 📱 Download App + Socials */}
+        <div className="md:col-span-3 col-span-1">
           <h3 className="text-lg font-bold mb-2">Download App</h3>
           <p className="text-sm mb-2">Save $3 with App New User Only</p>
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-3 mb-3">
             <Link href="/download-app">
               <Image src="/qr.png" alt="QR Code" width={64} height={64} />
             </Link>
@@ -74,7 +74,7 @@ export default function Footer() {
               </Link>
             </div>
           </div>
-          {/* Socials */}
+          {/* 🌐 Mạng xã hội */}
           <div className="flex gap-4 text-xl text-gray-400">
             <Link href="#"><i className="fab fa-facebook-f hover:text-white" /></Link>
             <Link href="#"><i className="fab fa-twitter hover:text-white" /></Link>
@@ -82,7 +82,6 @@ export default function Footer() {
             <Link href="#"><i className="fab fa-linkedin-in hover:text-white" /></Link>
           </div>
         </div>
-
       </div>
     </footer>
   );

@@ -9,6 +9,7 @@ import {
   AiOutlineShoppingCart,
 } from 'react-icons/ai';
 import { FiUser, FiLogOut } from 'react-icons/fi';
+import { RxHamburgerMenu } from 'react-icons/rx';
 import Image from 'next/image';
 import logoImage from '../../../public/logo.png';
 import axios from 'axios';
@@ -21,8 +22,10 @@ const Header = () => {
   const [isSticky, setIsSticky] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // ✅ Trạng thái menu mobile
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // ✅ Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -33,19 +36,17 @@ const Header = () => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ✅ Thêm class sticky khi scroll
   useEffect(() => {
     const handleScroll = () => setIsSticky(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ✅ Lấy thông tin user từ token nếu có
   useEffect(() => {
     const token = Cookies.get('authToken');
     if (token) {
@@ -93,9 +94,9 @@ const Header = () => {
       }`}
     >
       <div className="bg-white">
-        {/* 🔝 Top Black Bar */}
+        {/* 🔝 Thanh thông báo top */}
         <div className="bg-black text-white py-2 text-center text-sm tracking-wider">
-          <div className="container mx-auto max-w-[1200px]">
+          <div className="container mx-auto max-w-[1200px] px-2">
             <span className="text-gray-400">
               Summer Sale For All Swim Suits And Free Express Delivery - OFF 50%!
             </span>{' '}
@@ -108,25 +109,31 @@ const Header = () => {
           </div>
         </div>
 
-        {/* 🔻 Main Header */}
+        {/* 🔻 Header chính */}
         <div className="py-0 px-2">
-          <div className="flex items-center justify-between py-4 px-8 max-w-[1200px] mx-auto">
-            {/* Logo */}
-            <div className="flex items-center justify-start">
-              <Link href="/" shallow>
-                <Image
-                  src={logoImage}
-                  alt="Logo"
-                  width={150}
-                  height={90}
-                  className="rounded-full cursor-pointer"
-                  priority
-                />
-              </Link>
-            </div>
+          <div className="flex items-center justify-between py-4 px-4 md:px-8 max-w-[1200px] mx-auto">
+            {/* 🔰 Logo */}
+            <Link href="/" shallow>
+              <Image
+                src={logoImage}
+                alt="Logo"
+                width={140}
+                height={80}
+                className="rounded-full cursor-pointer"
+                priority
+              />
+            </Link>
 
-            {/* Navigation */}
-            <nav className="flex items-center space-x-6">
+            {/* 📱 Toggle menu mobile */}
+            <button
+              className="md:hidden text-2xl text-black"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <RxHamburgerMenu />
+            </button>
+
+            {/* 📁 Menu Navigation (Desktop) */}
+            <nav className="hidden md:flex items-center space-x-6">
               {navLinks.map((link) => (
                 <div key={link.href} className="relative group">
                   <Link
@@ -139,20 +146,17 @@ const Header = () => {
                 </div>
               ))}
               {!loading && !user && (
-                <div className="relative group">
-                  <Link
-                    href="/login"
-                    className="text-black text-base !no-underline transition duration-200"
-                  >
-                    Sign In
-                  </Link>
-                  <span className="absolute left-0 bottom-[-2px] w-0 h-[2px] bg-black transition-all duration-300 group-hover:w-full" />
-                </div>
+                <Link
+                  href="/login"
+                  className="text-black text-base !no-underline transition duration-200"
+                >
+                  Sign In
+                </Link>
               )}
             </nav>
 
-            {/* Search + Icons + User */}
-            <div className="flex justify-end items-center space-x-2">
+            {/* 🔍 Search + Icon + Avatar */}
+            <div className="hidden md:flex justify-end items-center space-x-2">
               <div className="relative">
                 <input
                   type="text"
@@ -196,16 +200,15 @@ const Header = () => {
                         <li>
                           <Link
                             href="/account"
-                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer whitespace-nowrap"
+                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2"
                           >
-                            <FiUser className="text-lg" />
-                            <span>Manage My Account</span>
+                            <FiUser /> Manage My Account
                           </Link>
                         </li>
                         <li>
                           <Link
                             href="/orders"
-                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2"
                           >
                             <AiOutlineShoppingCart /> My Order
                           </Link>
@@ -213,7 +216,7 @@ const Header = () => {
                         <li>
                           <Link
                             href="/reviews"
-                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2"
                           >
                             <AiOutlineHeart /> My Reviews
                           </Link>
@@ -221,7 +224,7 @@ const Header = () => {
                         <li>
                           <Link
                             href="/voucher"
-                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2"
                           >
                             🎁 My Vouchers
                           </Link>
@@ -229,7 +232,7 @@ const Header = () => {
                         <li>
                           <Link
                             href="/shop/open"
-                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2"
                           >
                             🏪 Open a Shop
                           </Link>
@@ -247,9 +250,34 @@ const Header = () => {
               )}
             </div>
           </div>
+
+          {/* 📱 Menu Mobile Dropdown */}
+          {mobileMenuOpen && (
+            <div className="md:hidden bg-white px-6 py-3 space-y-3">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="block text-black font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              {!loading && !user && (
+                <Link
+                  href="/login"
+                  className="block text-black font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Divider */}
+        {/* Gạch chân chia header */}
         <div className="bg-gray-200 h-[1px] w-full" />
       </div>
     </header>
