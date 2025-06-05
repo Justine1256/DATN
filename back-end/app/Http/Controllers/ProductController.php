@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\Shop;
 use Illuminate\Http\Request;
@@ -32,6 +33,56 @@ public function show($shopslug, $productslug)
 
     return response()->json($product);
 }
+
+public function getCategoryAndProductsBySlug($slug)
+{
+    // Lấy danh mục cha theo slug
+    $category = Category::where('slug', $slug)->first();
+
+    if (!$category) {
+        return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
+    }
+
+    // Lấy tất cả ID danh mục con
+    $categoryIds = $this->getAllChildCategoryIds($category);
+
+    // Nếu bạn không muốn lấy sản phẩm trong danh mục cha, bỏ ID đó ra
+    if (($key = array_search($category->id, $categoryIds)) !== false) {
+        unset($categoryIds[$key]);
+    }
+
+    $categoryIds = array_map('intval', $categoryIds);
+
+    $products = [];
+
+    if (!empty($categoryIds)) {
+        $products = Product::whereIn('category_id', $categoryIds)
+            ->where('status', 'activated')
+            ->get();
+    }
+
+    // Trả về cả category và products
+    return response()->json([
+        'category' => $category,
+        'products' => $products
+    ]);
+}
+
+
+// Hàm đệ quy lấy tất cả danh mục con
+private function getAllChildCategoryIds(Category $category)
+{
+    $ids = [$category->id];
+    $children = Category::where('parent_id', $category->id)->get();
+
+    foreach ($children as $child) {
+        $ids = array_merge($ids, $this->getAllChildCategoryIds($child));
+    }
+
+    return $ids;
+}
+
+
 
 
 
