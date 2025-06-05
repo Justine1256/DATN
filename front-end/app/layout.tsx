@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
-// import { Geist } from "next/font/google";
-import LoadingBar from './components/common/LoadingBar'; // ✅ Đã import đúng
+import { Inter } from "next/font/google";
 import "@/app/globals.css";
+
+import LoadingBar from './components/common/LoadingBar';
 import Header from "@/app/components/common/Header";
 import Footer from "./components/common/Footer";
-import { Inter } from "next/font/google";
 
-  // const geistSans = Geist({
-  //   variable: "--font-geist-sans",
-  //   subsets: ["latin"],
-  // });
-  const inter = Inter({
-    subsets: ["latin"],
-    variable: "--font-inter",
-  });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "Marketo",
@@ -23,15 +19,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head />
       <body className={`${inter.className} scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200`}>
-        <LoadingBar /> 
+        <LoadingBar />
+        {/* ✅ Header & Footer bọc ngoài main layout */}
         <Header />
 
-        <div className="pt-[98px]">
-          <main className="bg-white">{children}</main>
-          <Footer />
-        </div>
+        <main className="min-h-screen pt-[98px] bg-white">
+          {children}
+        </main>
+
+        <Footer />
       </body>
     </html>
   );
