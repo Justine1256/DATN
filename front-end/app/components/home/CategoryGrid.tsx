@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   FiSmartphone,
   FiMonitor,
@@ -13,14 +14,8 @@ import {
   MdChair,
   MdOutlineLaptopMac,
 } from 'react-icons/md';
-import {
-  GiSpeaker,
-  GiVacuumCleaner,
-} from 'react-icons/gi';
-import {
-  TbAirConditioning,
-  TbFridge,
-} from 'react-icons/tb';
+import { GiSpeaker, GiVacuumCleaner } from 'react-icons/gi';
+import { TbAirConditioning, TbFridge } from 'react-icons/tb';
 import {
   FaTabletAlt,
   FaTv,
@@ -32,6 +27,7 @@ import { IconType } from 'react-icons';
 interface Category {
   id: number;
   name: string;
+  slug: string; // 👈 Thêm trường slug để chuyển hướng
 }
 
 // ✅ Gán icon theo tên danh mục tiếng Việt
@@ -39,7 +35,6 @@ const iconMap: Record<string, IconType> = {
   'Đồ công nghệ': FiMonitor,
   'Thời Trang': FaTshirt,
   'Sức Khỏe & Làm Đẹp': FaHeartbeat,
-
   'Điện thoại': FiSmartphone,
   'Máy tính': FiMonitor,
   'Đồng hồ': FiWatch,
@@ -58,6 +53,7 @@ const iconMap: Record<string, IconType> = {
 
 export default function CategoryGrid() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     fetch('http://127.0.0.1:8000/api/category')
@@ -92,6 +88,7 @@ export default function CategoryGrid() {
             return (
               <div
                 key={cat.id}
+                onClick={() => router.push(`/category/${cat.slug}`)} // 👈 Chuyển hướng khi click
                 className="flex flex-col items-center justify-center border border-gray-300 rounded-md py-5 transition-all duration-300 hover:bg-[#dc4b47] hover:text-white cursor-pointer text-center text-gray-800 group"
               >
                 <div className="text-[28px] mb-2 transition-all duration-300 group-hover:scale-110">
@@ -106,4 +103,3 @@ export default function CategoryGrid() {
     </section>
   );
 }
-  

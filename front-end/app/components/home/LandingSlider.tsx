@@ -1,7 +1,6 @@
-"use client";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
-// Danh sách các slide
 const slides = [
   {
     id: 1,
@@ -29,8 +28,8 @@ export default function LandingSlider() {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
+  const router = useRouter(); // ✅ dùng router để chuyển trang
 
-  // Tự động chuyển slide mỗi 5 giây nếu không hover
   useEffect(() => {
     const interval = setInterval(() => {
       if (!isHovered) {
@@ -52,13 +51,10 @@ export default function LandingSlider() {
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging.current) return;
     const dx = e.clientX - startX.current;
-
     if (Math.abs(dx) > 50) {
-      if (dx < 0) {
-        setCurrent((prev) => (prev + 1) % slides.length);
-      } else {
-        setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
-      }
+      setCurrent((prev) =>
+        dx < 0 ? (prev + 1) % slides.length : (prev - 1 + slides.length) % slides.length
+      );
       isDragging.current = false;
     }
   };
@@ -74,13 +70,12 @@ export default function LandingSlider() {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
-        isDragging.current = false; // ✅ reset drag luôn khi rời chuột
+        isDragging.current = false;
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
     >
-      {/* Hiển thị slide hiện tại */}
       {slides.map((slide, index) => (
         <div
           key={slide.id}
@@ -96,6 +91,7 @@ export default function LandingSlider() {
           {index === current && (
             <div className="absolute left-10 bottom-12 z-20">
               <button
+                onClick={() => router.push("/shop")} // ✅ click vào Shop now sẽ chuyển hướng
                 className={`w-[143px] h-[43px] rounded-md text-white font-semibold transition ${
                   slide.variant === "red"
                     ? "bg-[#DB4444] hover:bg-red-600"
@@ -109,7 +105,6 @@ export default function LandingSlider() {
         </div>
       ))}
 
-      {/* Dots điều hướng */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 z-30">
         {slides.map((_, index) => (
           <div
