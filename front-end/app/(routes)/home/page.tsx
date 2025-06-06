@@ -2,7 +2,7 @@
 
 import LandingSlider from '@/app/components/home/LandingSlider';
 import FlashSale from '@/app/components/home/FlashSale';
-import BlackBannerWithCountdown from '@/app/components/home/BlackBannerWithCountdown';
+// import BlackBannerWithCountdown from '@/app/components/home/BlackBannerWithCountdown';
 import CategoryGrid from '@/app/components/home/CategoryGrid';
 import BestSelling from '@/app/components/home/BestSelling';
 import NewProducts from '@/app/components/home/NewProduct';
@@ -11,7 +11,7 @@ import ServiceBanner from '@/app/components/home/ServiceBanner';
 
 export default function HomePage() {
   return (
-    <main className="bg-white !pb-10">
+    <main className="bg-white pb-10">
       {/* 🖼️ Slide giới thiệu đầu trang */}
       <section className="max-w-screen-xl mx-auto px-4 pt-16">
         <LandingSlider />
@@ -23,32 +23,32 @@ export default function HomePage() {
       </section>
 
       {/* 📦 Danh mục sản phẩm dạng lưới */}
-      <section className="pt-10">
+      <section className="max-w-screen-xl mx-auto px-4 pt-10">
         <CategoryGrid />
       </section>
 
       {/* 🔥 Sản phẩm bán chạy */}
-      <section className="pt-10">
+      <section className="max-w-screen-xl mx-auto px-4 pt-10">
         <BestSelling />
       </section>
 
       {/* 🕒 Banner màu đen với đếm ngược khuyến mãi */}
-      <section className="pt-10">
+      {/* <section className="max-w-screen-xl mx-auto px-4 pt-10">
         <BlackBannerWithCountdown />
-      </section>
+      </section> */}
 
       {/* 🆕 Sản phẩm mới đăng */}
-      <section className="pt-10">
+      <section className="max-w-screen-xl mx-auto px-4 pt-10">
         <NewProducts />
       </section>
 
       {/* ✨ Hàng mới về dạng lưới (có thể dạng ảnh lớn) */}
-      <section className="pt-0">
+      <section className="max-w-screen-xl mx-auto px-4 pt-10">
         <NewArrivalGrid />
       </section>
 
       {/* ✅ Banner dịch vụ cuối trang (giao hàng, hỗ trợ...) */}
-      <section className="pt-0">
+      <section className="max-w-screen-xl mx-auto px-4 pt-10">
         <ServiceBanner />
       </section>
     </main>

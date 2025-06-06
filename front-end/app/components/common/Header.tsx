@@ -111,7 +111,7 @@ const Header = () => {
 
         {/* 🔻 Header chính */}
         <div className="py-0 px-2">
-          <div className="flex items-center justify-between py-4 px-4 md:px-8 max-w-[1200px] mx-auto">
+          <div className="flex items-center justify-between py-4 px-7 md:px-8 max-w-[1280px] mx-auto">
             {/* 🔰 Logo */}
             <Link href="/" shallow>
               <Image
@@ -156,7 +156,7 @@ const Header = () => {
             </nav>
 
             {/* 🔍 Search + Icon + Avatar */}
-            <div className="hidden md:flex justify-end items-center space-x-2">
+            <div className="hidden md:flex justify-end items-center space-x-4">
               <div className="relative">
                 <input
                   type="text"
@@ -198,12 +198,13 @@ const Header = () => {
                     >
                       <ul className="space-y-1 text-sm font-medium text-white p-3">
                         <li>
-                          <Link
-                            href="/account"
-                            className="flex items-center gap-2 hover:bg-white/10 rounded px-3 py-2"
-                          >
-                            <FiUser /> Manage My Account
-                          </Link>
+                        <Link
+  href="/account"
+  className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded whitespace-nowrap"
+>
+  <FiUser className="shrink-0" /> <span className="text-sm font-medium">Manage My Account</span>
+</Link>
+
                         </li>
                         <li>
                           <Link

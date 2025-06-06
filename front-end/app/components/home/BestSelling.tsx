@@ -45,20 +45,22 @@ export default function BestSelling() {
           <div className="border-t border-gray-200 mb-6" />
 
           {/* Tiêu đề và nút */}
-          <div className="flex items-start justify-between gap-10">
-            <div className="flex flex-col justify-center">
-              <div className="flex items-center gap-2">
-                <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-                <p className="text-red-500 font-semibold text-sm translate-y-[1px]">This month</p>
-              </div>
-              <h2 className="text-3xl font-bold text-black mt-4">Best Selling Products</h2>
-            </div>
+          <div className="flex items-center justify-between gap-10 mb-6">
+  {/* Bên trái: tiêu đề + label */}
+  <div className="flex flex-col justify-center !mr-6">
+    <div className="flex items-center gap-2">
+      <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
+      <p className="text-red-500 font-semibold text-sm">This month</p>
+    </div>
+    <h2 className="text-3xl font-bold text-black mt-2">Best Selling Products</h2>
+  </div>
 
-            {/* Nút xem tất cả */}
-            <button className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-2 px-10 rounded transition-colors duration-300 translate-y-[40px]">
-              View All
-            </button>
-          </div>
+  {/* Bên phải: nút xem tất cả */}
+  <button className="text-white bg-[#DB4444] hover:bg-[#c63c3c] font-medium text-sm py-2.5 px-4 rounded-md transition duration-300 w-fit ml-4 mt-4">
+    View All Products
+  </button>
+</div>
+
         </div>
 
         {/* 🔄 Hiển thị sản phẩm hoặc loading */}
