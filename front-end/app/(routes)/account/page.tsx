@@ -1,31 +1,46 @@
 'use client';
+
+import Link from 'next/link';
+import AccountSidebar from "@/app/components/account/AccountSidebar";
 import AccountPage from "@/app/components/account/AccountPage";
 
 export default function AccountRoute() {
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-white pt-16 pb-16">
-      {/* Left Sidebar Section */}
-      <div className="hidden md:block md:w-1/4 border-r px-6">
-        <h3 className="text-lg font-semibold mt-10">Manage My Account</h3>
-        <ul className="mt-4 space-y-2 text-sm">
-          <li className="text-[#DB4444] font-medium">My Profile</li>
-          <li className="text-gray-700">Address Book</li>
-          <li className="text-gray-700">My Payment Options</li>
-        </ul>
-
-        <h3 className="text-lg font-semibold mt-10">My Orders</h3>
-        <ul className="mt-4 space-y-2 text-sm">
-          <li className="text-gray-700">My Returns</li>
-          <li className="text-gray-700">My Cancellations</li>
-        </ul>
-
-        <h3 className="text-lg font-semibold mt-10">My Wishlist</h3>
+    <div className="bg-white pt-16 pb-16 min-h-screen">
+      {/* Breadcrumb full width */}
+      <div className="w-full bg-white py-4">
+        <div className="container mx-auto px-4 max-w-[1170px]">
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-gray-600">
+              <Link href="/" className="hover:text-[#DB4444] cursor-pointer">
+                Home
+              </Link>
+              <span className="mx-2">/</span>
+              <span>My Account</span>
+            </div>
+            <div className="text-sm font-medium">
+              Welcome! <span className="text-[#DB4444]">Md Bitmel</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Right Form Section */}
-      <div className="w-full md:w-3/4 flex items-center justify-center bg-white px-4">
-        <div className="w-full max-w-3xl p-6">
-          <AccountPage />
+      {/* Main content */}
+      <div className="container mx-auto px-4 max-w-[1170px]">
+        <div className="grid grid-cols-1 md:grid-cols-[270px,1fr] gap-8 mt-8">
+          {/* Sidebar */}
+          <div className="md:pr-8">
+            <AccountSidebar />
+          </div>
+          
+          {/* Account page content */}
+          <div>
+            <div className="flex justify-center">
+              <div className="w-full max-w-3xl p-6">
+                <AccountPage />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
