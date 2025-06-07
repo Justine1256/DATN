@@ -1,48 +1,49 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    content: [
-        "./pages/**/*.{js,ts,jsx,tsx}",
-        "./components/**/*.{js,ts,jsx,tsx}",
-        "./app/**/*.{js,ts,jsx,tsx}",
-    ],
-    safelist: [
-        'bg-[#DB4444]',
-        'hover:bg-[#fff5f5]',
-        'hover:text-[#DB4444]',
-    ],
-    theme: {
-        container: {
-            center: true,
-            padding: '0rem',
-            screens: {
-                sm: '640px',
-                md: '768px',
-                lg: '1024px',
-                xl: '1170px',
-            },
-        },
-        extend: {
-            colors: {
-                // Định nghĩa màu custom 'brand' hoặc 'myprimary'
-                brand: '#DB4444',
-            },
-            fontFamily: {
-                sans: ['var(--font-inter)'], // 👉 gắn biến font Inter
-            },
-            animation: {
-                'loading-bar': 'loading 2s ease-in-out infinite',
-            },
-            keyframes: {
-                loading: {
-                    '0%': { width: '0%' },
-                    '50%': { width: '80%' },
-                    '100%': { width: '0%' },
-                },
-            },
-            
-        },
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
+    "./app/**/*.{js,ts,jsx,tsx}",
+  ],
+  safelist: ["bg-[#DB4444]", "hover:bg-[#fff5f5]", "hover:text-[#DB4444]"],
+  theme: {
+    container: {
+      center: true,
+      padding: "0rem",
+      screens: {
+        sm: "640px",
+        md: "768px",
+        lg: "1024px",
+        xl: "1170px",
+      },
     },
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    plugins: [require('@tailwindcss/line-clamp')],
-
+    extend: {
+      colors: {
+        // Định nghĩa màu custom 'brand' hoặc 'myprimary'
+        brand: "#DB4444",
+      },
+      fontFamily: {
+        sans: ["var(--font-inter)"], // 👉 gắn biến font Inter
+      },
+      animation: {
+        "loading-bar": "loading 2s ease-in-out infinite",
+      },
+      keyframes: {
+        loading: {
+          "0%": { width: "0%" },
+          "50%": { width: "80%" },
+          "100%": { width: "0%" },
+        },
+      },
+      fontSize: {
+        base: "1rem", // 16px (body)
+        "sm-detail": "0.875rem", // 14px
+        h1: "2.25rem", // 36px
+        h2: "1.5rem", // 24px
+        h3: "1.25rem", // 20px
+      },
+    },
+  },
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  plugins: [require("@tailwindcss/line-clamp")],
 };
