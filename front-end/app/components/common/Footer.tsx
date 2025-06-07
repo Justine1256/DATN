@@ -38,11 +38,11 @@ export default function Footer() {
         <div className="md:col-span-2 col-span-1">
           <h3 className="text-lg font-bold mb-2">Account</h3>
           <ul className="space-y-1 text-sm">
-            <li><Link href="#">My Account</Link></li>
-            <li><Link href="#">Login / Register</Link></li>
-            <li><Link href="#">Cart</Link></li>
-            <li><Link href="#">Wishlist</Link></li>
-            <li><Link href="#">Shop</Link></li>
+            <li><Link href="#" className="link-underline">My Account</Link></li>
+            <li><Link href="#" className="link-underline">Login / Register</Link></li>
+            <li><Link href="#" className="link-underline">Cart</Link></li>
+            <li><Link href="#" className="link-underline">Wishlist</Link></li>
+            <li><Link href="#" className="link-underline">Shop</Link></li>
           </ul>
         </div>
 
@@ -50,10 +50,10 @@ export default function Footer() {
         <div className="md:col-span-2 col-span-1">
           <h3 className="text-lg font-bold mb-2">Quick Link</h3>
           <ul className="space-y-1 text-sm">
-            <li><Link href="#">Privacy Policy</Link></li>
-            <li><Link href="#">Terms Of Use</Link></li>
-            <li><Link href="#">FAQ</Link></li>
-            <li><Link href="#">Contact</Link></li>
+            <li><Link href="#" className="link-underline">Privacy Policy</Link></li>
+            <li><Link href="#" className="link-underline">Terms Of Use</Link></li>
+            <li><Link href="#" className="link-underline">FAQ</Link></li>
+            <li><Link href="#" className="link-underline">Contact</Link></li>
           </ul>
         </div>
 
@@ -76,10 +76,10 @@ export default function Footer() {
           </div>
           {/* 🌐 Mạng xã hội */}
           <div className="flex gap-4 text-xl text-gray-400">
-            <Link href="#"><i className="fab fa-facebook-f hover:text-white" /></Link>
-            <Link href="#"><i className="fab fa-twitter hover:text-white" /></Link>
-            <Link href="#"><i className="fab fa-instagram hover:text-white" /></Link>
-            <Link href="#"><i className="fab fa-linkedin-in hover:text-white" /></Link>
+            <Link href="#" className="hover:text-white"><i className="fab fa-facebook-f" /></Link>
+            <Link href="#" className="hover:text-white"><i className="fab fa-twitter" /></Link>
+            <Link href="#" className="hover:text-white"><i className="fab fa-instagram" /></Link>
+            <Link href="#" className="hover:text-white"><i className="fab fa-linkedin-in" /></Link>
           </div>
         </div>
       </div>

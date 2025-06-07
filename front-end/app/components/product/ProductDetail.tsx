@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import ProductComments from './ProductCommernt';
@@ -21,15 +21,17 @@ interface Product {
   stock?: number;
 }
 
-export default function ProductDetail() {
-  // ✅ Lấy slug từ URL và router để redirect khi cần
-  const { shopslug, productslug } = useParams() as {
-    shopslug: string;
-    productslug: string;
-  };
+// ✅ Interface định nghĩa props nhận vào
+interface ProductDetailProps {
+  shopslug: string;
+  productslug: string;
+}
+
+// ✅ Component chính
+export default function ProductDetail({ shopslug, productslug }: ProductDetailProps) {
   const router = useRouter();
 
-  // ✅ Khởi tạo state
+  // ✅ State quản lý dữ liệu
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [mainImage, setMainImage] = useState('');
@@ -38,22 +40,20 @@ export default function ProductDetail() {
   const [liked, setLiked] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
 
-  // ✅ Gọi API sản phẩm khi trang load
+  // ✅ Fetch sản phẩm từ API
   useEffect(() => {
     const url = `http://localhost:8000/api/${shopslug}/product/${productslug}`;
     fetch(url)
       .then((res) => {
         if (!res.ok) {
-          router.push('/not-found'); // ❌ notFound() không dùng trong client component nên dùng push
+          router.push('/not-found');
           return;
         }
         return res.json();
       })
       .then((data) => {
         if (!data) return;
-        if (!data.images) {
-          data.images = ['/1.png', '/2.webp', '/3.webp', '/4.webp'];
-        }
+        if (!data.images) data.images = ['/1.png', '/2.webp', '/3.webp', '/4.webp'];
         setProduct(data);
         setMainImage(data.image.startsWith('/') ? data.image : `/${data.image}`);
         setSelectedColor(data.value1?.split(',')[0] || '');
@@ -61,7 +61,7 @@ export default function ProductDetail() {
       });
   }, [shopslug, productslug]);
 
-  // ✅ Toggle yêu thích sản phẩm
+  // ✅ Toggle yêu thích
   const toggleLike = () => {
     setLiked((prev) => {
       const newLiked = !prev;
@@ -71,10 +71,10 @@ export default function ProductDetail() {
     });
   };
 
-  // ✅ Loading state
-  if (!product) return <div className="p-6">Loading product...</div>;
+  // ✅ Loading
+  if (!product) return <div className="p-6 text-base">Loading product...</div>;
 
-  // ✅ Chuẩn bị dữ liệu để render
+  // ✅ Chuẩn bị dữ liệu hiển thị
   const thumbnails = product.images?.map((img) => (img.startsWith('/') ? img : `/${img}`)) || [`/${product.image}`];
   const colorOptions = product.value1?.split(',') || [];
   const sizeOptions = product.value2?.split(',') || [];
@@ -111,17 +111,17 @@ export default function ProductDetail() {
 
         {/* ✅ Thông tin sản phẩm */}
         <div className="md:col-span-5 space-y-6">
-          <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+          <h1 className="text-[1.5rem] md:text-[2rem] font-bold text-gray-900">{product.name}</h1>
 
           <div className="flex items-center gap-3 text-sm">
             <div className="flex items-center text-yellow-400">{'★'.repeat(4)}<span className="text-gray-300 ml-0.5">★</span></div>
             <span className="text-gray-500">(150 Reviews)</span>
             <span className="text-gray-300">|</span>
-            <span className="text-emerald-400 font-medium">In Stock: {product.stock || 0} items available</span>
+            <span className="text-emerald-400 font-medium">In Stock: {product.stock || 0}</span>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xl font-bold text-[#DC4B47]">
+            <span className="text-[1.25rem] md:text-[1.5rem] font-bold text-[#DC4B47]">
               {product.sale_price?.toLocaleString() || product.price.toLocaleString()}₫
             </span>
             {product.sale_price && (
@@ -132,12 +132,13 @@ export default function ProductDetail() {
           </div>
 
           <div className="inline-block max-w-[300px]">
-            <p className="text-gray-600 text-sm truncate" title={product.description}>
+            <p className="text-gray-600 text-sm md:text-base truncate" title={product.description}>
               {product.description}
             </p>
             <hr className="mt-3 border-t-2 border-gray-300 w-full" />
           </div>
 
+          {/* ✅ Tuỳ chọn màu và size */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
               <p className="font-medium text-gray-700 text-sm">Colors:</p>
@@ -170,6 +171,7 @@ export default function ProductDetail() {
             </div>
           </div>
 
+          {/* ✅ Số lượng + hành động */}
           <div className="flex items-center gap-3 mt-4">
             <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
               <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-[55px] text-2xl font-extrabold text-black hover:bg-[#DC4B47] hover:text-white transition">−</button>
@@ -177,11 +179,12 @@ export default function ProductDetail() {
               <button onClick={() => setQuantity(quantity + 1)} className="w-[55px] text-2xl font-extrabold text-black hover:bg-[#DC4B47] hover:text-white transition">+</button>
             </div>
 
-            <button className="w-[165px] h-[44px] bg-[#DC4B47] text-white text-sm rounded hover:bg-red-600 transition font-medium">Buy Now</button>
-            <button className="w-[165px] h-[44px] text-[#DC4B47] border border-[#DC4B47] text-sm rounded hover:bg-[#DC4B47] hover:text-white transition font-medium">Add to Cart</button>
+            <button className="w-[165px] h-[44px] bg-[#DC4B47] text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium">Buy Now</button>
+            <button className="w-[165px] h-[44px] text-[#DC4B47] border border-[#DC4B47] text-sm md:text-base rounded hover:bg-[#DC4B47] hover:text-white transition font-medium">Add to Cart</button>
             <button onClick={toggleLike} className={`p-2 border rounded text-lg transition ${liked ? 'text-[#DC4B47]' : 'text-gray-400'}`}>{liked ? '❤️' : '🤍'}</button>
           </div>
 
+          {/* ✅ Chính sách vận chuyển */}
           <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
             <div className="flex items-start gap-3 p-4">
               <span className="text-xl">🚚</span>
@@ -201,13 +204,13 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      {/* ✅ Bình luận và sản phẩm liên quan */}
+      {/* ✅ Comment + sản phẩm gợi ý */}
       <ProductComments shopslug={shopslug} productslug={productslug} />
       <div className="w-full max-w-screen-xl mx-auto mt-16 px-4">
         <BestSelling />
       </div>
 
-      {/* ✅ Thông báo yêu thích */}
+      {/* ✅ Popup yêu thích */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
           {liked ? 'Added to favorites' : 'Removed from favorites'}

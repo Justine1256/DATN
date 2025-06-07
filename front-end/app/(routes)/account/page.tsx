@@ -1,31 +1,66 @@
 'use client';
-import AccountPage from "@/app/components/account/AccountPage";
+
+import { useState, useEffect } from 'react';
+import Cookies from 'js-cookie';
+import axios from 'axios';
+import AccountSidebar from '@/app/components/account/AccountSidebar';
+import AccountPage from '@/app/components/account/AccountPage';
+import ChangePassword from '@/app/components/account/ChangePassword';
 
 export default function AccountRoute() {
+  const [section, setSection] = useState('profile');
+  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Fetch user profile
+  const fetchUser = async () => {
+    const token = Cookies.get('authToken');
+    if (!token) return setLoading(false);
+
+    try {
+      const res = await axios.get('http://localhost:8000/api/user', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUser(res.data);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-white pt-16 pb-16">
-      {/* Left Sidebar Section */}
-      <div className="hidden md:block md:w-1/4 border-r px-6">
-        <h3 className="text-lg font-semibold mt-10">Manage My Account</h3>
-        <ul className="mt-4 space-y-2 text-sm">
-          <li className="text-[#DB4444] font-medium">My Profile</li>
-          <li className="text-gray-700">Address Book</li>
-          <li className="text-gray-700">My Payment Options</li>
-        </ul>
-
-        <h3 className="text-lg font-semibold mt-10">My Orders</h3>
-        <ul className="mt-4 space-y-2 text-sm">
-          <li className="text-gray-700">My Returns</li>
-          <li className="text-gray-700">My Cancellations</li>
-        </ul>
-
-        <h3 className="text-lg font-semibold mt-10">My Wishlist</h3>
+    <div className="bg-white pt-16 pb-16 min-h-screen">
+      {/* ✅ Welcome header */}
+      <div className="container mx-auto px-4 max-w-[1170px]">
+        <div className="flex justify-end items-center mb-2">
+          {!loading && user && (
+            <p className="text-sm font-medium text-black">
+              Welcome! <span className="text-[#DB4444]">{user.name}</span>
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* Right Form Section */}
-      <div className="w-full md:w-3/4 flex items-center justify-center bg-white px-4">
-        <div className="w-full max-w-3xl p-6">
-          <AccountPage />
+      {/* ✅ Main layout: sidebar + form */}
+      <div className="container mx-auto px-4 max-w-[1170px]">
+        <div className="grid grid-cols-8 md:grid-cols-12 gap-8 items-start">
+          {/* Sidebar 3 columns */}
+          <div className="md:col-span-3 md:mt-1 md:ml-24">
+            <AccountSidebar currentSection={section} onChangeSection={setSection} />
+          </div>
+
+          {/* Form 9 columns with center form box */}
+          <div className="md:col-span-9 flex justify-center pt-2">
+            <div className="w-full max-w-[600px] min-h-[500px] transition-all duration-300">
+              {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
+              {section === 'changepassword' && <ChangePassword />}
+            </div>
+          </div>
         </div>
       </div>
     </div>
