@@ -56,7 +56,7 @@ export default function AccountRoute() {
 
           {/* Form 9 columns with center form box */}
           <div className="md:col-span-9 flex justify-center pt-2">
-            <div className="w-full max-w-[600px]">
+            <div className="w-full max-w-[600px] min-h-[500px] transition-all duration-300">
               {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
               {section === 'changepassword' && <ChangePassword />}
             </div>

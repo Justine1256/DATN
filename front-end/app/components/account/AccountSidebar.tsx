@@ -2,9 +2,10 @@
 
 import clsx from 'clsx';
 
+// ✅ Component hiển thị sidebar tài khoản người dùng
 export default function AccountSidebar({
-  currentSection,
-  onChangeSection,
+  currentSection,            // ✅ Section hiện tại đang được hiển thị (ví dụ: 'profile')
+  onChangeSection,           // ✅ Hàm callback dùng để thay đổi section khi click menu
 }: {
   currentSection: string;
   onChangeSection: (section: string) => void;
@@ -12,8 +13,12 @@ export default function AccountSidebar({
   return (
     <div className="w-[270px] pr-6 pt-20">
       <div>
+        {/* ✅ Tiêu đề: Quản lý tài khoản */}
         <h3 className="text-[17px] font-bold text-black mb-3">Manage My Account</h3>
+        
+        {/* ✅ Danh sách điều hướng các mục tài khoản */}
         <ul className="space-y-3 text-sm">
+          {/* ✅ Mục: My Profile */}
           <li className="pl-6">
             <button
               onClick={() => onChangeSection('profile')}
@@ -28,6 +33,7 @@ export default function AccountSidebar({
             </button>
           </li>
 
+          {/* ✅ Mục: Address */}
           <li className="pl-6">
             <button
               onClick={() => onChangeSection('address')}
@@ -42,6 +48,7 @@ export default function AccountSidebar({
             </button>
           </li>
 
+          {/* ✅ Mục: Change Password */}
           <li className="pl-6">
             <button
               onClick={() => onChangeSection('changepassword')}
@@ -57,8 +64,12 @@ export default function AccountSidebar({
           </li>
         </ul>
 
+        {/* ✅ Tiêu đề: Đơn hàng */}
         <h3 className="text-[17px] font-bold text-black mt-4 mb-3">My Orders</h3>
+        
+        {/* ✅ Danh sách các mục đơn hàng */}
         <ul className="space-y-3 text-sm">
+          {/* ✅ Mục: My Returns */}
           <li className="pl-6">
             <button
               onClick={() => onChangeSection('returns')}
@@ -72,6 +83,8 @@ export default function AccountSidebar({
               My Returns
             </button>
           </li>
+
+          {/* ✅ Mục: My Cancellations */}
           <li className="pl-6">
             <button
               onClick={() => onChangeSection('cancellations')}

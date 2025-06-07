@@ -4,19 +4,20 @@ import { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 
+// ✅ Component đổi mật khẩu người dùng
 export default function ChangePassword() {
-  // ✅ State quản lý input form
+  // ✅ State quản lý dữ liệu form
   const [formData, setFormData] = useState({
-    oldPassword: '',
-    newPassword: '',
-    confirmNewPassword: '',
+    oldPassword: '',           // Mật khẩu hiện tại
+    newPassword: '',           // Mật khẩu mới
+    confirmNewPassword: '',    // Xác nhận mật khẩu mới
   });
 
-  // ✅ State quản lý thông báo popup
+  // ✅ State quản lý popup thông báo
   const [popup, setPopup] = useState({ message: '', type: 'success' });
   const [showPopup, setShowPopup] = useState(false);
 
-  // ✅ Tự động ẩn popup sau 2s
+  // ✅ Tự động ẩn popup sau 2 giây
   useEffect(() => {
     if (showPopup) {
       const timer = setTimeout(() => setShowPopup(false), 2000);
@@ -24,29 +25,29 @@ export default function ChangePassword() {
     }
   }, [showPopup]);
 
-  // ✅ Hàm xử lý thay đổi giá trị input
+  // ✅ Cập nhật giá trị input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Hàm hiển thị popup thông báo
+  // ✅ Hiển thị popup thông báo
   const showAlert = (msg: string, type: 'success' | 'error') => {
     setPopup({ message: msg, type });
     setShowPopup(true);
   };
 
-  // ✅ Hàm xử lý submit form đổi mật khẩu
+  // ✅ Gửi yêu cầu đổi mật khẩu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const { oldPassword, newPassword, confirmNewPassword } = formData;
 
-    // ⚠️ Kiểm tra rỗng
+    // ⚠️ Kiểm tra ô trống
     if (!oldPassword || !newPassword || !confirmNewPassword) {
       return showAlert('Please fill in all fields.', 'error');
     }
 
-    // ⚠️ Kiểm tra xác nhận mật khẩu mới
+    // ⚠️ Kiểm tra xác nhận mật khẩu
     if (newPassword !== confirmNewPassword) {
       return showAlert('New passwords do not match.', 'error');
     }
@@ -64,6 +65,7 @@ export default function ChangePassword() {
         }
       );
 
+      // ✅ Thành công
       if (res.data?.success || res.status === 200) {
         showAlert('Password updated successfully!', 'success');
         setFormData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
@@ -84,7 +86,7 @@ export default function ChangePassword() {
           <form onSubmit={handleSubmit} className="p-6 bg-white rounded-lg shadow-md space-y-6">
             <h2 className="text-xl font-semibold text-[#DB4444] mb-2">Change Password</h2>
 
-            {/* Mật khẩu hiện tại */}
+            {/* ✅ Nhập mật khẩu hiện tại */}
             <div>
               <label className="text-sm font-medium block mb-1">Current Password</label>
               <input
@@ -97,7 +99,7 @@ export default function ChangePassword() {
               />
             </div>
 
-            {/* Mật khẩu mới */}
+            {/* ✅ Nhập mật khẩu mới */}
             <div>
               <label className="text-sm font-medium block mb-1">New Password</label>
               <input
@@ -110,7 +112,7 @@ export default function ChangePassword() {
               />
             </div>
 
-            {/* Xác nhận mật khẩu mới */}
+            {/* ✅ Xác nhận mật khẩu mới */}
             <div>
               <label className="text-sm font-medium block mb-1">Confirm New Password</label>
               <input
@@ -123,7 +125,7 @@ export default function ChangePassword() {
               />
             </div>
 
-            {/* Nút thao tác */}
+            {/* ✅ Nút thao tác */}
             <div className="flex justify-end gap-4 mt-4">
               <button
                 type="reset"
@@ -141,7 +143,7 @@ export default function ChangePassword() {
             </div>
           </form>
 
-          {/* ✅ Popup hiển thị kết quả */}
+          {/* ✅ Popup thông báo kết quả */}
           {showPopup && (
             <div
               className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade ${

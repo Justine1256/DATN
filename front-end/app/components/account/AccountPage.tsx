@@ -154,28 +154,28 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
       <div className="container mx-auto px-4">
         <div className="w-full max-w-[600px] mx-auto px-4 pt-10 text-black">
           <form onSubmit={handleSubmit} className="p-8 bg-white rounded-lg shadow-md space-y-6">
-            <h2 className="text-xl font-semibold text-[#DB4444] mb-4">Edit Your Profile</h2>
+            <h2 className="text-2xl font-semibold text-[#DB4444] mb-4">Edit Your Profile</h2>
 
             {/* ✅ Nhập tên và số điện thoại */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="text-sm font-medium block mb-1">Full Name</label>
+                <label className="text-base font-medium block mb-1">Full Name</label>
                 <input
                   type="text"
                   name="name"
                   value={userData.name}
                   onChange={handleChange}
-                  className="w-full bg-gray-100 p-3 rounded-md focus:outline-none"
+                  className="w-full bg-gray-100 p-3 text-base rounded-md focus:outline-none"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium block mb-1">Phone Number</label>
+                <label className="text-base font-medium block mb-1">Phone Number</label>
                 <input
                   type="text"
                   name="phone"
                   value={userData.phone}
                   onChange={handleChange}
-                  className="w-full bg-gray-100 p-3 rounded-md focus:outline-none"
+                  className="w-full bg-gray-100 p-3 text-base rounded-md focus:outline-none"
                 />
               </div>
             </div>
@@ -183,37 +183,37 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
             {/* ✅ Nhập email và role */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="text-sm font-medium block mb-1">Email</label>
+                <label className="text-base font-medium block mb-1">Email</label>
                 <input
                   type="text"
                   name="email"
                   value={userData.email}
                   onChange={handleChange}
-                  className="w-full bg-gray-100 p-3 rounded-md focus:outline-none"
+                  className="w-full bg-gray-100 p-3 text-base rounded-md focus:outline-none"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium block mb-1">Role</label>
+                <label className="text-base font-medium block mb-1">Role</label>
                 <input
                   type="text"
                   name="role"
                   value={userData.role}
                   disabled
-                  className="w-full bg-gray-100 p-3 rounded-md text-gray-500 cursor-not-allowed"
+                  className="w-full bg-gray-100 p-3 text-base rounded-md text-gray-500 cursor-not-allowed"
                 />
               </div>
             </div>
 
             {/* ✅ Xác nhận mật khẩu hiện tại */}
             <div>
-              <label className="text-sm font-medium block mb-2">Current Password</label>
+              <label className="text-base font-medium block mb-2">Current Password</label>
               <input
                 type="password"
                 name="currentPassword"
                 value={userData.currentPassword}
                 onChange={handleChange}
                 placeholder="Enter current password"
-                className={`w-full bg-gray-100 p-3 rounded-md focus:outline-none ${
+                className={`w-full bg-gray-100 p-3 text-base rounded-md focus:outline-none ${
                   userData.passwordError ? 'border border-red-500' : ''
                 }`}
               />
@@ -236,13 +236,13 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
                     passwordError: '',
                   }))
                 }
-                className="text-sm text-gray-700 px-5 py-2.5 rounded-md hover:bg-gray-100"
+                className="text-base text-gray-700 px-5 py-2.5 rounded-md hover:bg-gray-100"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="text-sm bg-[#DB4444] text-white px-6 py-2.5 rounded-md hover:opacity-80"
+                className="text-base bg-[#DB4444] text-white px-6 py-2.5 rounded-md hover:opacity-80"
               >
                 Save Changes
               </button>
