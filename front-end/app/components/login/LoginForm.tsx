@@ -62,7 +62,7 @@ export default function LoginForm() {
       <h2 className="text-2xl font-semibold mb-1">Log in to MAKETO</h2>
       <p className="text-black mb-6">Enter your details below</p>
 
-      {error && <p className="text-red-600 mb-4 whitespace-pre-wrap">{error}</p>}
+      {error && <p className="text-brand mb-4 whitespace-pre-wrap">{error}</p>}
 
       <form onSubmit={handleSubmit} className="space-y-10">
         <input
@@ -87,14 +87,14 @@ export default function LoginForm() {
         <div className="flex items-center justify-between h-[56px] mt-4">
           <button
             type="submit"
-            className="bg-[#DB4444] text-white w-[120px] h-full rounded hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-brand text-white w-[120px] h-full rounded hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
             {isLoading ? 'Đang đăng nhập...' : 'Log In'}
           </button>
           <a
-            href="/forgot-password"
-            className="!text-[#DB4444] text-sm self-center !no-underline hover:opacity-75"
+            href="/signup"
+            className="!text-brand text-sm self-center !no-underline hover:opacity-75"
           >
             Forget Password?
           </a>

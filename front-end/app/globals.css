@@ -1,0 +1,107 @@
+@import "bootstrap/dist/css/bootstrap.min.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.5s ease-out;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+}
+:root {
+  --background: #ffffff;
+}
+
+:root {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+.scroll-hidden {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+.scroll-hidden::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+/* NProgress custom style */
+#nprogress .bar {
+  background: #db4444 !important;
+  height: 3px;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #db4444, 0 0 5px #db4444;
+}
+/* Ẩn thanh progress bar */
+#nprogress .bar {
+  display: none !important;
+}
+@keyframes slideInFade {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  30% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-slideInFade {
+  animation: slideInFade 2.5s ease forwards;
+}
+/* Scrollbar tùy chỉnh chuẩn giống ảnh */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #2e2e2e; /* màu nền ngoài - đen xám */
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #b5b5b5; /* màu phần kéo - xám nhạt */
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #999999;
+}

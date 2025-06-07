@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@geist-ui/react": "^2.2.5",
+    "@fortawesome/fontawesome-free": "^6.7.2",
     "@google-cloud/translate": "^9.1.0",
     "@heroicons/react": "^2.2.0",
     "axios": "^1.9.0",
@@ -20,12 +20,14 @@
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.0.0",
-    "react-icons": "^5.5.0",
-    "tailwind-scrollbar-hide": "^2.0.0"
+    "react-icons": "^5.5.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/line-clamp": "^0.4.4",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",
     "@types/nprogress": "^0.2.3",
@@ -34,8 +36,9 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
-    "postcss": "^8.5.3",
-    "tailwindcss": "^4.1.7",
+    "postcss": "^8.5.4",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5"
   }
 }

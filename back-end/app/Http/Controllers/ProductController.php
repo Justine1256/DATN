@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Product;
+use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -31,6 +33,56 @@ public function show($shopslug, $productslug)
 
     return response()->json($product);
 }
+
+public function getCategoryAndProductsBySlug($slug)
+{
+    // Lấy danh mục cha theo slug
+    $category = Category::where('slug', $slug)->first();
+
+    if (!$category) {
+        return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
+    }
+
+    // Lấy tất cả ID danh mục con
+    $categoryIds = $this->getAllChildCategoryIds($category);
+
+    // Nếu bạn không muốn lấy sản phẩm trong danh mục cha, bỏ ID đó ra
+    if (($key = array_search($category->id, $categoryIds)) !== false) {
+        unset($categoryIds[$key]);
+    }
+
+    $categoryIds = array_map('intval', $categoryIds);
+
+    $products = [];
+
+    if (!empty($categoryIds)) {
+        $products = Product::whereIn('category_id', $categoryIds)
+            ->where('status', 'activated')
+            ->get();
+    }
+
+    // Trả về cả category và products
+    return response()->json([
+        'category' => $category,
+        'products' => $products
+    ]);
+}
+
+
+// Hàm đệ quy lấy tất cả danh mục con
+private function getAllChildCategoryIds(Category $category)
+{
+    $ids = [$category->id];
+    $children = Category::where('parent_id', $category->id)->get();
+
+    foreach ($children as $child) {
+        $ids = array_merge($ids, $this->getAllChildCategoryIds($child));
+    }
+
+    return $ids;
+}
+
+
 
 
 
@@ -93,55 +145,80 @@ public function store(Request $request)
         return response()->json(['message' => 'Đã xóa sản phẩm']);
     }
     // Lấy danh sách sản phẩm bán chạy
-    public function bestSellingProducts(Request $request)
-    {
-        $limit = $request->input('limit', 10); // giới hạn số sản phẩm trả về
-
-        $products = Product::where('status', 'activated')
-            ->orderByDesc('sold')
-            ->take($limit)
-            ->get();
-
-        return response()->json([
-            'message' => 'Sản phẩm bán chạy nhất',
-            'products' => $products
-        ]);
-    }
-    // Lấy danh sách sản phẩm giảm giá nhiều nhất
-    public function topDiscountedProducts(Request $request)
-    {
-        $limit = $request->input('limit', 10);
-
-        $products = Product::whereNotNull('sale_price')
-            ->whereColumn('sale_price', '<', 'price')
-            ->where('status', 'activated')
-            ->get()
-            ->sortByDesc(function ($product) {
-                return (($product->price - $product->sale_price) / $product->price) * 100;
-            })
-            ->take($limit)
-            ->values(); // reset index
-
-        return response()->json([
-            'message' => 'Sản phẩm ưu đãi nhiều nhất',
-            'products' => $products
-        ]);
-    }
-    // Lấy danh sách sản phẩm mới nhất
-    public function newProducts(Request $request)
+public function bestSellingProducts(Request $request)
 {
-    $limit = $request->input('limit', 10);
+    $limit = $request->input('limit', 8);
 
-    $products = Product::where('status', 'activated')
+    $products = Product::with(['shop:id,slug']) // chỉ lấy slug
+        ->where('status', 'activated')
+        ->orderByDesc('sold')
+        ->take($limit)
+        ->get();
+
+    // Gắn thêm shop_slug vào từng product
+    $products->each(function ($product) {
+        $product->shop_slug = $product->shop->slug ?? null;
+        unset($product->shop); // xóa object shop nếu không cần
+    });
+
+    return response()->json([
+        'message' => 'Sản phẩm bán chạy nhất',
+        'products' => $products
+    ]);
+}
+
+
+    // Lấy danh sách sản phẩm giảm giá nhiều nhất
+public function topDiscountedProducts(Request $request)
+{
+    $limit = $request->input('limit', 8);
+
+    $products = Product::with('shop') // 👈 Load quan hệ shop
+        ->whereNotNull('sale_price')
+        ->whereColumn('sale_price', '<', 'price')
+        ->where('status', 'activated')
+        ->get()
+        ->sortByDesc(function ($product) {
+            return (($product->price - $product->sale_price) / $product->price) * 100;
+        })
+        ->take($limit)
+        ->values();
+
+    // Gắn thêm shop_slug vào từng sản phẩm
+    $products->transform(function ($product) {
+        $product->shop_slug = $product->shop->slug ?? null;
+        return $product;
+    });
+
+    return response()->json([
+        'message' => 'Sản phẩm ưu đãi nhiều nhất',
+        'products' => $products
+    ]);
+}
+
+    // Lấy danh sách sản phẩm mới nhất
+public function newProducts(Request $request)
+{
+    $limit = $request->input('limit', 8);
+
+    $products = Product::with('shop') // Load quan hệ shop
+        ->where('status', 'activated')
         ->orderBy('created_at', 'desc')
         ->take($limit)
         ->get();
+
+    // Gắn thêm shop_slug
+    $products->transform(function ($product) {
+        $product->shop_slug = $product->shop->slug ?? null;
+        return $product;
+    });
 
     return response()->json([
         'message' => 'Danh sách sản phẩm mới nhất',
         'products' => $products
     ]);
 }
+
     // Lấy danh sách sản phẩm của shop
 public function showShopProducts(Request $request)
 {

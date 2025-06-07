@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import "@/app/styles/globals.css";
+import { Inter } from "next/font/google";
+import "@/app/globals.css";
+import '@fortawesome/fontawesome-free/css/all.min.css';
+import LoadingBar from './components/common/LoadingBar';
 import Header from "@/app/components/common/Header";
+import Footer from "./components/common/Footer";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -16,10 +19,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head />
-      <body className={geistSans.className}>
+      <body className={`${inter.className} scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200`}>
+        <LoadingBar />
+        {/* ✅ Header & Footer bọc ngoài main layout */}
         <Header />
-        {children}
+
+        <main className="min-h-screen pt-[98px] bg-white">
+          {children}
+        </main>
+
+        <Footer />
       </body>
     </html>
   );

@@ -32,8 +32,6 @@ export default function ProductInfoForm({
   );
 
   if (loading) return <p className="text-gray-600">Đang tải danh mục...</p>;
-  if (error)
-    return <p className="text-red-500">Lỗi khi tải danh mục: {error.message}</p>;
 
   return (
     <div className="bg-white p-4 rounded shadow-sm space-y-4">

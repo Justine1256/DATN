@@ -12,6 +12,7 @@ use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\FollowController;
+use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VoucherController;
@@ -30,25 +31,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/upload-image', function (Request $request) {
-    if (!$request->hasFile('file')) {
-        return response()->json(['error' => 'No file provided'], 400);
-    }
-
-    $file = $request->file('file');
-
-    if (!$file->isValid()) {
-        return response()->json(['error' => 'Invalid file upload'], 400);
-    }
-
-    // Lưu file vào thư mục public/storage/uploads
-    $path = $file->store('uploads', 'public');
-
-    // Trả về url file vừa lưu (dùng asset helper hoặc Storage facade)
-    $url = asset('storage/' . $path);
-
-    return response()->json(['url' => $url]);
-});
+Route::get('/images', [ImageController::class, 'index']);
+Route::get('/image/{path}', [ImageController::class, 'show'])->where('path', '.*');
+Route::post('/upload-image',[ImageController::class, 'store']);
 
 Route::get('/category', [CategoryController::class, 'index']);
 Route::get('/category/{id}', [CategoryController::class, 'show']);
@@ -61,14 +46,12 @@ Route::get('/{shopslug}/product/{productslug}', [ProductController::class, 'show
 Route::get('/bestsellingproducts', [ProductController::class, 'bestSellingProducts']);
 Route::get('/topdiscountedproducts', [ProductController::class, 'topDiscountedProducts']);
 Route::get('/newproducts', [ProductController::class, 'newProducts']);
+Route::get('/category/{slug}/products', [ProductController::class, 'getCategoryAndProductsBySlug']);
 
 
 Route::post('/product', [ProductController::class, 'store']);
 Route::patch('/product/{id}', [ProductController::class, 'update']);
 Route::delete('/product/{id}', [ProductController::class, 'delete']);
-
-
-
 
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
