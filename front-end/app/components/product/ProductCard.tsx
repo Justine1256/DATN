@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FiHeart, FiShoppingCart } from 'react-icons/fi';
 import { AiFillHeart, AiFillStar } from 'react-icons/ai';
-import { LoadingSkeleton } from '../loading/loading'; // ✅ import đúng
+import { LoadingSkeleton } from '../loading/loading';
 
 export interface Product {
   id: number;
@@ -27,7 +27,6 @@ export default function ProductCard({ product }: { product?: Product }) {
   const [showPopup, setShowPopup] = useState(false);
   const router = useRouter();
 
-  // ✅ Khi chưa có dữ liệu thì hiện loading
   if (!product) {
     return <LoadingSkeleton />;
   }
@@ -59,13 +58,13 @@ export default function ProductCard({ product }: { product?: Product }) {
       className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
     >
       {showPopup && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
+        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-xs px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
           {liked ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích'}
         </div>
       )}
 
       {hasDiscount && discountPercentage > 0 && (
-        <div className="absolute top-2 left-2 bg-brand text-white text-xs px-2 py-0.5 rounded">
+        <div className="absolute top-2 left-2 bg-brand text-white text-[10px] px-2 py-0.5 rounded">
           -{discountPercentage}%
         </div>
       )}
@@ -85,30 +84,30 @@ export default function ProductCard({ product }: { product?: Product }) {
       </div>
 
       <div className="flex flex-col mt-4 w-full px-1 pb-14">
-        <h4 className="text-[16px] font-semibold text-black truncate capitalize">
+        <h4 className="text-sm font-semibold text-black truncate capitalize">
           {product.name}
         </h4>
 
         <div className="flex gap-2 mt-1 items-center">
-          <span className="text-red-500 font-bold text-lg">
+          <span className="text-red-500 font-bold text-base">
             {new Intl.NumberFormat('vi-VN').format(
               hasDiscount ? product.sale_price! : product.price
             )}đ
           </span>
           {hasDiscount && (
-            <span className="text-gray-400 line-through text-sm">
+            <span className="text-gray-400 line-through text-xs">
               {new Intl.NumberFormat('vi-VN').format(product.price)}đ
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-1 text-yellow-500 text-sm mt-1">
+        <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
           {Array(5)
             .fill(0)
             .map((_, i) => (
               <AiFillStar key={i} className="w-4 h-4" />
             ))}
-          <span className="text-gray-600 text-xs">(88)</span>
+          <span className="text-gray-600 text-[10px]">(88)</span>
         </div>
       </div>
 
