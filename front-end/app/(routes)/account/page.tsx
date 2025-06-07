@@ -1,44 +1,64 @@
 'use client';
 
-import Link from 'next/link';
-import AccountSidebar from "@/app/components/account/AccountSidebar";
-import AccountPage from "@/app/components/account/AccountPage";
+import { useState, useEffect } from 'react';
+import Cookies from 'js-cookie';
+import axios from 'axios';
+import AccountSidebar from '@/app/components/account/AccountSidebar';
+import AccountPage from '@/app/components/account/AccountPage';
+import ChangePassword from '@/app/components/account/ChangePassword';
 
 export default function AccountRoute() {
+  const [section, setSection] = useState('profile');
+  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Fetch user profile
+  const fetchUser = async () => {
+    const token = Cookies.get('authToken');
+    if (!token) return setLoading(false);
+
+    try {
+      const res = await axios.get('http://localhost:8000/api/user', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUser(res.data);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
   return (
     <div className="bg-white pt-16 pb-16 min-h-screen">
-      {/* Breadcrumb full width */}
-      <div className="w-full bg-white py-4">
-        <div className="container mx-auto px-4 max-w-[1170px]">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              <Link href="/" className="hover:text-[#DB4444] cursor-pointer">
-                Home
-              </Link>
-              <span className="mx-2">/</span>
-              <span>My Account</span>
-            </div>
-            <div className="text-sm font-medium">
-              Welcome! <span className="text-[#DB4444]">Md Bitmel</span>
-            </div>
-          </div>
+      {/* ✅ Welcome header */}
+      <div className="container mx-auto px-4 max-w-[1170px]">
+        <div className="flex justify-end items-center mb-2">
+          {!loading && user && (
+            <p className="text-sm font-medium text-black">
+              Welcome! <span className="text-[#DB4444]">{user.name}</span>
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Main content */}
+      {/* ✅ Main layout: sidebar + form */}
       <div className="container mx-auto px-4 max-w-[1170px]">
-        <div className="grid grid-cols-1 md:grid-cols-[270px,1fr] gap-8 mt-8">
-          {/* Sidebar */}
-          <div className="md:pr-8">
-            <AccountSidebar />
+        <div className="grid grid-cols-8 md:grid-cols-12 gap-8 items-start">
+          {/* Sidebar 3 columns */}
+          <div className="md:col-span-3 md:mt-1 md:ml-24">
+            <AccountSidebar currentSection={section} onChangeSection={setSection} />
           </div>
-          
-          {/* Account page content */}
-          <div>
-            <div className="flex justify-center">
-              <div className="w-full max-w-3xl p-6">
-                <AccountPage />
-              </div>
+
+          {/* Form 9 columns with center form box */}
+          <div className="md:col-span-9 flex justify-center pt-2">
+            <div className="w-full max-w-[600px]">
+              {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
+              {section === 'changepassword' && <ChangePassword />}
             </div>
           </div>
         </div>
