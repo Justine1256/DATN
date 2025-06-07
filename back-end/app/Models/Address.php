@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -13,9 +14,11 @@ class Address extends Model
         'full_name',
         'phone',
         'address',
+        'ward',
+        'district',
         'city',
         'province',
-        'postal_code',
+        'note',
         'is_default'
     ];
 

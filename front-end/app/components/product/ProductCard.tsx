@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FiHeart, FiShoppingCart } from 'react-icons/fi';
 import { AiFillHeart, AiFillStar } from 'react-icons/ai';
-import { LoadingSkeleton } from '../loading/loading'; // ✅ import đúng
+import { LoadingSkeleton } from '../loading/loading';
 
 export interface Product {
   id: number;
@@ -25,9 +25,10 @@ export interface Product {
 export default function ProductCard({ product }: { product?: Product }) {
   const [liked, setLiked] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
+  const [showCartPopup, setShowCartPopup] = useState(false);
   const router = useRouter();
 
-  // ✅ Khi chưa có dữ liệu thì hiện loading
   if (!product) {
     return <LoadingSkeleton />;
   }
@@ -37,16 +38,23 @@ export default function ProductCard({ product }: { product?: Product }) {
     ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
     : 0;
 
+  // Xử lý khi người dùng bấm thích / bỏ thích
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setLiked(!liked);
+    const newLikedState = !liked;
+    setLiked(newLikedState);
+    setPopupMessage(newLikedState ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích');
     setShowPopup(true);
     setTimeout(() => setShowPopup(false), 2000);
   };
 
+  // Xử lý khi người dùng bấm thêm vào giỏ hàng
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
+    // Thay vì alert, hiển thị popup nhỏ góc phải
+    setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
+    setShowCartPopup(true);
+    setTimeout(() => setShowCartPopup(false), 2000);
   };
 
   const handleViewDetail = () => {
@@ -58,9 +66,17 @@ export default function ProductCard({ product }: { product?: Product }) {
       onClick={handleViewDetail}
       className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
     >
+      {/* Popup yêu thích */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
-          {liked ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích'}
+          {popupMessage}
+        </div>
+      )}
+
+      {/* Popup giỏ hàng */}
+      {showCartPopup && (
+        <div className="fixed top-32 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
+          {popupMessage}
         </div>
       )}
 

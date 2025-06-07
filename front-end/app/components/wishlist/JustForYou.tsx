@@ -15,6 +15,7 @@ type Product = {
   discount: number;
   option1: string;
   value1: string;
+  
 };
 
 const JustForYou = () => {

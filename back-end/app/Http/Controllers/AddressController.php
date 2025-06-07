@@ -13,7 +13,20 @@ class AddressController extends Controller
         $addresses = Address::where('user_id', Auth::id())->get();
         return response()->json($addresses);
     }
+        public function getAddressesByUser($id)
+    {
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Bạn cần đăng nhập để truy cập'], 401);
+        }
 
+        $addresses = Address::where('user_id', $id)->get();
+
+        if ($addresses->isEmpty()) {
+            return response()->json(['message' => 'Không tìm thấy địa chỉ của user này'], 404);
+        }
+
+        return response()->json($addresses);
+    }
     public function store(Request $request)
     {
         $validated = $request->validate([

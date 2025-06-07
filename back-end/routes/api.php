@@ -87,6 +87,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shopexit', [ShopController::class, 'exitShop']);
 
     Route::get('/addresses', [AddressController::class, 'index']);
+    Route::get('/addressesUser/{id}', [AddressController::class, 'getAddressesByUser']);
     Route::post('/addresses', [AddressController::class, 'store']);
     Route::patch('/addresses/{id}', [AddressController::class, 'update']);
     Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);

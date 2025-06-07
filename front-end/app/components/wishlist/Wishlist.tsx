@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ProductCard from '../product/ProductCard';
 
 type Product = {
@@ -16,74 +16,46 @@ type Product = {
   option1: string;
   value1: string;
   reviewCount: number;
+  shop_slug: string;
 };
 
 const Wishlist = () => {
-  const wishlistItems: Product[] = [
-    {
-      id: 201,
-      name: 'StylePro Hair Dryer',
-      image: 'images/hair-dryer.png',
-      slug: 'stylepro-hair-dryer',
-      price: 625000,
-      oldPrice: 345000,
-      sale_price: 0,
-      rating: 4.5,
-      discount: 0,
-      option1: 'Color',
-      value1: 'đỏ,đen',
-      reviewCount: 88,
-    },
-    {
-      id: 202,
-      name: 'AromaTherapy Essential Oil Diffuser',
-      image: 'images/essential-oil-diffuser.png',
-      slug: 'aromatherapy-essential-oil-diffuser',
-      price: 750000,
-      oldPrice: 700000,
-      sale_price: 0,
-      rating: 4.5,
-      discount: 9,
-      option1: 'Color',
-      value1: 'đỏ,đen',
-      reviewCount: 88,
-    },
-    {
-      id: 203,
-      name: 'NatureWalk Hiking Gear',
-      image: 'images/hiking-shoe.png',
-      slug: 'naturewalk-hiking-gear',
-      price: 100000,
-      oldPrice: 475000,
-      sale_price: 0,
-      rating: 4.5,
-      discount: 0,
-      option1: 'Color',
-      value1: 'đỏ,đen',
-      reviewCount: 88,
-    },
-    {
-      id: 204,
-      name: 'SonicWave Speaker',
-      image: 'images/speaker.png',
-      slug: 'sonicwave-speaker',
-      price: 678000,
-      oldPrice: 250000,
-      sale_price: 0,
-      rating: 4.5,
-      discount: 5,
-      option1: 'Color',
-      value1: 'đỏ,đen',
-      reviewCount: 88,
-    },
-  ];
+  const [wishlistItems, setWishlistItems] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('Người dùng chưa đăng nhập');
+      setLoading(false); // ✅ Sửa lỗi: cần dừng loading nếu không có token
+      return;
+    }
+
+    fetch('http://127.0.0.1:8000/api/wishlist', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Không thể lấy wishlist!');
+        return res.json();
+      })
+      .then((data) => {
+        console.log('Wishlist trả về:', data); // 👀 debug nếu cần
+        setWishlistItems(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('LỖI:', error);
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <div className="container mx-auto px-4">
-      {/* Khoảng trống trên */} 
       <div className="py-6"></div>
-      
-      {/* Tiêu đề và nút */}
+
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-m font-medium text-black">
           Wishlist ({wishlistItems.length})
@@ -93,14 +65,21 @@ const Wishlist = () => {
         </button>
       </div>
 
-      {/* Danh sách sản phẩm */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-        {wishlistItems.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
-      
-      {/* Khoảng trống dưới */}
+      {/* 👉 Xử lý loading, empty, và có dữ liệu */}
+      {loading ? (
+        <p>Đang tải dữ liệu...</p>
+      ) : wishlistItems.length === 0 ? (
+        <p className="text-center text-gray-500 text-sm">
+          Hiện tại bạn chưa có sản phẩm yêu thích nào.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+          {wishlistItems.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
+
       <div className="py-1"></div>
     </div>
   );
