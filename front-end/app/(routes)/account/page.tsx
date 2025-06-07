@@ -3,13 +3,16 @@
 import { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import axios from 'axios';
+import AddressComponent from '@/app/components/account/Address';
 import AccountSidebar from '@/app/components/account/AccountSidebar';
 import AccountPage from '@/app/components/account/AccountPage';
 import ChangePassword from '@/app/components/account/ChangePassword';
 
 export default function AccountRoute() {
   const [section, setSection] = useState('profile');
-  const [user, setUser] = useState<{ name: string } | null>(null);
+
+  // ✅ Fix: Khai báo thêm id
+  const [user, setUser] = useState<{ id: number; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   // ✅ Fetch user profile
@@ -21,7 +24,7 @@ export default function AccountRoute() {
       const res = await axios.get('http://localhost:8000/api/user', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUser(res.data);
+      setUser(res.data); // ✅ res.data cần có { id, name }
     } catch {
       setUser(null);
     } finally {
@@ -59,6 +62,7 @@ export default function AccountRoute() {
             <div className="w-full max-w-[600px] min-h-[500px] transition-all duration-300">
               {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
               {section === 'changepassword' && <ChangePassword />}
+              {section === 'address' && user && <AddressComponent userId={user.id} />}
             </div>
           </div>
         </div>
