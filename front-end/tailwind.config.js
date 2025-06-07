@@ -39,15 +39,10 @@ module.exports = {
                     '100%': { width: '0%' },
                 },
             },
-            fontSize: {
-        base: '1rem',        // 16px (body)
-        'sm-detail': '0.875rem', // 14px
-        'h1': '2.25rem',     // 36px
-        'h2': '1.5rem',      // 24px
-        'h3': '1.25rem',     // 20px
-      },
+            
         },
     },
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     plugins: [require('@tailwindcss/line-clamp')],
 
 };
