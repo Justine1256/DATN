@@ -6,16 +6,15 @@ import axios from 'axios';
 
 // ✅ Component đổi mật khẩu người dùng
 export default function ChangePassword() {
-  // ✅ State quản lý dữ liệu form
   const [formData, setFormData] = useState({
     oldPassword: '',           // Mật khẩu hiện tại
     newPassword: '',           // Mật khẩu mới
     confirmNewPassword: '',    // Xác nhận mật khẩu mới
   });
 
-  // ✅ State quản lý popup thông báo
   const [popup, setPopup] = useState({ message: '', type: 'success' });
   const [showPopup, setShowPopup] = useState(false);
+  const [errorField, setErrorField] = useState(''); // ✅ Trường gây lỗi
 
   // ✅ Tự động ẩn popup sau 2 giây
   useEffect(() => {
@@ -25,10 +24,11 @@ export default function ChangePassword() {
     }
   }, [showPopup]);
 
-  // ✅ Cập nhật giá trị input
+  // ✅ Xử lý thay đổi dữ liệu form
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrorField(''); // ✅ Xóa lỗi khi người dùng bắt đầu sửa lại
   };
 
   // ✅ Hiển thị popup thông báo
@@ -37,44 +37,46 @@ export default function ChangePassword() {
     setShowPopup(true);
   };
 
-  // ✅ Gửi yêu cầu đổi mật khẩu
+  // ✅ Gửi dữ liệu đổi mật khẩu lên server
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const { oldPassword, newPassword, confirmNewPassword } = formData;
 
-    // ⚠️ Kiểm tra ô trống
     if (!oldPassword || !newPassword || !confirmNewPassword) {
       return showAlert('Please fill in all fields.', 'error');
     }
 
-    // ⚠️ Kiểm tra xác nhận mật khẩu
     if (newPassword !== confirmNewPassword) {
       return showAlert('New passwords do not match.', 'error');
     }
 
     try {
       const token = Cookies.get('authToken');
-      const res = await axios.put(
-        'http://localhost:8000/api/user',
-        {
-          current_password: oldPassword,
-          new_password: newPassword,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
 
-      // ✅ Thành công
-      if (res.data?.success || res.status === 200) {
+      const payload = {
+        current_password: oldPassword,
+        password: newPassword,
+        password_confirmation: confirmNewPassword,
+      };
+
+      const res = await axios.put('http://localhost:8000/api/user', payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.data?.message?.toLowerCase().includes('thành công')) {
         showAlert('Password updated successfully!', 'success');
         setFormData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
+        setErrorField('');
       } else {
         throw new Error();
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to update password.';
+      const msg = err?.response?.data?.error || 'Failed to update password.';
       showAlert(msg, 'error');
+
+      if (msg.toLowerCase().includes('mật khẩu hiện tại')) {
+        setErrorField('oldPassword');
+      }
     }
   };
 
@@ -86,7 +88,7 @@ export default function ChangePassword() {
           <form onSubmit={handleSubmit} className="p-6 bg-white rounded-lg shadow-md space-y-6">
             <h2 className="text-xl font-semibold text-[#DB4444] mb-2">Change Password</h2>
 
-            {/* ✅ Nhập mật khẩu hiện tại */}
+            {/* ✅ Mật khẩu hiện tại */}
             <div>
               <label className="text-sm font-medium block mb-1">Current Password</label>
               <input
@@ -95,11 +97,11 @@ export default function ChangePassword() {
                 value={formData.oldPassword}
                 onChange={handleChange}
                 placeholder="Enter your current password"
-                className="w-full bg-gray-100 p-3 rounded-md focus:outline-none"
+                className={`w-full bg-gray-100 p-3 rounded-md focus:outline-none ${errorField === 'oldPassword' ? 'border border-red-500' : ''}`}
               />
             </div>
 
-            {/* ✅ Nhập mật khẩu mới */}
+            {/* ✅ Mật khẩu mới */}
             <div>
               <label className="text-sm font-medium block mb-1">New Password</label>
               <input
@@ -112,7 +114,7 @@ export default function ChangePassword() {
               />
             </div>
 
-            {/* ✅ Xác nhận mật khẩu mới */}
+            {/* ✅ Nhập lại mật khẩu mới */}
             <div>
               <label className="text-sm font-medium block mb-1">Confirm New Password</label>
               <input
@@ -125,11 +127,14 @@ export default function ChangePassword() {
               />
             </div>
 
-            {/* ✅ Nút thao tác */}
+            {/* ✅ Nút hành động */}
             <div className="flex justify-end gap-4 mt-4">
               <button
                 type="reset"
-                onClick={() => setFormData({ oldPassword: '', newPassword: '', confirmNewPassword: '' })}
+                onClick={() => {
+                  setFormData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
+                  setErrorField('');
+                }}
                 className="text-sm text-gray-700 px-5 py-2.5 rounded-md hover:bg-gray-100"
               >
                 Cancel

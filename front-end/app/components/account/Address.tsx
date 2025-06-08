@@ -1,9 +1,15 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import AddressForm from './AddressForm';
+import Select from 'react-select';
+
+// ✅ Interface định nghĩa tỉnh/huyện/xã và địa chỉ người dùng
+interface Province { code: number; name: string }
+interface District { code: number; name: string }
+interface Ward { code: number; name: string }
 
 interface Address {
   id?: number;
@@ -20,204 +26,227 @@ interface Address {
 }
 
 export default function AddressComponent() {
+  // ✅ State quản lý người dùng và địa chỉ
   const [userId, setUserId] = useState<number | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [formData, setFormData] = useState<Address>({
-    full_name: '',
-    phone: '',
-    address: '',
-    ward: '',
-    district: '',
-    city: '',
-    province: '',
-    note: '',
-    is_default: false,
-    type: 'Nhà Riêng',
+    full_name: '', phone: '', address: '', ward: '', district: '', city: '', province: '', note: '', is_default: false, type: 'Nhà Riêng'
   });
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupType, setPopupType] = useState<'success' | 'error'>('success');
+  const [showPopup, setShowPopup] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
+  // ✅ Danh sách địa phương để chọn
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [wards, setWards] = useState<Ward[]>([]);
+
+  // ✅ Ẩn popup thông báo sau 2.5 giây
+  useEffect(() => {
+    if (showPopup) setTimeout(() => setShowPopup(false), 2500);
+  }, [showPopup]);
+
+  const triggerPopup = (msg: string, type: 'success' | 'error') => {
+    setPopupMessage(msg);
+    setPopupType(type);
+    setShowPopup(true);
+  };
+
+  // ✅ Lấy danh sách tỉnh từ API
+  useEffect(() => {
+    axios.get('https://provinces.open-api.vn/api/p/').then((res) => setProvinces(res.data));
+  }, []);
+
+  // ✅ Khi người dùng chọn tỉnh → tải danh sách huyện
+  useEffect(() => {
+    const selectedProvince = provinces.find((p) => p.name === formData.province);
+    if (selectedProvince) {
+      axios.get(`https://provinces.open-api.vn/api/p/${selectedProvince.code}?depth=2`).then((res) => {
+        setDistricts(res.data.districts);
+        setFormData((prev) => ({ ...prev, district: '', ward: '' }));
+      });
+    }
+  }, [formData.province, provinces]);
+
+  // ✅ Khi người dùng chọn huyện → tải danh sách xã
+  useEffect(() => {
+    const selectedDistrict = districts.find((d) => d.name === formData.district);
+    if (selectedDistrict) {
+      axios.get(`https://provinces.open-api.vn/api/d/${selectedDistrict.code}?depth=2`).then((res) => {
+        setWards(res.data.wards);
+        setFormData((prev) => ({ ...prev, ward: '' }));
+      });
+    }
+  }, [formData.district, districts]);
+
+  // ✅ Gọi API lấy user hiện tại
   const fetchUserId = async () => {
     const token = Cookies.get('authToken');
     if (!token) return;
     try {
       const res = await axios.get('http://localhost:8000/api/user', {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
+        headers: { Authorization: `Bearer ${token}` }, withCredentials: true,
       });
       setUserId(res.data.id);
     } catch (err) {
-      console.error('Không lấy được user:', err);
+      console.error('User fetch failed', err);
     }
   };
 
+  // ✅ Gọi API lấy danh sách địa chỉ của user
   const fetchAddresses = async (uid: number) => {
     const token = Cookies.get('authToken');
     if (!token) return;
     try {
       const res = await axios.get(`http://localhost:8000/api/addressesUser/${uid}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
+        headers: { Authorization: `Bearer ${token}` }, withCredentials: true,
       });
-      setAddresses(res.data);
+      const sorted = [...res.data].sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+      setAddresses(sorted);
     } catch (err) {
-      console.error('❌ Không lấy được danh sách địa chỉ:', err);
+      console.error('Address fetch failed', err);
     }
   };
 
-  useEffect(() => {
-    fetchUserId();
-  }, []);
+  // ✅ Khởi tạo user ID và load địa chỉ tương ứng
+  useEffect(() => { fetchUserId(); }, []);
+  useEffect(() => { if (userId) fetchAddresses(userId); }, [userId]);
 
-  useEffect(() => {
-    if (userId) fetchAddresses(userId);
-  }, [userId]);
-
-  const handleAddOrUpdateAddress = async () => {
-    const token = Cookies.get('authToken');
-    if (!token || !userId) return;
-
-    try {
-      if (isEditing) {
-        await axios.patch(
-          `http://localhost:8000/api/addresses/${isEditing}`,
-          { ...formData, user_id: userId },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        alert('✅ Cập nhật địa chỉ thành công!');
-      } else {
-        await axios.post(
-          'http://localhost:8000/api/addresses',
-          { ...formData, user_id: userId },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            withCredentials: true,
-          }
-        );
-        alert('✅ Thêm địa chỉ thành công!');
-      }
-
-      setIsAdding(false);
-      setIsEditing(null);
-      setFormData({
-        full_name: '',
-        phone: '',
-        address: '',
-        ward: '',
-        district: '',
-        city: '',
-        province: '',
-        note: '',
-        is_default: false,
-        type: 'Nhà Riêng',
-      });
-      fetchAddresses(userId);
-    } catch (err) {
-      console.error('❌ Không thể lưu địa chỉ:', err);
-      alert('❌ Lưu địa chỉ thất bại!');
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    const token = Cookies.get('authToken');
-    if (!token || !userId) return;
-
-    if (!confirm('Bạn có chắc muốn xoá địa chỉ này?')) return;
-
-    try {
-      await axios.delete(`http://localhost:8000/api/addresses/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      fetchAddresses(userId);
-    } catch (err) {
-      console.error('❌ Xoá địa chỉ thất bại:', err);
-    }
-  };
-
+  // ✅ Chỉnh sửa địa chỉ
   const handleEdit = (addr: Address) => {
     setFormData(addr);
     setIsEditing(addr.id!);
     setIsAdding(true);
   };
 
+  // ✅ Hàm xử lý thêm hoặc cập nhật địa chỉ
+  const handleAddOrUpdateAddress = async () => {
+    const token = Cookies.get('authToken');
+    if (!token || !userId) return;
+
+    const dataToSend = {
+      ...formData,
+      city: formData.city || formData.province,
+      user_id: userId,
+    };
+
+    const requiredFields = ['full_name', 'phone', 'address', 'province', 'district', 'ward'];
+    const isMissing = requiredFields.some(field => !dataToSend[field as keyof typeof dataToSend]);
+
+    if (isMissing) {
+      triggerPopup('❗ Vui lòng điền đầy đủ thông tin địa chỉ!', 'error');
+      return;
+    }
+
+    try {
+      if (isEditing) {
+        await axios.patch(`http://localhost:8000/api/addresses/${isEditing}`, dataToSend, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        triggerPopup('Cập nhật địa chỉ thành công!', 'success');
+      } else {
+        await axios.post(`http://localhost:8000/api/addresses`, dataToSend, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }, withCredentials: true,
+        });
+        triggerPopup('Thêm địa chỉ thành công!', 'success');
+      }
+
+      setIsAdding(false);
+      setIsEditing(null);
+      fetchAddresses(userId);
+      setFormData({ full_name: '', phone: '', address: '', ward: '', district: '', city: '', province: '', note: '', is_default: false, type: 'Nhà Riêng' });
+
+    } catch (err: any) {
+      console.error('❌ Lỗi lưu địa chỉ:', err.response?.data || err);
+      triggerPopup('Lưu địa chỉ thất bại!', 'error');
+    }
+  };
+
+  // ✅ Xoá địa chỉ, nếu chỉ còn 1 → gán mặc định
+  const handleDelete = async () => {
+    if (!confirmDeleteId || !userId) return;
+    const token = Cookies.get('authToken');
+    try {
+      await axios.delete(`http://localhost:8000/api/addresses/${confirmDeleteId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      triggerPopup('Xoá địa chỉ thành công!', 'success');
+
+      const updated = addresses.filter(addr => addr.id !== confirmDeleteId);
+      if (updated.length === 1 && !updated[0].is_default) {
+        const newDefaultId = updated[0].id;
+        await axios.patch(`http://localhost:8000/api/addresses/${newDefaultId}`, {
+          ...updated[0], is_default: true
+        }, { headers: { Authorization: `Bearer ${token}` } });
+      }
+
+      fetchAddresses(userId);
+    } catch {
+      triggerPopup('Xoá thất bại!', 'error');
+    } finally {
+      setConfirmDeleteId(null);
+    }
+  };
+
+  // ✅ JSX render danh sách địa chỉ và form thêm/sửa
   return (
-    <div className="w-full flex justify-center px-4">
-      <div className="w-full max-w-4xl p-8 bg-white rounded-lg shadow-md">
+    <div className="relative">
+      {/* ✅ Overlay mờ khi form bật */}
+      {isAdding && <div className="fixed inset-0 bg-black bg-opacity-50 z-40" />}
+
+      {/* ✅ Danh sách địa chỉ */}
+      <div className="w-full max-w-5xl p-6 mx-auto mt-10 bg-white rounded-lg shadow relative z-50">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-red-500">My Addresses</h2>
+          <h2 className="text-h2 font-bold text-red-500">Danh sách địa chỉ</h2>
           <button
             onClick={() => {
               setFormData({
-                full_name: '',
-                phone: '',
-                address: '',
-                ward: '',
-                district: '',
-                city: '',
-                province: '',
-                note: '',
-                is_default: false,
-                type: 'Nhà Riêng',
+                full_name: '', phone: '', address: '', ward: '',
+                district: '', city: '', province: '', note: '',
+                is_default: false, type: 'Nhà Riêng'
               });
               setIsAdding(true);
               setIsEditing(null);
             }}
             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            + Thêm địa chỉ mới
-          </button>
+          >+ Thêm địa chỉ</button>
         </div>
 
-        {isAdding && (
-          <div className="mb-6 border border-red-500 rounded-md p-4 bg-gray-50">
-            <AddressForm
-              formData={formData}
-              setFormData={setFormData}
-              onCancel={() => {
-                setIsAdding(false);
-                setIsEditing(null);
-              }}
-              onSubmit={handleAddOrUpdateAddress}
-            />
-          </div>
-        )}
-
-        {addresses.length === 0 ? (
-          <div className="text-center text-gray-500">Bạn chưa có địa chỉ.</div>
+        {/* ✅ Không hiện 'Không có địa chỉ' khi đang loading/thêm */}
+        {addresses.length === 0 && !isAdding ? (
+          <div className="text-center text-gray-500">Chưa có địa chỉ</div>
         ) : (
           <ul className="space-y-4">
             {addresses.map((addr) => (
-              <li key={addr.id} className="p-5 border rounded bg-white shadow-md">
-                <div className="flex justify-between">
-                  <div>
-                    <p className="font-bold text-black">{addr.full_name} - {addr.phone}</p>
-                    <p className="text-gray-700 font-medium">{addr.address}</p>
-                    <p className="text-gray-700 font-medium">{addr.ward}, {addr.district}, {addr.city}</p>
-                    <p className="text-gray-600 text-sm mt-1">Loại: {addr.type}</p>
-                    {addr.is_default && (
-                      <span className="inline-block mt-2 px-2 py-1 text-xs border border-red-500 text-red-500 rounded">
-                        Mặc định
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col justify-between items-end gap-2">
-                    <button
-                      onClick={() => handleEdit(addr)}
-                      className="text-sm text-blue-500 hover:underline"
-                    >
-                      Cập nhật
-                    </button>
-                    <button
-                      onClick={() => handleDelete(addr.id!)}
-                      className="text-sm text-red-500 hover:underline"
-                    >
-                      Xoá
-                    </button>
+              <li key={addr.id} className="p-4 border rounded-md bg-white shadow-sm relative">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <p className="font-semibold text-black">{addr.full_name} - {addr.phone}</p>
+                      <div className="flex gap-3 min-w-[80px] text-right">
+                        <button
+                          onClick={() => handleEdit(addr)}
+                          className="text-blue-500 text-sm relative after:absolute after:left-0 after:bottom-0 after:w-0 after:h-[1px] after:bg-blue-500 after:transition-all hover:after:w-full"
+                        >Cập nhật</button>
+                        <button
+                          onClick={() => setConfirmDeleteId(addr.id!)}
+                          className="text-red-500 text-sm relative after:absolute after:left-0 after:bottom-0 after:w-0 after:h-[1px] after:bg-red-500 after:transition-all hover:after:w-full"
+                        >Xoá</button>
+                      </div>
+                    </div>
+                    <p className="text-gray-700 break-words whitespace-pre-wrap">{addr.address}, {addr.ward}, {addr.district}, {addr.city}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                      <span>Loại: {addr.type}</span>
+                      {addr.is_default && (
+                        <span className="px-2 py-1 text-xs text-red-500 border border-red-500 rounded">Mặc định</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </li>
@@ -225,6 +254,118 @@ export default function AddressComponent() {
           </ul>
         )}
       </div>
+
+      {/* ✅ Hiển thị form nếu đang thêm/sửa */}
+      {isAdding && renderForm()}
+
+      {/* ✅ Popup xác nhận xoá */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-[99] bg-black bg-opacity-10 flex items-center justify-center">
+          <div className="bg-white shadow-lg rounded-md px-6 py-4 w-[300px] text-center z-[100] border">
+            <h2 className="text-base font-semibold text-black mb-2">Xác nhận xoá địa chỉ</h2>
+            <p className="text-sm text-gray-700 mb-4">Bạn có chắc chắn muốn xoá địa chỉ này không?</p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="px-4 py-1 border rounded text-gray-700 hover:bg-gray-100 text-sm"
+              >Huỷ</button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+              >Xoá</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Hiển thị popup góc phải */}
+      {showPopup && (
+        <div className={`fixed top-6 right-6 z-[9999] px-4 py-2 rounded shadow-md border-l-4 text-sm font-medium ${
+          popupType === 'success' ? 'bg-white text-green-600 border-green-500' : 'bg-white text-red-600 border-red-500'
+        }`}>
+          {popupMessage}
+        </div>
+      )}
     </div>
   );
+
+// ✅ Hàm hiển thị form nhập/sửa địa chỉ
+function renderForm() {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-center items-center overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-auto relative shadow-xl text-sm">
+        <button
+          className="absolute top-3 right-4 text-xl text-gray-600 hover:text-red-600"
+          onClick={() => { setIsAdding(false); setIsEditing(null); }}
+        >×</button>
+        <h3 className="text-h2 font-bold text-center text-red-500 mb-4">
+          {isEditing ? 'Cập nhật địa chỉ' : 'Thêm địa chỉ'}
+        </h3>
+
+        {/* ✅ Grid chia layout nhập thông tin */}
+        <div className="grid grid-cols-12 gap-4">
+          <input type="text" placeholder="Họ tên" value={formData.full_name}
+            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+            className="col-span-6 p-2 border rounded text-black" />
+
+          <input type="text" placeholder="Số điện thoại" value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            className="col-span-6 p-2 border rounded text-black" />
+
+          <input type="text" placeholder="Địa chỉ cụ thể..." value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            className="col-span-12 p-2 border rounded text-black" />
+
+          {[{ label: 'Tỉnh/TP', key: 'province', value: formData.province, options: provinces },
+            { label: 'Quận/Huyện', key: 'district', value: formData.district, options: districts },
+            { label: 'Phường/Xã', key: 'ward', value: formData.ward, options: wards }].map((item) => (
+            <div key={item.key} className="col-span-4">
+              <label className="block mb-1 text-gray-700 font-medium">{item.label}</label>
+              <Select
+                options={item.options.map((d: any) => ({ label: d.name, value: d.name }))}
+                value={item.value ? { label: item.value, value: item.value } : null}
+                onChange={(opt) => setFormData((prev) => ({
+                  ...prev,
+                  [item.key]: opt?.value || '',
+                  ...(item.key === 'province' ? { district: '', ward: '' } : {}),
+                  ...(item.key === 'district' ? { ward: '' } : {})
+                }))}
+                placeholder={`Chọn ${item.label}`}
+                styles={{
+                  control: (base) => ({ ...base, minHeight: 38, fontSize: '0.875rem', color: '#000' }),
+                  option: (base) => ({ ...base, color: '#111', fontSize: '0.875rem' })
+                }}
+              />
+            </div>
+          ))}
+
+          <div className="col-span-12 mt-2">
+            <label className="font-medium text-gray-700 mr-4">Loại:</label>
+            {['Nhà Riêng', 'Văn Phòng'].map((type) => (
+              <button
+                key={type}
+                onClick={() => setFormData({ ...formData, type: type as 'Nhà Riêng' | 'Văn Phòng' })}
+                className={`px-4 py-1 border rounded mr-3 ${formData.type === type ? 'bg-red-500 text-white' : 'bg-white text-black border-gray-300'}`}
+              >{type}</button>
+            ))}
+          </div>
+
+          <div className="col-span-12 flex items-center gap-2 mt-1">
+            <input type="checkbox" id="is_default" checked={formData.is_default}
+              onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+              className="accent-red-500" />
+            <label htmlFor="is_default" className="text-sm text-black">Làm mặc định</label>
+          </div>
+
+          <div className="col-span-12 flex justify-end gap-3 mt-4">
+            <button onClick={() => { setIsAdding(false); setIsEditing(null); }}
+              className="px-4 py-2 border rounded text-gray-700 hover:bg-gray-100">Huỷ</button>
+            <button onClick={handleAddOrUpdateAddress}
+              className="px-5 py-2 bg-red-500 text-white rounded hover:bg-red-600">Lưu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 }

@@ -9,22 +9,29 @@ import AccountPage from '@/app/components/account/AccountPage';
 import ChangePassword from '@/app/components/account/ChangePassword';
 
 export default function AccountRoute() {
-  const [section, setSection] = useState('profile');
-
-  // ✅ Fix: Khai báo thêm id
+  // ✅ Khởi tạo section từ localStorage (chỉ khi client render)
+  const [section, setSection] = useState<string>('profile');
   const [user, setUser] = useState<{ id: number; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false); // ✅ Ngăn flicker khi SSR
 
-  // ✅ Fetch user profile
+  // ✅ Lưu section vào localStorage khi người dùng đổi
+  const handleSectionChange = (newSection: string) => {
+    setSection(newSection);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('account_section', newSection);
+    }
+  };
+
+  // ✅ Lấy user từ API nếu có token
   const fetchUser = async () => {
     const token = Cookies.get('authToken');
     if (!token) return setLoading(false);
-
     try {
       const res = await axios.get('http://localhost:8000/api/user', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUser(res.data); // ✅ res.data cần có { id, name }
+      setUser(res.data);
     } catch {
       setUser(null);
     } finally {
@@ -32,33 +39,44 @@ export default function AccountRoute() {
     }
   };
 
+  // ✅ Lấy section từ localStorage sau khi client mounted
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('account_section');
+      if (saved) setSection(saved);
+      setHydrated(true);
+    }
+  }, []);
+
   useEffect(() => {
     fetchUser();
   }, []);
 
+  if (!hydrated) return null; // ✅ Tránh flicker khi SSR
+
   return (
     <div className="bg-white pt-16 pb-16 min-h-screen">
-      {/* ✅ Welcome header */}
+      {/* ✅ Header chào người dùng */}
       <div className="container mx-auto px-4 max-w-[1170px]">
         <div className="flex justify-end items-center mb-2">
           {!loading && user && (
-            <p className="text-sm font-medium text-black">
+            <p className="text-sm font-medium text-black px-40">
               Welcome! <span className="text-[#DB4444]">{user.name}</span>
             </p>
           )}
         </div>
       </div>
 
-      {/* ✅ Main layout: sidebar + form */}
-      <div className="container mx-auto px-4 max-w-[1170px]">
-        <div className="grid grid-cols-8 md:grid-cols-12 gap-8 items-start">
-          {/* Sidebar 3 columns */}
-          <div className="md:col-span-3 md:mt-1 md:ml-24">
-            <AccountSidebar currentSection={section} onChangeSection={setSection} />
+      {/* ✅ Giao diện dạng grid chia sidebar / nội dung */}
+      <div className="container mx-auto px-24 max-w-[1170px]">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+          {/* ✅ Sidebar chiếm 3 cột */}
+          <div className="md:col-span-3 md:mt-1">
+            <AccountSidebar currentSection={section} onChangeSection={handleSectionChange} />
           </div>
 
-          {/* Form 9 columns with center form box */}
-          <div className="md:col-span-9 flex justify-center pt-2">
+          {/* ✅ Nội dung chiếm 9 cột */}
+          <div className="md:col-span-9 flex justify-center pt-4">
             <div className="w-full max-w-[600px] min-h-[500px] transition-all duration-300">
               {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
               {section === 'changepassword' && <ChangePassword />}

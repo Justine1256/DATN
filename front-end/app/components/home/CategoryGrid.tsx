@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { MdKitchen, MdSportsSoccer, MdChildCare } from 'react-icons/md';
 import {
   FiSmartphone,
   FiMonitor,
@@ -17,7 +18,7 @@ import {
 import { GiSpeaker, GiVacuumCleaner } from 'react-icons/gi';
 import { TbAirConditioning, TbFridge } from 'react-icons/tb';
 import {
-  FaTabletAlt,
+  // FaTabletAlt,
   FaTv,
   FaTshirt,
   FaHeartbeat,
@@ -49,6 +50,11 @@ const iconMap: Record<string, IconType> = {
   'Nội thất': MdChair,
   'Áo quần': FaTshirt,
   'Laptop': MdOutlineLaptopMac,
+
+  // ✅ Icon mới thêm
+  'Điện Gia Dụng': MdKitchen,
+  'Mẹ & Bé': MdChildCare,
+  'Thể Thao & Dã Ngoại': MdSportsSoccer,
 };
 
 export default function CategoryGrid() {

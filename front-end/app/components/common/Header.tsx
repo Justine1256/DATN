@@ -137,19 +137,25 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-2 px-8">
             {/* ✅ Search */}
             <div className="relative min-w-[200px]">
-              <input
-                type="text"
-                placeholder="What are you looking for"
-                className="border border-gray-300 rounded-sm px-3 py-1.5 text-sm bg-gray-100 text-black focus:outline-none focus:border-black w-full"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit(e)}
-              />
-              <AiOutlineSearch
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-black h-5 w-5 cursor-pointer"
-                onClick={handleSearchSubmit}
-              />
-            </div>
+  <input
+    type="text"
+    placeholder="Tìm kiếm sản phẩm..."
+    className="w-full px-4 py-1.5 pr-10 rounded-md bg-white border border-gray-300 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DB4444] focus:border-[#DB4444] transition-all duration-200"
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSearchSubmit();
+      }
+    }}
+  />
+  <AiOutlineSearch
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-black cursor-pointer h-5 w-5"
+    onClick={handleSearchSubmit}
+  />
+</div>
+
 
             {/* ✅ Wishlist */}
             <Link href="/wishlist">

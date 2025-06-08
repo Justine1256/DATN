@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-// ✅ Interface định nghĩa kiểu dữ liệu người dùng
+// ✅ Interface dữ liệu người dùng
 interface UserData {
   name: string;
   phone: string;
@@ -14,8 +14,12 @@ interface UserData {
   passwordError?: string;
 }
 
-export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (user: UserData) => void }) {
-  // ✅ Khởi tạo state lưu trữ dữ liệu người dùng
+// ✅ Khai báo props
+interface Props {
+  onProfileUpdated?: () => void;
+}
+
+export default function AccountPage({ onProfileUpdated }: Props) {
   const [userData, setUserData] = useState<UserData>({
     name: '',
     phone: '',
@@ -30,7 +34,6 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Ẩn popup sau 2 giây
   useEffect(() => {
     if (showPopup) {
       const timer = setTimeout(() => setShowPopup(false), 2000);
@@ -38,14 +41,12 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
     }
   }, [showPopup]);
 
-  // ✅ Hàm hiển thị popup
   const showPopupMessage = useCallback((msg: string, type: 'success' | 'error') => {
     setPopupMessage(msg);
     setPopupType(type);
     setShowPopup(true);
   }, []);
 
-  // ✅ Gọi API lấy thông tin người dùng hiện tại
   const fetchUser = useCallback(async () => {
     const token = Cookies.get('authToken');
     if (!token) return setLoading(false);
@@ -74,13 +75,11 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
     fetchUser();
   }, [fetchUser]);
 
-  // ✅ Cập nhật giá trị input khi người dùng nhập
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setUserData((prev) => ({ ...prev, [name]: value, passwordError: '' }));
   };
 
-  // ✅ Tách riêng logic kiểm tra hợp lệ đầu vào
   const validateForm = () => {
     const { name, phone, email, currentPassword } = userData;
 
@@ -104,7 +103,6 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
     return true;
   };
 
-  // ✅ Submit cập nhật thông tin người dùng
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -136,7 +134,7 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
         passwordError: '',
       });
 
-      onProfileUpdated?.(updatedUser);
+      onProfileUpdated?.();
       showPopupMessage('Profile updated successfully!', 'success');
       fetchUser();
     } catch (err: unknown) {
@@ -150,71 +148,76 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
   };
 
   return (
-    <div className="w-full flex justify-center">
+    <div className="w-full flex justify-center text-[15px] text-gray-800">
       <div className="container mx-auto px-4">
-        <div className="w-full max-w-[600px] mx-auto px-4 pt-10 text-black">
-          <form onSubmit={handleSubmit} className="p-8 bg-white rounded-lg shadow-md space-y-6">
+        {/* ✅ Bảng rộng hơn để dễ hiển thị */}
+        <div className="w-full max-w-[800px] mx-auto px-4 pt-10">
+          <form
+            onSubmit={handleSubmit}
+            className="p-8 bg-white rounded-xl shadow-lg border border-gray-100 space-y-6"
+          >
             <h2 className="text-2xl font-semibold text-[#DB4444] mb-4">Edit Your Profile</h2>
 
-            {/* ✅ Nhập tên và số điện thoại */}
+            {/* ✅ Input Name & Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="text-base font-medium block mb-1">Full Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={userData.name}
-                  onChange={handleChange}
-                  className="w-full bg-gray-100 p-3 text-base rounded-md focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-base font-medium block mb-1">Phone Number</label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={userData.phone}
-                  onChange={handleChange}
-                  className="w-full bg-gray-100 p-3 text-base rounded-md focus:outline-none"
-                />
-              </div>
-            </div>
+  <div>
+    <label className="text-sm font-medium block mb-1">Full Name</label>
+    <input
+      type="text"
+      name="name"
+      value={userData.name}
+      onChange={handleChange}
+      className="w-full bg-gray-100 p-3 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-0 focus:border-gray-400"
+    />
+  </div>
+  <div>
+    <label className="text-sm font-medium block mb-1">Phone Number</label>
+    <input
+      type="text"
+      name="phone"
+      value={userData.phone}
+      onChange={handleChange}
+      className="w-full bg-gray-100 p-3 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-0 focus:border-gray-400"
+    />
+  </div>
+</div>
 
-            {/* ✅ Nhập email và role */}
+
+            {/* ✅ Input Email & Role */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="text-base font-medium block mb-1">Email</label>
+                <label className="text-sm font-medium block mb-1">Email</label>
                 <input
                   type="text"
                   name="email"
                   value={userData.email}
                   onChange={handleChange}
-                  className="w-full bg-gray-100 p-3 text-base rounded-md focus:outline-none"
+                  className="w-full bg-gray-100 p-3 text-sm rounded-md border border-gray-300 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="text-base font-medium block mb-1">Role</label>
+                <label className="text-sm font-medium block mb-1">Role</label>
                 <input
                   type="text"
                   name="role"
                   value={userData.role}
                   disabled
-                  className="w-full bg-gray-100 p-3 text-base rounded-md text-gray-500 cursor-not-allowed"
+                  className="w-full bg-gray-100 p-3 text-sm rounded-md text-gray-500 border border-gray-200 cursor-not-allowed"
                 />
               </div>
             </div>
 
-            {/* ✅ Xác nhận mật khẩu hiện tại */}
+            {/* ✅ Nhập mật khẩu hiện tại để xác thực */}
             <div>
-              <label className="text-base font-medium block mb-2">Current Password</label>
+              <label className="text-sm font-medium block mb-1">Current Password</label>
               <input
                 type="password"
                 name="currentPassword"
                 value={userData.currentPassword}
                 onChange={handleChange}
                 placeholder="Enter current password"
-                className={`w-full bg-gray-100 p-3 text-base rounded-md focus:outline-none ${
-                  userData.passwordError ? 'border border-red-500' : ''
+                className={`w-full bg-gray-100 p-3 text-sm rounded-md border focus:outline-none ${
+                  userData.passwordError ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
               {userData.passwordError && (
@@ -222,7 +225,7 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
               )}
             </div>
 
-            {/* ✅ Buttons hành động */}
+            {/* ✅ Nút hành động */}
             <div className="flex justify-end gap-4 mt-6">
               <button
                 type="reset"
@@ -236,20 +239,20 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
                     passwordError: '',
                   }))
                 }
-                className="text-base text-gray-700 px-5 py-2.5 rounded-md hover:bg-gray-100"
+                className="text-sm text-gray-700 px-5 py-2.5 rounded-md hover:bg-gray-100"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="text-base bg-[#DB4444] text-white px-6 py-2.5 rounded-md hover:opacity-80"
+                className="text-sm bg-[#DB4444] text-white px-6 py-2.5 rounded-md hover:opacity-80"
               >
                 Save Changes
               </button>
             </div>
           </form>
 
-          {/* ✅ Popup hiển thị kết quả */}
+          {/* ✅ Popup kết quả */}
           {showPopup && (
             <div
               className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade ${

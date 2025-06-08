@@ -122,11 +122,11 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
           <div className="flex items-center gap-3">
             <span className="text-[1.25rem] md:text-[1.5rem] font-bold text-[#DC4B47]">
-              {product.sale_price?.toLocaleString() || product.price.toLocaleString()}₫
+              {Number(product.sale_price || product.price).toLocaleString('vi-VN')}₫
             </span>
             {product.sale_price && (
               <span className="line-through text-gray-400 text-sm">
-                {product.price.toLocaleString()}₫
+                {Number(product.price).toLocaleString('vi-VN')}₫
               </span>
             )}
           </div>
