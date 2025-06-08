@@ -102,9 +102,10 @@ const Wishlist = () => {
         <h2 className="text-lg font-medium text-black">
           Wishlist ({wishlistItems.length})
         </h2>
-        <button className="px-6 py-2 border border-gray-300 text-black text-sm font-medium rounded hover:bg-gray-50 transition-colors">
+        <button className="px-6 py-2 border border-gray-300 text-black text-sm font-medium rounded transition-colors duration-300 ease-in-out hover:bg-[#DB4444] hover:text-white">
           Move all to Cart
         </button>
+
       </div>
 
       {/* ✅ Hiển thị nội dung */}
