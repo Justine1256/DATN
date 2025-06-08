@@ -29,34 +29,32 @@ export default function ProductCard({ product }: { product?: Product }) {
   const [showCartPopup, setShowCartPopup] = useState(false);
   const router = useRouter();
 
-  if (!product) {
-    return <LoadingSkeleton />;
-  }
+  if (!product) return <LoadingSkeleton />;
 
   const hasDiscount = !!(product.sale_price && product.sale_price > 0);
   const discountPercentage = hasDiscount
     ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
     : 0;
 
-  // Xử lý khi người dùng bấm thích / bỏ thích
+  // ✅ Toggle thích sản phẩm
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newLikedState = !liked;
-    setLiked(newLikedState);
-    setPopupMessage(newLikedState ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích');
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setPopupMessage(newLiked ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích');
     setShowPopup(true);
     setTimeout(() => setShowPopup(false), 2000);
   };
 
-  // Xử lý khi người dùng bấm thêm vào giỏ hàng
+  // ✅ Thêm vào giỏ hàng
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Thay vì alert, hiển thị popup nhỏ góc phải
     setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
     setShowCartPopup(true);
     setTimeout(() => setShowCartPopup(false), 2000);
   };
 
+  // ✅ Xem chi tiết sản phẩm
   const handleViewDetail = () => {
     router.push(`/shop/${product.shop_slug}/product/${product.slug}`);
   };
@@ -66,24 +64,27 @@ export default function ProductCard({ product }: { product?: Product }) {
       onClick={handleViewDetail}
       className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
     >
-      {/* Popup yêu thích */}
+      {/* ✅ Popup yêu thích */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
-          {liked ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích'}
+          {popupMessage}
         </div>
       )}
 
+      {/* ✅ Hiển thị giảm giá */}
       {hasDiscount && discountPercentage > 0 && (
         <div className="absolute top-2 left-2 bg-brand text-white text-[10px] px-2 py-0.5 rounded">
           -{discountPercentage}%
         </div>
       )}
 
+      {/* ✅ Icon yêu thích */}
       <button onClick={handleLike} className="absolute top-2 right-2 text-xl z-10">
         {liked ? <AiFillHeart className="text-red-500" /> : <FiHeart className="text-gray-500" />}
       </button>
 
-      <div className="w-full h-[140px] mt-8 flex items-center justify-center bg-transparent">
+      {/* ✅ Hình ảnh sản phẩm */}
+      <div className="w-full h-[140px] mt-8 flex items-center justify-center bg-transparent select-none">
         <Image
           src={`http://localhost:8000/storage/${product.image}`}
           alt={product.name}
@@ -93,8 +94,9 @@ export default function ProductCard({ product }: { product?: Product }) {
         />
       </div>
 
+      {/* ✅ Thông tin sản phẩm */}
       <div className="flex flex-col mt-4 w-full px-1 pb-14">
-        <h4 className="text-sm font-semibold text-black truncate capitalize">
+        <h4 className="text-sm font-semibold text-black truncate capitalize select-text">
           {product.name}
         </h4>
 
@@ -121,6 +123,7 @@ export default function ProductCard({ product }: { product?: Product }) {
         </div>
       </div>
 
+      {/* ✅ Nút thêm vào giỏ hàng */}
       <button
         onClick={handleAddToCart}
         className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"

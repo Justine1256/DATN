@@ -16,6 +16,7 @@ export default function ChangePassword() {
   const [showPopup, setShowPopup] = useState(false);
   const [errorField, setErrorField] = useState(''); // ✅ Trường gây lỗi
 
+  // ✅ Tự động ẩn popup sau 2 giây
   useEffect(() => {
     if (showPopup) {
       const timer = setTimeout(() => setShowPopup(false), 2000);
@@ -23,17 +24,20 @@ export default function ChangePassword() {
     }
   }, [showPopup]);
 
+  // ✅ Xử lý thay đổi dữ liệu form
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrorField(''); // ✅ Xóa lỗi khi bắt đầu gõ lại
+    setErrorField(''); // ✅ Xóa lỗi khi người dùng bắt đầu sửa lại
   };
 
+  // ✅ Hiển thị popup thông báo
   const showAlert = (msg: string, type: 'success' | 'error') => {
     setPopup({ message: msg, type });
     setShowPopup(true);
   };
 
+  // ✅ Gửi dữ liệu đổi mật khẩu lên server
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const { oldPassword, newPassword, confirmNewPassword } = formData;
@@ -51,14 +55,15 @@ export default function ChangePassword() {
 
       const payload = {
         current_password: oldPassword,
-        new_password: newPassword,
+        password: newPassword,
+        password_confirmation: confirmNewPassword,
       };
 
       const res = await axios.put('http://localhost:8000/api/user', payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.data?.success || res.status === 200) {
+      if (res.data?.message?.toLowerCase().includes('thành công')) {
         showAlert('Password updated successfully!', 'success');
         setFormData({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
         setErrorField('');
@@ -66,11 +71,10 @@ export default function ChangePassword() {
         throw new Error();
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to update password.';
+      const msg = err?.response?.data?.error || 'Failed to update password.';
       showAlert(msg, 'error');
 
-      // ✅ Highlight input nếu mật khẩu hiện tại sai
-      if (msg.toLowerCase().includes('current password')) {
+      if (msg.toLowerCase().includes('mật khẩu hiện tại')) {
         setErrorField('oldPassword');
       }
     }
@@ -84,6 +88,7 @@ export default function ChangePassword() {
           <form onSubmit={handleSubmit} className="p-6 bg-white rounded-lg shadow-md space-y-6">
             <h2 className="text-xl font-semibold text-[#DB4444] mb-2">Change Password</h2>
 
+            {/* ✅ Mật khẩu hiện tại */}
             <div>
               <label className="text-sm font-medium block mb-1">Current Password</label>
               <input
@@ -96,6 +101,7 @@ export default function ChangePassword() {
               />
             </div>
 
+            {/* ✅ Mật khẩu mới */}
             <div>
               <label className="text-sm font-medium block mb-1">New Password</label>
               <input
@@ -108,6 +114,7 @@ export default function ChangePassword() {
               />
             </div>
 
+            {/* ✅ Nhập lại mật khẩu mới */}
             <div>
               <label className="text-sm font-medium block mb-1">Confirm New Password</label>
               <input
@@ -120,6 +127,7 @@ export default function ChangePassword() {
               />
             </div>
 
+            {/* ✅ Nút hành động */}
             <div className="flex justify-end gap-4 mt-4">
               <button
                 type="reset"

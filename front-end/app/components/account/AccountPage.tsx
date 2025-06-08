@@ -14,7 +14,12 @@ interface UserData {
   passwordError?: string;
 }
 
-export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (user: UserData) => void }) {
+// ✅ Khai báo props
+interface Props {
+  onProfileUpdated?: () => void;
+}
+
+export default function AccountPage({ onProfileUpdated }: Props) {
   const [userData, setUserData] = useState<UserData>({
     name: '',
     phone: '',
@@ -129,7 +134,7 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
         passwordError: '',
       });
 
-      onProfileUpdated?.(updatedUser);
+      onProfileUpdated?.();
       showPopupMessage('Profile updated successfully!', 'success');
       fetchUser();
     } catch (err: unknown) {
@@ -155,27 +160,28 @@ export default function AccountPage({ onProfileUpdated }: { onProfileUpdated?: (
 
             {/* ✅ Input Name & Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="text-sm font-medium block mb-1">Full Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={userData.name}
-                  onChange={handleChange}
-                  className="w-full bg-gray-100 p-3 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#DB4444]"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Phone Number</label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={userData.phone}
-                  onChange={handleChange}
-                  className="w-full bg-gray-100 p-3 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#DB4444]"
-                />
-              </div>
-            </div>
+  <div>
+    <label className="text-sm font-medium block mb-1">Full Name</label>
+    <input
+      type="text"
+      name="name"
+      value={userData.name}
+      onChange={handleChange}
+      className="w-full bg-gray-100 p-3 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-0 focus:border-gray-400"
+    />
+  </div>
+  <div>
+    <label className="text-sm font-medium block mb-1">Phone Number</label>
+    <input
+      type="text"
+      name="phone"
+      value={userData.phone}
+      onChange={handleChange}
+      className="w-full bg-gray-100 p-3 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-0 focus:border-gray-400"
+    />
+  </div>
+</div>
+
 
             {/* ✅ Input Email & Role */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
