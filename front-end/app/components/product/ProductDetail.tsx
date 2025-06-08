@@ -5,9 +5,11 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import ProductComments from './ProductCommernt';
 import BestSelling from '../home/BestSelling';
+import Cookies from 'js-cookie';
 
-// ✅ Interface định nghĩa dữ liệu sản phẩm
+// ✅ Kiểu dữ liệu sản phẩm
 interface Product {
+  id: number;
   name: string;
   price: number;
   sale_price?: number;
@@ -21,7 +23,7 @@ interface Product {
   stock?: number;
 }
 
-// ✅ Interface định nghĩa props nhận vào
+// ✅ Props nhận slug
 interface ProductDetailProps {
   shopslug: string;
   productslug: string;
@@ -31,7 +33,7 @@ interface ProductDetailProps {
 export default function ProductDetail({ shopslug, productslug }: ProductDetailProps) {
   const router = useRouter();
 
-  // ✅ State quản lý dữ liệu
+  // ✅ State quản lý
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [mainImage, setMainImage] = useState('');
@@ -40,7 +42,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [liked, setLiked] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
 
-  // ✅ Fetch sản phẩm từ API
+  // ✅ Fetch chi tiết sản phẩm
   useEffect(() => {
     const url = `http://localhost:8000/api/${shopslug}/product/${productslug}`;
     fetch(url)
@@ -59,22 +61,53 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         setSelectedColor(data.value1?.split(',')[0] || '');
         setSelectedSize(data.value2?.split(',')[0] || '');
       });
-  }, [shopslug, productslug]);
+  }, [shopslug, productslug,router]);
 
-  // ✅ Toggle yêu thích
-  const toggleLike = () => {
-    setLiked((prev) => {
-      const newLiked = !prev;
+  // ✅ Toggle yêu thích (gửi API)
+  const toggleLike = async () => {
+    if (!product) return;
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    if (!token) {
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
-      return newLiked;
-    });
+      return;
+    }
+
+    const newLiked = !liked;
+    setLiked(newLiked); // ✅ cập nhật UI ngay
+
+    try {
+      if (newLiked) {
+        // ✅ Gửi POST thêm vào wishlist
+        const res = await fetch('http://localhost:8000/api/wishlist', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ product_id: product.id }),
+        });
+        if (!res.ok) throw new Error('Không thể thêm vào wishlist');
+      } else {
+        // ✅ Gửi DELETE xoá khỏi wishlist
+        const res = await fetch(`http://localhost:8000/api/wishlist/${product.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Không thể xoá khỏi wishlist');
+      }
+    } catch (err) {
+      console.error('❌ Lỗi xử lý wishlist:', err);
+    } finally {
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+    }
   };
 
-  // ✅ Loading
+  // ✅ Hiển thị khi đang load
   if (!product) return <div className="p-6 text-base">Loading product...</div>;
 
-  // ✅ Chuẩn bị dữ liệu hiển thị
+  // ✅ Tách dữ liệu để render
   const thumbnails = product.images?.map((img) => (img.startsWith('/') ? img : `/${img}`)) || [`/${product.image}`];
   const colorOptions = product.value1?.split(',') || [];
   const sizeOptions = product.value2?.split(',') || [];
@@ -89,7 +122,9 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               <div
                 key={idx}
                 onClick={() => setMainImage(thumb)}
-                className={`cursor-pointer border-2 rounded overflow-hidden w-[80px] h-[80px] ${mainImage === thumb ? 'border-[#DC4B47]' : 'border-gray-300'}`}
+                className={`cursor-pointer border-2 rounded overflow-hidden w-[80px] h-[80px] ${
+                  mainImage === thumb ? 'border-[#DC4B47]' : 'border-gray-300'
+                }`}
               >
                 <Image src={thumb} alt={`Thumb ${idx}`} width={80} height={80} className="object-contain w-full h-full" />
               </div>
@@ -138,7 +173,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
             <hr className="mt-3 border-t-2 border-gray-300 w-full" />
           </div>
 
-          {/* ✅ Tuỳ chọn màu và size */}
+          {/* ✅ Tùy chọn màu và size */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
               <p className="font-medium text-gray-700 text-sm">Colors:</p>
@@ -147,7 +182,9 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
-                    className={`w-4 h-4 rounded-full border transition ${selectedColor === color ? 'border-black scale-105' : 'border-gray-300 hover:border-black'}`}
+                    className={`w-4 h-4 rounded-full border transition ${
+                      selectedColor === color ? 'border-black scale-105' : 'border-gray-300 hover:border-black'
+                    }`}
                     style={{ backgroundColor: color.toLowerCase() }}
                     title={color}
                   />
@@ -162,7 +199,9 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`text-xs min-w-[28px] px-2 py-0.5 rounded border text-center font-medium transition ${selectedSize === size ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300 hover:bg-black hover:text-white'}`}
+                    className={`text-xs min-w-[28px] px-2 py-0.5 rounded border text-center font-medium transition ${
+                      selectedSize === size ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300 hover:bg-black hover:text-white'
+                    }`}
                   >
                     {size}
                   </button>
@@ -184,7 +223,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
             <button onClick={toggleLike} className={`p-2 border rounded text-lg transition ${liked ? 'text-[#DC4B47]' : 'text-gray-400'}`}>{liked ? '❤️' : '🤍'}</button>
           </div>
 
-          {/* ✅ Chính sách vận chuyển */}
+          {/* ✅ Chính sách */}
           <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
             <div className="flex items-start gap-3 p-4">
               <span className="text-xl">🚚</span>
@@ -204,13 +243,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         </div>
       </div>
 
-      {/* ✅ Comment + sản phẩm gợi ý */}
+      {/* ✅ Bình luận + gợi ý */}
       <ProductComments shopslug={shopslug} productslug={productslug} />
       <div className="w-full max-w-screen-xl mx-auto mt-16 px-4">
         <BestSelling />
       </div>
 
-      {/* ✅ Popup yêu thích */}
+      {/* ✅ Popup trạng thái yêu thích */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
           {liked ? 'Added to favorites' : 'Removed from favorites'}

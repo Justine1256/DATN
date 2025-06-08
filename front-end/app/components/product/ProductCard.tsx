@@ -24,58 +24,38 @@ export interface Product {
   shop_slug: string;
 }
 
-// ✅ Kiểu item đơn giản từ wishlist (nếu vẫn fetch bên trong)
-interface WishlistItem {
-  product_id: number;
-}
-
-// ✅ Component hiển thị sản phẩm
 export default function ProductCard({
   product,
   onUnlike,
+  wishlistProductIds = [],
 }: {
   product?: Product;
   onUnlike?: (productId: number) => void;
+  wishlistProductIds?: number[];
 }) {
-  const [liked, setLiked] = useState(false); // ✅ Trạng thái đã yêu thích
-  const [showPopup, setShowPopup] = useState(false); // ✅ Trạng thái hiển thị popup
-  const [popupMessage, setPopupMessage] = useState(''); // ✅ Nội dung popup
+  const [liked, setLiked] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
   const router = useRouter();
 
-  // ✅ Kiểm tra nếu sản phẩm nằm trong wishlist của user
+  // ✅ Thiết lập trạng thái liked 1 lần duy nhất khi product.id thay đổi
   useEffect(() => {
-    const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token || !product) return;
+    if (product) {
+      setLiked(wishlistProductIds.includes(product.id));
+    }
+  }, [product?.id]);
 
-    fetch('http://127.0.0.1:8000/api/wishlist', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    })
-      .then((res) => res.json())
-      .then((data: WishlistItem[]) => {
-        // ❌ Gỡ console.log nếu không debug nữa
-        const exists = data.some((item) => item.product_id === product.id);
-        setLiked(exists);
-      })
-      .catch((err) => console.error('Lỗi kiểm tra wishlist:', err));
-  }, [product]);
-
-  // ✅ Loading state nếu chưa có sản phẩm
   if (!product) return <LoadingSkeleton />;
 
-  // ✅ Kiểm tra có giảm giá không
   const hasDiscount = !!(product.sale_price && product.sale_price > 0);
   const discountPercentage = hasDiscount
     ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
     : 0;
 
-  // ✅ Xử lý nhấn ❤️ (like hoặc unlike)
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const newLiked = !liked;
-    setLiked(newLiked);
+    setLiked(newLiked); // ✅ Đổi màu tim ngay lập tức
 
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) {
@@ -87,7 +67,6 @@ export default function ProductCard({
 
     try {
       if (newLiked) {
-        // ✅ Gửi yêu cầu thêm vào wishlist
         const res = await fetch('http://127.0.0.1:8000/api/wishlist', {
           method: 'POST',
           headers: {
@@ -99,7 +78,6 @@ export default function ProductCard({
         if (!res.ok) throw new Error('Không thể thêm vào wishlist!');
         setPopupMessage('Đã thêm vào yêu thích');
       } else {
-        // ✅ Gửi yêu cầu xóa khỏi wishlist
         const res = await fetch(`http://127.0.0.1:8000/api/wishlist/${product.id}`, {
           method: 'DELETE',
           headers: {
@@ -109,9 +87,7 @@ export default function ProductCard({
         });
         if (!res.ok) throw new Error('Không thể xóa khỏi wishlist!');
         setPopupMessage('Đã xóa khỏi yêu thích');
-
-        // ✅ Xóa khỏi giao diện nếu truyền `onUnlike` từ cha
-        onUnlike?.(product.id);
+        onUnlike?.(product.id); // ✅ Cập nhật UI nếu cần
       }
     } catch (err) {
       console.error('Lỗi xử lý wishlist:', err);
@@ -122,7 +98,6 @@ export default function ProductCard({
     }
   };
 
-  // ✅ Thêm vào giỏ hàng (hiện popup thông báo)
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
@@ -130,7 +105,6 @@ export default function ProductCard({
     setTimeout(() => setShowPopup(false), 2000);
   };
 
-  // ✅ Chuyển đến trang chi tiết sản phẩm
   const handleViewDetail = () => {
     router.push(`/shop/${product.shop_slug}/product/${product.slug}`);
   };
@@ -140,23 +114,30 @@ export default function ProductCard({
       onClick={handleViewDetail}
       className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
     >
-      {/* ✅ Popup thông báo (thêm/xóa giỏ hàng hoặc yêu thích) */}
+      {/* ✅ Popup thông báo */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
           {popupMessage}
         </div>
       )}
 
-      {/* ✅ Label giảm giá nếu có */}
+      {/* ✅ Label giảm giá */}
       {hasDiscount && discountPercentage > 0 && (
         <div className="absolute top-2 left-2 bg-brand text-white text-[10px] px-2 py-0.5 rounded">
           -{discountPercentage}%
         </div>
       )}
 
-      {/* ✅ Icon yêu thích */}
-      <button onClick={handleLike} className="absolute top-2 right-2 text-xl z-10">
-        {liked ? <AiFillHeart className="text-red-500" /> : <FiHeart className="text-gray-500" />}
+      {/* ✅ Icon ❤️ */}
+      <button
+        onClick={handleLike}
+        className="absolute top-2 right-2 text-xl z-20 pointer-events-auto"
+      >
+        {liked ? (
+          <AiFillHeart className="text-red-500 transition" />
+        ) : (
+          <FiHeart className="text-gray-500 transition" />
+        )}
       </button>
 
       {/* ✅ Ảnh sản phẩm */}
@@ -172,7 +153,7 @@ export default function ProductCard({
 
       {/* ✅ Thông tin sản phẩm */}
       <div className="flex flex-col mt-4 w-full px-1 pb-14">
-        <h4 className="text-sm font-semibold text-black truncate capitalize">
+        <h4 className="text-sm font-semibold text-black truncate capitalize pointer-events-none">
           {product.name}
         </h4>
 
@@ -189,18 +170,17 @@ export default function ProductCard({
           )}
         </div>
 
-        {/* ✅ Đánh giá sao (giả định cứng) */}
         <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
           {Array(5)
             .fill(0)
-            .map((_, i: number) => (
+            .map((_, i) => (
               <AiFillStar key={i} className="w-4 h-4" />
             ))}
           <span className="text-gray-600 text-[10px]">(88)</span>
         </div>
       </div>
 
-      {/* ✅ Nút "Add to cart" hiện khi hover */}
+      {/* ✅ Nút Add to cart */}
       <button
         onClick={handleAddToCart}
         className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"

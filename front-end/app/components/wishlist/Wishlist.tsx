@@ -31,10 +31,10 @@ interface WishlistItem {
 }
 
 const Wishlist = () => {
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]); // ✅ Danh sách sản phẩm yêu thích
-  const [loading, setLoading] = useState(true); // ✅ Trạng thái loading
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Kiểm tra token hợp lệ (dùng axios để xác thực)
+  // ✅ Kiểm tra token hợp lệ một lần khi vào trang
   useEffect(() => {
     const token = Cookies.get('authToken');
     if (!token) return;
@@ -54,7 +54,7 @@ const Wishlist = () => {
       });
   }, []);
 
-  // ✅ Lấy danh sách wishlist từ API
+  // ✅ Lấy danh sách wishlist khi vào trang
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) {
@@ -73,7 +73,6 @@ const Wishlist = () => {
         return res.json();
       })
       .then((data: WishlistItem[]) => {
-        
         setWishlistItems(data);
         setLoading(false);
       })
@@ -82,19 +81,16 @@ const Wishlist = () => {
         setLoading(false);
       });
   }, []);
-  // ✅ Log đúng một lần khi có dữ liệu
-  useEffect(() => {
-    if (wishlistItems.length > 0) {
-      console.log('✅ Wishlist items:', wishlistItems);
-    }
-  }, [wishlistItems]);
 
-  // ✅ Xử lý khi người dùng bỏ yêu thích (xóa sản phẩm khỏi UI)
+  // ✅ Gỡ sản phẩm khỏi danh sách hiển thị khi đã unlike
   const removeItem = (productId: number) => {
     setWishlistItems((prev) =>
       prev.filter((item) => item.product.id !== productId)
     );
   };
+
+  // ✅ Trích danh sách product_id để truyền xuống ProductCard
+  const wishlistProductIds = wishlistItems.map((item) => item.product.id);
 
   return (
     <div className="container mx-auto px-4">
@@ -111,7 +107,7 @@ const Wishlist = () => {
         </button>
       </div>
 
-      {/* ✅ Hiển thị trạng thái hoặc danh sách sản phẩm */}
+      {/* ✅ Hiển thị nội dung */}
       {loading ? (
         <p>Đang tải dữ liệu...</p>
       ) : wishlistItems.length === 0 ? (
@@ -125,7 +121,7 @@ const Wishlist = () => {
               key={item.id}
               product={item.product}
               onUnlike={removeItem}
-              // 👉 Nếu muốn truyền danh sách ID: wishlistProductIds={wishlistItems.map(i => i.product.id)}
+              wishlistProductIds={wishlistProductIds} // ✅ Truyền prop để hiển thị ❤️
             />
           ))}
         </div>
