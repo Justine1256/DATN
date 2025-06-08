@@ -5,7 +5,7 @@ import Cookies from 'js-cookie';
 import axios from 'axios';
 import ProductCard from '../product/ProductCard';
 
-// ✅ Định nghĩa kiểu dữ liệu sản phẩm
+// ✅ Kiểu dữ liệu sản phẩm
 interface Product {
   id: number;
   name: string;
@@ -22,6 +22,7 @@ interface Product {
   shop_slug: string;
 }
 
+// ✅ Kiểu dữ liệu mỗi item trong wishlist
 interface WishlistItem {
   id: number;
   product_id: number;
@@ -30,39 +31,33 @@ interface WishlistItem {
 }
 
 const Wishlist = () => {
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]); // ✅ Danh sách sản phẩm yêu thích
+  const [loading, setLoading] = useState(true); // ✅ Trạng thái loading
 
-  // ✅ Kiểm tra token hợp lệ
+  // ✅ Kiểm tra token hợp lệ (dùng axios để xác thực)
   useEffect(() => {
     const token = Cookies.get('authToken');
-    if (token) {
-      axios
-        .get('http://localhost:8000/api/user', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => {
-          console.log('✅ User data:', res.data);
-        })
-        .catch((err) => {
-          if (err.response) {
-            console.error('❌ Token không hợp lệ hoặc hết hạn:', err.response.data);
-          } else if (err.request) {
-            console.error('❌ Không có phản hồi từ server:', err.request);
-          } else {
-            console.error('❌ Lỗi khác:', err.message);
-          }
-        });
-    } else {
-      console.warn('⚠️ authToken không tồn tại trong Cookies');
-    }
+    if (!token) return;
+
+    axios
+      .get('http://localhost:8000/api/user', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .catch((err) => {
+        if (err.response) {
+          console.error('❌ Token không hợp lệ hoặc hết hạn:', err.response.data);
+        } else if (err.request) {
+          console.error('❌ Không có phản hồi từ server:', err.request);
+        } else {
+          console.error('❌ Lỗi khác:', err.message);
+        }
+      });
   }, []);
 
-  // ✅ Lấy danh sách wishlist
+  // ✅ Lấy danh sách wishlist từ API
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) {
-      console.log('Người dùng chưa đăng nhập');
       setLoading(false);
       return;
     }
@@ -78,25 +73,35 @@ const Wishlist = () => {
         return res.json();
       })
       .then((data: WishlistItem[]) => {
-        console.log('✅ Wishlist trả về:', data);
+        
         setWishlistItems(data);
         setLoading(false);
       })
       .catch((error) => {
-        console.error('LỖI:', error);
+        console.error('❌ Lỗi lấy wishlist:', error);
         setLoading(false);
       });
   }, []);
+  // ✅ Log đúng một lần khi có dữ liệu
+  useEffect(() => {
+    if (wishlistItems.length > 0) {
+      console.log('✅ Wishlist items:', wishlistItems);
+    }
+  }, [wishlistItems]);
 
-  // ✅ Hàm xóa item khỏi wishlist nếu user bỏ tim
+  // ✅ Xử lý khi người dùng bỏ yêu thích (xóa sản phẩm khỏi UI)
   const removeItem = (productId: number) => {
-    setWishlistItems(prev => prev.filter(item => item.product.id !== productId));
+    setWishlistItems((prev) =>
+      prev.filter((item) => item.product.id !== productId)
+    );
   };
 
   return (
     <div className="container mx-auto px-4">
+      {/* ✅ Khoảng trắng phía trên */}
       <div className="py-6" />
 
+      {/* ✅ Tiêu đề & Nút hành động */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-medium text-black">
           Wishlist ({wishlistItems.length})
@@ -106,6 +111,7 @@ const Wishlist = () => {
         </button>
       </div>
 
+      {/* ✅ Hiển thị trạng thái hoặc danh sách sản phẩm */}
       {loading ? (
         <p>Đang tải dữ liệu...</p>
       ) : wishlistItems.length === 0 ? (
@@ -115,7 +121,12 @@ const Wishlist = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
           {wishlistItems.map((item) => (
-            <ProductCard key={item.id} product={item.product} onUnlike={removeItem} />
+            <ProductCard
+              key={item.id}
+              product={item.product}
+              onUnlike={removeItem}
+              // 👉 Nếu muốn truyền danh sách ID: wishlistProductIds={wishlistItems.map(i => i.product.id)}
+            />
           ))}
         </div>
       )}

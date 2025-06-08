@@ -65,7 +65,7 @@ export default function CategoryGrid() {
     fetch('http://127.0.0.1:8000/api/category')
       .then((res) => res.json())
       .then((data) => {
-        console.log('📦 Category:', data);
+        // console.log('📦 Category:', data);
         setCategories(data);
       })
       .catch((err) => console.error('❌ Lỗi khi lấy category:', err));
