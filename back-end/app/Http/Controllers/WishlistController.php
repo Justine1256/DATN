@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
-use Illuminate\Support\Facades\Auth;
 
+use Illuminate\Support\Facades\Auth;
 use App\Models\Wishlist;
 use Illuminate\Http\Request;
 
@@ -19,8 +19,6 @@ class WishlistController extends Controller
         return response()->json($wishlists);
     }
 
-
-
     // Thêm sản phẩm vào wishlist
     public function store(Request $request)
     {
@@ -33,7 +31,17 @@ class WishlistController extends Controller
             'product_id' => $request->product_id,
         ]);
 
-        return response()->json($wishlist, 201);
+        if ($wishlist->wasRecentlyCreated) {
+            return response()->json([
+                'message' => 'Đã thêm sản phẩm yêu thích thành công',
+                'data' => $wishlist
+            ], 201);
+        } else {
+            return response()->json([
+                'message' => 'Sản phẩm đã có trong danh sách yêu thích',
+                'data' => $wishlist
+            ], 200);
+        }
     }
 
     // Xoá sản phẩm khỏi wishlist
@@ -44,9 +52,9 @@ class WishlistController extends Controller
             ->delete();
 
         if ($deleted) {
-            return response()->json(['message' => 'Removed from wishlist']);
+            return response()->json(['message' => 'Đã bỏ sản phẩm yêu thích thành công']);
         }
 
-        return response()->json(['message' => 'Not found'], 404);
+        return response()->json(['message' => 'Không tìm thấy sản phẩm trong danh sách yêu thích'], 404);
     }
 }

@@ -38,20 +38,17 @@ export default function ProductCard({ product }: { product?: Product }) {
     ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
     : 0;
 
-  // Xử lý khi người dùng bấm thích / bỏ thích
-  const handleLike = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newLikedState = !liked;
-    setLiked(newLikedState);
-    setPopupMessage(newLikedState ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích');
-    setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 2000);
-  };
+  // const handleLike = (e: React.MouseEvent) => {
+  //   e.stopPropagation();
+  //   const newLiked = !liked;
+  //   setLiked(newLiked);
+  //   setPopupMessage(newLiked ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích');
+  //   setShowPopup(true);
+  //   setTimeout(() => setShowPopup(false), 2000);
+  // };
 
-  // Xử lý khi người dùng bấm thêm vào giỏ hàng
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Thay vì alert, hiển thị popup nhỏ góc phải
     setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
     setShowCartPopup(true);
     setTimeout(() => setShowCartPopup(false), 2000);
@@ -68,41 +65,48 @@ export default function ProductCard({ product }: { product?: Product }) {
     >
       {/* Popup yêu thích */}
       {showPopup && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
-          {liked ? 'Đã thêm vào yêu thích' : 'Đã hủy yêu thích'}
+        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-pink-500 animate-slideInFade">
+          {popupMessage}
         </div>
       )}
 
+      {/* Popup thêm giỏ hàng */}
+      {showCartPopup && (
+        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
+          {popupMessage}
+        </div>
+      )}
+
+      {/* Hiển thị phần trăm giảm giá */}
       {hasDiscount && discountPercentage > 0 && (
         <div className="absolute top-2 left-2 bg-brand text-white text-[10px] px-2 py-0.5 rounded">
           -{discountPercentage}%
         </div>
       )}
 
+      {/* Nút yêu thích */}
       <button onClick={handleLike} className="absolute top-2 right-2 text-xl z-10">
         {liked ? <AiFillHeart className="text-red-500" /> : <FiHeart className="text-gray-500" />}
       </button>
 
+      {/* Hình ảnh sản phẩm */}
       <div className="w-full h-[140px] mt-8 flex items-center justify-center bg-transparent">
         <Image
           src={`http://localhost:8000/storage/${product.image}`}
           alt={product.name}
           width={2220}
           height={120}
-          className="object-contain max-h-[2220px] transition-transform duration-300 group-hover:scale-105 bg-transparent"
+          className="object-contain max-h-[2220px] transition-transform duration-300 group-hover:scale-105"
         />
       </div>
 
+      {/* Thông tin sản phẩm */}
       <div className="flex flex-col mt-4 w-full px-1 pb-14">
-        <h4 className="text-sm font-semibold text-black truncate capitalize">
-          {product.name}
-        </h4>
+        <h4 className="text-sm font-semibold text-black truncate capitalize">{product.name}</h4>
 
         <div className="flex gap-2 mt-1 items-center">
           <span className="text-red-500 font-bold text-base">
-            {new Intl.NumberFormat('vi-VN').format(
-              hasDiscount ? product.sale_price! : product.price
-            )}đ
+            {new Intl.NumberFormat('vi-VN').format(hasDiscount ? product.sale_price! : product.price)}đ
           </span>
           {hasDiscount && (
             <span className="text-gray-400 line-through text-xs">
@@ -112,15 +116,17 @@ export default function ProductCard({ product }: { product?: Product }) {
         </div>
 
         <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
-          {Array(5)
-            .fill(0)
-            .map((_, i) => (
-              <AiFillStar key={i} className="w-4 h-4" />
-            ))}
-          <span className="text-gray-600 text-[10px]">(88)</span>
+          {Array.from({ length: 5 }, (_, i) => (
+            <AiFillStar
+              key={i}
+              className={`w-4 h-4 ${i < Math.round(product.rating) ? 'text-yellow-500' : 'text-gray-300'}`}
+            />
+          ))}
+          <span className="text-gray-600 text-[10px] ml-1">({Math.round(product.rating * 20)})</span>
         </div>
       </div>
 
+      {/* Nút thêm giỏ hàng */}
       <button
         onClick={handleAddToCart}
         className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
