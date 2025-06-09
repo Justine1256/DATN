@@ -404,7 +404,7 @@ export default function ProductDetail({
       />
 
       {/* ✅ Bình luận sản phẩm */}
-      <ProductComments shopslug={shopslug} productslug={productslug} />
+      {/* <ProductComments shopslug={shopslug} productslug={productslug} /> */}
 
       {/* ✅ Gợi ý sản phẩm khác */}
       <div className="w-full max-w-screen-xl mx-auto mt-16 px-4">
