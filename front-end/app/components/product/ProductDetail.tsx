@@ -6,7 +6,9 @@ import Image from "next/image";
 import ProductComments from "./ProductCommernt";
 import BestSelling from "../home/BestSelling";
 import Cookies from "js-cookie";
-
+import ShopInfo from "./ShopInfo";
+//import tậm
+import ProductDescriptionAndSpecs from "./ProductDescriptionAndSpecs";
 // ✅ Interface định nghĩa dữ liệu sản phẩm
 interface Product {
   id: number;
@@ -70,14 +72,25 @@ export default function ProductDetail({
       })
       .then((data) => {
         if (!data) return;
+        console.log("👉 Product fetched from API:", data);
+        // ✅ Nếu không có danh sách ảnh phụ thì gán mặc định
         if (!data.images)
           data.images = ["/1.png", "/2.webp", "/3.webp", "/4.webp"];
+
+        // ✅ Gán dữ liệu sản phẩm
         setProduct(data);
+
+        // ✅ Set ảnh chính
         setMainImage(
           data.image.startsWith("/") ? data.image : `/${data.image}`
         );
+
+        // ✅ Gán màu + size mặc định
         setSelectedColor(data.value1?.split(",")[0] || "");
         setSelectedSize(data.value2?.split(",")[0] || "");
+
+        // ✅ Gán trạng thái Follow từ server
+        setFollowed(data.is_followed || false);
       });
   }, [shopslug, productslug, router]);
 
@@ -349,142 +362,46 @@ export default function ProductDetail({
 
       {/* ✅ Thông tin cửa hàng */}
       {product.shop && (
-        <div className="mt-12 border rounded-lg bg-white p-6 relative">
-          <div className="flex flex-col md:flex-row items-start justify-between gap-6">
-            {/* ✅ Cột trái: Logo shop, tên shop, trạng thái và nút hành động */}
-            <div className="flex gap-6 items-start flex-col md:flex-row md:items-center flex-[1.5] relative">
-              <div className="flex gap-4 items-start">
-                {/* ✅ Logo shop */}
-                <div className="relative w-20 h-20">
-                  <Image
-                    src={`/${product.shop.logo}`}
-                    alt="Shop"
-                    width={60}
-                    height={60}
-                    className="rounded-full object-cover"
-                  />
-
-                  {/* ✅ Nút Follow nằm chính giữa ảnh logo */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <button
-                      onClick={handleFollow}
-                      className="bg-[#DC4B47] text-white text-[11px] font-semibold px-2 py-[1px] rounded shadow hover:brightness-110 transition"
-                    >
-                      {followed ? "Un Flow" : "Flow"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* ✅ Tên và trạng thái shop */}
-                <div className="text-black">
-                  <h3 className="text-xl font-semibold mb-1">
-                    {product.shop.name}
-                  </h3>
-                  <p
-                    className={`font-medium text-sm ${
-                      product.shop.status === "activated"
-                        ? "text-green-600"
-                        : product.shop.status === "pending"
-                        ? "text-yellow-500"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {product.shop.status === "activated" && "Đang hoạt động"}
-                    {product.shop.status === "pending" && "Đang chờ duyệt"}
-                    {product.shop.status === "suspended" && "Tạm khóa"}
-                  </p>
-                  <div className="flex gap-2 mt-2">
-                    <button className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1">
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M2 3v18l4-4h14V3H2zm2 2h14v10H6l-2 2V5z" />
-                      </svg>
-                      Chat Ngay
-                    </button>
-                    <button className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1">
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-                      </svg>
-                      Xem Shop
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ✅ Cột phải: thông tin thống kê shop */}
-            <div className="flex-[1.2] w-full md:max-w-[360px] border-l border-gray-200 pl-4">
-              <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm text-gray-800">
-                {/* ✅ Đánh giá */}
-                <div>
-                  <p className="text-gray-500">Đánh Giá</p>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <svg
-                        key={i}
-                        className={`w-4 h-4 ${
-                          i <= Math.floor(Number(product.shop?.rating || 0))
-                            ? "text-yellow-400"
-                            : "text-gray-300"
-                        }`}
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 .587l3.668 7.571L24 9.748l-6 5.853 1.417 8.268L12 19.771l-7.417 4.098L6 15.601 0 9.748l8.332-1.59z" />
-                      </svg>
-                    ))}
-                    <span className="text-red-500 font-semibold ml-1">
-                      {Number(product.shop.rating).toFixed(1)} / 5
-                    </span>
-                  </div>
-                </div>
-
-                {/* ✅ Tổng đơn */}
-                <div>
-                  <p className="text-gray-500">Sản Phẩm</p>
-                  <p className="text-red-500 font-semibold">
-                    {product.shop.total_sales}
-                  </p>
-                </div>
-
-                {/* ✅ Tốc độ phản hồi */}
-                <div>
-                  <p className="text-gray-500">Thời Gian Phản Hồi</p>
-                  <p className="text-red-500 font-semibold">Trong vài giờ</p>
-                </div>
-
-                {/* ✅ Thời gian tham gia */}
-                {product.shop.created_at && (
-                  <div>
-                    <p className="text-gray-500">Tham Gia</p>
-                    <p className="text-red-500 font-semibold">
-                      {(() => {
-                        const createdAt = new Date(product.shop.created_at);
-                        const now = new Date();
-                        const diffMs = now.getTime() - createdAt.getTime();
-                        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                        const months = Math.floor(days / 30);
-                        const years = Math.floor(days / 365);
-
-                        if (days < 30) return `${days} ngày`;
-                        if (years >= 1) return `${years} năm`;
-                        return `${months} tháng`;
-                      })()}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <ShopInfo
+          shop={product.shop}
+          followed={followed}
+          onFollowToggle={handleFollow}
+        />
       )}
+      {/*tạm*/}
+      <ProductDescriptionAndSpecs
+        breadcrumbs={[
+          { name: "Trang chủ", href: "/" },
+          { name: "Điện thoại", href: "/dien-thoai" },
+          { name: "Apple", href: "/dien-thoai/apple" },
+          { name: "iPhone 15 Pro Max" }, // hiện tại
+        ]}
+        specs={[
+          { label: "Loại sản phẩm", value: "Điện thoại" },
+          { label: "Tình trạng", value: "Mới 100%" },
+          { label: "Bảo hành", value: "12 tháng toàn quốc" },
+          { label: "Sản phẩm có sẵn", value: "Có" },
+          { label: "Thương hiệu", value: "Apple" },
+          { label: "Xuất xứ", value: "Mỹ" },
+          { label: "Dung lượng", value: "256GB" },
+          { label: "Gửi từ", value: "TP.HCM" },
+        ]}
+        descriptionLines={[
+          "iPhone 15 Pro Max mới nhất chính hãng.",
+          "Màn hình 6.7 inch Super Retina XDR.",
+          "Camera 48MP ProRAW, chip A17 Bionic.",
+          "Bảo hành 12 tháng toàn quốc.",
+          "Hỗ trợ đổi trả trong 7 ngày nếu có lỗi.",
+        ]}
+        hashtags={[
+          "iphone15promax",
+          "smartphone",
+          "apple",
+          "dienthoai",
+          "hangchinhhang",
+          "baohanh12thang",
+        ]}
+      />
 
       {/* ✅ Bình luận sản phẩm */}
       <ProductComments shopslug={shopslug} productslug={productslug} />
