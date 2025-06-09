@@ -86,7 +86,17 @@ export default function ProductCard({
           },
           body: JSON.stringify({ product_id: product.id }),
         });
+
+        // ✅ Bắt lỗi 409 - sản phẩm đã có trong danh sách
+        if (res.status === 409) {
+          setPopupMessage("Sản phẩm đã có trong danh sách yêu thích");
+          setShowPopup(true);
+          setTimeout(() => setShowPopup(false), 2000);
+          return;
+        }
+
         if (!res.ok) throw new Error("Không thể thêm vào wishlist!");
+
         setPopupMessage("Đã thêm vào yêu thích");
         onLiked?.(product); // ✅ Báo về cha để cập nhật danh sách
       } else {
@@ -112,6 +122,7 @@ export default function ProductCard({
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
+
 
   // ✅ Thêm vào giỏ hàng
 
