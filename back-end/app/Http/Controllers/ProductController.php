@@ -21,7 +21,8 @@ class ProductController extends Controller
     // Chi tiết 1 sản phẩm
 public function show($shopslug, $productslug)
 {
-    $product = Product::where('slug', $productslug)
+    $product = Product::with('shop') // <-- Load thông tin shop
+        ->where('slug', $productslug)
         ->whereHas('shop', function($query) use ($shopslug) {
             $query->where('slug', $shopslug);
         })
@@ -33,6 +34,7 @@ public function show($shopslug, $productslug)
 
     return response()->json($product);
 }
+
 
 public function getCategoryAndProductsBySlug($slug)
 {
