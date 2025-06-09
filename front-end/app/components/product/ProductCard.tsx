@@ -113,13 +113,55 @@ export default function ProductCard({
     }
   };
 
+<<<<<<< HEAD
   // ✅ Thêm vào giỏ hàng
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
+=======
+const handleAddToCart = async (e: React.MouseEvent) => {
+  e.stopPropagation();
+
+  const token = localStorage.getItem('token') || Cookies.get('authToken');
+
+  if (!token) {
+    setPopupMessage('Bạn cần đăng nhập để thêm vào giỏ hàng');
+>>>>>>> 6e16ae90e38d0c44da99a7a5c165658d2220614c
     setShowPopup(true);
     setTimeout(() => setShowPopup(false), 2000);
-  };
+    return;
+  }
+
+  try {
+    const res = await fetch('http://127.0.0.1:8000/api/cart', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        product_id: product.id,
+        quantity: 1, // hoặc cho phép chọn số lượng
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Thêm vào giỏ hàng thất bại');
+    }
+
+    const result = await res.json();
+    setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
+  } catch (err: any) {
+    console.error('Lỗi khi thêm vào giỏ hàng:', err);
+    setPopupMessage(err.message || 'Đã xảy ra lỗi khi thêm sản phẩm');
+  } finally {
+    setShowPopup(true);
+    setTimeout(() => setShowPopup(false), 2000);
+  }
+};
+
 
   // ✅ Chuyển tới trang chi tiết sản phẩm
   const handleViewDetail = () => {
