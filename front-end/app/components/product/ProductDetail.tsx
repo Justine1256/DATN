@@ -82,36 +82,83 @@ export default function ProductDetail({
   }, [shopslug, productslug, router]);
 
   // ✅ Xử lý theo dõi shop
-  const handleFollow = async () => {
-    if (!product?.shop) return;
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
-    if (!token) return;
+const handleFollow = async () => {
+  const token = localStorage.getItem("token") || Cookies.get("authToken");
 
-    const newFollowed = !followed;
-    const url = `http://127.0.0.1:8000/api/shops/${product.shop.id}/${
-      newFollowed ? "follow" : "unfollow"
-    }`;
-    const method = newFollowed ? "POST" : "DELETE";
+  if (!token) {
+    setPopupText("Vui lòng đăng nhập để theo dõi shop");
+    setShowPopup(true);
+    setTimeout(() => setShowPopup(false), 2000);
+    return;
+  }
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { Authorization: `Bearer ${token}` },
+  if (!product?.shop?.id) return;
+
+  try {
+    const shopId = product.shop.id;
+
+    if (followed) {
+      // UNFOLLOW
+      const res = await fetch(`http://localhost:8000/api/shops/${shopId}/unfollow`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
       });
 
       if (res.ok) {
-        setFollowed(newFollowed); // ✅ Cập nhật trạng thái
-        setPopupText(newFollowed ? "Đã theo dõi shop" : "Đã hủy theo dõi shop"); // ✅ Gán text
-        setShowPopup(true);
-        setTimeout(() => {
-          setShowPopup(false);
-          setPopupText(""); // ✅ Reset text sau khi ẩn
-        }, 2000);
+        setFollowed(false);
+      } else {
+        const data = await res.json();
+        console.error("❌ Lỗi unfollow:", data.message || res.statusText);
+      }
+    } else {
+      // FOLLOW
+      const res = await fetch(`http://localhost:8000/api/shops/${shopId}/follow`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (res.ok) {
+        setFollowed(true);
+      } else {
+        const data = await res.json();
+        console.error("❌ Lỗi follow:", data.message || res.statusText);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Lỗi xử lý follow/unfollow:", err);
+  }
+};
+
+useEffect(() => {
+  const checkFollowStatus = async () => {
+    const token = localStorage.getItem("token") || Cookies.get("authToken");
+    if (!token || !product?.shop?.id) return;
+
+    try {
+      const res = await fetch(`http://localhost:8000/api/shops/${product.shop?.id}/is-following`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setFollowed(data.followed); // Cập nhật trạng thái ban đầu
       }
     } catch (err) {
-      console.error("❌ Follow error:", err);
+      console.error("❌ Lỗi kiểm tra follow status:", err);
     }
   };
+
+  checkFollowStatus();
+}, [product]);
+
 
   // ✅ Xử lý thêm/bỏ yêu thích sản phẩm
   const toggleLike = async () => {
@@ -364,16 +411,17 @@ export default function ProductDetail({
                     className="rounded-full object-cover"
                   />
 
-                  {/* ✅ Nút Follow nằm chính giữa ảnh logo */}
+                  
+                </div>
+                {/* ✅ Nút Follow nằm chính giữa ảnh logo */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <button
                       onClick={handleFollow}
                       className="bg-[#DC4B47] text-white text-[11px] font-semibold px-2 py-[1px] rounded shadow hover:brightness-110 transition"
                     >
-                      {followed ? "Un Flow" : "Flow"}
+                      {followed ? "Đang theo dõi" : "Theo dõi"}
                     </button>
                   </div>
-                </div>
 
                 {/* ✅ Tên và trạng thái shop */}
                 <div className="text-black">
