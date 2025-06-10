@@ -1,18 +1,38 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from 'react';
 
 const discounts = [
-  { id: 1, label: "Up to 30% off – Min order 420K", time: "Jun 28 – Aug 02", left: 0 },
-  { id: 2, label: "Up to 30% off – Min order 420K", time: "Jun 28 – Aug 02", left: 0 },
-  { id: 3, label: "Up to 20% off – Min order 159 K", time: "Mar 22 – Apr 26", left: 56 },
-  { id: 4, label: "Up to 50% off – Min order 500K", time: "Oct 14 – Nov 18", left: 435 },
-  { id: 5, label: "Up to 50% off – Min order 500K", time: "Oct 14 – Nov 18", left: 435 },
-  { id: 6, label: "Up to 50% off – Min order 500K", time: "Dec 06 – Jan 10", left: 34 },
-  { id: 7, label: "Up to 10% off – Min order 100K", time: "Jul 01 – Jul 31", left: 12 }, // thêm dòng này để test scroll
+  { id: 1, label: 'Up to 30% off – Min order 420K', time: 'Jun 28 – Aug 02', left: 0 },
+  { id: 2, label: 'Up to 30% off – Min order 420K', time: 'Jun 28 – Aug 02', left: 0 },
+  { id: 3, label: 'Up to 20% off – Min order 159 K', time: 'Mar 22 – Apr 26', left: 56 },
+  { id: 4, label: 'Up to 50% off – Min order 500K', time: 'Oct 14 – Nov 18', left: 435 },
+  { id: 5, label: 'Up to 50% off – Min order 500K', time: 'Oct 14 – Nov 18', left: 435 },
+  { id: 6, label: 'Up to 50% off – Min order 500K', time: 'Dec 06 – Jan 10', left: 34 },
+  { id: 7, label: 'Up to 10% off – Min order 100K', time: 'Jul 01 – Jul 31', left: 12 },
 ];
 
-export default function CartSummarySection() {
+interface CartItem {
+  id: number;
+  quantity: number;
+  price: number;
+  product: {
+    id: number;
+    name: string;
+    image: string;
+    price: number;
+    option1?: string;
+    value1?: string;
+    option2?: string;
+    value2?: string;
+  };
+}
+
+interface Props {
+  cartItems: CartItem[];
+}
+
+export default function CartSummarySection({ cartItems }: Props) {
   const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
   const [showShadow, setShowShadow] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -26,11 +46,18 @@ export default function CartSummarySection() {
       setShowShadow(!atBottom);
     };
 
-    el.addEventListener("scroll", handleScroll);
+    el.addEventListener('scroll', handleScroll);
     handleScroll();
-
-    return () => el.removeEventListener("scroll", handleScroll);
+    return () => el.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const subtotal = cartItems.reduce(
+    (acc, item) => acc + item.quantity * Number(item.product?.price || 0),
+    0
+  );
+  const shipping = cartItems.length > 0 ? 20000 : 0;
+  const discount = 0;
+  const total = subtotal + shipping - discount;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black min-h-[520px]">
@@ -38,32 +65,32 @@ export default function CartSummarySection() {
       <div className="flex flex-col h-full">
         <div className="flex-1 border rounded-md p-4 space-y-3 relative overflow-hidden">
           <div className="flex items-center gap-3">
-  <h2 className="font-semibold text-md whitespace-nowrap">Discount</h2>
-  <input
-    type="text"
-    placeholder="Discount code"
-    className="flex-1 border rounded-md px-4 py-2 text-sm"
-  />
-</div>
+            <h2 className="font-semibold text-md whitespace-nowrap">Discount</h2>
+            <input
+              type="text"
+              placeholder="Discount code"
+              className="flex-1 border rounded-md px-4 py-2 text-sm"
+            />
+          </div>
 
           <div
             ref={scrollRef}
-            className="space-y-2 overflow-y-auto pr-2 max-h-[390px]" // chiều cao đủ chứa khoảng 6 voucher
+            className="space-y-2 overflow-y-auto pr-2 max-h-[390px]"
           >
             {discounts.map((d) => {
               const borderColor =
                 d.left === 0
-                  ? "border-blue-300"
+                  ? 'border-blue-300'
                   : selectedDiscount === d.id
-                  ? "border-brand"
-                  : "border-gray-200";
+                  ? 'border-brand'
+                  : 'border-gray-200';
 
               const textColor =
                 d.left === 0
-                  ? "text-blue-400"
+                  ? 'text-blue-400'
                   : d.left > 100
-                  ? "text-brand"
-                  : "text-gray-400";
+                  ? 'text-brand'
+                  : 'text-gray-400';
 
               return (
                 <label
@@ -89,7 +116,6 @@ export default function CartSummarySection() {
             })}
           </div>
 
-          {/* Shadow effect if scrollable */}
           {showShadow && (
             <div className="absolute bottom-4 left-0 w-full h-6 pointer-events-none bg-gradient-to-t from-white to-transparent" />
           )}
@@ -103,21 +129,15 @@ export default function CartSummarySection() {
           <div className="text-sm space-y-2 mb-4">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>$1750</span>
+              <span>{subtotal.toLocaleString()}đ</span>
             </div>
             <div className="flex justify-between">
               <span>Shipping:</span>
-              <span>$20</span>
+              <span>{shipping.toLocaleString()}đ</span>
             </div>
-            <div className="space-y-1">
-              <div className="flex justify-between">
-                <span className="text-gray-700">Discount:</span>
-                <span className="text-brand">- $50</span>
-              </div>
-              <div className="pl-2 text-xs text-brand space-y-0.5">
-                <p>Shipping &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -$20</p>
-                <p>Marketo &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -$30</p>
-              </div>
+            <div className="flex justify-between">
+              <span className="text-gray-700">Discount:</span>
+              <span className="text-brand">- {discount.toLocaleString()}đ</span>
             </div>
           </div>
         </div>
@@ -125,7 +145,7 @@ export default function CartSummarySection() {
           <hr className="mb-4" />
           <div className="flex justify-between font-semibold text-brand text-lg mb-4">
             <span>Total:</span>
-            <span>$1700</span>
+            <span>{total.toLocaleString()}đ</span>
           </div>
           <button className="w-full bg-brand hover:opacity-80 text-white font-semibold py-2 rounded">
             Checkout

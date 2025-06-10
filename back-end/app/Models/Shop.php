@@ -32,8 +32,8 @@ class Shop extends Model
     }
 
     public function followers()
-    {
-        return $this->hasMany(Follow::class);
-    }
+{
+    return $this->belongsToMany(User::class, 'shop_user', 'shop_id', 'user_id');
+}
 }
 

@@ -123,7 +123,6 @@ export default function ProductCard({
     }
   };
 
-
   // ✅ Thêm vào giỏ hàng
 
   const handleAddToCart = async (e: React.MouseEvent) => {

@@ -122,6 +122,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/shops/{shopId}/unfollow', [FollowController::class, 'unfollowShop']);
     Route::get('/my/followed-shops', [FollowController::class, 'getFollowedShops']);
     Route::get('/shops/{shopId}/followers', [FollowController::class, 'getFollowersByShop']);
+    Route::get('/shops/{shopId}/is-following', [FollowController::class, 'isFollowing']);
 
     // báo cáo shop
     Route::get('/reports', [ReportController::class, 'index']);       // admin xem danh sách

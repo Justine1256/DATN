@@ -1,6 +1,6 @@
-'use client';
-import { useParams } from 'next/navigation';
-import ProductDetail from '@/app/components/product/ProductDetail';
+"use client";
+import { useParams } from "next/navigation";
+import ProductDetail from "@/app/components/product/ProductDetail";
 
 export default function ProductPage() {
   const { shopslug, productslug } = useParams() as {
