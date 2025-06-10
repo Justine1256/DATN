@@ -13,10 +13,22 @@ interface CartItem {
     name: string;
     image: string;
     price: number;
+    option1?: string;
+    value1?: string;
+    option2?: string;
+    value2?: string;
   };
 }
 
-export default function CartItemsSection() {
+interface Props {
+  cartItems: CartItem[];
+  setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
+}
+
+export default function CartItemsSection({
+  cartItems: propsCartItems,
+  setCartItems: propsSetCartItems,
+}: Props) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,12 +43,25 @@ export default function CartItemsSection() {
           Accept: 'application/json',
         },
       });
+
       if (!res.ok) throw new Error('Không thể tải giỏ hàng');
 
       const data = await res.json();
       setCartItems(data);
+      propsSetCartItems(data);
+      localStorage.setItem('cartItems', JSON.stringify(data));
     } catch (error) {
-      console.error('Lỗi lấy giỏ hàng:', error);
+      console.warn('API thất bại, fallback localStorage');
+      const stored = localStorage.getItem('cartItems');
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          setCartItems(data);
+          propsSetCartItems(data);
+        } catch (err) {
+          console.error('Lỗi đọc localStorage:', err);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -46,18 +71,71 @@ export default function CartItemsSection() {
     fetchCartItems();
   }, []);
 
-  const handleQuantityChange = (id: number, value: number) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(1, value) } : item
-      )
-    );
-    // ✅ Có thể gọi thêm API PUT để cập nhật backend (nếu cần)
+  const handleRemove = async (id: number) => {
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    if (!token) return;
+
+    try {
+      await fetch(`http://127.0.0.1:8000/api/cart/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+
+      const updated = cartItems.filter((item) => item.id !== id);
+setCartItems(updated);
+propsSetCartItems(updated); // gọi sau khi setState
+localStorage.setItem('cartItems', JSON.stringify(updated));
+
+    } catch (error) {
+      console.error('Lỗi xoá sản phẩm khỏi giỏ:', error);
+    }
   };
 
-  const handleRemove = (id: number) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-    // ✅ Gọi thêm API DELETE nếu muốn xóa backend
+  const handleQuantityChange = async (id: number, value: number) => {
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    if (!token) return;
+
+    const quantity = Math.max(1, value);
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/cart/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quantity }),
+      });
+
+      if (!res.ok) throw new Error('Không thể cập nhật số lượng');
+
+      const updated = cartItems.map((item) =>
+  item.id === id ? { ...item, quantity } : item
+);
+setCartItems(updated);
+propsSetCartItems(updated);
+localStorage.setItem('cartItems', JSON.stringify(updated));
+
+    } catch (error) {
+      console.error('Lỗi cập nhật số lượng:', error);
+    }
+  };
+
+  const renderVariant = (item: CartItem) => {
+    const variants: string[] = [];
+
+    if (item.product.option1 && item.product.value1) variants.push(item.product.value1);
+    if (item.product.option2 && item.product.value2) variants.push(item.product.value2);
+
+    return variants.length > 0 ? (
+      <p className="text-xs text-gray-400">{variants.join(', ')}</p>
+    ) : (
+      <p className="text-xs text-gray-400 italic">Không có</p>
+    );
   };
 
   if (loading) return <p className="text-center py-10">Đang tải giỏ hàng...</p>;
@@ -65,24 +143,25 @@ export default function CartItemsSection() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="grid grid-cols-4 text-black font-semibold text-sm bg-white p-4 shadow-sm">
+      <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] text-black font-semibold text-sm bg-white p-4 shadow">
         <div className="text-left">Product</div>
+        <div className="text-left">Variant</div>
         <div className="text-center">Price</div>
         <div className="text-center">Quantity</div>
-        <div className="text-right">Subtotal</div>
+        <div className="text-right">Total</div>
       </div>
 
       {/* Items */}
       {cartItems.map((item) => (
         <div
           key={item.id}
-          className="grid grid-cols-4 items-center bg-white p-4 shadow-sm relative"
+          className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] items-center bg-white p-4 shadow relative"
         >
           {/* Product */}
           <div className="flex items-center gap-4 relative text-left">
             <button
               onClick={() => handleRemove(item.id)}
-              className="absolute -top-2 -left-2 bg-white border border-brand text-brand rounded-full w-5 h-5 text-xs flex items-center justify-center shadow-sm"
+              className="absolute -top-2 -left-2 bg-white border border-brand text-brand rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
               title="Remove item"
             >
               ✕
@@ -97,8 +176,13 @@ export default function CartItemsSection() {
               />
             </div>
 
-            <span className="text-sm font-medium text-black">{item.product.name}</span>
+            <span className="text-sm font-medium text-black">
+              {item.product.name}
+            </span>
           </div>
+
+          {/* Variant */}
+          <div>{renderVariant(item)}</div>
 
           {/* Price */}
           <div className="text-center text-sm font-semibold text-black">
@@ -119,7 +203,7 @@ export default function CartItemsSection() {
           </div>
 
           {/* Subtotal */}
-          <div className="text-right text-sm font-semibold text-black">
+          <div className="text-right text-sm font-semibold text-red-500">
             {(Number(item.product?.price || 0) * item.quantity).toLocaleString()}đ
           </div>
         </div>
