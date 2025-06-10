@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import { useState, useEffect } from "react";
+import { LoadingShopInfo } from "../loading/loading";
 
-// ✅ Interface định nghĩa dữ liệu cửa hàng
+// ✅ Interface dữ liệu cửa hàng
 interface Shop {
   id: number;
   name: string;
@@ -16,46 +18,88 @@ interface Shop {
   email: string;
 }
 
-// ✅ Props truyền vào component
 interface ShopInfoProps {
   shop: Shop;
   followed: boolean;
   onFollowToggle: () => void;
 }
 
-// ✅ Component hiển thị thông tin cửa hàng
 export default function ShopInfo({
   shop,
   followed,
   onFollowToggle,
 }: ShopInfoProps) {
+  const [popupText, setPopupText] = useState("");
+  const [showPopup, setShowPopup] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [showFollowButton, setShowFollowButton] = useState(!followed);
+  const [showUnfollowText, setShowUnfollowText] = useState(followed);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setIsLoaded(true), 1000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // ✅ Bấm nút Flow
+  const handleFollowClick = () => {
+    setShowFollowButton(false);
+    setShowUnfollowText(true);
+    onFollowToggle();
+    setPopupText("Đã theo dõi shop");
+    setShowPopup(true);
+    setTimeout(() => setShowPopup(false), 2000);
+  };
+
+  // ✅ Bấm Hủy theo dõi
+  const handleUnfollowClick = () => {
+    setShowFollowButton(true);
+    setShowUnfollowText(false);
+    onFollowToggle();
+    setPopupText("Đã bỏ theo dõi shop");
+    setShowPopup(true);
+    setTimeout(() => setShowPopup(false), 2000);
+  };
+
+  if (!isLoaded) return <LoadingShopInfo />;
+
   return (
     <div className="mt-12 border rounded-lg bg-white p-6 relative">
-      <div className="flex flex-col md:flex-row items-start justify-between gap-6 md:items-stretch">
-        {/* ✅ Cột trái: logo, tên shop, trạng thái, nút */}
-        <div className="flex-[1.2] flex gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        {/* ✅ Trái: logo + tên + nút */}
+        <div className="flex gap-4 items-start">
           <div className="relative w-20 h-20">
             <Image
               src={`/${shop.logo}`}
-              alt="Shop Logo"
+              alt="Shop"
               width={60}
               height={60}
               className="rounded-full object-cover"
             />
-            {/* ✅ Nút Flow nằm đè lên giữa logo */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button
-                onClick={onFollowToggle}
-                className="bg-[#DC4B47] text-white text-[11px] font-semibold px-2 py-[1px] rounded shadow hover:brightness-110 transition"
-              >
-                {followed ? "Un Flow" : "Flow"}
-              </button>
-            </div>
+            {showFollowButton && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <button
+                  onClick={handleFollowClick}
+                  className="bg-[#DC4B47] text-white text-[11px] font-semibold px-2 py-[2px] rounded shadow hover:brightness-110 transition"
+                >
+                  Flow
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* ✅ Tên shop, trạng thái, nút chat */}
+          {/* ✅ Tên shop + trạng thái + "Hủy theo dõi" */}
           <div className="text-black">
-            <h3 className="text-xl font-semibold mb-1">{shop.name}</h3>
+            <h3 className="text-xl font-semibold mb-1 flex items-center gap-2">
+              {shop.name}
+              {showUnfollowText && (
+                <button
+                  onClick={handleUnfollowClick}
+                  className="text-sm text-[#DC4B47] underline hover:text-red-600 transition"
+                >
+                  Hủy theo dõi
+                </button>
+              )}
+            </h3>
             <p
               className={`font-medium text-sm ${
                 shop.status === "activated"
@@ -71,63 +115,79 @@ export default function ShopInfo({
             </p>
 
             <div className="flex gap-2 mt-2">
-              <button className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition">
-                💬 Chat Ngay
+              <button className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1">
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M2 3v18l4-4h14V3H2zm2 2h14v10H6l-2 2V5z" />
+                </svg>
+                Chat Ngay
               </button>
-              <button className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition">
-                🏪 Xem Shop
+              <button className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1">
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                </svg>
+                Xem Shop
               </button>
             </div>
           </div>
         </div>
 
-        {/* ✅ Gạch chia dọc */}
-        <div className="hidden md:block w-px bg-gray-200 mx-10 -translate-x-12" />
+        {/* ✅ Phải: Thông tin chia cột dọc */}
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-6 text-sm text-gray-800">
+          <div className="flex items-center gap-1">
+            <span className="text-gray-500">Đánh Giá:</span>
+            <span className="text-red-500 font-semibold">
+              {Number(shop.rating).toFixed(1)}
+            </span>
+            <span className="text-yellow-400 text-base">★</span>
+          </div>
+          <div className="w-px h-5 bg-gray-300" />
+          <div className="flex items-center gap-1">
+            <span className="text-gray-500">Sản Phẩm:</span>
+            <span className="text-red-500 font-semibold">
+              {shop.total_sales}
+            </span>
+          </div>
+          <div className="w-px h-5 bg-gray-300" />
+          <div className="flex items-center gap-1">
+            <span className="text-gray-500">Phản Hồi:</span>
+            <span className="text-red-500 font-semibold">Trong vài giờ</span>
+          </div>
+          <div className="w-px h-5 bg-gray-300" />
+          <div className="flex items-center gap-1">
+            <span className="text-gray-500">Tham Gia:</span>
+            <span className="text-red-500 font-semibold">
+              {(() => {
+                const createdAt = new Date(shop.created_at);
+                const now = new Date();
+                const diffMs = now.getTime() - createdAt.getTime();
+                const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24)); // ✅ dùng Math.ceil()
+                const months = Math.floor(days / 30);
+                const years = Math.floor(days / 365);
 
-        {/* ✅ Cột phải: thống kê đánh giá */}
-        <div className="flex-[1] w-full flex justify-start items-start -translate-x-16 items-center">
-          <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm text-gray-800 whitespace-nowrap">
-            {/* ✅ Đánh giá sao gọn lại */}
-            <div className="flex items-center gap-2">
-              <p className="text-gray-500">Đánh Giá:</p>
-              <span className="text-red-500 font-semibold">
-                {Number(shop.rating).toFixed(1)} / 5
-              </span>
-              <span className="text-yellow-400 text-xl">★</span>
-            </div>
-
-            {/* ✅ Sản phẩm đã bán */}
-            <div className="flex items-center gap-2">
-              <p className="text-gray-500">Sản Phẩm:</p>
-              <p className="text-red-500 font-semibold">{shop.total_sales}</p>
-            </div>
-
-            {/* ✅ Tốc độ phản hồi */}
-            <div className="flex items-center gap-2">
-              <p className="text-gray-500">Phản Hồi:</p>
-              <p className="text-red-500 font-semibold">Trong vài giờ</p>
-            </div>
-
-            {/* ✅ Thời gian tham gia */}
-            <div className="flex items-center gap-2">
-              <p className="text-gray-500">Tham Gia:</p>
-              <p className="text-red-500 font-semibold">
-                {(() => {
-                  const createdAt = new Date(shop.created_at);
-                  const now = new Date();
-                  const diffMs = now.getTime() - createdAt.getTime();
-                  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                  const months = Math.floor(days / 30);
-                  const years = Math.floor(days / 365);
-                  if (days < 30) return `${days} ngày`;
-                  if (years >= 1) return `${years} năm`;
-                  return `${months} tháng`;
-                })()}
-              </p>
-            </div>
+                if (days <= 1) return "1 ngày";
+                if (years >= 1) return `${years} năm`;
+                if (months >= 1) return `${months} tháng`;
+                return `${days} ngày`;
+              })()}
+            </span>
           </div>
         </div>
       </div>
+
+      {/* ✅ Popup feedback */}
+      {showPopup && (
+        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
+          {popupText}
+        </div>
+      )}
     </div>
   );
 }
