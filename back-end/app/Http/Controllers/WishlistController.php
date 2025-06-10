@@ -26,23 +26,29 @@ class WishlistController extends Controller
             'product_id' => 'required|exists:products,id',
         ]);
 
-        $wishlist = Wishlist::firstOrCreate([
+        // Kiểm tra sản phẩm đã tồn tại trong wishlist chưa
+        $exists = Wishlist::where('user_id', Auth::id())
+            ->where('product_id', $request->product_id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'message' => 'Sản phẩm đã có trong danh sách yêu thích',
+            ], 409); // 409 Conflict
+        }
+
+        // Nếu chưa có, thêm mới
+        $wishlist = Wishlist::create([
             'user_id' => Auth::id(),
             'product_id' => $request->product_id,
         ]);
 
-        if ($wishlist->wasRecentlyCreated) {
-            return response()->json([
-                'message' => 'Đã thêm sản phẩm yêu thích thành công',
-                'data' => $wishlist
-            ], 201);
-        } else {
-            return response()->json([
-                'message' => 'Sản phẩm đã có trong danh sách yêu thích',
-                'data' => $wishlist
-            ], 200);
-        }
+        return response()->json([
+            'message' => 'Đã thêm sản phẩm yêu thích thành công',
+            'data' => $wishlist,
+        ], 201);
     }
+
 
     // Xoá sản phẩm khỏi wishlist
     public function destroy($product_id)

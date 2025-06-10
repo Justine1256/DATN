@@ -6,7 +6,9 @@ import Image from "next/image";
 import ProductComments from "./ProductCommernt";
 import BestSelling from "../home/BestSelling";
 import Cookies from "js-cookie";
-
+import ShopInfo from "./ShopInfo";
+//import tậm
+import ProductDescriptionAndSpecs from "./ProductDescriptionAndSpecs";
 // ✅ Interface định nghĩa dữ liệu sản phẩm
 interface Product {
   id: number;
@@ -70,14 +72,25 @@ export default function ProductDetail({
       })
       .then((data) => {
         if (!data) return;
+        console.log("👉 Product fetched from API:", data);
+        // ✅ Nếu không có danh sách ảnh phụ thì gán mặc định
         if (!data.images)
           data.images = ["/1.png", "/2.webp", "/3.webp", "/4.webp"];
+
+        // ✅ Gán dữ liệu sản phẩm
         setProduct(data);
+
+        // ✅ Set ảnh chính
         setMainImage(
           data.image.startsWith("/") ? data.image : `/${data.image}`
         );
+
+        // ✅ Gán màu + size mặc định
         setSelectedColor(data.value1?.split(",")[0] || "");
         setSelectedSize(data.value2?.split(",")[0] || "");
+
+        // ✅ Gán trạng thái Follow từ server
+        setFollowed(data.is_followed || false);
       });
   }, [shopslug, productslug, router]);
 
@@ -411,17 +424,16 @@ useEffect(() => {
                     className="rounded-full object-cover"
                   />
 
-                  
-                </div>
-                {/* ✅ Nút Follow nằm chính giữa ảnh logo */}
+                  {/* ✅ Nút Follow nằm chính giữa ảnh logo */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <button
                       onClick={handleFollow}
                       className="bg-[#DC4B47] text-white text-[11px] font-semibold px-2 py-[1px] rounded shadow hover:brightness-110 transition"
                     >
-                      {followed ? "Đang theo dõi" : "Theo dõi"}
+                      {followed ? "Un Flow" : "Flow"}
                     </button>
                   </div>
+                </div>
 
                 {/* ✅ Tên và trạng thái shop */}
                 <div className="text-black">
@@ -535,7 +547,7 @@ useEffect(() => {
       )}
 
       {/* ✅ Bình luận sản phẩm */}
-      <ProductComments shopslug={shopslug} productslug={productslug} />
+      {/* <ProductComments shopslug={shopslug} productslug={productslug} /> */}
 
       {/* ✅ Gợi ý sản phẩm khác */}
       <div className="w-full max-w-screen-xl mx-auto mt-16 px-4">
