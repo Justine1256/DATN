@@ -45,7 +45,7 @@ export default function ProductCard({
 
   // ✅ State nội bộ lưu trạng thái liked (ưu tiên UI phản hồi nhanh)
   const [liked, setLiked] = useState(isInWishlist);
-
+  
   // ✅ Khi props thay đổi (VD: reload wishlist), đồng bộ lại state nội bộ
   useEffect(() => {
     setLiked(isInWishlist);
