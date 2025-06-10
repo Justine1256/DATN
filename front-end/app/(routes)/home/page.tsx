@@ -23,7 +23,7 @@ export default function HomePage() {
       </section>
 
       {/* 📦 Danh mục sản phẩm dạng lưới */}
-      <section className="max-w-screen-xl mx-auto px-4 pt-10">
+      <section className="max-w-screen-xl mx-auto px-4 pt-19">
         <CategoryGrid />
       </section>
 
