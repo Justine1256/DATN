@@ -7,7 +7,7 @@ import Image from "next/image";
 import BestSelling from "../home/BestSelling";
 import Cookies from "js-cookie";
 import ShopInfo from "./ShopInfo";
-import LoadingProductDetail from "../loading/loading";
+import { LoadingProductDetail } from "../loading/loading";
 import ProductDescriptionAndSpecs from "./ProductDescriptionAndSpecs";
 
 // ✅ Interface định nghĩa dữ liệu sản phẩm

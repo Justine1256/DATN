@@ -205,30 +205,7 @@ const Header = () => {
                           <FiUser /> Manage My Account
                         </Link>
                       </li>
-                      <li>
-                        <Link
-                          href="/orders"
-                          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
-                        >
-                          <AiOutlineShoppingCart /> My Orders
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/reviews"
-                          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
-                        >
-                          <AiOutlineHeart /> My Reviews
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/voucher"
-                          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
-                        >
-                          🎁 My Vouchers
-                        </Link>
-                      </li>
+
                       <li>
                         <Link
                           href="/shop/open"

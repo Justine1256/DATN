@@ -104,7 +104,7 @@ body {
 #nprogress .spinner {
   display: none !important;
 }
-// footer
+footer
 .link-underline {
   position: relative;
 }
@@ -122,4 +122,28 @@ body {
 }
 .link-underline:hover::after {
   transform: scaleX(1);
+}
+
+
+/* Thêm CSS này để tạo hiệu ứng xoay liên tục và biến mất */
+@keyframes rotateToCheck {
+  0% {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+
+  50% {
+    transform: rotate(180deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.animate-rotate-to-check {
+  animation: rotateToCheck 1s linear forwards;
+  /* Sử dụng linear để xoay mượt mà */
 }

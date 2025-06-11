@@ -8,48 +8,53 @@ import AccountSidebar from '@/app/components/account/AccountSidebar';
 import AccountPage from '@/app/components/account/AccountPage';
 import ChangePassword from '@/app/components/account/ChangePassword';
 import FollowedShops from '@/app/components/account/FollowedShops';
+import { useRouter } from 'next/navigation';
 
 export default function AccountRoute() {
-  const [section, setSection] = useState<string>('profile');
-  const [user, setUser] = useState<{ id: number; name: string } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [hydrated, setHydrated] = useState(false);
+  const [section, setSection] = useState<string>('profile'); 
+  const [user, setUser] = useState<{ id: number; name: string } | null>(null); 
+  const [loading, setLoading] = useState(true); 
+  const [hydrated, setHydrated] = useState(false); 
+  const router = useRouter(); 
 
-  const handleSectionChange = (newSection: string) => {
-    setSection(newSection);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('account_section', newSection);
-    }
-  };
-
+  // Lấy thông tin người dùng từ API khi người dùng đã đăng nhập
   const fetchUser = async () => {
     const token = Cookies.get('authToken');
-    if (!token) return setLoading(false);
+    if (!token) return setLoading(false); 
     try {
       const res = await axios.get('http://localhost:8000/api/user', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUser(res.data);
+      setUser(res.data); 
     } catch {
-      setUser(null);
+      setUser(null); 
     } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
 
+  // Lấy tham số từ URL khi component được tải lần đầu
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('account_section');
-      if (saved) setSection(saved);
-      setHydrated(true);
+    const sectionFromUrl = new URLSearchParams(window.location.search).get('section');
+    if (sectionFromUrl) {
+      setSection(sectionFromUrl);
     }
+    setHydrated(true);
   }, []);
 
+  // Hàm xử lý khi thay đổi tab
+  const handleSectionChange = (newSection: string) => {
+    setSection(newSection); // Cập nhật state section
+    // Cập nhật URL với tham số section để lưu trạng thái tab
+    router.push(`/account?section=${newSection}`, undefined, { shallow: true });
+  };
+
+ 
   useEffect(() => {
     fetchUser();
   }, []);
 
-  if (!hydrated) return null;
+  if (!hydrated) return null; 
 
   return (
     <div className="min-h-[calc(100vh-100px)] flex flex-col bg-white pt-8 pb-4">
@@ -62,13 +67,14 @@ export default function AccountRoute() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start mt-26">
           <div className="md:col-span-3">
             <AccountSidebar currentSection={section} onChangeSection={handleSectionChange} />
           </div>
 
           <div className="md:col-span-9 pt-2">
             <div className="w-full max-w-[600px] mx-auto transition-all duration-300">
+            
               {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
               {section === 'changepassword' && <ChangePassword />}
               {section === 'address' && user && <AddressComponent userId={user.id} />}
@@ -78,5 +84,5 @@ export default function AccountRoute() {
         </div>
       </div>
     </div>
-  )
+  );
 }
