@@ -60,17 +60,17 @@ export default function FlashSale() {
           <div className="flex flex-col justify-center">
             <div className="flex items-center gap-2">
               <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-              <p className="text-red-500 font-semibold text-sm">Today’s</p>
+              <p className="text-red-500 font-semibold text-sm">Hôm Nay</p>
             </div>
 
             {/* 🕒 Title + đồng hồ */}
             <div className="flex items-end gap-6 mt-2">
-              <h2 className="text-3xl font-bold text-black">Flash Sales</h2>
+              <h2 className="text-3xl font-bold text-black">Sale chớp nhoáng</h2>
               <div className="relative flex items-end gap-6 text-black">
-                {[{ label: 'Days', value: timeLeft.days },
-                  { label: 'Hours', value: timeLeft.hours },
-                  { label: 'Minutes', value: timeLeft.minutes },
-                  { label: 'Seconds', value: timeLeft.seconds }].map((item, i) => (
+                {[{ label: 'Ngày', value: timeLeft.days },
+                  { label: 'Giờ', value: timeLeft.hours },
+                  { label: 'Phút', value: timeLeft.minutes },
+                  { label: 'Giây', value: timeLeft.seconds }].map((item, i) => (
                   <div key={i} className="flex flex-col items-center w-14 relative">
                     <span className="text-xs font-semibold text-gray-600 mb-1">{item.label}</span>
                     <span className="text-2xl font-bold text-center">
@@ -100,7 +100,7 @@ export default function FlashSale() {
           <button 
             onClick={() => router.push('/category')} 
             className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
-            View All Product
+            Xem tất cả sản phẩm
           </button>
         </div>
 

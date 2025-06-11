@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 
 const discounts = [
-  { id: 1, label: 'Up to 30% off – Min order 420K', time: 'Jun 28 – Aug 02', left: 0 },
-  { id: 2, label: 'Up to 30% off – Min order 420K', time: 'Jun 28 – Aug 02', left: 0 },
-  { id: 3, label: 'Up to 20% off – Min order 159 K', time: 'Mar 22 – Apr 26', left: 56 },
-  { id: 4, label: 'Up to 50% off – Min order 500K', time: 'Oct 14 – Nov 18', left: 435 },
-  { id: 5, label: 'Up to 50% off – Min order 500K', time: 'Oct 14 – Nov 18', left: 435 },
-  { id: 6, label: 'Up to 50% off – Min order 500K', time: 'Dec 06 – Jan 10', left: 34 },
-  { id: 7, label: 'Up to 10% off – Min order 100K', time: 'Jul 01 – Jul 31', left: 12 },
+  { id: 1, label: 'Giảm đến 30% – Đơn hàng tối thiểu 420K', time: '28 Tháng 6 – 02 Tháng 8', left: 0 },
+  { id: 2, label: 'Giảm đến 30% – Đơn hàng tối thiểu 420K', time: '28 Tháng 6 – 02 Tháng 8', left: 0 },
+  { id: 3, label: 'Giảm đến 20% – Đơn hàng tối thiểu 159K', time: '22 Tháng 3 – 26 Tháng 4', left: 56 },
+  { id: 4, label: 'Giảm đến 50% – Đơn hàng tối thiểu 500K', time: '14 Tháng 10 – 18 Tháng 11', left: 435 },
+  { id: 5, label: 'Giảm đến 50% – Đơn hàng tối thiểu 500K', time: '14 Tháng 10 – 18 Tháng 11', left: 435 },
+  { id: 6, label: 'Giảm đến 50% – Đơn hàng tối thiểu 500K', time: '06 Tháng 12 – 10 Tháng 1', left: 34 },
+  { id: 7, label: 'Giảm đến 10% – Đơn hàng tối thiểu 100K', time: '01 Tháng 7 – 31 Tháng 7', left: 12 },
 ];
 
 interface CartItem {
@@ -56,19 +56,19 @@ export default function CartSummarySection({ cartItems }: Props) {
     0
   );
   const shipping = cartItems.length > 0 ? 20000 : 0;
-  const discount = 0;
+  const discount = 0; // Chưa áp dụng giảm giá
   const total = subtotal + shipping - discount;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black min-h-[520px]">
-      {/* Left column */}
+      {/* Cột trái */}
       <div className="flex flex-col h-full">
         <div className="flex-1 border rounded-md p-4 space-y-3 relative overflow-hidden">
           <div className="flex items-center gap-3">
-            <h2 className="font-semibold text-md whitespace-nowrap">Discount</h2>
+            <h2 className="font-semibold text-md whitespace-nowrap">Mã giảm giá</h2>
             <input
               type="text"
-              placeholder="Discount code"
+              placeholder="Mã giảm giá"
               className="flex-1 border rounded-md px-4 py-2 text-sm"
             />
           </div>
@@ -82,15 +82,15 @@ export default function CartSummarySection({ cartItems }: Props) {
                 d.left === 0
                   ? 'border-blue-300'
                   : selectedDiscount === d.id
-                  ? 'border-brand'
-                  : 'border-gray-200';
+                    ? 'border-brand'
+                    : 'border-gray-200';
 
               const textColor =
                 d.left === 0
                   ? 'text-blue-400'
                   : d.left > 100
-                  ? 'text-brand'
-                  : 'text-gray-400';
+                    ? 'text-brand'
+                    : 'text-gray-400';
 
               return (
                 <label
@@ -98,10 +98,10 @@ export default function CartSummarySection({ cartItems }: Props) {
                   className={`flex items-start justify-between border ${borderColor} rounded-md px-4 py-2 shadow-sm bg-white`}
                 >
                   <div className="space-y-1">
-                    <p className={`text-xs ${textColor}`}>Shipping</p>
+                    <p className={`text-xs ${textColor}`}>Vận chuyển</p>
                     <p className="text-sm font-medium">{d.label}</p>
                     <p className="text-xs text-gray-400">
-                      {d.time} &nbsp; Left: {d.left}
+                      {d.time} &nbsp; Còn lại: {d.left}
                     </p>
                   </div>
                   <input
@@ -122,21 +122,21 @@ export default function CartSummarySection({ cartItems }: Props) {
         </div>
       </div>
 
-      {/* Right column: Cart Total */}
+      {/* Cột phải: Tổng giỏ hàng */}
       <div className="border rounded-md p-5 h-full flex flex-col justify-between">
         <div>
-          <h2 className="font-semibold text-md mb-4">Cart Total</h2>
+          <h2 className="font-semibold text-md mb-4">Tổng giỏ hàng</h2>
           <div className="text-sm space-y-2 mb-4">
             <div className="flex justify-between">
-              <span>Subtotal:</span>
+              <span>Thành tiền:</span>
               <span>{subtotal.toLocaleString()}đ</span>
             </div>
             <div className="flex justify-between">
-              <span>Shipping:</span>
+              <span>Vận chuyển:</span>
               <span>{shipping.toLocaleString()}đ</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-700">Discount:</span>
+              <span className="text-gray-700">Giảm giá:</span>
               <span className="text-brand">- {discount.toLocaleString()}đ</span>
             </div>
           </div>
@@ -144,11 +144,11 @@ export default function CartSummarySection({ cartItems }: Props) {
         <div>
           <hr className="mb-4" />
           <div className="flex justify-between font-semibold text-brand text-lg mb-4">
-            <span>Total:</span>
+            <span>Tổng cộng:</span>
             <span>{total.toLocaleString()}đ</span>
           </div>
           <button className="w-full bg-brand hover:opacity-80 text-white font-semibold py-2 rounded">
-            Checkout
+            Thanh toán
           </button>
         </div>
       </div>

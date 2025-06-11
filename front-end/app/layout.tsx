@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "@/app/globals.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
@@ -7,12 +6,6 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import LoadingBar from "./components/common/LoadingBar";
 import Header from "./components/common/Header";
 import Footer from "./components/common/Footer";
-
-// ✅ Load font Google Inter
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
 
 // ✅ SEO Metadata chung toàn bộ app
 export const metadata: Metadata = {
@@ -23,8 +16,15 @@ export const metadata: Metadata = {
 // ✅ Layout cố định toàn bộ app
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.className}>
-      <body className="scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
+    <html lang="en">
+      <head>
+        {/* Thêm Google Font Roboto */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="font-roboto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
         {/* ✅ Thanh loading bar cố định (trên cùng) */}
         <LoadingBar />
 

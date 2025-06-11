@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import ProductCard from "../product/ProductCard";
 import { Product } from "../product/ProductCard"; // ✅ Dùng lại interface nếu có
 import { useRouter } from 'next/navigation';
-// Nếu không có sẵn, có thể khai báo lại ở đây như bạn đã làm
 
 export default function BestSelling() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false); // ✅ Tránh lỗi hydration mismatch trên client
   const router = useRouter();
+
   // 🔁 Fetch dữ liệu khi component mount
   useEffect(() => {
     setMounted(true);
@@ -51,18 +51,18 @@ export default function BestSelling() {
             <div className="flex flex-col justify-center !mr-6">
               <div className="flex items-center gap-2">
                 <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-                <p className="text-red-500 font-semibold text-sm">This month</p>
+                <p className="text-red-500 font-semibold text-sm">Tháng Này</p> {/* Đổi tiêu đề */}
               </div>
               <h2 className="text-3xl font-bold text-black mt-2">
-                Just For You
-              </h2>
+                Dành cho bạn
+              </h2> {/* Đổi tiêu đề */}
             </div>
 
             {/* Bên phải: nút xem tất cả */}
             <button
               onClick={() => router.push('/category')}
               className="text-[#DB4444] border border-[#DB4444] hover:bg-[#DB4444] hover:text-white font-medium text-sm py-2.5 px-4 rounded-md transition duration-300 w-fit ml-4 mt-4">
-              View All Products
+              Xem tất cả sản phẩm {/* Đổi tiêu đề nút */}
             </button>
           </div>
         </div>

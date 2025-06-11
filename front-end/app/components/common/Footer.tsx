@@ -12,55 +12,55 @@ export default function Footer() {
         {/* 🌐 Logo + Subscribe (3 cột trên desktop, full trên mobile) */}
         <div className="md:col-span-3 col-span-1">
           <Link href="/" className="inline-block mb-2">
-            <Image src="/logoft.png" alt="Company Logo" width={120} height={40} />
+            <Image src="/logoft.png" alt="Logo công ty" width={120} height={40} />
           </Link>
-          <p className="text-sm mb-2">Subscribe</p>
-          <p className="text-sm mb-4">Get 10% off your first order</p>
+          <p className="text-sm mb-2">Đăng ký nhận tin</p>
+          <p className="text-sm mb-4">Nhận 10% giảm giá cho đơn hàng đầu tiên</p>
           <form className="flex border border-white rounded overflow-hidden">
             <input
               type="email"
-              placeholder="Enter your email"
+              placeholder="Nhập email của bạn"
               className="flex-1 px-3 py-2 text-sm text-white bg-transparent placeholder:text-gray-400 outline-none"
             />
             <button className="bg-white text-black px-4 hover:bg-gray-300 transition">→</button>
           </form>
         </div>
 
-        {/* 🛠 Support Info */}
+        {/* 🛠 Thông tin hỗ trợ */}
         <div className="md:col-span-2 col-span-1">
-          <h3 className="text-lg font-bold mb-2">Support</h3>
+          <h3 className="text-lg font-bold mb-2">Hỗ trợ</h3>
           <p className="text-sm">111 Bijoy sarani, Dhaka, DH 1515, Bangladesh.</p>
           <p className="text-sm">vannhatcr123@gmail.com</p>
           <p className="text-sm">0978740071</p>
         </div>
 
-        {/* 👤 Account Links */}
+        {/* 👤 Liên kết tài khoản */}
         <div className="md:col-span-2 col-span-1">
-          <h3 className="text-lg font-bold mb-2">Account</h3>
+          <h3 className="text-lg font-bold mb-2">Tài khoản</h3>
           <ul className="space-y-1 text-sm">
-            <li><Link href="#" className="link-underline">My Account</Link></li>
-            <li><Link href="#" className="link-underline">Login / Register</Link></li>
-            <li><Link href="#" className="link-underline">Cart</Link></li>
-            <li><Link href="#" className="link-underline">Wishlist</Link></li>
-            <li><Link href="#" className="link-underline">Shop</Link></li>
+            <li><Link href="#" className="link-underline">Tài khoản của tôi</Link></li>
+            <li><Link href="#" className="link-underline">Đăng nhập / Đăng ký</Link></li>
+            <li><Link href="#" className="link-underline">Giỏ hàng</Link></li>
+            <li><Link href="#" className="link-underline">Danh sách yêu thích</Link></li>
+            <li><Link href="#" className="link-underline">Mua sắm</Link></li>
           </ul>
         </div>
 
-        {/* ⚡ Quick Link */}
+        {/* ⚡ Liên kết nhanh */}
         <div className="md:col-span-2 col-span-1">
-          <h3 className="text-lg font-bold mb-2">Quick Link</h3>
+          <h3 className="text-lg font-bold mb-2">Liên kết nhanh</h3>
           <ul className="space-y-1 text-sm">
-            <li><Link href="#" className="link-underline">Privacy Policy</Link></li>
-            <li><Link href="#" className="link-underline">Terms Of Use</Link></li>
-            <li><Link href="#" className="link-underline">FAQ</Link></li>
-            <li><Link href="#" className="link-underline">Contact</Link></li>
+            <li><Link href="#" className="link-underline">Chính sách bảo mật</Link></li>
+            <li><Link href="#" className="link-underline">Điều khoản sử dụng</Link></li>
+            <li><Link href="#" className="link-underline">Câu hỏi thường gặp</Link></li>
+            <li><Link href="#" className="link-underline">Liên hệ</Link></li>
           </ul>
         </div>
 
-        {/* 📱 Download App + Socials */}
+        {/* 📱 Tải ứng dụng + Mạng xã hội */}
         <div className="md:col-span-3 col-span-1">
-          <h3 className="text-lg font-bold mb-2">Download App</h3>
-          <p className="text-sm mb-2">Save $3 with App New User Only</p>
+          <h3 className="text-lg font-bold mb-2">Tải ứng dụng</h3>
+          <p className="text-sm mb-2">Tiết kiệm 78k với người dùng mới</p>
           <div className="flex gap-3 mb-3">
             <Link href="/download-app">
               <Image src="/qr.png" alt="QR Code" width={64} height={64} />

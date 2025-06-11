@@ -117,23 +117,27 @@ export default function AboutPage() {
     <div className={`container mx-auto px-4 ${inter.className}`}>
       <div className="py-12 text-black">
         {/* Our Story */}
-        <div className="grid md:grid-cols-2 gap-12 items-center mb-24">
-          <div>
-            <h2 className="text-4xl font-bold mb-6">Our Story</h2>
-            <p className="mb-4 text-[15px]">
-              Launced in 2015, Exclusive is South Asia&apos;s premier online shopping makterplace with an active presense in Bangladesh. Supported by wide range of tailored marketing, data and service solutions, Exclusive has 10,500 sallers and 300 brands and serves 3 millioons customers across the region.
-            </p>
-            <p className="text-[15px]">
-              Exclusive has more than 1 Million products to offer, growing at a very fast. Exclusive offers a diverse assotment in categories ranging from consumer.
-            </p>
+        <div className="flex flex-col md:flex-row gap-12 items-stretch mb-24">
+          <div className="flex-1 flex flex-col justify-between max-w-[600px]">
+            <div>
+              <h2 className="text-4xl font-bold mb-6">Our Story</h2>
+              <p className="mb-4 text-[14px] text-black">
+                Launced in 2015, Exclusive is South Asia&apos;s premier online shopping marketplace with an active presence in Bangladesh. Supported by a wide range of tailored marketing, data and service solutions, Exclusive has 10,500 sellers and 300 brands and serves 3 million customers across the region.
+              </p>
+              <p className="text-[14px] text-black">
+                Exclusive has more than 1 million products to offer, growing very fast. Exclusive offers a diverse assortment in categories ranging from consumer.
+              </p>
+            </div>
           </div>
-          <div className="w-full h-full">
+          <div className="flex-1 flex items-stretch">
             <Image
               src="/about1.avif"
               alt="Our Story"
-              width={600}
-              height={500}
-              className="rounded-lg w-full h-auto object-cover"
+              width={0}
+              height={0}
+              sizes="100vw"
+              className="w-full h-auto object-cover rounded-lg"
+              style={{ objectFit: 'cover' }}
             />
           </div>
         </div>
@@ -143,18 +147,18 @@ export default function AboutPage() {
           {stats.map((item, idx) => (
             <div
               key={idx}
-              className="group rounded-lg text-center py-8 px-4 shadow-sm transition-all duration-300 bg-gray-50 text-black hover:bg-[#db4444] hover:text-white hover:-translate-y-1"
+              className="group w-full aspect-square flex flex-col items-center justify-center bg-white text-black hover:bg-[#db4444] hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-md"
             >
               <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 rounded-full bg-black group-hover:bg-white flex items-center justify-center transition-all duration-300">
+                <div className="w-12 h-12 rounded-full bg-black group-hover:bg-white border-4 border-gray-300 group-hover:border-white flex items-center justify-center transition-all duration-300">
                   <item.icon className="text-xl text-white group-hover:text-black transition-all duration-300" />
                 </div>
               </div>
-              <p className="text-3xl font-bold mb-2">
+              <p className="text-3xl font-bold mb-2 text-black">
                 <CountUp end={item.number} decimals={item.number % 1 !== 0 ? 1 : 0} duration={2} />
                 {item.suffix}
               </p>
-              <p className="text-[14px] text-gray-700 group-hover:text-white transition-all duration-300">
+              <p className="text-[13px] text-black group-hover:text-white transition-all duration-300">
                 {item.label}
               </p>
             </div>
@@ -190,8 +194,8 @@ export default function AboutPage() {
                           className="rounded-md object-cover"
                         />
                       </div>
-                      <h3 className="text-xl font-semibold text-[15px]">{member.name}</h3>
-                      <p className="text-gray-600 text-[14px]">{member.role}</p>
+                      <h3 className="text-xl font-semibold text-[14px] text-black">{member.name}</h3>
+                      <p className="text-[13px] text-black">{member.role}</p>
                       <div className="flex justify-center space-x-4 mt-2 text-gray-600 text-lg">
                         {member.socials.includes('twitter') && (
                           <a href="#" aria-label="Twitter">
@@ -216,7 +220,6 @@ export default function AboutPage() {
             })}
           </div>
 
-          {/* Dot indicators */}
           <div className="flex justify-center space-x-2 mt-6">
             {Array.from({ length: totalPages }).map((_, i) => (
               <button
@@ -234,11 +237,11 @@ export default function AboutPage() {
         <div className="grid md:grid-cols-3 gap-8 text-center">
           {features.map((feature, index) => (
             <div key={index}>
-              <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
-                <feature.icon className="w-6 h-6 text-black" />
+              <div className="w-16 h-16 mx-auto mb-4 bg-black border-4 border-gray-300 rounded-full flex items-center justify-center">
+                <feature.icon className="w-6 h-6 text-white" />
               </div>
-              <h4 className="font-semibold mb-1 text-[15px]">{feature.title}</h4>
-              <p className="text-gray-600 text-[14px]">{feature.desc}</p>
+              <h4 className="font-semibold mb-1 text-[14px] text-black">{feature.title}</h4>
+              <p className="text-[13px] text-black">{feature.desc}</p>
             </div>
           ))}
         </div>
