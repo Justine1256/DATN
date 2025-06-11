@@ -63,10 +63,10 @@ const Header = () => {
   
   // ✅ Nav links
   const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/contact', label: 'Contact' },
-    { href: '/about', label: 'About' },
-    { href: '/voucher', label: 'Voucher' },
+    { href: '/', label: 'Trang chủ' },
+    { href: '/contact', label: 'Liên hệ' },
+    { href: '/about', label: 'Giới thiệu' },
+    { href: '/voucher', label: 'Mã giảm giá' },
   ];
 
   const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
@@ -87,10 +87,10 @@ const Header = () => {
       <div className="bg-black text-white py-2 text-center text-sm tracking-wider">
         <div className="container mx-auto max-w-[1200px] px-2">
           <span className="text-gray-400">
-            Summer Sale For All Swim Suits And Free Express Delivery - OFF 50%!
+            Khuyến mãi mùa hè cho tất cả đồ bơi và giao hàng nhanh miễn phí - GIẢM 50%!
           </span>{' '}
           <Link href="/shop" className="text-white ml-2 hover:underline transition text-sm">
-            ShopNow
+            Mua Ngay
           </Link>
         </div>
       </div>
@@ -133,7 +133,7 @@ const Header = () => {
             {!user && (
               <div className="relative group">
                 <Link href="/login" className="text-black text-sm md:text-base transition duration-300">
-                  Sign In
+                  Đăng Nhập
                 </Link>
                 <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
               </div>
@@ -202,7 +202,7 @@ const Header = () => {
                           href="/account"
                           className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
                         >
-                          <FiUser /> Manage My Account
+                          <FiUser /> Quản Lý Tài Khoản
                         </Link>
                       </li>
 
@@ -211,14 +211,14 @@ const Header = () => {
                           href="/shop/open"
                           className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
                         >
-                          🏪 Open a Shop
+                          🏪 Cửa Hàng
                         </Link>
                       </li>
                       <li
                         onClick={handleLogout}
                         className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-red-400 cursor-pointer rounded"
                       >
-                        <FiLogOut /> Logout
+                        <FiLogOut /> Đăng Xuất
                       </li>
                     </ul>
                   </div>

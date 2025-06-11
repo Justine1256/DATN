@@ -5,19 +5,19 @@ const slides = [
   {
     id: 1,
     image: "/Banner3.png",
-    buttonText: "Shop now",
+    buttonText: "Mua Ngay",
     variant: "red",
   },
   {
     id: 2,
     image: "/Banner4.png",
-    buttonText: "Shop now",
+    buttonText: "Mua Ngay",
     variant: "black",
   },
   {
     id: 3,
     image: "/Banner2.png",
-    buttonText: "Shop now",
+    buttonText: "Mua Ngay",
     variant: "red",
   },
 ];

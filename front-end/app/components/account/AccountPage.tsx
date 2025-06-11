@@ -163,14 +163,14 @@ export default function AccountPage({ onProfileUpdated }: Props) {
             className="p-8 bg-white rounded-xl shadow-lg border border-gray-100 space-y-6"
           >
             <h2 className="text-2xl font-semibold text-[#DB4444] mb-4">
-              Edit Your Profile
+              Quản Lý Hồ Sơ
             </h2>
 
             {/* ✅ Input Name & Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="text-sm font-medium block mb-1">
-                  Full Name
+                  Họ và tên
                 </label>
                 <input
                   type="text"
@@ -182,7 +182,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
               </div>
               <div>
                 <label className="text-sm font-medium block mb-1">
-                  Phone Number
+                  Số điện thoại
                 </label>
                 <input
                   type="text"
@@ -207,7 +207,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium block mb-1">Role</label>
+                <label className="text-sm font-medium block mb-1">Vai trò</label>
                 <input
                   type="text"
                   name="role"
@@ -221,7 +221,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
             {/* ✅ Nhập mật khẩu hiện tại để xác thực */}
             <div>
               <label className="text-sm font-medium block mb-1">
-                Current Password
+                Nhập lại mật khẩu
               </label>
               <input
                 type="password"
@@ -256,13 +256,13 @@ export default function AccountPage({ onProfileUpdated }: Props) {
                 }
                 className="text-sm text-gray-700 px-5 py-2.5 rounded-md hover:bg-gray-100"
               >
-                Cancel
+                Hủy bỏ
               </button>
               <button
                 type="submit"
                 className="text-sm bg-[#DB4444] text-white px-6 py-2.5 rounded-md hover:opacity-80"
               >
-                Save Changes
+                Lưu thông tin
               </button>
             </div>
           </form>

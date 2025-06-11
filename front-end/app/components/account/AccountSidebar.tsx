@@ -51,13 +51,14 @@ export default function AccountSidebar({
               className="w-14 h-14 rounded-full"
             />
           ) : (
-            <div className="w-14 h-14 flex items-center justify-center bg-gray-500 text-white text-xl rounded-full">
-              {user.name[0]}
+            <div className="w-14 h-14 flex items-center justify-center bg-[#DB4444] text-white text-xl font-semibold rounded-full">
+              {user.name ? user.name[0] : 'U'} {/* Nền tròn màu đỏ với chữ cái đầu tiên */}
             </div>
           )}
-          <span className="text-xl font-semibold text-black">{user.name}</span>
+          <span className="text-xl font-semibold text-black">{user.name}</span> {/* Tên vẫn là màu đen */}
         </div>
       )}
+
 
       <div>
         <ul className="space-y-4 text-lg">
@@ -71,7 +72,7 @@ export default function AccountSidebar({
               )}
             >
               <FaUserCircle className="w-6 h-6 text-[#DB4444]" />
-              <span className="text-xl font-bold">My Account</span> 
+              <span className="text-xl font-bold">Tài Khoản Của Tôi</span> 
             </button>
             {/* Hiển thị menu con khi "My Account" được nhấn */}
             {isAccountOpen && (
@@ -84,7 +85,7 @@ export default function AccountSidebar({
                       getActiveClass('profile')
                     )}
                   >
-                    Profile
+                    Hồ Sơ
                   </button>
                 </li>
                 <li>
@@ -95,7 +96,7 @@ export default function AccountSidebar({
                       getActiveClass('changepassword')
                     )}
                   >
-                    Change Password
+                    Đổi Mật Khẩu
                   </button>
                 </li>
                 <li>
@@ -106,7 +107,7 @@ export default function AccountSidebar({
                       getActiveClass('address')
                     )}
                   >
-                    Address
+                    Địa chỉ
                   </button>
                 </li>
                 {/* ✅ Mục: Followed Shops */}
@@ -118,7 +119,7 @@ export default function AccountSidebar({
                       getActiveClass('followedshops')
                     )}
                   >
-                    Followed Shops
+                    Shop Theo Dõi
                   </button>
                 </li>
               </ul>
@@ -132,7 +133,7 @@ export default function AccountSidebar({
               className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('orders'))}
             >
               <FaBoxOpen className="w-6 h-6 text-[#28A745]" />
-              <span className="text-xl font-bold">My Orders</span> 
+              <span className="text-xl font-bold">Đơn Hàng</span> 
             </button>
           </li>
 
@@ -143,7 +144,7 @@ export default function AccountSidebar({
               className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('vouchers'))}
             >
               <FaTicketAlt className="w-6 h-6 text-[#007BFF]" />
-              <span className="text-xl font-bold">My Vouchers</span> 
+              <span className="text-xl font-bold">Mã Giảm Giá</span> 
             </button>
           </li>
         </ul>

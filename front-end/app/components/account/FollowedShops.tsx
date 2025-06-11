@@ -88,8 +88,8 @@ export default function FollowedShopsSection() {
     return (
         <div className="w-full max-w-[1200px] mx-auto mt-10 px-4">
             <section className="p-4 bg-white rounded-xl shadow-md">
-                <h2 className="text-[1.25rem] font-semibold text-red-500 text-center mb-6">
-                    My Followed Shops
+                <h2 className="text-[1.25rem] font-semibold text-red-500  mb-6">
+                    Danh sách shop theo dõi
                 </h2>
 
                 {loading ? (

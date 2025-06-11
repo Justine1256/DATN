@@ -50,10 +50,10 @@ export default function BestSelling() {
             <div className="flex flex-col justify-center !mr-6">
               <div className="flex items-center gap-2">
                 <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-                <p className="text-red-500 font-semibold text-sm">This month</p>
+                <p className="text-red-500 font-semibold text-sm">Trong Tháng </p>
               </div>
               <h2 className="text-3xl font-bold text-black mt-2">
-                Best Selling Products
+                Sản phẩm bán chạy nhất
               </h2>
             </div>
 
@@ -62,7 +62,7 @@ export default function BestSelling() {
               onClick={() => router.push('/category')}
               className="text-[#DB4444] border border-[#DB4444] hover:bg-[#DB4444] hover:text-white font-medium text-sm py-2.5 px-4 rounded-md transition duration-300 w-fit ml-4 mt-4"
             >
-              View All Products
+              Xem tất cả sản phẩm
             </button>
           </div>
         </div>

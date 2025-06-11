@@ -94,13 +94,13 @@ export default function ChangePassword() {
             className="p-6 bg-white rounded-lg shadow-md space-y-6"
           >
             <h2 className="text-xl font-semibold text-[#DB4444] mb-2">
-              Change Password
+              Thay đổi mật khẩu
             </h2>
 
             {/* ✅ Mật khẩu hiện tại */}
             <div>
               <label className="text-sm font-medium block mb-1">
-                Current Password
+                Mật khẩu hiện tại
               </label>
               <input
                 type="password"
@@ -117,7 +117,7 @@ export default function ChangePassword() {
             {/* ✅ Mật khẩu mới */}
             <div>
               <label className="text-sm font-medium block mb-1">
-                New Password
+                Mật khẩu mới
               </label>
               <input
                 type="password"
@@ -132,7 +132,7 @@ export default function ChangePassword() {
             {/* ✅ Nhập lại mật khẩu mới */}
             <div>
               <label className="text-sm font-medium block mb-1">
-                Confirm New Password
+                Nhập lại mật khẩu mới
               </label>
               <input
                 type="password"
@@ -158,13 +158,13 @@ export default function ChangePassword() {
                 }}
                 className="text-sm text-gray-700 px-5 py-2.5 rounded-md hover:bg-gray-100"
               >
-                Cancel
+                Hủy bỏ
               </button>
               <button
                 type="submit"
                 className="text-sm bg-[#DB4444] text-white px-6 py-2.5 rounded-md hover:opacity-80"
               >
-                Save Changes
+                Lưu mật khẩu
               </button>
             </div>
           </form>

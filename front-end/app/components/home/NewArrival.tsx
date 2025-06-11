@@ -45,9 +45,9 @@ export default function NewArrival() {
         {/* Short red bar */}
         <div className="flex items-center gap-2 mb-2">
           <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-          <p className="text-red-500 font-semibold text-sm translate-y-[1px]">Featured</p>
+          <p className="text-red-500 font-semibold text-sm translate-y-[1px]">Nổi Bật</p>
         </div>
-        <h2 className="text-3xl font-bold text-black mt-4">New Arrival</h2>
+        <h2 className="text-3xl font-bold text-black mt-4">Sản Phẩm Mới</h2>
         {/* The short gray line below the title has been removed from here */}
       </div>
 
@@ -64,8 +64,8 @@ export default function NewArrival() {
           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition duration-300 z-10" />
           <div className="absolute bottom-4 left-4 z-20 text-white">
             <h3 className="text-lg font-semibold mb-1">PlayStation 5</h3>
-            <p className="text-xs mb-2 max-w-[80%]">Black and White version of the PS5 coming out on sale.</p>
-            <span className="underline text-sm font-medium hover:text-[#dc4b47] transition">Shop Now</span>
+            <p className="text-xs mb-2 max-w-[80%]">Phiên bản đen trắng của PS5 sắp được bán ra.</p>
+            <span className="underline text-sm font-medium hover:text-[#dc4b47] transition">Mua Ngay</span>
           </div>
         </Link>
 
@@ -81,9 +81,9 @@ export default function NewArrival() {
             />
             <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition duration-300 z-10" />
             <div className="absolute bottom-4 left-4 z-20 text-white">
-              <h3 className="text-lg font-semibold mb-1">Women’s Collections</h3>
-              <p className="text-xs mb-2 max-w-[80%]">Featured woman collections that give you another vibe.</p>
-              <span className="underline text-sm font-medium hover:text-[#dc4b47] transition">Shop Now</span>
+              <h3 className="text-lg font-semibold mb-1">Bộ Sưu Tập Thời Trang Nữ</h3>
+              <p className="text-xs mb-2 max-w-[80%]">Bộ sưu tập phụ nữ nổi bật mang đến cho bạn cảm giác khác biệt.</p>
+              <span className="underline text-sm font-medium hover:text-[#dc4b47] transition">Mua Ngay</span>
             </div>
           </Link>
 
@@ -97,9 +97,9 @@ export default function NewArrival() {
             />
             <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition duration-300 z-10" />
             <div className="absolute bottom-4 left-4 z-20 text-white">
-              <h3 className="text-lg font-semibold mb-1">Speakers</h3>
-              <p className="text-xs mb-2 max-w-[80%]">Amazon wireless speakers</p>
-              <span className="underline text-sm font-medium hover:text-[#dc4b47] transition">Shop Now</span>
+              <h3 className="text-lg font-semibold mb-1">Loa</h3>
+              <p className="text-xs mb-2 max-w-[80%]">Loa không dây Amazon</p>
+              <span className="underline text-sm font-medium hover:text-[#dc4b47] transition">Mua Ngay</span>
             </div>
           </Link>
 
@@ -113,9 +113,9 @@ export default function NewArrival() {
             />
             <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition duration-300 z-10" />
             <div className="absolute bottom-4 left-4 z-20 text-white">
-              <h3 className="text-lg font-semibold mb-1">Perfume</h3>
-              <p className="text-xs mb-2 max-w-[80%]">GUCCI INTENSE OUD EDP</p>
-              <span className="underline text-sm font-medium hover:text-[#dc4b47] transition">Shop Now</span>
+              <h3 className="text-lg font-semibold mb-1">Nước Hoa</h3>
+              <p className="text-xs mb-2 max-w-[80%]">Nước hoa GUCCI INTENSE OUD</p>
+              <span className="underline text-sm font-medium hover:text-[#dc4b47] transition">Mua Ngay</span>
             </div>
           </Link>
         </div>
