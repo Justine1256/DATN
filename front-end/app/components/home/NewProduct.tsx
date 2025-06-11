@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import ProductCard from '../product/ProductCard'; // ✅ Card sản phẩm
 import { Product } from '../product/ProductCard'; // ✅ Interface sản phẩm
-
+import { useRouter } from 'next/navigation';
 export default function NewProducts() {
   const [products, setProducts] = useState<Product[]>([]);  // ✅ Danh sách sản phẩm
   const [loading, setLoading] = useState(true);              // ✅ Trạng thái loading
-
+const router = useRouter();
   // 🔄 Gọi API lấy sản phẩm mới
   useEffect(() => {
     fetch('http://127.0.0.1:8000/api/newproducts/')
@@ -51,7 +51,9 @@ export default function NewProducts() {
 
         {/* 🔻 Nút xem tất cả */}
         <div className="mt-10 text-center">
-          <button className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
+          <button 
+            onClick={() => router.push('/category')}
+          className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
             View All Product
           </button>
         </div>

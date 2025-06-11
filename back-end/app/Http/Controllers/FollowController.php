@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Follow;
 use App\Models\Shop;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class FollowController extends Controller
 {
@@ -90,5 +92,20 @@ class FollowController extends Controller
         'followers' => $followers
     ]);
 }
+    public function isFollowing(Request $request, $shopId)
+{
+    $user = $request->user();
+
+    if (!$user) {
+        return response()->json(['followed' => false], 200);
+    }
+
+    $isFollowing = Follow::where('user_id', $user->id)
+        ->where('shop_id', $shopId)
+        ->exists();
+
+    return response()->json(['followed' => $isFollowing]);
+}
+
 
 }

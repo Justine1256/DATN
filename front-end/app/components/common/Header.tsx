@@ -57,6 +57,10 @@ const Header = () => {
       });
   }, []);
 
+  useEffect(() => {
+    navLinks.forEach((link) => router.prefetch(link.href));
+  }, []);
+  
   // ✅ Nav links
   const navLinks = [
     { href: '/', label: 'Home' },
@@ -116,13 +120,16 @@ const Header = () => {
           {/* ✅ Nav links (desktop) */}
           <nav className="hidden md:flex items-center space-x-6">
             {navLinks.map((link) => (
-              <div key={link.href} className="relative group">
-                <Link href={link.href} className="text-black text-sm md:text-base transition duration-300">
-                  {link.label}
-                </Link>
+              <button
+                key={link.href}
+                onClick={() => router.push(link.href)}
+                className="relative group text-black text-sm md:text-base transition duration-300 hover:opacity-90"
+              >
+                {link.label}
                 <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
-              </div>
+              </button>
             ))}
+
             {!user && (
               <div className="relative group">
                 <Link href="/login" className="text-black text-sm md:text-base transition duration-300">
@@ -137,24 +144,24 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-2 px-8">
             {/* ✅ Search */}
             <div className="relative min-w-[200px]">
-  <input
-    type="text"
-    placeholder="Tìm kiếm sản phẩm..."
-    className="w-full px-4 py-1.5 pr-10 rounded-md bg-white border border-gray-300 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DB4444] focus:border-[#DB4444] transition-all duration-200"
-    value={searchQuery}
-    onChange={(e) => setSearchQuery(e.target.value)}
-    onKeyDown={(e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleSearchSubmit();
-      }
-    }}
-  />
-  <AiOutlineSearch
-    className="absolute right-3 top-1/2 -translate-y-1/2 text-black cursor-pointer h-5 w-5"
-    onClick={handleSearchSubmit}
-  />
-</div>
+              <input
+                type="text"
+                placeholder="Tìm kiếm sản phẩm..."
+                className="w-full px-4 py-1.5 pr-10 rounded-md bg-white border border-gray-300 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DB4444] focus:border-[#DB4444] transition-all duration-200"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearchSubmit();
+                  }
+                }}
+              />
+              <AiOutlineSearch
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-black cursor-pointer h-5 w-5"
+                onClick={handleSearchSubmit}
+              />
+            </div>
 
 
             {/* ✅ Wishlist */}
@@ -167,7 +174,7 @@ const Header = () => {
             {/* ✅ Cart */}
             <Link href="/cart">
               <div className="min-w-[32px] flex justify-center items-center">
-                <AiOutlineShoppingCart className="h-5 w-5 text-black hover:text-blue-500 transition" />
+                <AiOutlineShoppingCart className="h-5 w-5 text-black hover:text-red-500 transition" />
               </div>
             </Link>
 
@@ -182,63 +189,40 @@ const Header = () => {
                 </button>
 
                 {dropdownOpen && (
-  <div
-    className="absolute right-0 mt-3 w-[224px] rounded-md shadow-xl z-50"
-    style={{
-      backgroundColor: 'rgba(30,30,30,0.7)', // ✅ màu đen trong mờ
-      backdropFilter: 'blur(6px)',           // ✅ hiệu ứng làm mờ nền sau
-    }}
-  >
-    <ul className="space-y-1 text-sm font-medium text-white p-3">
-      <li>
-        <Link
-          href="/account"
-          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
-        >
-          <FiUser /> Manage My Account
-        </Link>
-      </li>
-      <li>
-        <Link
-          href="/orders"
-          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
-        >
-          <AiOutlineShoppingCart /> My Orders
-        </Link>
-      </li>
-      <li>
-        <Link
-          href="/reviews"
-          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
-        >
-          <AiOutlineHeart /> My Reviews
-        </Link>
-      </li>
-      <li>
-        <Link
-          href="/voucher"
-          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
-        >
-          🎁 My Vouchers
-        </Link>
-      </li>
-      <li>
-        <Link
-          href="/shop/open"
-          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
-        >
-          🏪 Open a Shop
-        </Link>
-      </li>
-      <li
-        onClick={handleLogout}
-        className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-red-400 cursor-pointer rounded"
-      >
-        <FiLogOut /> Logout
-      </li>
-    </ul>
-  </div>
-)}
+                  <div
+                    className="absolute right-0 mt-3 w-[224px] rounded-md shadow-xl z-50"
+                    style={{
+                      backgroundColor: 'rgba(30,30,30,0.7)', // ✅ màu đen trong mờ
+                      backdropFilter: 'blur(6px)',           // ✅ hiệu ứng làm mờ nền sau
+                    }}
+                  >
+                    <ul className="space-y-1 text-sm font-medium text-white p-3">
+                      <li>
+                        <Link
+                          href="/account"
+                          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
+                        >
+                          <FiUser /> Manage My Account
+                        </Link>
+                      </li>
+
+                      <li>
+                        <Link
+                          href="/shop/open"
+                          className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
+                        >
+                          🏪 Open a Shop
+                        </Link>
+                      </li>
+                      <li
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-red-400 cursor-pointer rounded"
+                      >
+                        <FiLogOut /> Logout
+                      </li>
+                    </ul>
+                  </div>
+                )}
 
               </div>
             )}

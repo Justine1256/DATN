@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import ProductCard from '../product/ProductCard';
 import { Product } from '../product/ProductCard'; // Interface nếu đã định nghĩa trong ProductCard
-
+import { useRouter } from 'next/navigation';
 export default function FlashSale() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
+  const router = useRouter();
   // ⏱️ Set thời gian đếm ngược 3 ngày 23 giờ 19 phút 56 giây
   const endTime =
     new Date().getTime() + 3 * 24 * 60 * 60 * 1000 + 23 * 3600 * 1000 + 19 * 60 * 1000 + 56 * 1000;
@@ -97,7 +97,9 @@ export default function FlashSale() {
 
         {/* 🔻 Nút xem tất cả sản phẩm */}
         <div className="mt-10 text-center">
-          <button className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
+          <button 
+            onClick={() => router.push('/category')} 
+            className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
             View All Product
           </button>
         </div>
