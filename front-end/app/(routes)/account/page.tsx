@@ -8,6 +8,7 @@ import AccountSidebar from '@/app/components/account/AccountSidebar';
 import AccountPage from '@/app/components/account/AccountPage';
 import ChangePassword from '@/app/components/account/ChangePassword';
 import FollowedShops from '@/app/components/account/FollowedShops';
+import OrderSection from '@/app/components/account/Order';
 import { useRouter } from 'next/navigation';
 
 export default function AccountRoute() {
@@ -79,6 +80,7 @@ export default function AccountRoute() {
               {section === 'changepassword' && <ChangePassword />}
               {section === 'address' && user && <AddressComponent userId={user.id} />}
               {section === 'followedshops' && <FollowedShops />}
+              {section === 'orders' && <OrderSection />}
             </div>
           </div>
         </div>
