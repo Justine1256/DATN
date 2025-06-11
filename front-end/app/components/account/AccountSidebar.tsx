@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { useRouter } from 'next/navigation'; // Sử dụng useRouter để chuyển trang
-import { FaUserCircle, FaBoxOpen, FaTicketAlt } from 'react-icons/fa'; // Thêm icon từ React Icons
+import { useRouter } from 'next/navigation'; 
+import { FaUserCircle, FaBoxOpen, FaTicketAlt } from 'react-icons/fa'; 
 
 export default function AccountSidebar({
   currentSection,
@@ -71,7 +71,7 @@ export default function AccountSidebar({
               )}
             >
               <FaUserCircle className="w-6 h-6 text-[#DB4444]" />
-              <span className="text-xl font-bold">My Account</span> {/* Tăng kích thước và độ đậm của chữ */}
+              <span className="text-xl font-bold">My Account</span> 
             </button>
             {/* Hiển thị menu con khi "My Account" được nhấn */}
             {isAccountOpen && (
@@ -132,7 +132,7 @@ export default function AccountSidebar({
               className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('orders'))}
             >
               <FaBoxOpen className="w-6 h-6 text-[#28A745]" />
-              <span className="text-xl font-bold">My Orders</span> {/* Tăng kích thước và độ đậm của chữ */}
+              <span className="text-xl font-bold">My Orders</span> 
             </button>
           </li>
 
@@ -143,7 +143,7 @@ export default function AccountSidebar({
               className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('vouchers'))}
             >
               <FaTicketAlt className="w-6 h-6 text-[#007BFF]" />
-              <span className="text-xl font-bold">My Vouchers</span> {/* Tăng kích thước và độ đậm của chữ */}
+              <span className="text-xl font-bold">My Vouchers</span> 
             </button>
           </li>
         </ul>
