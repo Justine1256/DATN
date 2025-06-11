@@ -32,18 +32,14 @@ export default function ShopInfo({
   const [popupText, setPopupText] = useState("");
   const [showPopup, setShowPopup] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [showFollowButton, setShowFollowButton] = useState(!followed);
-  const [showUnfollowText, setShowUnfollowText] = useState(followed);
 
   useEffect(() => {
-    const timeout = setTimeout(() => setIsLoaded(true), 1000);
+    const timeout = setTimeout(() => setIsLoaded(true), 500);
     return () => clearTimeout(timeout);
   }, []);
 
-  // ✅ Bấm nút Flow
+  // ✅ Bấm Flow
   const handleFollowClick = () => {
-    setShowFollowButton(false);
-    setShowUnfollowText(true);
     onFollowToggle();
     setPopupText("Đã theo dõi shop");
     setShowPopup(true);
@@ -52,8 +48,6 @@ export default function ShopInfo({
 
   // ✅ Bấm Hủy theo dõi
   const handleUnfollowClick = () => {
-    setShowFollowButton(true);
-    setShowUnfollowText(false);
     onFollowToggle();
     setPopupText("Đã bỏ theo dõi shop");
     setShowPopup(true);
@@ -75,7 +69,7 @@ export default function ShopInfo({
               height={60}
               className="rounded-full object-cover"
             />
-            {showFollowButton && (
+            {!followed && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <button
                   onClick={handleFollowClick}
@@ -91,7 +85,7 @@ export default function ShopInfo({
           <div className="text-black">
             <h3 className="text-xl font-semibold mb-1 flex items-center gap-2">
               {shop.name}
-              {showUnfollowText && (
+              {followed && (
                 <button
                   onClick={handleUnfollowClick}
                   className="text-sm text-[#DC4B47] underline hover:text-red-600 transition"
@@ -116,21 +110,13 @@ export default function ShopInfo({
 
             <div className="flex gap-2 mt-2">
               <button className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1">
-                <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M2 3v18l4-4h14V3H2zm2 2h14v10H6l-2 2V5z" />
                 </svg>
                 Chat Ngay
               </button>
               <button className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1">
-                <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
                 </svg>
                 Xem Shop
@@ -151,9 +137,7 @@ export default function ShopInfo({
           <div className="w-px h-5 bg-gray-300" />
           <div className="flex items-center gap-1">
             <span className="text-gray-500">Sản Phẩm:</span>
-            <span className="text-red-500 font-semibold">
-              {shop.total_sales}
-            </span>
+            <span className="text-red-500 font-semibold">{shop.total_sales}</span>
           </div>
           <div className="w-px h-5 bg-gray-300" />
           <div className="flex items-center gap-1">
@@ -168,10 +152,9 @@ export default function ShopInfo({
                 const createdAt = new Date(shop.created_at);
                 const now = new Date();
                 const diffMs = now.getTime() - createdAt.getTime();
-                const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24)); // ✅ dùng Math.ceil()
+                const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
                 const months = Math.floor(days / 30);
                 const years = Math.floor(days / 365);
-
                 if (days <= 1) return "1 ngày";
                 if (years >= 1) return `${years} năm`;
                 if (months >= 1) return `${months} tháng`;
