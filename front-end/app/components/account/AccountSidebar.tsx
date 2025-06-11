@@ -7,7 +7,6 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation'; // Sử dụng useRouter để chuyển trang
 import { FaUserCircle, FaBoxOpen, FaTicketAlt } from 'react-icons/fa'; // Thêm icon từ React Icons
 
-
 export default function AccountSidebar({
   currentSection,
   onChangeSection,
@@ -16,7 +15,8 @@ export default function AccountSidebar({
   onChangeSection: (section: string) => void;
 }) {
   const [user, setUser] = useState<any>(null);
-  const router = useRouter(); // Khởi tạo router để chuyển trang
+  const [isAccountOpen, setIsAccountOpen] = useState(false); // Điều khiển việc mở/đóng menu con "My Account"
+  const router = useRouter();
 
   useEffect(() => {
     const token = Cookies.get('authToken');
@@ -33,9 +33,11 @@ export default function AccountSidebar({
   }, []);
 
   const getActiveClass = (section: string) => {
-    return currentSection === section
-      ? 'text-[#DB4444] font-medium' // Active class
-      : 'text-gray-500 hover:text-[#DB4444]'; // Default class
+    return currentSection === section ? 'text-[#DB4444] font-medium' : 'text-[#6c757d]';
+  };
+
+  const handleAccountClick = () => {
+    setIsAccountOpen(!isAccountOpen); // Đảo ngược trạng thái mở/đóng của menu con
   };
 
   return (
@@ -62,76 +64,75 @@ export default function AccountSidebar({
           {/* ✅ Mục: My Account */}
           <li>
             <button
+              onClick={handleAccountClick}
               className={clsx(
-                'flex items-center space-x-3 block text-left w-full text-black font-semibold',
-                'text-[#DB4444]'
+                'flex items-center space-x-3 block text-left w-full',
+                getActiveClass('profile')
               )}
             >
-              <FaUserCircle className="w-6 h-6 text-orange-500 hover:text-[#DB4444]" />
-              <span>My Account</span>
+              <FaUserCircle className="w-6 h-6 text-[#DB4444]" />
+              <span className="text-xl font-bold">My Account</span> {/* Tăng kích thước và độ đậm của chữ */}
             </button>
-            {/* Luôn hiển thị menu con */}
-            <ul className="pl-6 space-y-2 pt-2">
-              <li>
-                <button
-                  onClick={() => onChangeSection('profile')}
-                  className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
-                    getActiveClass('profile') // Get the active class dynamically
-                  )}
-                >
-                  Profile
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onChangeSection('changepassword')}
-                  className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
-                    getActiveClass('changepassword') // Get the active class dynamically
-                  )}
-                >
-                  Change Password
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onChangeSection('address')}
-                  className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
-                    getActiveClass('address') // Get the active class dynamically
-                  )}
-                >
-                  Address
-                </button>
-              </li>
-              {/* ✅ Mục: Followed Shops */}
-              <li>
-                <button
-                  onClick={() => onChangeSection('followedshops')} // Chuyển đến trang Followed Shops
-                  className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
-                    getActiveClass('followedshops') // Get the active class dynamically
-                  )}
-                >
-                  Followed Shops
-                </button>
-              </li>
-            </ul>
+            {/* Hiển thị menu con khi "My Account" được nhấn */}
+            {isAccountOpen && (
+              <ul className="pl-6 space-y-2 pt-2">
+                <li>
+                  <button
+                    onClick={() => onChangeSection('profile')}
+                    className={clsx(
+                      'block text-left w-full hover:text-[#DB4444]',
+                      getActiveClass('profile')
+                    )}
+                  >
+                    Profile
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => onChangeSection('changepassword')}
+                    className={clsx(
+                      'block text-left w-full hover:text-[#DB4444]',
+                      getActiveClass('changepassword')
+                    )}
+                  >
+                    Change Password
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => onChangeSection('address')}
+                    className={clsx(
+                      'block text-left w-full hover:text-[#DB4444]',
+                      getActiveClass('address')
+                    )}
+                  >
+                    Address
+                  </button>
+                </li>
+                {/* ✅ Mục: Followed Shops */}
+                <li>
+                  <button
+                    onClick={() => onChangeSection('followedshops')}
+                    className={clsx(
+                      'block text-left w-full hover:text-[#DB4444]',
+                      getActiveClass('followedshops')
+                    )}
+                  >
+                    Followed Shops
+                  </button>
+                </li>
+              </ul>
+            )}
           </li>
 
           {/* ✅ Mục: My Orders */}
           <li>
             <button
               onClick={() => onChangeSection('orders')}
-              className={clsx(
-                'flex items-center space-x-3 block text-left w-full text-black font-semibold',
-                'hover:text-[#DB4444]',
-                getActiveClass('orders') // Active class for orders
-              )}
+              className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('orders'))}
             >
-              <FaBoxOpen className="w-6 h-6 text-green-500 hover:text-[#DB4444]" />
-              <span>My Orders</span>
+              <FaBoxOpen className="w-6 h-6 text-[#28A745]" />
+              <span className="text-xl font-bold">My Orders</span> {/* Tăng kích thước và độ đậm của chữ */}
             </button>
           </li>
 
@@ -139,14 +140,10 @@ export default function AccountSidebar({
           <li>
             <button
               onClick={() => onChangeSection('vouchers')}
-              className={clsx(
-                'flex items-center space-x-3 block text-left w-full text-black font-semibold',
-                'hover:text-[#DB4444]',
-                getActiveClass('vouchers') // Active class for vouchers
-              )}
+              className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('vouchers'))}
             >
-              <FaTicketAlt className="w-6 h-6 text-blue-500 hover:text-[#DB4444]" />
-              <span>My Vouchers</span>
+              <FaTicketAlt className="w-6 h-6 text-[#007BFF]" />
+              <span className="text-xl font-bold">My Vouchers</span> {/* Tăng kích thước và độ đậm của chữ */}
             </button>
           </li>
         </ul>
