@@ -1,5 +1,6 @@
 "use client";
 
+// ✅ Loading khung sản phẩm trong danh sách
 export const LoadingSkeleton = () => {
   return (
     <div className="w-full max-w-[250px] h-[280px] bg-white rounded-lg border border-gray-200 shadow p-3 animate-pulse flex flex-col">
@@ -14,7 +15,7 @@ export const LoadingSkeleton = () => {
   );
 };
 
-// cho shop
+// ✅ Loading khi lấy thông tin shop
 export const LoadingShopInfo = () => {
   return (
     <div className="mt-12 border rounded-lg bg-white p-6 animate-pulse">
@@ -46,8 +47,9 @@ export const LoadingShopInfo = () => {
     </div>
   );
 };
-// detail
-export default function LoadingProductDetail() {
+
+// ✅ Loading chi tiết sản phẩm
+export const LoadingProductDetail = () => {
   return (
     <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 animate-pulse">
       <div className="rounded-xl border shadow-sm bg-white p-10">
@@ -81,6 +83,22 @@ export default function LoadingProductDetail() {
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+// ✅ Loading đơn giản khi chờ API
+export default function FollowedShopLoading() {
+  return (
+    <div className="flex justify-center items-center py-8">
+      <div className="w-8 h-8 border-4 border-red-400 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+export function AddressCardLoading() {
+  return (
+    <div className="flex justify-center items-center py-10">
+      <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }

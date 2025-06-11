@@ -65,27 +65,28 @@ export default function AccountSidebar({
         </ul>
 
         {/* ✅ Tiêu đề: Đơn hàng */}
-        <h3 className="text-[17px] font-bold text-black mt-4 mb-3">My Orders</h3>
+        <h3 className="text-[17px] font-bold text-black mt-4 mb-3">My Favorite Shops</h3>
         
         {/* ✅ Danh sách các mục đơn hàng */}
         <ul className="space-y-3 text-sm">
           {/* ✅ Mục: My Returns */}
           <li className="pl-6">
             <button
-              onClick={() => onChangeSection('returns')}
+              onClick={() => onChangeSection('followedshops')}
               className={clsx(
                 'block text-left w-full',
-                currentSection === 'returns'
+                currentSection === 'followedshops' // ✅ sửa chỗ này
                   ? 'text-[#DB4444] font-medium'
                   : 'text-gray-500 hover:text-[#DB4444]'
               )}
             >
-              My Returns
+              Following
             </button>
           </li>
 
+
           {/* ✅ Mục: My Cancellations */}
-          <li className="pl-6">
+          {/* <li className="pl-6">
             <button
               onClick={() => onChangeSection('cancellations')}
               className={clsx(
@@ -97,7 +98,7 @@ export default function AccountSidebar({
             >
               My Cancellations
             </button>
-          </li>
+          </li> */}
         </ul>
       </div>
     </div>
