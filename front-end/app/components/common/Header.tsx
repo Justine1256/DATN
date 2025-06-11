@@ -57,6 +57,10 @@ const Header = () => {
       });
   }, []);
 
+  useEffect(() => {
+    navLinks.forEach((link) => router.prefetch(link.href));
+  }, []);
+  
   // ✅ Nav links
   const navLinks = [
     { href: '/', label: 'Home' },
@@ -116,13 +120,16 @@ const Header = () => {
           {/* ✅ Nav links (desktop) */}
           <nav className="hidden md:flex items-center space-x-6">
             {navLinks.map((link) => (
-              <div key={link.href} className="relative group">
-                <Link href={link.href} className="text-black text-sm md:text-base transition duration-300">
-                  {link.label}
-                </Link>
+              <button
+                key={link.href}
+                onClick={() => router.push(link.href)}
+                className="relative group text-black text-sm md:text-base transition duration-300 hover:opacity-90"
+              >
+                {link.label}
                 <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
-              </div>
+              </button>
             ))}
+
             {!user && (
               <div className="relative group">
                 <Link href="/login" className="text-black text-sm md:text-base transition duration-300">

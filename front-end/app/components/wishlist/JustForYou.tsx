@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import ProductCard from "../product/ProductCard";
 import { Product } from "../product/ProductCard"; // ✅ Dùng lại interface nếu có
-import JustForYou from './JustForYou';
+import { useRouter } from 'next/navigation';
 // Nếu không có sẵn, có thể khai báo lại ở đây như bạn đã làm
 
 export default function BestSelling() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false); // ✅ Tránh lỗi hydration mismatch trên client
-
+  const router = useRouter();
   // 🔁 Fetch dữ liệu khi component mount
   useEffect(() => {
     setMounted(true);
@@ -59,7 +59,9 @@ export default function BestSelling() {
             </div>
 
             {/* Bên phải: nút xem tất cả */}
-            <button className="text-[#DB4444] border border-[#DB4444] hover:bg-[#DB4444] hover:text-white font-medium text-sm py-2.5 px-4 rounded-md transition duration-300 w-fit ml-4 mt-4">
+            <button
+              onClick={() => router.push('/category')}
+              className="text-[#DB4444] border border-[#DB4444] hover:bg-[#DB4444] hover:text-white font-medium text-sm py-2.5 px-4 rounded-md transition duration-300 w-fit ml-4 mt-4">
               View All Products
             </button>
           </div>
@@ -69,11 +71,11 @@ export default function BestSelling() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
           {loading
             ? Array(8)
-                .fill(0)
-                .map((_, i) => <ProductCard key={i} />) // ✅ Không truyền prop => hiển thị khung loading
+              .fill(0)
+              .map((_, i) => <ProductCard key={i} />) // ✅ Không truyền prop => hiển thị khung loading
             : products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              <ProductCard key={product.id} product={product} />
+            ))}
         </div>
       </div>
     </section>
