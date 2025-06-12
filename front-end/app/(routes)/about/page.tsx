@@ -12,10 +12,10 @@ export default function AboutRouter() {
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">
               <Link href="/" className="hover:text-[#DB4444] cursor-pointer">
-                Home
+                Trang Chủ
               </Link>
               <span className="mx-2">/</span>
-              <span>About</span>
+              <span>Giới Thiệu</span>
             </div>
           </div>
         </div>

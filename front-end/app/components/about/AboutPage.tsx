@@ -22,55 +22,55 @@ const inter = Inter({ subsets: ['latin'] });
 const teamMembers = [
   {
     name: 'Tom Cruise',
-    role: 'Founder & Chairman',
+    role: 'Người sáng lập & Chủ tịch',
     image: '/team/man1.jpg',
     socials: ['twitter', 'instagram', 'linkedin'],
   },
   {
     name: 'Emma Watson',
-    role: 'Managing Director',
+    role: 'Giám đốc điều hành',
     image: '/team/woman1.webp',
     socials: ['twitter', 'instagram', 'linkedin'],
   },
   {
     name: 'Will Smith',
-    role: 'Product Designer',
+    role: 'Nhà thiết kế sản phẩm',
     image: '/team/man3.jpg',
     socials: ['twitter', 'instagram', 'linkedin'],
   },
   {
     name: 'Scarlett Johansson',
-    role: 'Marketing Lead',
+    role: 'Trưởng bộ phận Marketing',
     image: '/team/woman2.webp',
     socials: ['twitter', 'instagram', 'linkedin'],
   },
   {
     name: 'Chris Hemsworth',
-    role: 'Lead Developer',
+    role: 'Lập trình viên chính',
     image: '/team/man2.jpg',
     socials: ['twitter', 'instagram', 'linkedin'],
   },
   {
     name: 'Gal Gadot',
-    role: 'UI/UX Designer',
+    role: 'Nhà thiết kế UI/UX',
     image: '/team/woman3.avif',
     socials: ['twitter', 'instagram', 'linkedin'],
   },
   {
     name: 'Ryan Reynolds',
-    role: 'Brand Strategist',
+    role: 'Chiến lược thương hiệu',
     image: '/team/man4.jpg',
     socials: ['twitter', 'instagram', 'linkedin'],
   },
   {
     name: 'Zendaya',
-    role: 'Creative Director',
+    role: 'Giám đốc sáng tạo',
     image: '/team/man5.jpg',
     socials: ['twitter', 'instagram', 'linkedin'],
   },
   {
     name: 'Dwayne Johnson',
-    role: 'Operations Manager',
+    role: 'Quản lý vận hành',
     image: '/team/man6.webp',
     socials: ['twitter', 'instagram', 'linkedin'],
   },
@@ -78,27 +78,27 @@ const teamMembers = [
 
 const features = [
   {
-    title: 'FREE AND FAST DELIVERY',
-    desc: 'Free delivery for all orders over $140',
+    title: 'GIAO HÀNG NHANH VÀ MIỄN PHÍ',
+    desc: 'Miễn phí giao hàng cho đơn hàng trên 140$',
     icon: FaTruck,
   },
   {
-    title: '24/7 CUSTOMER SERVICE',
-    desc: 'Friendly 24/7 customer support',
+    title: 'HỖ TRỢ KHÁCH HÀNG 24/7',
+    desc: 'Hỗ trợ thân thiện 24/7',
     icon: FaHeadset,
   },
   {
-    title: 'MONEY BACK GUARANTEE',
-    desc: 'We return money within 30 days',
+    title: 'ĐẢM BẢO HOÀN TIỀN',
+    desc: 'Hoàn tiền trong vòng 30 ngày',
     icon: FaShieldAlt,
   },
 ];
 
 const stats = [
-  { number: 10.5, suffix: 'k', label: 'Sellers active our site', icon: FaStore },
-  { number: 33, suffix: 'k', label: 'Monthly Product Sale', icon: FaDollarSign },
-  { number: 45.5, suffix: 'k', label: 'Customer active in our site', icon: FaUsers },
-  { number: 25, suffix: 'k', label: 'Annual gross sale in our site', icon: FaMoneyBillWave },
+  { number: 10.5, suffix: 'k', label: 'Người bán đang hoạt động', icon: FaStore },
+  { number: 33, suffix: 'k', label: 'Sản phẩm được bán hàng tháng', icon: FaDollarSign },
+  { number: 45.5, suffix: 'k', label: 'Khách hàng đang sử dụng', icon: FaUsers },
+  { number: 25, suffix: 'k', label: 'Doanh thu hàng năm', icon: FaMoneyBillWave },
 ];
 
 export default function AboutPage() {
@@ -116,23 +116,23 @@ export default function AboutPage() {
   return (
     <div className={`container mx-auto px-4 ${inter.className}`}>
       <div className="py-12 text-black">
-        {/* Our Story */}
+        {/* Câu chuyện của chúng tôi */}
         <div className="flex flex-col md:flex-row gap-12 items-stretch mb-24">
           <div className="flex-1 flex flex-col justify-between max-w-[600px]">
             <div>
-              <h2 className="text-4xl font-bold mb-6">Our Story</h2>
+              <h2 className="text-4xl font-bold mb-6">Câu chuyện của chúng tôi</h2>
               <p className="mb-4 text-[14px] text-black">
-                Launced in 2015, Exclusive is South Asia&apos;s premier online shopping marketplace with an active presence in Bangladesh. Supported by a wide range of tailored marketing, data and service solutions, Exclusive has 10,500 sellers and 300 brands and serves 3 million customers across the region.
+                Ra mắt vào năm 2015, Marketo là nền tảng mua sắm trực tuyến hàng đầu tại Nam Á, hiện có mặt tại Bangladesh. Với các giải pháp marketing, dữ liệu và dịch vụ phù hợp, Marketo có 10.500 người bán và 300 thương hiệu, phục vụ 3 triệu khách hàng trong khu vực.
               </p>
               <p className="text-[14px] text-black">
-                Exclusive has more than 1 million products to offer, growing very fast. Exclusive offers a diverse assortment in categories ranging from consumer.
+                Marketo cung cấp hơn 1 triệu sản phẩm và đang phát triển nhanh chóng. Chúng tôi mang đến nhiều lựa chọn đa dạng từ các danh mục sản phẩm tiêu dùng.
               </p>
             </div>
           </div>
           <div className="flex-1 flex items-stretch">
             <Image
               src="/about1.avif"
-              alt="Our Story"
+              alt="Câu chuyện của chúng tôi"
               width={0}
               height={0}
               sizes="100vw"
@@ -142,32 +142,32 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* Statistics */}
+        {/* Thống kê */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-24">
           {stats.map((item, idx) => (
             <div
               key={idx}
-              className="group w-full aspect-square flex flex-col items-center justify-center bg-white text-black hover:bg-[#db4444] hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-md"
+              className="group w-full aspect-square flex flex-col items-center justify-center bg-white text-black border border-black hover:bg-[#db4444] hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-md"
             >
               <div className="flex justify-center mb-4">
                 <div className="w-12 h-12 rounded-full bg-black group-hover:bg-white border-4 border-gray-300 group-hover:border-white flex items-center justify-center transition-all duration-300">
                   <item.icon className="text-xl text-white group-hover:text-black transition-all duration-300" />
                 </div>
               </div>
-              <p className="text-3xl font-bold mb-2 text-black">
+              <p className="text-3xl font-bold mb-2 text-black group-hover:text-white transition-all duration-300">
                 <CountUp end={item.number} decimals={item.number % 1 !== 0 ? 1 : 0} duration={2} />
                 {item.suffix}
               </p>
-              <p className="text-[13px] text-black group-hover:text-white transition-all duration-300">
+              <p className="text-[13px] px-2 text-center break-words text-black group-hover:text-white transition-all duration-300">
                 {item.label}
               </p>
             </div>
           ))}
         </div>
 
-        {/* Our Team */}
+        {/* Đội ngũ của chúng tôi */}
         <div className="overflow-hidden relative mb-24">
-          <h2 className="text-3xl font-bold text-center mb-12">Our Team</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">Đội ngũ của chúng tôi</h2>
           <div
             className="flex transition-transform duration-700 ease-in-out"
             style={{
@@ -233,7 +233,7 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* Why Choose Us */}
+        {/* Tại sao chọn chúng tôi */}
         <div className="grid md:grid-cols-3 gap-8 text-center">
           {features.map((feature, index) => (
             <div key={index}>
