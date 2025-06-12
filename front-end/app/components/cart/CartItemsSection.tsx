@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import { API_BASE_URL } from '@/utils/api';
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 interface CartItem {
   id: number;
   quantity: number;
@@ -101,7 +101,7 @@ export default function CartItemsSection({
     const quantity = Math.max(1, value);
 
     try {
-      const res = await fetch(`${ API_BASE_URL } /cart/${id}`, {
+      const res = await fetch(`${ API_BASE_URL }/cart/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -169,7 +169,8 @@ export default function CartItemsSection({
 
             <div className="w-16 h-16 relative shrink-0">
               <Image
-                src={`http://localhost:8000/storage/${item.product.image}`}
+            src={`${STATIC_BASE_URL}/storage/${item.product.image}`}
+
                 alt={item.product.name}
                 fill
                 className="object-contain"
