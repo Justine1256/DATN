@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import ProductCard from "../product/ProductCard";
-
+import { API_BASE_URL } from '@/utils/api';
 // ✅ Kiểu dữ liệu sản phẩm
 interface Product {
   id: number;
@@ -65,7 +65,7 @@ const Wishlist = () => {
       return;
     }
 
-    fetch("http://127.0.0.1:8000/api/wishlist", {
+    fetch(`${API_BASE_URL}/wishlist`, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",

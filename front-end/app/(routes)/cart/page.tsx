@@ -5,7 +5,7 @@ import Breadcrumb from "@/app/components/cart/CartBreadcrumb";
 import CartItemsSection from "@/app/components/cart/CartItemsSection";
 import CartSummarySection from "@/app/components/cart/CartSummarySection";
 import Cookies from 'js-cookie';
-
+import { API_BASE_URL } from '@/utils/api';
 export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
 
@@ -14,7 +14,7 @@ export default function CartPage() {
     if (!token) return;
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/cart', {
+      const res = await fetch(`${API_BASE_URL}/cart`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
