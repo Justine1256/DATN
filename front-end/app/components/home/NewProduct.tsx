@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import ProductCard from '../product/ProductCard'; // ✅ Card sản phẩm
 import { Product } from '../product/ProductCard'; // ✅ Interface sản phẩm
 import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/utils/api';
 export default function NewProducts() {
   const [products, setProducts] = useState<Product[]>([]);  // ✅ Danh sách sản phẩm
   const [loading, setLoading] = useState(true);              // ✅ Trạng thái loading
 const router = useRouter();
   // 🔄 Gọi API lấy sản phẩm mới
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/newproducts/')
+    fetch(`${API_BASE_URL}/newproducts/`)
       .then((res) => res.json())
       .then((data) => {
         setProducts(Array.isArray(data.products) ? data.products : []);

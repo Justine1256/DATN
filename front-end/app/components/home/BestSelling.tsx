@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
 import ProductCard from "../product/ProductCard";
 import { Product } from "../product/ProductCard"; 
+import { API_BASE_URL } from '@/utils/api';
 // Nếu không có sẵn, có thể khai báo lại ở đây như bạn đã làm
 
 export default function BestSelling() {
@@ -14,7 +15,7 @@ export default function BestSelling() {
   useEffect(() => {
     setMounted(true);
 
-    fetch("http://127.0.0.1:8000/api/bestsellingproducts/")
+    fetch(`${API_BASE_URL}/bestsellingproducts/`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {

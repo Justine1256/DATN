@@ -14,6 +14,7 @@ import Image from 'next/image';
 import logoImage from '../../../public/logo.png';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { API_BASE_URL } from '@/utils/api';
 
 const Header = () => {
   const router = useRouter();
@@ -47,7 +48,8 @@ const Header = () => {
     const token = Cookies.get('authToken');
     if (!token) return;
     axios
-      .get('http://localhost:8000/api/user', {
+      .get(`${API_BASE_URL}/user`, {
+        withCredentials: true,
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setUser(res.data))

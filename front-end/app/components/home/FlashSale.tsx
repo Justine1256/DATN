@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import ProductCard from '../product/ProductCard';
 import { Product } from '../product/ProductCard'; // Interface nếu đã định nghĩa trong ProductCard
 import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/utils/api';
 export default function FlashSale() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +39,7 @@ export default function FlashSale() {
 
   // 🔁 Fetch dữ liệu sản phẩm Flash Sale
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/topdiscountedproducts/')
+    fetch(`${API_BASE_URL}/topdiscountedproducts/`)
       .then((res) => res.json())
       .then((data) => {
         setProducts(Array.isArray(data.products) ? data.products : []);
