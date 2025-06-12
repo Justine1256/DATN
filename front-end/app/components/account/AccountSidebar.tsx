@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit } from 'react-icons/fa';
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import Image from 'next/image';
 import { STATIC_BASE_URL } from '@/utils/api';
 
@@ -12,12 +13,17 @@ interface UserProps {
   name: string;
   avatar?: string;
 =======
+=======
+>>>>>>> Stashed changes
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 
 interface UserProps {
   name: string;
   profilePicture?: string;
   avatar?: string; // Make sure avatar is part of the user props
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 }
 
@@ -49,6 +55,7 @@ export default function AccountSidebar({
       {user && (
         <div className="flex items-center space-x-3 mb-6">
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
           {user.avatar ? (
   <div className="w-14 h-14 relative">
     <Image
@@ -66,6 +73,8 @@ export default function AccountSidebar({
 )}
 
 =======
+=======
+>>>>>>> Stashed changes
           {user.profilePicture || user.avatar ? (
             <img
               src={user.avatar ? `${STATIC_BASE_URL}/${user.avatar}` : user.profilePicture}

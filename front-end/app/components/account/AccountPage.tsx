@@ -4,7 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api'; 
+=======
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
+>>>>>>> Stashed changes
 =======
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 >>>>>>> Stashed changes
