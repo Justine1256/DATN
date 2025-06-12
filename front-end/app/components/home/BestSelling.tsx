@@ -15,7 +15,7 @@ export default function BestSelling() {
   useEffect(() => {
     setMounted(true);
 
-    fetch(`${API_BASE_URL}/bestsellingproducts/`)
+    fetch(`${API_BASE_URL}/bestsellingproducts`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {

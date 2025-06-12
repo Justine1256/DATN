@@ -72,7 +72,7 @@ export default function ProductComments({
     if (image) formData.append('image', image);
 
     await axios.post(
-      `${ API_BASE_URL } /${shopslug}/product/${productslug}/comment`,
+      `${API_BASE_URL}/${shopslug}/product/${productslug}/comment`,
       formData,
       {
         headers: {

@@ -11,7 +11,7 @@ export default function NewProducts() {
 const router = useRouter();
   // 🔄 Gọi API lấy sản phẩm mới
   useEffect(() => {
-    fetch(`${API_BASE_URL}/newproducts/`)
+    fetch(`${API_BASE_URL}/newproducts`)
       .then((res) => res.json())
       .then((data) => {
         setProducts(Array.isArray(data.products) ? data.products : []);

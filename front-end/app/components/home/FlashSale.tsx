@@ -39,7 +39,7 @@ export default function FlashSale() {
 
   // 🔁 Fetch dữ liệu sản phẩm Flash Sale
   useEffect(() => {
-    fetch(`${API_BASE_URL}/topdiscountedproducts/`)
+    fetch(`${API_BASE_URL}/topdiscountedproducts`)
       .then((res) => res.json())
       .then((data) => {
         setProducts(Array.isArray(data.products) ? data.products : []);

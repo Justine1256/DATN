@@ -270,7 +270,7 @@ export default function ProductDetail({
           body: JSON.stringify({ product_id: product.id }),
         });
       } else {
-        await fetch(`${ API_BASE_URL } /wishlist/${product.id}`, {
+        await fetch(`${ API_BASE_URL }/wishlist/${product.id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
