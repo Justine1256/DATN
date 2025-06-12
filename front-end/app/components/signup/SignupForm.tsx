@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-
+import { API_BASE_URL } from '@/utils/api';
 export default function SignupForm() {
   // ✅ Khởi tạo state
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '' });
@@ -46,7 +46,7 @@ export default function SignupForm() {
     }
 
     try {
-      const res = await axios.post('http://localhost:8000/api/register', {
+      const res = await axios.post(`${API_BASE_URL}/register`, {
         name,
         username: email.split('@')[0],
         email,
@@ -69,7 +69,7 @@ export default function SignupForm() {
     }
 
     try {
-      await axios.post('http://localhost:8000/api/verify-otp', {
+      await axios.post(`${API_BASE_URL}/verify-otp`, {
         email: formData.email,
         otp: otpCode,
       });

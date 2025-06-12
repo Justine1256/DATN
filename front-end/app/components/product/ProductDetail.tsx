@@ -7,8 +7,9 @@ import Image from "next/image";
 import BestSelling from "../home/BestSelling";
 import Cookies from "js-cookie";
 import ShopInfo from "./ShopInfo";
-import { LoadingProductDetail } from "../loading/loading";
+import LoadingProductDetail from "../loading/loading";
 import ProductDescriptionAndSpecs from "./ProductDescriptionAndSpecs";
+import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
 
 // ✅ Interface định nghĩa dữ liệu sản phẩm
 interface Product {
@@ -24,6 +25,7 @@ interface Product {
   option2?: string;
   value2?: string;
   stock?: number;
+  rating: string;
   shop_slug: string;
   shop?: {
     id: number;
@@ -36,6 +38,7 @@ interface Product {
     created_at: string;
     status: "activated" | "pending" | "suspended";
     email: string;
+    slug: string;
   };
 }
 
@@ -61,6 +64,45 @@ export default function ProductDetail({
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState("");
 
+  const handleAddToCart = async () => {
+    const token = localStorage.getItem("token") || Cookies.get("authToken");
+    if (!token) {
+      setPopupText("Vui lòng đăng nhập để thêm vào giỏ hàng");
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8000/api/cart", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          product_id: product?.id,
+          quantity: quantity,
+          color: selectedColor,
+          size: selectedSize,
+        }),
+      });
+
+      if (res.ok) {
+        setPopupText("Đã thêm vào giỏ hàng!");
+      } else {
+        const data = await res.json();
+        setPopupText(data.message || "Thêm vào giỏ hàng thất bại");
+      }
+    } catch (err) {
+      console.error("❌ Lỗi add to cart:", err);
+      setPopupText("Có lỗi xảy ra");
+    } finally {
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+    }
+  };
+
   // chạy song song api
   useEffect(() => {
     const fetchData = async () => {
@@ -83,6 +125,8 @@ export default function ProductDetail({
 
         // Cập nhật sản phẩm + ảnh chính + option mặc định
         setProduct(productData);
+        console.log("📦 Chi tiết sản phẩm:", productData);
+
         setMainImage(
           productData.image.startsWith("/")
             ? productData.image
@@ -254,7 +298,7 @@ export default function ProductDetail({
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
           {/* ✅ Hình ảnh sản phẩm bên trái */}
           <div className="md:col-span-6 flex flex-col gap-4">
-            <div className="flex justify-center items-center w-full bg-gray-100 rounded-lg p-6 min-h-[320px]">
+            <div className="flex justify-center items-center w-full bg-gray-100 rounded-lg p-6 min-h-[220px]">
               <div className="w-full max-w-[400px] h-[320px] relative">
                 <Image
                   src={mainImage}
@@ -272,9 +316,8 @@ export default function ProductDetail({
                 <div
                   key={idx}
                   onClick={() => setMainImage(thumb)}
-                  className={`cursor-pointer border-2 rounded overflow-hidden w-[80px] h-[80px] ${
-                    mainImage === thumb ? "border-[#DC4B47]" : "border-gray-300"
-                  }`}
+                  className={`cursor-pointer border-2 rounded overflow-hidden w-[80px] h-[80px] ${mainImage === thumb ? "border-[#DC4B47]" : "border-gray-300"
+                    }`}
                 >
                   <Image
                     src={thumb}
@@ -289,24 +332,41 @@ export default function ProductDetail({
           </div>
 
           {/* ✅ Thông tin sản phẩm bên phải */}
-          <div className="md:col-span-6 space-y-6">
+          <div className="md:col-span-6 space-y-6 ">
             <h1 className="text-[1.5rem] md:text-[2rem] font-bold text-gray-900">
               {product.name}
             </h1>
+            {/* ✅ rating */}
+            <div className="flex items-center gap-3 text-sm -translate-y-4">
+              <div className="flex items-center gap-3 text-sm ">
+                <div className="flex items-center gap-2 text-base">
+                  {/* ⭐ Số sao (hiển thị thập phân, đã chia 2 nếu cần) */}
+                  <span className="text-gray-800 flex items-center">
+                    {(parseFloat(product.rating) / 2).toFixed(1)}
+                  </span>
 
-            <div className="flex items-center gap-3 text-sm">
-              <div className="flex items-center text-yellow-400">
-                {"★".repeat(4)}
-                <span className="text-gray-300 ml-0.5">★</span>
+                  {/* ⭐ Icon sao (5 ngôi sao, tính theo rating / 2) */}
+                  <div className="flex items-center">
+                    {Array.from({ length: 5 }).map((_, i) =>
+                      i < Math.round(parseFloat(product.rating) / 2) ? (
+                        <FaStar key={i} className="text-yellow-400" />
+                      ) : (
+                        <FaRegStar key={i} className="text-gray-300" />
+                      )
+                    )}
+                  </div>
+                </div>
               </div>
+
+
               <span className="text-gray-500">(150 Lượt Xem)</span>
               <span className="text-gray-300">|</span>
               <span className="text-emerald-400 font-medium">
-                Trong kho: {product.stock || 0}
+                Hàng trong kho: {product.stock || 0} sản phẩm
               </span>
             </div>
-
-            <div className="flex items-center gap-3">
+            {/* ✅ giá */}
+            <div className="flex items-center gap-3 -translate-y-6">
               <span className="text-[1.25rem] md:text-[1.5rem] font-bold text-[#DC4B47]">
                 {Number(product.sale_price || product.price).toLocaleString(
                   "vi-VN"
@@ -314,33 +374,32 @@ export default function ProductDetail({
                 ₫
               </span>
               {product.sale_price && (
-                <span className="line-through text-gray-400 text-sm">
+                <span className="line-through text-gray-400 text-sm ">
                   {Number(product.price).toLocaleString("vi-VN")}₫
                 </span>
               )}
             </div>
-
+            {/* ✅ mô tả */}
             <p
-              className="text-gray-600 text-sm md:text-base truncate max-w-[300px]"
+              className="text-gray-600 text-sm md:text-base truncate max-w-[300px] -translate-y-8"
               title={product.description}
             >
               {product.description}
             </p>
 
             {/* ✅ Options màu và size */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 -translate-y-10">
               <div className="flex items-center gap-3">
-                <p className="font-medium text-gray-700 text-sm">Màu sắc:</p>
+                <p className="font-medium text-gray-700 text-sm">Màu Sắc:</p>
                 <div className="flex gap-1">
                   {colorOptions.map((color) => (
                     <button
                       key={color}
                       onClick={() => setSelectedColor(color)}
-                      className={`w-4 h-4 rounded-full border transition ${
-                        selectedColor === color
-                          ? "border-black scale-105"
-                          : "border-gray-300 hover:border-black"
-                      }`}
+                      className={`w-4 h-4 rounded-full border transition ${selectedColor === color
+                        ? "border-black scale-105"
+                        : "border-gray-300 hover:border-black"
+                        }`}
                       style={{ backgroundColor: color.toLowerCase() }}
                       title={color}
                     />
@@ -348,18 +407,17 @@ export default function ProductDetail({
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 ">
                 <p className="font-medium text-gray-700 text-sm">Kích cỡ:</p>
                 <div className="flex gap-1">
                   {sizeOptions.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`text-xs min-w-[28px] px-2 py-0.5 rounded border text-center font-medium transition ${
-                        selectedSize === size
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300 hover:bg-black hover:text-white"
-                      }`}
+                      className={`text-xs min-w-[28px] px-2 py-0.5 rounded border text-center font-medium transition ${selectedSize === size
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-black border-gray-300 hover:bg-black hover:text-white"
+                        }`}
                     >
                       {size}
                     </button>
@@ -369,7 +427,7 @@ export default function ProductDetail({
             </div>
 
             {/* ✅ Số lượng và hành động */}
-            <div className="flex items-center gap-3 mt-4">
+            <div className="flex items-center gap-3 mt-4 -translate-y-10">
               <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -391,43 +449,49 @@ export default function ProductDetail({
               <button className="w-[165px] h-[44px] bg-[#DC4B47] text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium">
                 Mua Ngay
               </button>
-              <button className="w-[165px] h-[44px] text-[#DC4B47] border border-[#DC4B47] text-sm md:text-base rounded hover:bg-[#DC4B47] hover:text-white transition font-medium">
-                Thêm vào giỏ hàng
+              <button
+                onClick={handleAddToCart}
+                className="w-[165px] h-[44px] text-[#DC4B47] border border-[#DC4B47] text-sm md:text-base rounded hover:bg-[#DC4B47] hover:text-white transition font-medium"
+              >
+                Thêm Vào Giỏ Hàng
               </button>
+
               <button
                 onClick={toggleLike}
-                className={`p-2 border rounded text-lg transition ${
-                  liked ? "text-[#DC4B47]" : "text-gray-400"
-                }`}
+                className={`p-2 border rounded text-lg transition ${liked ? "text-[#DC4B47]" : "text-gray-400"
+                  }`}
               >
                 {liked ? "❤️" : "🤍"}
               </button>
             </div>
 
             {/* ✅ Chính sách vận chuyển */}
-            <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
-              <div className="flex items-start gap-3 p-4">
-                <span className="text-xl">🚚</span>
+            <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6 -translate-y-11">
+              <div className="flex items-center gap-3 p-4">
+                <div className="flex justify-center items-center h-[40px]">
+                  <Image src="/ship.png" alt="Logo" width={30} height={40} />
+                </div>
                 <div>
-                  <p className="font-semibold">Giao Hàng Miễn Phí</p>
+                  <p className="font-semibold">Giao hàng miễn phí</p>
                   <p>
                     <a className="no-underline" href="#">
-                      Dịch vụ giao hàng tận nơi cho mọi khu vực
+                      Giao hàng miễn phí tại nội thành & một số khu vực ngoại thành
                     </a>
                   </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4">
-                <span className="text-xl">🔁</span>
+
+              <div className="flex items-center gap-3 p-4">
+                <div className="flex justify-center items-center h-[40px]">
+                  <Image src="/trahang.png" alt="Logo" width={30} height={40} />
+                </div>
                 <div>
-                  <p className="font-semibold">Đổi Trả Hàng</p>
-                  <p>
-                    Giao hàng miễn phí trong 30 ngày Trả hàng{" "}
-                  
-                  </p>
+                  <p className="font-semibold">Trả hàng</p>
+                  <p>Giao hàng miễn phí trong vòng 30 ngày.</p>
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>

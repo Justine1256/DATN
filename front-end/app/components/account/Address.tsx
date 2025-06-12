@@ -303,7 +303,7 @@ export default function AddressComponent() {
     <div className="relative">
       {isAdding && <div className="fixed inset-0 bg-black bg-opacity-50 z-40" />}
 
-      <div className="w-full max-w-5xl p-6 mx-auto mt-10 bg-white rounded-lg shadow relative z-50">
+      <div className="w-full max-w-5xl p-10 mx-auto mt-20 bg-white rounded-lg shadow relative z-50">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-h2 font-bold text-red-500">Danh sách địa chỉ</h2>
           <button

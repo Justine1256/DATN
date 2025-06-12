@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 use function Illuminate\Log\log;
 
@@ -191,6 +192,36 @@ public function update(Request $request)
     ]);
 }
 
+public function updateAvatar(Request $request)
+{
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+
+    $request->validate([
+    'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+], [
+    'avatar.required' => 'Bạn chưa tải ảnh lên.',
+    'avatar.image' => 'Ảnh đại diện phải là định dạng hình ảnh.',
+    'avatar.max' => 'Kích thước ảnh tối đa là 2MB.',
+]);
+
+
+    // Xoá ảnh cũ nếu có
+    if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+        Storage::disk('public')->delete($user->avatar);
+    }
+
+    // Lưu ảnh mới
+    $path = $request->file('avatar')->store('avatars', 'public');
+    $user->avatar = $path;
+    $user->save();
+
+    return response()->json([
+        'message' => 'Cập nhật ảnh đại diện thành công!',
+        'avatar_url' => asset('storage/' . $path),
+        'user' => $user
+    ]);
+}
 
 public function destroy(Request $request)
 {
