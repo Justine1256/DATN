@@ -169,7 +169,7 @@ export default function CartItemsSection({
 
             <div className="w-16 h-16 relative shrink-0">
               <Image
-            src={`${STATIC_BASE_URL}/storage/${item.product.image}`}
+            src={`${STATIC_BASE_URL}/${item.product.image}`}
 
                 alt={item.product.name}
                 fill
