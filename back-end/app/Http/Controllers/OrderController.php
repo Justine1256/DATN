@@ -225,4 +225,25 @@ class OrderController extends Controller
 
         return response()->json(['message' => 'Không thể huỷ đơn ở trạng thái hiện tại'], 400);
     }
+    public function updateShippingStatus($orderId, Request $request)
+    {
+        $order = Order::find($orderId);
+
+        if (!$order) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+
+        // Chỉ cho phép cập nhật khi đang ở trạng thái "Shipping"
+        if ($order->order_status !== 'Shipping') {
+            return response()->json([
+                'message' => 'Shipping status can only be updated when order is in "Shipping" status.'
+            ], 400);
+        }
+
+        // Cập nhật trạng thái vận chuyển (ví dụ: 'In Transit', 'Delivered', ...)
+        $order->shipping_status = $request->input('shipping_status');
+        $order->save();
+
+        return response()->json(['message' => 'Shipping status updated successfully']);
+    }
 }
