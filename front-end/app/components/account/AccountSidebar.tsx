@@ -40,17 +40,20 @@ export default function AccountSidebar({
       {/* ✅ Thông tin người dùng */}
       {user && (
         <div className="flex items-center space-x-3 mb-6">
-          {user.profilePicture || user.avatar ? (
-            <img
-              src={user.avatar ? `${STATIC_BASE_URL}/${user.avatar}` : user.profilePicture}
-              alt="User Icon"
-              className="w-14 h-14 rounded-full"
-            />
-          ) : (
-            <div className="w-14 h-14 flex items-center justify-center bg-[#DB4444] text-white text-xl font-semibold rounded-full">
-              {user.name ? user.name[0] : 'U'}
-            </div>
-          )}
+          <img
+  src={
+    user.avatar
+      ? `${STATIC_BASE_URL}/${user.avatar}`
+      : user.profilePicture || `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+  }
+  alt="User Icon"
+  className="w-14 h-14 rounded-full object-cover"
+  onError={(e) => {
+    (e.currentTarget as HTMLImageElement).onerror = null; // ngăn vòng lặp vô hạn
+    e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
+  }}
+/>
+
 
           {/* ✅ Tên + chỉnh sửa */}
           <div>

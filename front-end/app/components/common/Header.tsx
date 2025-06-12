@@ -147,21 +147,23 @@ const Header = () => {
 
             {user && (
               <div className="relative" ref={dropdownRef}>
-                {user.avatar ? (
-                  <Image
-                    key={user.avatar}
-                    src={`${STATIC_BASE_URL}/${user.avatar}?t=${new Date().getTime()}`}
-                    alt="Avatar"
-                    width={32}
-                    height={32}
-                    className="h-8 w-8 rounded-full object-cover cursor-pointer"
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                  />
-                ) : (
-                  <button onClick={() => setDropdownOpen(!dropdownOpen)} className="h-8 w-8 bg-red-500 text-white rounded-full flex items-center justify-center uppercase text-sm font-semibold">
-                    {user.name[0]}
-                  </button>
-                )}
+<img
+  src={
+    user.avatar
+      ? `${STATIC_BASE_URL}/${user.avatar}?t=${new Date().getTime()}`
+      : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+  }
+  onError={(e) => {
+    e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
+  }}
+  alt="Avatar"
+  className="h-8 w-8 rounded-full object-cover cursor-pointer"
+  width={32}
+  height={32}
+  onClick={() => setDropdownOpen(!dropdownOpen)}
+/>
+
+
 
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-3 w-[224px] rounded-md shadow-xl z-50" style={{ backgroundColor: "rgba(30,30,30,0.7)", backdropFilter: "blur(6px)" }}>

@@ -115,7 +115,11 @@ const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       setLoading(false);
     }
   }, [showPopupMessage]);
-const avatarUrl = previewAvatar || (userData.profilePicture ? `${STATIC_BASE_URL}/${userData.profilePicture}` : "");
+const avatarUrl =
+  previewAvatar ||
+  (userData.profilePicture
+    ? `${STATIC_BASE_URL}/${userData.profilePicture}`
+    : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`);
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
@@ -272,16 +276,15 @@ const avatarUrl = previewAvatar || (userData.profilePicture ? `${STATIC_BASE_URL
 
               {/* ✅ BÊN PHẢI: avatar preview & upload */}
               <div className="flex flex-col items-center border-l border-gray-200 pl-4">
-                <div className="w-24 h-24 mb-3 rounded-full border border-gray-300 relative overflow-hidden flex items-center justify-center bg-brand text-white text-3xl font-bold">
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt="Avatar"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span>{userData.name?.charAt(0).toUpperCase() || "?"}</span>
-                )}
+                <div className="w-20 h-20 mb-3 rounded-full border border-gray-300 relative overflow-hidden flex items-center justify-center">
+                <img
+                src={avatarUrl}
+                alt="Avatar"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
+                }}
+              />
               </div>
 
 
