@@ -299,20 +299,26 @@ export default function ProductDetail({
             </h1>
             {/* ✅ rating */}
             <div className="flex items-center gap-3 text-sm -translate-y-4">
-              <div className="flex items-center gap-2 text-base">
-                <span className="text-gray-800">
-                  {Math.round(parseFloat(product.rating) / 2)}
-                </span>
-                <div className="flex">
-                  {Array.from({ length: 5 }).map((_, i) =>
-                    i < Math.round(parseFloat(product.rating) / 2) ? (
-                      <FaStar key={i} className="text-yellow-400" />
-                    ) : (
-                      <FaRegStar key={i} className="text-gray-300" />
-                    )
-                  )}
+              <div className="flex items-center gap-3 text-sm ">
+                <div className="flex items-center gap-2 text-base">
+                  {/* ⭐ Số sao (hiển thị thập phân, đã chia 2 nếu cần) */}
+                  <span className="text-gray-800 flex items-center">
+                    {(parseFloat(product.rating) / 2).toFixed(1)}
+                  </span>
+
+                  {/* ⭐ Icon sao (5 ngôi sao, tính theo rating / 2) */}
+                  <div className="flex items-center">
+                    {Array.from({ length: 5 }).map((_, i) =>
+                      i < Math.round(parseFloat(product.rating) / 2) ? (
+                        <FaStar key={i} className="text-yellow-400" />
+                      ) : (
+                        <FaRegStar key={i} className="text-gray-300" />
+                      )
+                    )}
+                  </div>
                 </div>
               </div>
+
 
               <span className="text-gray-500">(150 Lượt Xem)</span>
               <span className="text-gray-300">|</span>
