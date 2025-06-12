@@ -7,7 +7,7 @@ import Cookies from "js-cookie";
 import { FiHeart, FiShoppingCart } from "react-icons/fi";
 import { AiFillHeart, AiFillStar } from "react-icons/ai";
 import { LoadingSkeleton } from "../loading/loading";
-import { API_BASE_URL } from '@/utils/api';
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 // ✅ Interface dữ liệu sản phẩm
 export interface Product {
   id: number;
@@ -206,7 +206,7 @@ export default function ProductCard({
       {/* ✅ Ảnh sản phẩm */}
       <div className="w-full h-[140px] mt-8 flex items-center justify-center">
         <Image
-          src={`http://localhost:8000/storage/${product.image}`}
+          src={`${STATIC_BASE_URL}/storage/${product.image}`}
           alt={product.name}
           width={2220}
           height={120}
