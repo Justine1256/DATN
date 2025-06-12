@@ -3,7 +3,11 @@
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+<<<<<<< Updated upstream
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api'; 
+=======
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
+>>>>>>> Stashed changes
 // ✅ Interface dữ liệu người dùng
 interface UserData {
   name: string;

@@ -10,7 +10,7 @@ import ChangePassword from '@/app/components/account/ChangePassword';
 import FollowedShops from '@/app/components/account/FollowedShops';
 import OrderSection from '@/app/components/account/Order';
 import { useRouter } from 'next/navigation';
-import { API_BASE_URL } from '@/utils/api';
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 export default function AccountRoute() {
   const [section, setSection] = useState<string>('profile');
   const [user, setUser] = useState<any>(null);
