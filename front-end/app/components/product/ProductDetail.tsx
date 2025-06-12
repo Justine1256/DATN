@@ -316,7 +316,7 @@ export default function ProductDetail({
                 <div
                   key={idx}
                   onClick={() => setMainImage(thumb)}
-                  className={`cursor-pointer border-2 rounded overflow-hidden w-[80px] h-[80px] ${mainImage === thumb ? "border-[#DC4B47]" : "border-gray-300"
+                  className={`cursor-pointer border-2 rounded overflow-hidden w-[80px] h-[80px] ${mainImage === thumb ? "border-brand" : "border-gray-300"
                     }`}
                 >
                   <Image
@@ -367,7 +367,7 @@ export default function ProductDetail({
             </div>
             {/* ✅ giá */}
             <div className="flex items-center gap-3 -translate-y-6">
-              <span className="text-[1.25rem] md:text-[1.5rem] font-bold text-[#DC4B47]">
+              <span className="text-[1.25rem] md:text-[1.5rem] font-bold text-brand">
                 {Number(product.sale_price || product.price).toLocaleString(
                   "vi-VN"
                 )}
@@ -431,7 +431,7 @@ export default function ProductDetail({
               <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-[#DC4B47] hover:text-white transition"
+                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition"
                 >
                   −
                 </button>
@@ -440,25 +440,25 @@ export default function ProductDetail({
                 </span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-[#DC4B47] hover:text-white transition"
+                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition"
                 >
                   +
                 </button>
               </div>
 
-              <button className="w-[165px] h-[44px] bg-[#DC4B47] text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium">
+              <button className="w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium">
                 Mua Ngay
               </button>
               <button
                 onClick={handleAddToCart}
-                className="w-[165px] h-[44px] text-[#DC4B47] border border-[#DC4B47] text-sm md:text-base rounded hover:bg-[#DC4B47] hover:text-white transition font-medium"
+                className="w-[165px] h-[44px] text-brand border border-brand text-sm md:text-base rounded hover:bg-brand hover:text-white transition font-medium"
               >
                 Thêm Vào Giỏ Hàng
               </button>
 
               <button
                 onClick={toggleLike}
-                className={`p-2 border rounded text-lg transition ${liked ? "text-[#DC4B47]" : "text-gray-400"
+                className={`p-2 border rounded text-lg transition ${liked ? "text-brand" : "text-gray-400"
                   }`}
               >
                 {liked ? "❤️" : "🤍"}
@@ -546,7 +546,7 @@ export default function ProductDetail({
       </div>
       {/* ✅ Thông báo thêm/xoá yêu thích */}
       {showPopup && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
+        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
           {popupText ||
             (liked ? "Đã thêm vào yêu thích " : "Đã xóa khỏi yêu thích ")}
         </div>

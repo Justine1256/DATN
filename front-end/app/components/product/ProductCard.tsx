@@ -197,7 +197,7 @@ export default function ProductCard({
         className="absolute top-2 right-2 text-xl z-20 pointer-events-auto"
       >
         {liked ? (
-          <AiFillHeart className="text-red-500 transition" />
+          <AiFillHeart className="text-brand transition" />
         ) : (
           <FiHeart className="text-gray-500 transition" />
         )}
@@ -206,12 +206,16 @@ export default function ProductCard({
       {/* ✅ Ảnh sản phẩm */}
       <div className="w-full h-[140px] mt-8 flex items-center justify-center">
         <Image
-          src={`${STATIC_BASE_URL}/${product.image}`}
-          alt={product.name}
-          width={150}
-          height={20}
-          className="object-contain max-h-[2220px] transition-transform duration-300 group-hover:scale-105"
-        />
+            src={
+              product.image
+                ? `${STATIC_BASE_URL}/${product.image}`
+                : `${STATIC_BASE_URL}/products/default-product.png`
+            }
+            alt={product.name}
+            width={150}
+            height={20}
+            className="object-contain max-h-[2220px] transition-transform duration-300 group-hover:scale-105"
+          />
       </div>
 
       {/* ✅ Thông tin sản phẩm */}
@@ -221,7 +225,7 @@ export default function ProductCard({
         </h4>
 
         <div className="flex gap-2 mt-1 items-center">
-          <span className="text-red-500 font-bold text-base">
+          <span className="text-brand font-bold text-base">
             {new Intl.NumberFormat("vi-VN").format(
               hasDiscount ? product.sale_price! : product.price
             )}

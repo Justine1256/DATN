@@ -94,7 +94,7 @@ export default function LandingSlider() {
                 onClick={() => router.push("/shop")} // ✅ click vào Shop now sẽ chuyển hướng
                 className={`w-[143px] h-[43px] rounded-md text-white font-semibold transition ${
                   slide.variant === "red"
-                    ? "bg-[#DB4444] hover:bg-red-600"
+                    ? "bg-brand hover:bg-red-600"
                     : "bg-black hover:bg-neutral-700"
                 }`}
               >
@@ -111,7 +111,7 @@ export default function LandingSlider() {
             key={index}
             onClick={() => handleDotClick(index)}
             className={`w-2 h-2 rounded-full cursor-pointer transition-all duration-300 ${
-              index === current ? "bg-[#DB4444]" : "bg-gray-300"
+              index === current ? "bg-brand" : "bg-gray-300"
             }`}
           />
         ))}

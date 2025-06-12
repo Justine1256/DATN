@@ -91,14 +91,14 @@ export const LoadingProductDetail = () => {
 export default function FollowedShopLoading() {
   return (
     <div className="flex justify-center items-center py-8">
-      <div className="w-8 h-8 border-4 border-red-400 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }
 export function AddressCardLoading() {
   return (
     <div className="flex justify-center items-center py-10">
-      <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }

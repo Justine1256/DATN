@@ -21,8 +21,8 @@ const ProductDescriptionAndSpecs: React.FC<ProductDescriptionAndSpecsProps> = ({
 
       {/* Thêm thanh màu đỏ và chữ "CHI TIẾT SẢN PHẨM" */}
       <div className="flex items-center gap-2 mb-6">
-        <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-        <p className="text-red-500 font-semibold text-sm">CHI TIẾT SẢN PHẨM</p>
+        <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
+        <p className="text-brand font-semibold text-sm">CHI TIẾT SẢN PHẨM</p>
       </div>
 
       {/* Thông tin sản phẩm và ảnh */}
@@ -56,8 +56,8 @@ const ProductDescriptionAndSpecs: React.FC<ProductDescriptionAndSpecsProps> = ({
       {/* Mô tả sản phẩm */}
       <div className="mt-6">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-          <p className="text-red-500 font-semibold text-sm">MÔ TẢ SẢN PHẨM</p>
+          <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
+          <p className="text-brand font-semibold text-sm">MÔ TẢ SẢN PHẨM</p>
         </div>
         <div className="text-base leading-6 text-gray-700 space-y-3">
           {descriptionLines.map((line, idx) => (
@@ -70,7 +70,7 @@ const ProductDescriptionAndSpecs: React.FC<ProductDescriptionAndSpecsProps> = ({
               {hashtags.map((tag, idx) => (
                 <span
                   key={idx}
-                  className="text-[#DC4B47] hover:underline cursor-pointer"
+                  className="text-brand hover:underline cursor-pointer"
                 >
                   #{tag}
                 </span>

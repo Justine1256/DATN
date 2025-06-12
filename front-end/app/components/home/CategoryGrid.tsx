@@ -78,8 +78,8 @@ export default function CategoryGrid() {
         {/* ✅ Tiêu đề */}
         <div className="mb-6">
           <div className="flex items-center gap-2">
-            <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-            <p className="text-red-500 font-semibold text-sm !translate-y-[1px]">
+            <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
+            <p className="text-brand font-semibold text-sm !translate-y-[1px]">
               Danh Mục
             </p>
           </div>
@@ -96,7 +96,7 @@ export default function CategoryGrid() {
               <div
                 key={cat.id}
                 onClick={() => router.push(`/category/${cat.slug}`)} // 👈 Chuyển hướng khi click
-                className="flex flex-col items-center justify-center border border-gray-300 rounded-md py-5 transition-all duration-300 hover:bg-[#dc4b47] hover:text-white cursor-pointer text-center text-gray-800 group"
+                className="flex flex-col items-center justify-center border border-gray-300 rounded-md py-5 transition-all duration-300 hover:bg-brand hover:text-white cursor-pointer text-center text-gray-800 group"
               >
                 <div className="text-[28px] mb-2 transition-all duration-300 group-hover:scale-110">
                   <Icon />

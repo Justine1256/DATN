@@ -60,8 +60,8 @@ export default function FlashSale() {
         <div className="flex items-start justify-between gap-10 pb-8">
           <div className="flex flex-col justify-center">
             <div className="flex items-center gap-2">
-              <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-              <p className="text-red-500 font-semibold text-sm">Hôm Nay</p>
+              <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
+              <p className="text-brand font-semibold text-sm">Hôm Nay</p>
             </div>
 
             {/* 🕒 Title + đồng hồ */}
@@ -78,7 +78,7 @@ export default function FlashSale() {
                       {String(item.value).padStart(2, '0')}
                     </span>
                     {i < 3 && (
-                      <div className="absolute top-[40%] -right-[14px] text-red-400 font-semibold text-xl">:</div>
+                      <div className="absolute top-[40%] -right-[14px] text-brand font-semibold text-xl">:</div>
                     )}
                   </div>
                 ))}
@@ -100,7 +100,7 @@ export default function FlashSale() {
         <div className="mt-10 text-center">
           <button 
             onClick={() => router.push('/category')} 
-            className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
+            className="bg-brand hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
             Xem tất cả sản phẩm
           </button>
         </div>
