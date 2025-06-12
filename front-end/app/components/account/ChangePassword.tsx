@@ -86,7 +86,7 @@ export default function ChangePassword() {
 
   return (
     <div className="w-full flex justify-center">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 mt-8">
         <div className="w-full max-w-[600px] mx-auto px-4 pt-10 text-black">
           {/* ✅ Form đổi mật khẩu */}
           <form

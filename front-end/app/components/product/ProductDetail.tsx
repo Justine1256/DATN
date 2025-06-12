@@ -64,6 +64,45 @@ export default function ProductDetail({
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState("");
 
+  const handleAddToCart = async () => {
+    const token = localStorage.getItem("token") || Cookies.get("authToken");
+    if (!token) {
+      setPopupText("Vui lòng đăng nhập để thêm vào giỏ hàng");
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8000/api/cart", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          product_id: product?.id,
+          quantity: quantity,
+          color: selectedColor,
+          size: selectedSize,
+        }),
+      });
+
+      if (res.ok) {
+        setPopupText("Đã thêm vào giỏ hàng!");
+      } else {
+        const data = await res.json();
+        setPopupText(data.message || "Thêm vào giỏ hàng thất bại");
+      }
+    } catch (err) {
+      console.error("❌ Lỗi add to cart:", err);
+      setPopupText("Có lỗi xảy ra");
+    } finally {
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+    }
+  };
+
   // chạy song song api
   useEffect(() => {
     const fetchData = async () => {
@@ -259,7 +298,7 @@ export default function ProductDetail({
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
           {/* ✅ Hình ảnh sản phẩm bên trái */}
           <div className="md:col-span-6 flex flex-col gap-4">
-            <div className="flex justify-center items-center w-full bg-gray-100 rounded-lg p-6 min-h-[320px]">
+            <div className="flex justify-center items-center w-full bg-gray-100 rounded-lg p-6 min-h-[220px]">
               <div className="w-full max-w-[400px] h-[320px] relative">
                 <Image
                   src={mainImage}
@@ -358,8 +397,8 @@ export default function ProductDetail({
                       key={color}
                       onClick={() => setSelectedColor(color)}
                       className={`w-4 h-4 rounded-full border transition ${selectedColor === color
-                          ? "border-black scale-105"
-                          : "border-gray-300 hover:border-black"
+                        ? "border-black scale-105"
+                        : "border-gray-300 hover:border-black"
                         }`}
                       style={{ backgroundColor: color.toLowerCase() }}
                       title={color}
@@ -376,8 +415,8 @@ export default function ProductDetail({
                       key={size}
                       onClick={() => setSelectedSize(size)}
                       className={`text-xs min-w-[28px] px-2 py-0.5 rounded border text-center font-medium transition ${selectedSize === size
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300 hover:bg-black hover:text-white"
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-black border-gray-300 hover:bg-black hover:text-white"
                         }`}
                     >
                       {size}
@@ -410,9 +449,13 @@ export default function ProductDetail({
               <button className="w-[165px] h-[44px] bg-[#DC4B47] text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium">
                 Mua Ngay
               </button>
-              <button className="w-[165px] h-[44px] text-[#DC4B47] border border-[#DC4B47] text-sm md:text-base rounded hover:bg-[#DC4B47] hover:text-white transition font-medium">
+              <button
+                onClick={handleAddToCart}
+                className="w-[165px] h-[44px] text-[#DC4B47] border border-[#DC4B47] text-sm md:text-base rounded hover:bg-[#DC4B47] hover:text-white transition font-medium"
+              >
                 Thêm Vào Giỏ Hàng
               </button>
+
               <button
                 onClick={toggleLike}
                 className={`p-2 border rounded text-lg transition ${liked ? "text-[#DC4B47]" : "text-gray-400"
