@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { API_BASE_URL } from '@/utils/api'; 
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api'; 
 // ✅ Interface dữ liệu người dùng
 interface UserData {
   name: string;
@@ -51,24 +51,44 @@ export default function AccountPage({ onProfileUpdated }: Props) {
   }, []);
 
   // ✅ Chọn ảnh (chưa upload ngay)
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (file.size > 1024 * 1024) {
-      return showPopupMessage("File vượt quá 1MB!", "error");
-    }
+  if (file.size > 1024 * 1024) {
+    return showPopupMessage("File vượt quá 1MB!", "error");
+  }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreviewAvatar(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    const formData = new FormData();
-    formData.append("avatar", file);
-    setUserData((prev) => ({ ...prev, avatarFormData: formData } as any));
+  // Hiển thị ảnh trước
+  const reader = new FileReader();
+  reader.onload = () => {
+    setPreviewAvatar(reader.result as string);
   };
+  reader.readAsDataURL(file);
+
+  // Upload ngay lên server
+  const formData = new FormData();
+  formData.append("avatar", file);
+
+  const token = Cookies.get("authToken");
+  if (!token) return showPopupMessage("Chưa xác thực.", "error");
+
+  try {
+    await axios.post(`${API_BASE_URL}/user/avatar`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    showPopupMessage("Cập nhật ảnh thành công!", "success");
+    onProfileUpdated?.();
+    fetchUser(); // cập nhật lại thông tin mới nhất (có avatar)
+  } catch {
+    showPopupMessage("Lỗi cập nhật ảnh!", "error");
+  }
+};
+
 
   const fetchUser = useCallback(async () => {
     const token = Cookies.get("authToken");
@@ -95,7 +115,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
       setLoading(false);
     }
   }, [showPopupMessage]);
-
+const avatarUrl = previewAvatar || (userData.profilePicture ? `${STATIC_BASE_URL}/${userData.profilePicture}` : "");
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
@@ -252,11 +272,18 @@ export default function AccountPage({ onProfileUpdated }: Props) {
 
               {/* ✅ BÊN PHẢI: avatar preview & upload */}
               <div className="flex flex-col items-center border-l border-gray-200 pl-4">
-                <img
-                  src={previewAvatar || "/default-avatar.png"}
-                  alt="Avatar"
-                  className="w-28 h-28 rounded-full object-cover mb-3 border border-gray-300"
-                />
+                <div className="w-24 h-24 mb-3 rounded-full border border-gray-300 relative overflow-hidden flex items-center justify-center bg-brand text-white text-3xl font-bold">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{userData.name?.charAt(0).toUpperCase() || "?"}</span>
+                )}
+              </div>
+
 
                 <label className="text-[11px] text-gray-500 text-center leading-tight max-w-[120px] text-wrap break-words mb-2">
                   Dung lượng tối đa 1MB<br />Định dạng: JPG, PNG

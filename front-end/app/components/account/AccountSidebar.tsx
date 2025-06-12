@@ -4,10 +4,12 @@ import { useState } from 'react';
 import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit } from 'react-icons/fa';
+import Image from 'next/image';
+import { STATIC_BASE_URL } from '@/utils/api';
 
 interface UserProps {
   name: string;
-  profilePicture?: string;
+  avatar?: string;
 }
 
 interface AccountSidebarProps {
@@ -37,17 +39,22 @@ export default function AccountSidebar({
       {/* ✅ Thông tin người dùng */}
       {user && (
         <div className="flex items-center space-x-3 mb-6">
-          {user.profilePicture ? (
-            <img
-              src={user.profilePicture}
-              alt="User Icon"
-              className="w-14 h-14 rounded-full"
-            />
-          ) : (
-            <div className="w-14 h-14 flex items-center justify-center bg-[#DB4444] text-white text-xl font-semibold rounded-full">
-              {user.name ? user.name[0] : 'U'}
-            </div>
-          )}
+          {user.avatar ? (
+  <div className="w-14 h-14 relative">
+    <Image
+      src={`${STATIC_BASE_URL}/${user.avatar}`}
+      alt="User Icon"
+      fill
+      className="rounded-full object-cover"
+      sizes="56px"
+    />
+  </div>
+) : (
+  <div className="w-14 h-14 flex items-center justify-center bg-[#DB4444] text-white text-xl font-semibold rounded-full">
+    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+  </div>
+)}
+
 
           {/* ✅ Tên + chỉnh sửa */}
           <div>
