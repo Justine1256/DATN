@@ -109,7 +109,7 @@ export default function ProductDetail({
       try {
         const token = localStorage.getItem("token") || Cookies.get("authToken");
         const productRes = await fetch(
-          `${ API_BASE_URL }${shopslug}/product/${productslug}`
+          `${ API_BASE_URL }/${shopslug}/product/${productslug}`
         );
 
         if (!productRes.ok) {
