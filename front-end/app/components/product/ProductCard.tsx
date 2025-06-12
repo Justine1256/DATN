@@ -206,7 +206,7 @@ export default function ProductCard({
       {/* ✅ Ảnh sản phẩm */}
       <div className="w-full h-[140px] mt-8 flex items-center justify-center">
         <Image
-          src={`${STATIC_BASE_URL}/storage/${product.image}`}
+          src={`${STATIC_BASE_URL}/${product.image}`}
           alt={product.name}
           width={2220}
           height={120}

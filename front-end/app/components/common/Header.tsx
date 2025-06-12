@@ -14,11 +14,11 @@ import Image from 'next/image';
 import logoImage from '../../../public/logo.png';
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { API_BASE_URL } from '@/utils/api';
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 
 const Header = () => {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; role: string; avatar?: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSticky, setIsSticky] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -183,12 +183,24 @@ const Header = () => {
             {/* ✅ Dropdown User */}
             {user && (
               <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="h-8 w-8 bg-red-500 text-white rounded-full flex items-center justify-center uppercase text-sm font-semibold"
-                >
-                  {user.name[0]}
-                </button>
+                {user.avatar ? (
+                  <Image
+                    src={`${STATIC_BASE_URL}/${user.avatar}`}
+                    alt="Avatar"
+                    width={32}
+                    height={32}
+                    className="h-8 w-8 rounded-full object-cover cursor-pointer"
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="h-8 w-8 bg-red-500 text-white rounded-full flex items-center justify-center uppercase text-sm font-semibold"
+                  >
+                    {user.name[0]}
+                  </button>
+                )}
+
 
                 {dropdownOpen && (
                   <div
