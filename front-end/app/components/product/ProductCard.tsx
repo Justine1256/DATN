@@ -208,8 +208,8 @@ export default function ProductCard({
         <Image
           src={`${STATIC_BASE_URL}/${product.image}`}
           alt={product.name}
-          width={2220}
-          height={120}
+          width={150}
+          height={20}
           className="object-contain max-h-[2220px] transition-transform duration-300 group-hover:scale-105"
         />
       </div>

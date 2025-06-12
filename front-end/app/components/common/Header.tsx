@@ -74,14 +74,6 @@ const Header = () => {
     router.push("/");
   };
 
-  // Hàm thay đổi avatar
-  const handleAvatarChange = (newAvatar: string) => {
-    setUser((prevUser) => ({
-      ...prevUser,
-      avatar: newAvatar,
-    }));
-  };
-
   return (
     <header className={`fixed top-0 left-0 right-0 z-[100] ${isSticky ? "shadow-md" : ""} bg-white transition-all duration-300`}>
       <div className="bg-black text-white py-2 text-center text-sm tracking-wider">

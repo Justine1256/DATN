@@ -4,27 +4,13 @@ import { useState } from 'react';
 import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit } from 'react-icons/fa';
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 import Image from 'next/image';
 import { STATIC_BASE_URL } from '@/utils/api';
 
 interface UserProps {
   name: string;
-  avatar?: string;
-=======
-=======
->>>>>>> Stashed changes
-import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
-
-interface UserProps {
-  name: string;
   profilePicture?: string;
   avatar?: string; // Make sure avatar is part of the user props
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 }
 
 interface AccountSidebarProps {
@@ -54,27 +40,6 @@ export default function AccountSidebar({
       {/* ✅ Thông tin người dùng */}
       {user && (
         <div className="flex items-center space-x-3 mb-6">
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-          {user.avatar ? (
-  <div className="w-14 h-14 relative">
-    <Image
-      src={`${STATIC_BASE_URL}/${user.avatar}`}
-      alt="User Icon"
-      fill
-      className="rounded-full object-cover"
-      sizes="56px"
-    />
-  </div>
-) : (
-  <div className="w-14 h-14 flex items-center justify-center bg-[#DB4444] text-white text-xl font-semibold rounded-full">
-    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-  </div>
-)}
-
-=======
-=======
->>>>>>> Stashed changes
           {user.profilePicture || user.avatar ? (
             <img
               src={user.avatar ? `${STATIC_BASE_URL}/${user.avatar}` : user.profilePicture}
@@ -86,7 +51,6 @@ export default function AccountSidebar({
               {user.name ? user.name[0] : 'U'}
             </div>
           )}
->>>>>>> Stashed changes
 
           {/* ✅ Tên + chỉnh sửa */}
           <div>
