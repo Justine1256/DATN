@@ -184,7 +184,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
             onSubmit={handleSubmit}
             className="p-8 bg-white rounded-xl shadow-lg border border-gray-100 space-y-6"
           >
-            <h2 className="text-2xl font-semibold text-[#DB4444] mb-4">Quản Lý Hồ Sơ</h2>
+            <h2 className="text-2xl font-semibold text-[#DB4444] mb-4">Quản lý hồ sơ</h2>
 
             {/* ✅ Giao diện chia 2 cột */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
