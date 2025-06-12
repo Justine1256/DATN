@@ -5,6 +5,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import FollowedShopLoading from "../loading/loading";
+import { API_BASE_URL } from '@/utils/api';   
 // ✅ Interface cho đối tượng Shop
 interface Shop {
     id: number;
@@ -41,7 +42,7 @@ export default function FollowedShopsSection() {
             if (!token) return;
 
             try {
-                const res = await axios.get("http://localhost:8000/api/my/followed-shops", {
+                const res = await axios.get(`${API_BASE_URL}/my/followed-shops`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setShops(res.data.shops || []);
@@ -62,7 +63,7 @@ export default function FollowedShopsSection() {
 
         setUnfollowing(shopId);
         try {
-            const res = await fetch(`http://localhost:8000/api/shops/${shopId}/unfollow`, {
+            const res = await fetch(`${API_BASE_URL}/shops/${shopId}/unfollow`, {
                 method: "DELETE",
                 headers: {
                     Authorization: `Bearer ${token}`,

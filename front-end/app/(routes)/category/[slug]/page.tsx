@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import ProductCard, { Product } from "@/app/components/product/ProductCard";
 import LandingSlider from "@/app/components/home/LandingSlider";
 import { LoadingSkeleton } from "@/app/components/loading/loading";
+import { API_BASE_URL } from '@/utils/api';         
 // ✅ Kiểu dữ liệu cho danh mục
 interface Category {
   id: number;
@@ -47,7 +48,7 @@ export default function CategoryPage() {
 
   // ✅ Lấy danh sách danh mục
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/category")
+    fetch(`${API_BASE_URL}/category`)
       .then((res) => res.json())
       .then(setCategories)
       .catch(console.error);
@@ -61,8 +62,8 @@ export default function CategoryPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     const url = slug
-      ? `http://127.0.0.1:8000/api/category/${slug}/products`
-      : `http://127.0.0.1:8000/api/product`;
+      ? `${API_BASE_URL}/category/${slug}/products`
+      : `${API_BASE_URL}/product`;
 
     fetch(url)
       .then((res) => {

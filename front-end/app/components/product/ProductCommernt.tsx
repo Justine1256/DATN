@@ -5,7 +5,7 @@ import Image from 'next/image';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { FiSend } from 'react-icons/fi';
-
+import { API_BASE_URL } from '@/utils/api';
 // ✅ Interface định nghĩa kiểu dữ liệu bình luận
 interface Comment {
   id: number;
@@ -38,7 +38,7 @@ export default function ProductComments({
   useEffect(() => {
     if (token) {
       axios
-        .get('http://localhost:8000/api/user', {
+        .get(`${API_BASE_URL}/user`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => setUser(res.data))
@@ -52,7 +52,7 @@ export default function ProductComments({
   // ✅ Lấy danh sách bình luận từ API
   const fetchComments = () => {
     axios
-      .get(`http://localhost:8000/api/${shopslug}/product/${productslug}/comment?page=${page}`)
+      .get(`${API_BASE_URL}/${shopslug}/product/${productslug}/comment?page=${page}`)
       .then((res) => {
         setComments(res.data.data);
         setTotalPages(res.data.total_pages || 1);
@@ -72,7 +72,7 @@ export default function ProductComments({
     if (image) formData.append('image', image);
 
     await axios.post(
-      `http://localhost:8000/api/${shopslug}/product/${productslug}/comment`,
+      `${ API_BASE_URL } /${shopslug}/product/${productslug}/comment`,
       formData,
       {
         headers: {

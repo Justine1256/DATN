@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-
+import { API_BASE_URL } from '@/utils/api'; 
 // ✅ Interface dữ liệu người dùng
 interface UserData {
   name: string;
@@ -75,7 +75,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
     if (!token) return setLoading(false);
 
     try {
-      const res = await axios.get("http://localhost:8000/api/user", {
+      const res = await axios.get(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const user = res.data;
@@ -139,7 +139,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
     try {
       // Cập nhật thông tin cơ bản
       const res = await axios.put(
-        "http://localhost:8000/api/user",
+        `${API_BASE_URL}/user`,
         {
           name: userData.name,
           phone: userData.phone,
@@ -154,7 +154,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
       // Nếu có ảnh avatar mới
       const formData = (userData as any).avatarFormData;
       if (formData) {
-        await axios.post("http://127.0.0.1:8000/api/user/avatar", formData, {
+        await axios.post(`${API_BASE_URL}/user/avatar`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",

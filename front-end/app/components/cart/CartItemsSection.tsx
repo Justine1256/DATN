@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-
+import { API_BASE_URL } from '@/utils/api';
 interface CartItem {
   id: number;
   quantity: number;
@@ -37,7 +37,7 @@ export default function CartItemsSection({
     if (!token) return;
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/cart', {
+      const res = await fetch(`${API_BASE_URL}/cart`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
@@ -76,7 +76,7 @@ export default function CartItemsSection({
     if (!token) return;
 
     try {
-      await fetch(`http://127.0.0.1:8000/api/cart/${id}`, {
+      await fetch(`${API_BASE_URL}/cart/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -101,7 +101,7 @@ export default function CartItemsSection({
     const quantity = Math.max(1, value);
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/cart/${id}`, {
+      const res = await fetch(`${ API_BASE_URL } /cart/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

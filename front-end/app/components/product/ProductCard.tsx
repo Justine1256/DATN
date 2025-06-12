@@ -7,7 +7,7 @@ import Cookies from "js-cookie";
 import { FiHeart, FiShoppingCart } from "react-icons/fi";
 import { AiFillHeart, AiFillStar } from "react-icons/ai";
 import { LoadingSkeleton } from "../loading/loading";
-
+import { API_BASE_URL } from '@/utils/api';
 // ✅ Interface dữ liệu sản phẩm
 export interface Product {
   id: number;
@@ -78,7 +78,7 @@ export default function ProductCard({
 
     try {
       if (newLiked) {
-        const res = await fetch("http://127.0.0.1:8000/api/wishlist", {
+        const res = await fetch(`${API_BASE_URL}/wishlist`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -101,7 +101,7 @@ export default function ProductCard({
         onLiked?.(product); // ✅ Báo về cha để cập nhật danh sách
       } else {
         const res = await fetch(
-          `http://127.0.0.1:8000/api/wishlist/${product.id}`,
+          `${API_BASE_URL}/wishlist/${product.id}`,
           {
             method: "DELETE",
             headers: {
@@ -138,7 +138,7 @@ export default function ProductCard({
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/cart", {
+      const res = await fetch(`${API_BASE_URL}/cart`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

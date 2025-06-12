@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-
+import { API_BASE_URL } from '@/utils/api';
 interface Order {
   id: number;
   final_amount: number;
@@ -43,7 +43,7 @@ export default function OrderSection() {
     const fetchOrders = async () => {
       const token = Cookies.get("authToken");
       try {
-        const res = await axios.get("http://localhost:8000/api/showdh", {
+        const res = await axios.get(`${API_BASE_URL}/showdh`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

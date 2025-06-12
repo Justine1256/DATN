@@ -10,7 +10,7 @@ import ChangePassword from '@/app/components/account/ChangePassword';
 import FollowedShops from '@/app/components/account/FollowedShops';
 import OrderSection from '@/app/components/account/Order';
 import { useRouter } from 'next/navigation';
-
+import { API_BASE_URL } from '@/utils/api';
 export default function AccountRoute() {
   const [section, setSection] = useState<string>('profile');
   const [user, setUser] = useState<any>(null);
@@ -23,7 +23,7 @@ export default function AccountRoute() {
     const token = Cookies.get('authToken');
     if (!token) return setLoading(false);
     try {
-      const res = await axios.get('http://localhost:8000/api/user', {
+      const res = await axios.get(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data);

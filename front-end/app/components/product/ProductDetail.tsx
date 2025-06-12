@@ -10,7 +10,7 @@ import ShopInfo from "./ShopInfo";
 import LoadingProductDetail from "../loading/loading";
 import ProductDescriptionAndSpecs from "./ProductDescriptionAndSpecs";
 import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
-
+import { API_BASE_URL } from '@/utils/api';
 // ✅ Interface định nghĩa dữ liệu sản phẩm
 interface Product {
   id: number;
@@ -74,7 +74,7 @@ export default function ProductDetail({
     }
 
     try {
-      const res = await fetch("http://localhost:8000/api/cart", {
+      const res = await fetch(`${API_BASE_URL}/cart`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -109,7 +109,7 @@ export default function ProductDetail({
       try {
         const token = localStorage.getItem("token") || Cookies.get("authToken");
         const productRes = await fetch(
-          `http://localhost:8000/api/${shopslug}/product/${productslug}`
+          `${ API_BASE_URL }${shopslug}/product/${productslug}`
         );
 
         if (!productRes.ok) {
@@ -138,7 +138,7 @@ export default function ProductDetail({
         // Nếu có token và shop id thì gọi song song
         if (token && productData.shop?.id) {
           const followRes = await fetch(
-            `http://localhost:8000/api/shops/${productData.shop.id}/is-following`,
+            `${API_BASE_URL}/shops/${productData.shop.id}/is-following`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -178,7 +178,7 @@ export default function ProductDetail({
       if (followed) {
         // UNFOLLOW
         const res = await fetch(
-          `http://localhost:8000/api/shops/${shopId}/unfollow`,
+          `${ API_BASE_URL } /shops/${shopId}/unfollow`,
           {
             method: "DELETE",
             headers: {
@@ -197,7 +197,7 @@ export default function ProductDetail({
       } else {
         // FOLLOW
         const res = await fetch(
-          `http://localhost:8000/api/shops/${shopId}/follow`,
+          `${API_BASE_URL}/shops/${shopId}/follow`,
           {
             method: "POST",
             headers: {
@@ -226,7 +226,7 @@ export default function ProductDetail({
 
       try {
         const res = await fetch(
-          `http://localhost:8000/api/shops/${product.shop?.id}/is-following`,
+          `${API_BASE_URL}/shops/${product.shop?.id}/is-following`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -261,7 +261,7 @@ export default function ProductDetail({
 
     try {
       if (newLiked) {
-        await fetch("http://localhost:8000/api/wishlist", {
+        await fetch(`${API_BASE_URL}/wishlist`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -270,7 +270,7 @@ export default function ProductDetail({
           body: JSON.stringify({ product_id: product.id }),
         });
       } else {
-        await fetch(`http://localhost:8000/api/wishlist/${product.id}`, {
+        await fetch(`${ API_BASE_URL } /wishlist/${product.id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-
+import { API_BASE_URL } from '@/utils/api';   
 // ✅ Component đổi mật khẩu người dùng
 export default function ChangePassword() {
   const [formData, setFormData] = useState({
@@ -59,7 +59,7 @@ export default function ChangePassword() {
         password_confirmation: confirmNewPassword,
       };
 
-      const res = await axios.put("http://localhost:8000/api/user", payload, {
+      const res = await axios.put(`${API_BASE_URL}/user`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

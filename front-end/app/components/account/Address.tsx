@@ -5,6 +5,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import Select from "react-select";
 import { AddressCardLoading } from "../loading/loading";
+import { API_BASE_URL } from '@/utils/api';   
 // ✅ Interface định nghĩa tỉnh/huyện/xã và địa chỉ người dùng
 interface Province {
   code: number;
@@ -126,7 +127,7 @@ export default function AddressComponent() {
     const token = Cookies.get("authToken");
     if (!token) return;
     try {
-      const res = await axios.get("http://localhost:8000/api/user", {
+      const res = await axios.get(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
@@ -145,7 +146,7 @@ export default function AddressComponent() {
       setLoading(true); // ✅ Bắt đầu loading
   
       const res = await axios.get(
-        `http://localhost:8000/api/addressesUser/${uid}`,
+        `${API_BASE_URL}/addressesUser/${uid}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
@@ -225,7 +226,7 @@ export default function AddressComponent() {
     try {
       if (isEditing) {
         await axios.patch(
-          `http://localhost:8000/api/addresses/${isEditing}`,
+          `${API_BASE_URL}/addresses/${isEditing}`,
           dataToSend,
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -233,7 +234,7 @@ export default function AddressComponent() {
         );
         triggerPopup("Cập nhật địa chỉ thành công!", "success");
       } else {
-        await axios.post(`http://localhost:8000/api/addresses`, dataToSend, {
+        await axios.post(`${API_BASE_URL}/addresses`, dataToSend, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -270,7 +271,7 @@ export default function AddressComponent() {
     const token = Cookies.get("authToken");
     try {
       await axios.delete(
-        `http://localhost:8000/api/addresses/${confirmDeleteId}`,
+        `${API_BASE_URL}/addresses/${confirmDeleteId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -281,7 +282,7 @@ export default function AddressComponent() {
       if (updated.length === 1 && !updated[0].is_default) {
         const newDefaultId = updated[0].id;
         await axios.patch(
-          `http://localhost:8000/api/addresses/${newDefaultId}`,
+          `${ API_BASE_URL } /addresses/${newDefaultId}`,
           {
             ...updated[0],
             is_default: true,
