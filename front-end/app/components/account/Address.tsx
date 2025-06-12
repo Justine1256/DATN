@@ -302,13 +302,15 @@ export default function AddressComponent() {
   // ✅ JSX render danh sách địa chỉ và form thêm/sửa
   return (
     <div className="relative">
-      {isAdding && <div className="fixed inset-0 bg-black bg-opacity-50 z-40" />}
+      {/* Overlay khi đang thêm địa chỉ */}
+      {isAdding && <div className="fixed inset-0 bg-black bg-opacity-50 z-10" />}
 
-      <div className="w-full max-w-5xl p-10 mx-auto mt-20 bg-white rounded-lg shadow relative z-50">
-        <div className="flex justify-between items-center mb-6">
+      <div className="w-full max-w-5xl p-4 mx-auto mt-20 bg-white rounded-lg shadow relative z-50">
+        <div className="flex justify-between items-center mb-4">
           <h2 className="text-h2 font-bold text-red-500">Danh sách địa chỉ</h2>
           <button
             onClick={() => {
+              // Reset form data và mở form thêm địa chỉ
               setFormData({
                 full_name: "",
                 phone: "",
@@ -321,8 +323,8 @@ export default function AddressComponent() {
                 is_default: false,
                 type: "Nhà Riêng",
               });
-              setIsAdding(true);
-              setIsEditing(null);
+              setIsAdding(true); // Hiển thị form thêm địa chỉ
+              setIsEditing(null); // Không ở chế độ chỉnh sửa
             }}
             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
           >
@@ -330,14 +332,12 @@ export default function AddressComponent() {
           </button>
         </div>
 
-        {/* ✅ Loading nếu chưa có data */}
+        {/* Loading khi chưa có dữ liệu */}
         {loading ? (
-          // ✅ Loading xoay khi đang lấy data
           <div className="flex justify-center items-center py-8">
             <div className="w-6 h-6 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : addresses.length === 0 && !isAdding ? (
-          // ✅ Hiện thông báo khi load xong nhưng chưa có địa chỉ
           <div className="text-center text-gray-500">Chưa có địa chỉ</div>
         ) : (
           <ul className="space-y-4">
@@ -370,10 +370,10 @@ export default function AddressComponent() {
         )}
       </div>
 
-      {/* ✅ Hiển thị form nếu đang thêm/sửa */}
+      {/* Form hiển thị khi đang thêm/sửa */}
       {isAdding && renderForm()}
 
-      {/* ✅ Popup xác nhận xoá */}
+      {/* Popup xác nhận xoá */}
       {confirmDeleteId && (
         <div className="fixed inset-0 z-[99] bg-black bg-opacity-10 flex items-center justify-center">
           <div className="bg-white shadow-lg rounded-md px-6 py-4 w-[300px] text-center z-[100] border">
@@ -401,14 +401,13 @@ export default function AddressComponent() {
         </div>
       )}
 
-      {/* ✅ Hiển thị popup góc phải */}
+      {/* Hiển thị popup góc phải */}
       {showPopup && (
         <div
-          className={`fixed top-20 right-5 z-[9999] text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade ${
-            popupType === "success"
+          className={`fixed top-20 right-5 z-[9999] text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade ${popupType === "success"
               ? "bg-white text-green-600 border-green-500"
               : "bg-white text-red-600 border-red-500"
-          }`}
+            }`}
         >
           {popupMessage}
         </div>
@@ -419,7 +418,7 @@ export default function AddressComponent() {
   // ✅ Hàm hiển thị form nhập/sửa địa chỉ
   function renderForm() {
     return (
-      <div className="fixed inset-0 z-50 flex justify-center items-center overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex justify-center items-center overflow-y-auto mt-16">
         <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-auto relative shadow-xl text-sm">
           <button
             className="absolute top-3 right-4 text-xl text-gray-600 hover:text-red-600"
