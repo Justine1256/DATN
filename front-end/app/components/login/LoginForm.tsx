@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
-
+import { API_BASE_URL } from '@/utils/api';
 export default function LoginForm() {
   // ✅ State quản lý form và trạng thái
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -23,7 +23,7 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:8000/api/login', formData);
+      const res = await axios.post(`${API_BASE_URL}/login`, formData);
       const { token } = res.data;
 
       // ✅ Lưu token vào cookie
@@ -46,7 +46,7 @@ export default function LoginForm() {
     const token = Cookies.get('authToken');
     if (token) {
       axios
-        .get('http://localhost:8000/api/user', {
+        .get(`${API_BASE_URL}/user`, {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         })
