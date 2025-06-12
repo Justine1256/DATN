@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import { FiHeart, FiShoppingCart } from "react-icons/fi";
 import { AiFillHeart, AiFillStar } from "react-icons/ai";
 import { LoadingSkeleton } from "../loading/loading";
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 
 // ✅ Interface dữ liệu sản phẩm
 export interface Product {
@@ -78,7 +79,7 @@ export default function ProductCard({
 
     try {
       if (newLiked) {
-        const res = await fetch("http://127.0.0.1:8000/api/wishlist", {
+        const res = await fetch(`${API_BASE_URL}/wishlist`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -101,7 +102,7 @@ export default function ProductCard({
         onLiked?.(product); // ✅ Báo về cha để cập nhật danh sách
       } else {
         const res = await fetch(
-          `http://127.0.0.1:8000/api/wishlist/${product.id}`,
+          `${API_BASE_URL}/wishlist/${product.id}`,
           {
             method: "DELETE",
             headers: {
@@ -138,7 +139,7 @@ export default function ProductCard({
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/cart", {
+      const res = await fetch(`${API_BASE_URL}/cart`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -206,12 +207,13 @@ export default function ProductCard({
       {/* ✅ Ảnh sản phẩm */}
       <div className="w-full h-[140px] mt-8 flex items-center justify-center">
         <Image
-          src={`http://localhost:8000/storage/${product.image}`}
+          src={`${STATIC_BASE_URL}/storage/${product.image}`}
           alt={product.name}
           width={2220}
           height={120}
           className="object-contain max-h-[2220px] transition-transform duration-300 group-hover:scale-105"
         />
+
       </div>
 
       {/* ✅ Thông tin sản phẩm */}
