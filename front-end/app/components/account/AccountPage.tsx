@@ -1,421 +1,350 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import BestSelling from "../home/BestSelling";
+import { useEffect, useState, useCallback } from "react";
+import axios from "axios";
 import Cookies from "js-cookie";
-import ProductDescriptionAndSpecs from "../product/ProductDescriptionAndSpecs";
-import ShopInfo from "../product/ShopInfo";
-//import tậm
-// ✅ Interface định nghĩa dữ liệu sản phẩm
-interface Product {
-  id: number;
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api'; 
+// ✅ Interface dữ liệu người dùng
+interface UserData {
   name: string;
-  price: number;
-  sale_price?: number;
-  description: string;
-  image: string;
-  images?: string[];
-  option1?: string;
-  value1?: string;
-  option2?: string;
-  value2?: string;
-  stock?: number;
-  shop?: {
-    id: number;
-    name: string;
-    description: string;
-    logo: string;
-    phone: string;
-    rating: string;
-    total_sales: number;
-    created_at: string;
-    status: "activated" | "pending" | "suspended";
-    email: string;
-  };
+  phone: string;
+  email: string;
+  role: string;
+  currentPassword?: string;
+  passwordError?: string;
+  profilePicture?: string;
 }
 
-// ✅ Props cho component ProductDetail
-interface ProductDetailProps {
-  shopslug: string;
-  productslug: string;
+// ✅ Props từ cha (nếu cần refresh lại bên ngoài)
+interface Props {
+  onProfileUpdated?: () => void;
 }
 
-// ✅ Component chi tiết sản phẩm
-export default function ProductDetail({
-  shopslug,
-  productslug,
-}: ProductDetailProps) {
-  const router = useRouter();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [mainImage, setMainImage] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
-  const [selectedSize, setSelectedSize] = useState("");
-  const [liked, setLiked] = useState(false);
-  const [followed, setFollowed] = useState(false);
+export default function AccountPage({ onProfileUpdated }: Props) {
+  const [userData, setUserData] = useState<UserData>({
+    name: "",
+    phone: "",
+    email: "",
+    role: "",
+    currentPassword: "",
+    passwordError: "",
+    profilePicture: "",
+  });
+  const [previewAvatar, setPreviewAvatar] = useState<string>("");
+
+  const [popupMessage, setPopupMessage] = useState("");
+  const [popupType, setPopupType] = useState<"success" | "error">("success");
   const [showPopup, setShowPopup] = useState(false);
-  const [popupText, setPopupText] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Lấy dữ liệu sản phẩm từ API
   useEffect(() => {
-    const url = `http://localhost:8000/api/${shopslug}/product/${productslug}`;
-    fetch(url)
-      .then((res) => {
-        if (!res.ok) {
-          router.push("/not-found");
-          return;
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (!data) return;
-        console.log("👉 Product fetched from API:", data);
-        // ✅ Nếu không có danh sách ảnh phụ thì gán mặc định
-        if (!data.images)
-          data.images = ["/1.png", "/2.webp", "/3.webp", "/4.webp"];
+    if (showPopup) {
+      const timer = setTimeout(() => setShowPopup(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showPopup]);
 
-        // ✅ Gán dữ liệu sản phẩm
-        setProduct(data);
+  const showPopupMessage = useCallback((msg: string, type: "success" | "error") => {
+    setPopupMessage(msg);
+    setPopupType(type);
+    setShowPopup(true);
+  }, []);
 
-        // ✅ Set ảnh chính
-        setMainImage(
-          data.image.startsWith("/") ? data.image : `/${data.image}`
-        );
+  // ✅ Chọn ảnh (chưa upload ngay)
+const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-        // ✅ Gán màu + size mặc định
-        setSelectedColor(data.value1?.split(",")[0] || "");
-        setSelectedSize(data.value2?.split(",")[0] || "");
+  if (file.size > 1024 * 1024) {
+    return showPopupMessage("File vượt quá 1MB!", "error");
+  }
 
-        // ✅ Gán trạng thái Follow từ server
-        setFollowed(data.is_followed || false);
-      });
-  }, [shopslug, productslug, router]);
+  // Hiển thị ảnh trước
+  const reader = new FileReader();
+  reader.onload = () => {
+    setPreviewAvatar(reader.result as string);
+  };
+  reader.readAsDataURL(file);
 
-  // ✅ Xử lý theo dõi shop
-  const handleFollow = async () => {
-    if (!product?.shop) return;
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
-    if (!token) return;
+  // Upload ngay lên server
+  const formData = new FormData();
+  formData.append("avatar", file);
 
-    const newFollowed = !followed;
-    const url = `http://127.0.0.1:8000/api/shops/${product.shop.id}/${
-      newFollowed ? "follow" : "unfollow"
-    }`;
-    const method = newFollowed ? "POST" : "DELETE";
+  const token = Cookies.get("authToken");
+  if (!token) return showPopupMessage("Chưa xác thực.", "error");
+
+  try {
+    await axios.post(`${API_BASE_URL}/user/avatar`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    showPopupMessage("Cập nhật ảnh thành công!", "success");
+    onProfileUpdated?.();
+    fetchUser(); // cập nhật lại thông tin mới nhất (có avatar)
+  } catch {
+    showPopupMessage("Lỗi cập nhật ảnh!", "error");
+  }
+};
+
+
+  const fetchUser = useCallback(async () => {
+    const token = Cookies.get("authToken");
+    if (!token) return setLoading(false);
 
     try {
-      const res = await fetch(url, {
-        method,
+      const res = await axios.get(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (res.ok) {
-        setFollowed(newFollowed); // ✅ Cập nhật trạng thái
-        setPopupText(newFollowed ? "Đã theo dõi shop" : "Đã hủy theo dõi shop"); // ✅ Gán text
-        setShowPopup(true);
-        setTimeout(() => {
-          setShowPopup(false);
-          setPopupText(""); // ✅ Reset text sau khi ẩn
-        }, 2000);
-      }
-    } catch (err) {
-      console.error("❌ Follow error:", err);
+      const user = res.data;
+      setUserData({
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        currentPassword: "",
+        passwordError: "",
+        profilePicture: user.profilePicture || "",
+      });
+      setPreviewAvatar(user.profilePicture || "");
+    } catch {
+      showPopupMessage("Failed to load user information.", "error");
+    } finally {
+      setLoading(false);
     }
+  }, [showPopupMessage]);
+const avatarUrl = previewAvatar || (userData.profilePicture ? `${STATIC_BASE_URL}/${userData.profilePicture}` : "");
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setUserData((prev) => ({ ...prev, [name]: value, passwordError: "" }));
   };
 
-  // ✅ Xử lý thêm/bỏ yêu thích sản phẩm
-  const toggleLike = async () => {
-    if (!product) return;
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
-    if (!token) {
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-      return;
+  const validateForm = () => {
+    const { name, phone, email, currentPassword } = userData;
+
+    if (!name || !phone || !email || !currentPassword) {
+      showPopupMessage("Vui lòng nhập đầy đủ thông tin.", "error");
+      return false;
     }
 
-    const newLiked = !liked;
-    setLiked(newLiked);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showPopupMessage("Email không hợp lệ.", "error");
+      return false;
+    }
+
+    const phoneRegex = /^\d{9,12}$/;
+    if (!phoneRegex.test(phone)) {
+      showPopupMessage("Số điện thoại không hợp lệ.", "error");
+      return false;
+    }
+
+    return true;
+  };
+
+  // ✅ Cập nhật toàn bộ thông tin (gồm avatar nếu có)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const token = Cookies.get("authToken");
+    if (!token) return showPopupMessage("Chưa xác thực.", "error");
 
     try {
-      if (newLiked) {
-        await fetch("http://localhost:8000/api/wishlist", {
-          method: "POST",
+      // Cập nhật thông tin cơ bản
+      const res = await axios.put(
+        `${API_BASE_URL}/user`,
+        {
+          name: userData.name,
+          phone: userData.phone,
+          email: userData.email,
+          current_password: userData.currentPassword,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // Nếu có ảnh avatar mới
+      const formData = (userData as any).avatarFormData;
+      if (formData) {
+        await axios.post(`${API_BASE_URL}/user/avatar`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
-          body: JSON.stringify({ product_id: product.id }),
-        });
-      } else {
-        await fetch(`http://localhost:8000/api/wishlist/${product.id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
         });
       }
-    } catch (err) {
-      console.error("❌ Lỗi xử lý wishlist:", err);
-    } finally {
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
+
+      showPopupMessage("Đã cập nhật thành công!", "success");
+      onProfileUpdated?.();
+      fetchUser();
+    } catch (err: unknown) {
+      const msg = (err as any)?.response?.data?.message || "";
+      if (msg.toLowerCase().includes("password")) {
+        setUserData((prev) => ({ ...prev, passwordError: "Sai mật khẩu hiện tại!" }));
+        return showPopupMessage("Sai mật khẩu hiện tại!", "error");
+      }
+      return showPopupMessage("Lỗi cập nhật!", "error");
     }
   };
 
-  if (!product)
-    return <div className="p-6 text-base">Đang tải sản phẩm...</div>;
-
-  // ✅ Danh sách thumbnail ảnh
-  const thumbnails = product.images?.map((img) =>
-    img.startsWith("/") ? img : `/${img}`
-  ) || [`/${product.image}`];
-  const colorOptions = product.value1?.split(",") || [];
-  const sizeOptions = product.value2?.split(",") || [];
-
   return (
-    <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
-      {/* ✅ Bọc ảnh + info trong cùng 1 box trắng viền đẹp */}
-      <div className="rounded-xl border shadow-sm bg-white p-10">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
-          {/* ✅ Hình ảnh sản phẩm bên trái */}
-          <div className="md:col-span-6 flex flex-col gap-4">
-            <div className="flex justify-center items-center w-full bg-gray-100 rounded-lg p-6 min-h-[320px]">
-              <div className="w-full max-w-[400px] h-[320px] relative">
-                <Image
-                  src={mainImage}
-                  alt={product.name}
-                  fill
-                  className="object-contain rounded-lg"
-                  key={mainImage}
-                />
-              </div>
-            </div>
+    <div className="w-full flex justify-center text-[15px] text-gray-800">
+      <div className="w-full max-w-[1880px] mx-auto ">
 
-            {/* ✅ Thumbnail nằm ngang bên dưới */}
-            <div className="flex justify-center gap-3">
-              {thumbnails.map((thumb, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setMainImage(thumb)}
-                  className={`cursor-pointer border-2 rounded overflow-hidden w-[80px] h-[80px] ${
-                    mainImage === thumb ? "border-[#DC4B47]" : "border-gray-300"
-                  }`}
-                >
-                  <Image
-                    src={thumb}
-                    alt={`Thumb ${idx}`}
-                    width={80}
-                    height={80}
-                    className="object-contain w-full h-full"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="w-full max-w-[1800px] mx-auto  pt-16">
+          <form
+            onSubmit={handleSubmit}
+            className="p-8 bg-white rounded-xl shadow-lg border border-gray-100 space-y-6"
+          >
+            <h2 className="text-2xl font-semibold text-[#DB4444] mb-4">Quản lý hồ sơ</h2>
 
-          {/* ✅ Thông tin sản phẩm bên phải */}
-          <div className="md:col-span-6 space-y-6">
-            <h1 className="text-[1.5rem] md:text-[2rem] font-bold text-gray-900">
-              {product.name}
-            </h1>
-
-            <div className="flex items-center gap-3 text-sm">
-              <div className="flex items-center text-yellow-400">
-                {"★".repeat(4)}
-                <span className="text-gray-300 ml-0.5">★</span>
-              </div>
-              <span className="text-gray-500">(150 Reviews)</span>
-              <span className="text-gray-300">|</span>
-              <span className="text-emerald-400 font-medium">
-                In Stock: {product.stock || 0}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-[1.25rem] md:text-[1.5rem] font-bold text-[#DC4B47]">
-                {Number(product.sale_price || product.price).toLocaleString(
-                  "vi-VN"
-                )}
-                ₫
-              </span>
-              {product.sale_price && (
-                <span className="line-through text-gray-400 text-sm">
-                  {Number(product.price).toLocaleString("vi-VN")}₫
-                </span>
-              )}
-            </div>
-
-            <p
-              className="text-gray-600 text-sm md:text-base truncate max-w-[300px]"
-              title={product.description}
-            >
-              {product.description}
-            </p>
-
-            {/* ✅ Options màu và size */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <p className="font-medium text-gray-700 text-sm">Colors:</p>
-                <div className="flex gap-1">
-                  {colorOptions.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`w-4 h-4 rounded-full border transition ${
-                        selectedColor === color
-                          ? "border-black scale-105"
-                          : "border-gray-300 hover:border-black"
-                      }`}
-                      style={{ backgroundColor: color.toLowerCase() }}
-                      title={color}
+            {/* ✅ Giao diện chia 2 cột */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-2 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Họ và tên</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={userData.name}
+                      onChange={handleChange}
+                      className="w-full bg-gray-100 p-3 text-sm rounded-md border border-gray-300 focus:outline-none"
                     />
-                  ))}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Số điện thoại</label>
+                    <input
+                      type="text"
+                      name="phone"
+                      value={userData.phone}
+                      onChange={handleChange}
+                      className="w-full bg-gray-100 p-3 text-sm rounded-md border border-gray-300 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Email</label>
+                    <input
+                      type="text"
+                      name="email"
+                      value={userData.email}
+                      onChange={handleChange}
+                      className="w-full bg-gray-100 p-3 text-sm rounded-md border border-gray-300 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium block mb-1">Vai trò</label>
+                    <input
+                      type="text"
+                      name="role"
+                      value={userData.role}
+                      disabled
+                      className="w-full bg-gray-100 p-3 text-sm rounded-md text-gray-500 border border-gray-200 cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium block mb-1">Nhập lại mật khẩu</label>
+                  <input
+                    type="password"
+                    name="currentPassword"
+                    value={userData.currentPassword}
+                    onChange={handleChange}
+                    placeholder="Enter current password"
+                    className={`w-full bg-gray-100 p-3 text-sm rounded-md border focus:outline-none ${userData.passwordError ? "border-red-500" : "border-gray-300"
+                      }`}
+                  />
+                  {userData.passwordError && (
+                    <p className="text-sm text-red-500 mt-1">{userData.passwordError}</p>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <p className="font-medium text-gray-700 text-sm">Size:</p>
-                <div className="flex gap-1">
-                  {sizeOptions.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`text-xs min-w-[28px] px-2 py-0.5 rounded border text-center font-medium transition ${
-                        selectedSize === size
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300 hover:bg-black hover:text-white"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
+              {/* ✅ BÊN PHẢI: avatar preview & upload */}
+              <div className="flex flex-col items-center border-l border-gray-200 pl-4">
+                <div className="w-24 h-24 mb-3 rounded-full border border-gray-300 relative overflow-hidden flex items-center justify-center bg-brand text-white text-3xl font-bold">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{userData.name?.charAt(0).toUpperCase() || "?"}</span>
+                )}
+              </div>
+
+
+                <label className="text-[11px] text-gray-500 text-center leading-tight max-w-[120px] text-wrap break-words mb-2">
+                  Dung lượng tối đa 1MB<br />Định dạng: JPG, PNG
+                </label>
+
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  id="avatarUpload"
+                />
+                <label
+                  htmlFor="avatarUpload"
+                  className="cursor-pointer bg-[#DB4444] hover:opacity-90 transition text-white px-4 py-2 rounded text-sm"
+                >
+                  Chọn ảnh
+                </label>
               </div>
             </div>
 
-            {/* ✅ Số lượng và hành động */}
-            <div className="flex items-center gap-3 mt-4">
-              <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-[#DC4B47] hover:text-white transition"
-                >
-                  −
-                </button>
-                <span className="w-[55px] flex items-center justify-center text-base font-extrabold text-black">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-[#DC4B47] hover:text-white transition"
-                >
-                  +
-                </button>
-              </div>
-
-              <button className="w-[165px] h-[44px] bg-[#DC4B47] text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium">
-                Buy Now
-              </button>
-              <button className="w-[165px] h-[44px] text-[#DC4B47] border border-[#DC4B47] text-sm md:text-base rounded hover:bg-[#DC4B47] hover:text-white transition font-medium">
-                Add to Cart
+            {/* ✅ Nút hành động */}
+            <div className="flex justify-end gap-4 mt-6">
+              <button
+                type="reset"
+                onClick={() =>
+                  setUserData((prev) => ({
+                    ...prev,
+                    name: "",
+                    phone: "",
+                    email: "",
+                    currentPassword: "",
+                    passwordError: "",
+                  }))
+                }
+                className="text-sm text-gray-700 px-5 py-2.5 rounded-md hover:bg-gray-100"
+              >
+                Hủy bỏ
               </button>
               <button
-                onClick={toggleLike}
-                className={`p-2 border rounded text-lg transition ${
-                  liked ? "text-[#DC4B47]" : "text-gray-400"
-                }`}
+                type="submit"
+                className="text-sm bg-[#DB4444] text-white px-6 py-2.5 rounded-md hover:opacity-80"
               >
-                {liked ? "❤️" : "🤍"}
+                Lưu thông tin
               </button>
             </div>
+          </form>
 
-            {/* ✅ Chính sách vận chuyển */}
-            <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
-              <div className="flex items-start gap-3 p-4">
-                <span className="text-xl">🚚</span>
-                <div>
-                  <p className="font-semibold">Free Delivery</p>
-                  <p>
-                    <a className="underline" href="#">
-                      Enter your postal code for Delivery Availability
-                    </a>
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-4">
-                <span className="text-xl">🔁</span>
-                <div>
-                  <p className="font-semibold">Return Delivery</p>
-                  <p>
-                    Free 30 Days Delivery Returns.{" "}
-                    <a className="underline" href="#">
-                      Details
-                    </a>
-                  </p>
-                </div>
-              </div>
+          {/* ✅ Popup */}
+          {showPopup && (
+            <div
+              className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade ${popupType === "success"
+                  ? "bg-white text-black border-green-500"
+                  : "bg-white text-red-600 border-red-500"
+                }`}
+            >
+              {popupMessage}
             </div>
-          </div>
+          )}
         </div>
       </div>
-
-      {/* ✅ Thông tin cửa hàng */}
-      {product.shop && (
-        <ShopInfo
-          shop={product.shop}
-          followed={followed}
-          onFollowToggle={handleFollow}
-        />
-      )}
-      {/*tạm*/}
-      <ProductDescriptionAndSpecs
-        breadcrumbs={[
-          { name: "Trang chủ", href: "/" },
-          { name: "Điện thoại", href: "/dien-thoai" },
-          { name: "Apple", href: "/dien-thoai/apple" },
-          { name: "iPhone 15 Pro Max" }, // hiện tại
-        ]}
-        specs={[
-          { label: "Loại sản phẩm", value: "Điện thoại" },
-          { label: "Tình trạng", value: "Mới 100%" },
-          { label: "Bảo hành", value: "12 tháng toàn quốc" },
-          { label: "Sản phẩm có sẵn", value: "Có" },
-          { label: "Thương hiệu", value: "Apple" },
-          { label: "Xuất xứ", value: "Mỹ" },
-          { label: "Dung lượng", value: "256GB" },
-          { label: "Gửi từ", value: "TP.HCM" },
-        ]}
-        descriptionLines={[
-          "iPhone 15 Pro Max mới nhất chính hãng.",
-          "Màn hình 6.7 inch Super Retina XDR.",
-          "Camera 48MP ProRAW, chip A17 Bionic.",
-          "Bảo hành 12 tháng toàn quốc.",
-          "Hỗ trợ đổi trả trong 7 ngày nếu có lỗi.",
-        ]}
-        hashtags={[
-          "iphone15promax",
-          "smartphone",
-          "apple",
-          "dienthoai",
-          "hangchinhhang",
-          "baohanh12thang",
-        ]}
-      />
-
-      {/* ✅ Bình luận sản phẩm */}
-      {/* <ProductComments shopslug={shopslug} productslug={productslug} /> */}
-
-      {/* ✅ Gợi ý sản phẩm khác */}
-      <div className="w-full max-w-screen-xl mx-auto mt-16 px-4">
-        <BestSelling />
-      </div>
-      {/* ✅ Thông báo thêm/xoá yêu thích */}
-      {showPopup && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
-          {popupText ||
-            (liked ? "Đã thêm vào yêu thích " : "Đã xóa khỏi yêu thích ")}
-        </div>
-      )}
     </div>
   );
 }
