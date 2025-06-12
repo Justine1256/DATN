@@ -38,10 +38,10 @@ export default function CartPage() {
     <div className="bg-white container mx-auto px-4 pt-[80px] pb-[80px]">
       <Breadcrumb
         items={[
-          { label: "Account", href: "/account" },
-          { label: "My Account", href: "/account/profile" },
-          { label: "Product", href: "/products" },
-          { label: "Cart" },
+          { label: "Tài khoản", href: "/account" },
+          { label: "Tài khoản của tôi", href: "/account/profile" },
+          { label: "Sản Phẩm", href: "/products" },
+          { label: "Giỏ hàng" },
         ]}
       />
 

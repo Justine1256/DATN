@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ProductCard, { Product } from "@/app/components/product/ProductCard";
 import LandingSlider from "@/app/components/home/LandingSlider";
-
+import { LoadingSkeleton } from "@/app/components/loading/loading";
 // ✅ Kiểu dữ liệu cho danh mục
 interface Category {
   id: number;
@@ -213,7 +213,11 @@ export default function CategoryPage() {
 
       {/* ✅ Danh sách sản phẩm */}
       {loading ? (
-        <p className="text-gray-500">Đang tải dữ liệu...</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, idx) => (
+            <LoadingSkeleton key={idx} />
+          ))}
+        </div>
       ) : error ? (
         <p className="text-red-500">{error}</p>
       ) : products.length === 0 ? (

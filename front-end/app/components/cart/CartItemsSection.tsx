@@ -85,9 +85,9 @@ export default function CartItemsSection({
       });
 
       const updated = cartItems.filter((item) => item.id !== id);
-setCartItems(updated);
-propsSetCartItems(updated); // gọi sau khi setState
-localStorage.setItem('cartItems', JSON.stringify(updated));
+      setCartItems(updated);
+      propsSetCartItems(updated); // gọi sau khi setState
+      localStorage.setItem('cartItems', JSON.stringify(updated));
 
     } catch (error) {
       console.error('Lỗi xoá sản phẩm khỏi giỏ:', error);
@@ -114,11 +114,11 @@ localStorage.setItem('cartItems', JSON.stringify(updated));
       if (!res.ok) throw new Error('Không thể cập nhật số lượng');
 
       const updated = cartItems.map((item) =>
-  item.id === id ? { ...item, quantity } : item
-);
-setCartItems(updated);
-propsSetCartItems(updated);
-localStorage.setItem('cartItems', JSON.stringify(updated));
+        item.id === id ? { ...item, quantity } : item
+      );
+      setCartItems(updated);
+      propsSetCartItems(updated);
+      localStorage.setItem('cartItems', JSON.stringify(updated));
 
     } catch (error) {
       console.error('Lỗi cập nhật số lượng:', error);
@@ -144,11 +144,11 @@ localStorage.setItem('cartItems', JSON.stringify(updated));
     <div className="space-y-4">
       {/* Header */}
       <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] text-black font-semibold text-sm bg-white p-4 shadow">
-        <div className="text-left">Product</div>
-        <div className="text-left">Variant</div>
-        <div className="text-center">Price</div>
-        <div className="text-center">Quantity</div>
-        <div className="text-right">Total</div>
+        <div className="text-left">Sản phẩm</div>
+        <div className="text-left">Biến thể</div>
+        <div className="text-center">Giá</div>
+        <div className="text-center">Số lượng</div>
+        <div className="text-right">Tổng cộng</div>
       </div>
 
       {/* Items */}
@@ -162,7 +162,7 @@ localStorage.setItem('cartItems', JSON.stringify(updated));
             <button
               onClick={() => handleRemove(item.id)}
               className="absolute -top-2 -left-2 bg-white border border-brand text-brand rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
-              title="Remove item"
+              title="Xoá sản phẩm"
             >
               ✕
             </button>

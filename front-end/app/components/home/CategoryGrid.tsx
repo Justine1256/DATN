@@ -79,11 +79,11 @@ export default function CategoryGrid() {
           <div className="flex items-center gap-2">
             <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
             <p className="text-red-500 font-semibold text-sm !translate-y-[1px]">
-              Categories
+              Danh Mục
             </p>
           </div>
           <h2 className="text-3xl font-bold text-black mt-4">
-            Browse By Category
+            Khám phá theo danh mục
           </h2>
         </div>
 

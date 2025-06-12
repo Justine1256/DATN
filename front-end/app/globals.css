@@ -10,10 +10,12 @@
   --foreground: #0a0a0a;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Roboto', Arial, Helvetica, sans-serif;
+  /* Sử dụng font Roboto */
+  --font-mono: 'Courier New', Courier, monospace;
 }
 
+/* Định nghĩa chế độ tối */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -23,7 +25,8 @@
 
 /* ================================
    Cài đặt body & html chung
-================================ */
+================================= */
+
 html,
 body {
   min-height: 100%;
@@ -33,64 +36,65 @@ body {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Roboto', Arial, Helvetica, sans-serif;
+  /* Áp dụng font Roboto */
   overflow-x: hidden;
 }
 
 /* ================================
-   Scrollbar tùy chỉnh đẹp
-================================ */
+   Scrollbar tùy chỉnh
+================================= */
+
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: #2e2e2e;
   border-radius: 10px;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #b5b5b5;
   border-radius: 10px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #999999;
 }
 
-/* Ẩn scrollbar hoàn toàn nếu cần */
-.scrollbar-hide {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
-}
-
 /* ================================
-   Popup Animation
-================================ */
+   Hiệu ứng popup
+================================= */
+
 @keyframes slideInFade {
   0% {
     transform: translateX(100%);
     opacity: 0;
   }
+
   30% {
     transform: translateX(0);
     opacity: 1;
   }
+
   80% {
     opacity: 1;
   }
+
   100% {
     opacity: 0;
   }
 }
 
 .animate-slideInFade {
-  animation: slideInFade 2.5s ease-in-out forwards;
+  animation: slideInFade 3s ease-in-out forwards;
 }
 
 /* ================================
    NProgress Loading Bar
-================================ */
+================================= */
+
 #nprogress .bar {
   background: #db4444 !important;
   height: 3px;
@@ -100,14 +104,44 @@ body {
   box-shadow: 0 0 10px #db4444, 0 0 5px #db4444;
 }
 
-/* Ẩn spinner xanh tròn của NProgress */
 #nprogress .spinner {
   display: none !important;
+  /* Ẩn spinner xanh tròn */
 }
-// footer
+
+/* ================================
+   Hiệu ứng xoay (Rotate)
+================================= */
+
+@keyframes rotateToCheck {
+  0% {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+
+  50% {
+    transform: rotate(180deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.animate-rotate-to-check {
+  animation: rotateToCheck 0.5s linear forwards;
+}
+
+/* ================================
+   Hiệu ứng hover cho liên kết
+================================= */
+
 .link-underline {
   position: relative;
 }
+
 .link-underline::after {
   content: "";
   position: absolute;
@@ -118,8 +152,9 @@ body {
   background: white;
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease-out;
 }
+
 .link-underline:hover::after {
   transform: scaleX(1);
 }

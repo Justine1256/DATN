@@ -115,10 +115,10 @@ const Wishlist = () => {
       {/* ✅ Tiêu đề & Nút hành động */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-medium text-black">
-          Wishlist ({wishlistItems.length})
+          Danh sách yêu thích ({wishlistItems.length})
         </h2>
         <button className="px-6 py-2 border border-gray-300 text-black text-sm font-medium rounded transition-colors duration-300 ease-in-out hover:bg-[#DB4444] hover:text-white">
-          Move all to Cart
+          Di chuyển tất cả vào Giỏ hàng
         </button>
       </div>
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import Select from "react-select";
-
+import { AddressCardLoading } from "../loading/loading";
 // ✅ Interface định nghĩa tỉnh/huyện/xã và địa chỉ người dùng
 interface Province {
   code: number;
@@ -35,6 +35,8 @@ interface Address {
 
 export default function AddressComponent() {
   // ✅ State quản lý người dùng và địa chỉ
+  const [loading, setLoading] = useState(true); // ✅ Thêm dòng này
+
   const [userId, setUserId] = useState<number | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -138,7 +140,10 @@ export default function AddressComponent() {
   const fetchAddresses = async (uid: number) => {
     const token = Cookies.get("authToken");
     if (!token) return;
+  
     try {
+      setLoading(true); // ✅ Bắt đầu loading
+  
       const res = await axios.get(
         `http://localhost:8000/api/addressesUser/${uid}`,
         {
@@ -146,14 +151,18 @@ export default function AddressComponent() {
           withCredentials: true,
         }
       );
+  
       const sorted = [...res.data].sort(
         (a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0)
       );
       setAddresses(sorted);
     } catch (err) {
       console.error("Address fetch failed", err);
+    } finally {
+      setLoading(false); // ✅ Kết thúc loading
     }
   };
+  
 
   // ✅ Khởi tạo user ID và load địa chỉ tương ứng
   useEffect(() => {
@@ -169,7 +178,18 @@ export default function AddressComponent() {
     setIsEditing(addr.id!);
     setIsAdding(true);
   };
+  useEffect(() => {
+    if (isAdding) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
 
+    return () => {
+      document.body.classList.remove("overflow-hidden"); // cleanup khi unmount
+    };
+  }, [isAdding]);
+  
   // ✅ Hàm xử lý thêm hoặc cập nhật địa chỉ
   const handleAddOrUpdateAddress = async () => {
     const token = Cookies.get("authToken");
@@ -281,12 +301,8 @@ export default function AddressComponent() {
   // ✅ JSX render danh sách địa chỉ và form thêm/sửa
   return (
     <div className="relative">
-      {/* ✅ Overlay mờ khi form bật */}
-      {isAdding && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40" />
-      )}
+      {isAdding && <div className="fixed inset-0 bg-black bg-opacity-50 z-40" />}
 
-      {/* ✅ Danh sách địa chỉ */}
       <div className="w-full max-w-5xl p-6 mx-auto mt-10 bg-white rounded-lg shadow relative z-50">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-h2 font-bold text-red-500">Danh sách địa chỉ</h2>
@@ -313,49 +329,39 @@ export default function AddressComponent() {
           </button>
         </div>
 
-        {/* ✅ Không hiện 'Không có địa chỉ' khi đang loading/thêm */}
-        {addresses.length === 0 && !isAdding ? (
+        {/* ✅ Loading nếu chưa có data */}
+        {loading ? (
+          // ✅ Loading xoay khi đang lấy data
+          <div className="flex justify-center items-center py-8">
+            <div className="w-6 h-6 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : addresses.length === 0 && !isAdding ? (
+          // ✅ Hiện thông báo khi load xong nhưng chưa có địa chỉ
           <div className="text-center text-gray-500">Chưa có địa chỉ</div>
         ) : (
           <ul className="space-y-4">
             {addresses.map((addr) => (
-              <li
-                key={addr.id}
-                className="p-4 border rounded-md bg-white shadow-sm relative"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center">
-                      <p className="font-semibold text-black">
-                        {addr.full_name} - {addr.phone}
-                      </p>
-                      <div className="flex gap-3 min-w-[80px] text-right">
-                        <button
-                          onClick={() => handleEdit(addr)}
-                          className="text-blue-500 text-sm relative after:absolute after:left-0 after:bottom-0 after:w-0 after:h-[1px] after:bg-blue-500 after:transition-all hover:after:w-full"
-                        >
-                          Cập nhật
-                        </button>
-                        <button
-                          onClick={() => setConfirmDeleteId(addr.id!)}
-                          className="text-red-500 text-sm relative after:absolute after:left-0 after:bottom-0 after:w-0 after:h-[1px] after:bg-red-500 after:transition-all hover:after:w-full"
-                        >
-                          Xoá
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-gray-700 break-words whitespace-pre-wrap">
-                      {addr.address}, {addr.ward}, {addr.district}, {addr.city}
-                    </p>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                      <span>Loại: {addr.type}</span>
-                      {addr.is_default && (
-                        <span className="px-2 py-1 text-xs text-red-500 border border-red-500 rounded">
-                          Mặc định
-                        </span>
-                      )}
-                    </div>
+              <li key={addr.id} className="p-4 border rounded-xl bg-white shadow-sm relative flex justify-between items-start">
+                <div className="flex-1 pr-4">
+                  <p className="font-semibold text-black text-[15px] mb-1">
+                    {addr.full_name} - {addr.phone}
+                  </p>
+                  <p className="text-gray-700 text-sm">
+                    {addr.address}, {addr.ward}, {addr.district}, {addr.city}
+                  </p>
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    <span className="text-gray-500">Loại:</span>
+                    <span className="text-gray-700">{addr.type}</span>
+                    {addr.is_default && (
+                      <span className="ml-2 px-2 py-[2px] text-xs text-red-500 border border-red-500 rounded-md">
+                        Mặc định
+                      </span>
+                    )}
                   </div>
+                </div>
+                <div className="flex flex-col gap-1 text-right min-w-[70px] text-sm mt-1">
+                  <button onClick={() => handleEdit(addr)} className="text-blue-500 hover:underline">Cập nhật</button>
+                  <button onClick={() => setConfirmDeleteId(addr.id!)} className="text-red-500 hover:underline">Xoá</button>
                 </div>
               </li>
             ))}
