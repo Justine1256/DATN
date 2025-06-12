@@ -86,7 +86,7 @@ export default function FollowedShopsSection() {
     };
 
     return (
-        <div className="w-full max-w-[1200px] mx-auto mt-10 px-4">
+        <div className="w-full max-w-[1200px] mx-auto mt-10 px-4 mt-20">
             <section className="p-4 bg-white rounded-xl shadow-md">
                 <h2 className="text-[1.25rem] font-semibold text-red-500  mb-6">
                     Danh sách shop theo dõi
