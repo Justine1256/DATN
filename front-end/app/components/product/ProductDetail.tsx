@@ -7,7 +7,7 @@ import Image from "next/image";
 import BestSelling from "../home/BestSelling";
 import Cookies from "js-cookie";
 import ShopInfo from "./ShopInfo";
-import { LoadingProductDetail } from "../loading/loading";
+import LoadingProductDetail from "../loading/loading";
 import ProductDescriptionAndSpecs from "./ProductDescriptionAndSpecs";
 
 // ✅ Interface định nghĩa dữ liệu sản phẩm
@@ -299,10 +299,10 @@ export default function ProductDetail({
                 {"★".repeat(4)}
                 <span className="text-gray-300 ml-0.5">★</span>
               </div>
-              <span className="text-gray-500">(150 Lượt Xem)</span>
+              <span className="text-gray-500">(150 Reviews)</span>
               <span className="text-gray-300">|</span>
               <span className="text-emerald-400 font-medium">
-                Trong kho: {product.stock || 0}
+                In Stock: {product.stock || 0}
               </span>
             </div>
 
@@ -330,7 +330,7 @@ export default function ProductDetail({
             {/* ✅ Options màu và size */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
-                <p className="font-medium text-gray-700 text-sm">Màu sắc:</p>
+                <p className="font-medium text-gray-700 text-sm">Colors:</p>
                 <div className="flex gap-1">
                   {colorOptions.map((color) => (
                     <button
@@ -349,7 +349,7 @@ export default function ProductDetail({
               </div>
 
               <div className="flex items-center gap-3">
-                <p className="font-medium text-gray-700 text-sm">Kích cỡ:</p>
+                <p className="font-medium text-gray-700 text-sm">Size:</p>
                 <div className="flex gap-1">
                   {sizeOptions.map((size) => (
                     <button
@@ -389,10 +389,10 @@ export default function ProductDetail({
               </div>
 
               <button className="w-[165px] h-[44px] bg-[#DC4B47] text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium">
-                Mua Ngay
+                Buy Now
               </button>
               <button className="w-[165px] h-[44px] text-[#DC4B47] border border-[#DC4B47] text-sm md:text-base rounded hover:bg-[#DC4B47] hover:text-white transition font-medium">
-                Thêm vào giỏ hàng
+                Add to Cart
               </button>
               <button
                 onClick={toggleLike}
@@ -409,10 +409,10 @@ export default function ProductDetail({
               <div className="flex items-start gap-3 p-4">
                 <span className="text-xl">🚚</span>
                 <div>
-                  <p className="font-semibold">Giao Hàng Miễn Phí</p>
+                  <p className="font-semibold">Free Delivery</p>
                   <p>
-                    <a className="no-underline" href="#">
-                      Dịch vụ giao hàng tận nơi cho mọi khu vực
+                    <a className="underline" href="#">
+                      Enter your postal code for Delivery Availability
                     </a>
                   </p>
                 </div>
@@ -420,10 +420,12 @@ export default function ProductDetail({
               <div className="flex items-start gap-3 p-4">
                 <span className="text-xl">🔁</span>
                 <div>
-                  <p className="font-semibold">Đổi Trả Hàng</p>
+                  <p className="font-semibold">Return Delivery</p>
                   <p>
-                    Giao hàng miễn phí trong 30 ngày Trả hàng{" "}
-                  
+                    Free 30 Days Delivery Returns.{" "}
+                    <a className="underline" href="#">
+                      Details
+                    </a>
                   </p>
                 </div>
               </div>

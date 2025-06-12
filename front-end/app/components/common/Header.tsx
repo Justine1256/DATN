@@ -17,7 +17,7 @@ import Cookies from 'js-cookie';
 
 const Header = () => {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; role: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSticky, setIsSticky] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -205,6 +205,7 @@ const Header = () => {
                           <FiUser /> Quản Lý Tài Khoản
                         </Link>
                       </li>
+                      
 
                       <li>
                         <Link
@@ -214,6 +215,16 @@ const Header = () => {
                           🏪 Cửa Hàng
                         </Link>
                       </li>
+                      {(user.role === 'admin' || user.role === 'seller') && (
+                        <li>
+                          <Link
+                            href="http://localhost:3001/dashboard"
+                            className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded"
+                          >
+                            🛠️ Đi đến trang quản trị
+                          </Link>
+                        </li>
+                      )}
                       <li
                         onClick={handleLogout}
                         className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 text-red-400 cursor-pointer rounded"

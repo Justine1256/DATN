@@ -32,9 +32,6 @@ export default function LoginForm() {
       // ✅ Hiện popup đăng nhập thành công
       setShowPopup(true);
 
-      // ✅ Mở dashboard trong tab mới
-      window.open(`http://localhost:3001/dashboard?token=${token}`, '_blank', 'noopener,noreferrer');
-
       // ✅ Trang hiện tại chuyển về homepage
       window.location.href = 'http://localhost:3000';
     } catch (err: any) {
