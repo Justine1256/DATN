@@ -96,7 +96,7 @@ const Header = () => {
       </div>
 
       <div className="py-0 px-2">
-        <div className="flex items-center justify-between py-4 px-7 md:px-8 max-w-[1280px] mx-auto">
+        <div className="flex items-center justify-between py-4 px-2 md:px-16  max-w-[1280px] mx-auto">
           {/* ✅ Logo cố định size */}
           <Link href="/">
             <Image
@@ -141,7 +141,7 @@ const Header = () => {
           </nav>
 
           {/* ✅ Icons & User dropdown */}
-          <div className="hidden md:flex items-center space-x-2 px-8">
+          <div className="hidden md:flex items-center space-x-2 px-2">
             {/* ✅ Search */}
             <div className="relative min-w-[200px]">
               <input
