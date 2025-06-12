@@ -24,6 +24,7 @@ import {
   FaHeartbeat,
 } from 'react-icons/fa';
 import { IconType } from 'react-icons';
+import { API_BASE_URL } from '@/utils/api';
 
 interface Category {
   id: number;
@@ -62,7 +63,7 @@ export default function CategoryGrid() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/category')
+    fetch(`${API_BASE_URL}/category`)
       .then((res) => res.json())
       .then((data) => {
         // console.log('📦 Category:', data);
