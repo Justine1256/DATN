@@ -1,5 +1,4 @@
 <?php
-
 use App\Http\Controllers\AIController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
