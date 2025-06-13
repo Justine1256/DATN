@@ -12,8 +12,8 @@ interface CartItem {
   product: {
     name: string;
     image: string;
-    price: number;
-    original_price?: number;
+    price: number;             // Giá gốc
+    sale_price?: number | null; // Giá giảm (nếu có)
   };
 }
 
@@ -27,13 +27,13 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Tính tổng tiền khi cartItems thay đổi
-  const totalPrice = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
+  // Tính tổng tiền theo sale_price nếu có
+  const totalPrice = cartItems.reduce((sum, item) => {
+    const finalPrice = item.product.sale_price ?? item.product.price;
+    return sum + finalPrice * item.quantity;
+  }, 0);
 
-  // Lấy cart từ API
+  // Lấy giỏ hàng từ API
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) return;
@@ -44,12 +44,12 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
       })
       .then((res) => {
         setCartItems(res.data);
-        onCartChange(res.data); // ✅ Gửi cart về parent
+        onCartChange(res.data);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  // Đồng bộ payment method + totalPrice lên parent mỗi khi thay đổi
+  // Gửi payment info + totalPrice lên parent khi thay đổi
   useEffect(() => {
     onPaymentInfoChange({ paymentMethod, totalPrice });
   }, [paymentMethod, totalPrice]);
@@ -67,31 +67,45 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
       ) : cartItems.length === 0 ? (
         <p className="text-center text-sm">Your cart is empty.</p>
       ) : (
-        cartItems.map((item) => (
-          <div key={item.id} className="grid grid-cols-4 items-center px-4 py-3 bg-white shadow">
-            <div className="col-span-2 flex items-center gap-4">
-              <Image
-                src={`${STATIC_BASE_URL}/${item.product.image}`}
-                alt={item.product.name}
-                width={50}
-                height={50}
-                className="object-contain"
-              />
-              <div>
-                <p className="text-sm font-medium">{item.product.name}</p>
-                {item.product.original_price && (
-                  <p className="text-xs text-gray-400 line-through">
-                    {item.product.original_price.toLocaleString()}đ
+        cartItems.map((item) => {
+          const { product, quantity } = item;
+          const hasSale = product.sale_price && product.sale_price < product.price;
+          const displayPrice = hasSale ? product.sale_price! : product.price;
+
+          return (
+            <div key={item.id} className="grid grid-cols-4 items-center px-4 py-3 bg-white shadow">
+              <div className="col-span-2 flex items-center gap-4">
+                <Image
+                  src={`${STATIC_BASE_URL}/${product.image}`}
+                  alt={product.name}
+                  width={50}
+                  height={50}
+                  className="object-contain"
+                />
+                <div>
+                  <p className="text-sm font-medium">{product.name}</p>
+                </div>
+              </div>
+              <div className="text-center text-sm">{quantity}</div>
+              <div className="text-right text-sm">
+                {hasSale ? (
+                  <div>
+                    <p className="line-through text-gray-400 text-xs">
+                      {(product.price * quantity).toLocaleString()}đ
+                    </p>
+                    <p className="font-semibold text-red-600">
+                      {(product.sale_price! * quantity).toLocaleString()}đ
+                    </p>
+                  </div>
+                ) : (
+                  <p className="font-semibold">
+                    {(product.price * quantity).toLocaleString()}đ
                   </p>
                 )}
               </div>
             </div>
-            <div className="text-center text-sm">{item.quantity}</div>
-            <div className="text-right font-semibold text-sm">
-              {(item.product.price * item.quantity).toLocaleString()}đ
-            </div>
-          </div>
-        ))
+          );
+        })
       )}
 
       <div className="pt-2 space-y-4">

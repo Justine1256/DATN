@@ -47,6 +47,7 @@ public function checkout(Request $request)
         $address = Address::where('user_id', $userId)->findOrFail($validated['address_id']);
         $fullAddress = "{$address->address}, {$address->ward}, {$address->district}, {$address->city}";
 
+        // Tính tổng giá gốc (không giảm giá sale)
         $subtotalAll = 0;
         foreach ($carts as $cart) {
             if ($cart->quantity > $cart->product->stock) {
@@ -127,22 +128,36 @@ public function checkout(Request $request)
 
         $orders = [];
         foreach ($cartsByShop as $shopId => $shopCarts) {
-            $shopSubtotal = 0;
+            $shopTotalAmount = 0; // Giá gốc chưa sale
+            $shopFinalAmount = 0; // Giá sau khi tính sale
+            $shopApplicableTotal = 0; // Tổng áp dụng voucher
+
             foreach ($shopCarts as $cart) {
-                $shopSubtotal += $cart->quantity * $cart->product->price;
+                $originalPrice = $cart->product->price;
+                $salePrice = $cart->product->sale_price ?? $originalPrice;
+                $quantity = $cart->quantity;
+
+                $shopTotalAmount += $quantity * $originalPrice;
+                $shopFinalAmount += $quantity * $salePrice;
+
+                // Dùng giá gốc để tính phần giảm giá áp dụng nếu có
+                if (!$voucher || empty($applicableCategoryIds) || in_array($cart->product->category_id, $applicableCategoryIds)) {
+                    $shopApplicableTotal += $quantity * $originalPrice;
+                }
             }
 
+            // Áp dụng chiết khấu theo tỉ lệ
             $shopDiscount = $voucher && $subtotalApplicable > 0
-                ? ($shopSubtotal / $subtotalApplicable) * $discountAmount
+                ? ($shopApplicableTotal / $subtotalApplicable) * $discountAmount
                 : 0;
 
-            $finalAmount = $shopSubtotal - $shopDiscount;
+            $finalAmount = max(0, $shopFinalAmount - $shopDiscount);
 
             $order = Order::create([
                 'user_id' => $userId,
                 'shop_id' => $shopId,
+                'total_amount' => $shopTotalAmount,
                 'final_amount' => $finalAmount,
-                'total_amount' => $shopSubtotal,
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => 'Pending',
                 'order_status' => 'Pending',
@@ -151,14 +166,19 @@ public function checkout(Request $request)
             ]);
 
             foreach ($shopCarts as $cart) {
+                $originalPrice = $cart->product->price;
+                $salePrice = $cart->product->sale_price ?? $originalPrice;
+                $quantity = $cart->quantity;
+
                 OrderDetail::create([
                     'order_id' => $order->id,
                     'product_id' => $cart->product_id,
-                    'price_at_time' => $cart->product->price,
-                    'quantity' => $cart->quantity,
-                    'subtotal' => $cart->quantity * $cart->product->price,
+                    'price_at_time' => $salePrice,
+                    'quantity' => $quantity,
+                    'subtotal' => $quantity * $salePrice,
                 ]);
-                $cart->product->decrement('stock', $cart->quantity);
+
+                $cart->product->decrement('stock', $quantity);
             }
 
             $orders[] = $order;
@@ -183,6 +203,7 @@ public function checkout(Request $request)
         return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
     }
 }
+
 
     public function show($id)
     {

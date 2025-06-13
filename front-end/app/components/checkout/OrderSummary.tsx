@@ -5,25 +5,50 @@ import Cookies from 'js-cookie';
 import { API_BASE_URL } from '@/utils/api';
 import { useState } from 'react';
 
-interface Props {
-  cartItems: {
-    id: number;
-    quantity: number;
-    product: { price: number };
-  }[];
-  totalPrice: number;
-  paymentMethod: string;
-  addressId: number | null;
+interface CartItem {
+  id: number;
+  quantity: number;
+  product: {
+    price: number;
+    sale_price?: number | null;
+  };
 }
 
-export default function OrderSummary({ cartItems, totalPrice, paymentMethod, addressId }: Props) {
+interface Props {
+  cartItems: CartItem[];
+  paymentMethod: string;
+  addressId: number | null;
+  voucherCode?: string | null;
+}
+
+export default function OrderSummary({
+  cartItems,
+  paymentMethod,
+  addressId,
+  voucherCode = null,
+}: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // --- Tính toán các giá trị ---
+  const subtotal = cartItems.reduce((sum, item) => {
+    return sum + item.product.price * item.quantity;
+  }, 0);
+
+  const promotionDiscount = cartItems.reduce((sum, item) => {
+    const { price, sale_price } = item.product;
+    if (sale_price && sale_price < price) {
+      return sum + (price - sale_price) * item.quantity;
+    }
+    return sum;
+  }, 0);
+
+  const discountedSubtotal = subtotal - promotionDiscount;
+
   const shipping = 20000;
-  const discount = 50000;
-  const finalTotal = totalPrice + shipping - discount;
+  const voucherDiscount = 0; // giả định chưa tính trước ở FE, BE sẽ xử lý
+  const finalTotal = discountedSubtotal - voucherDiscount + shipping;
 
   const handlePlaceOrder = async () => {
     if (!addressId) {
@@ -46,8 +71,8 @@ export default function OrderSummary({ cartItems, totalPrice, paymentMethod, add
         `${API_BASE_URL}/dathang`,
         {
           address_id: addressId,
-          payment_method: paymentMethod.toUpperCase(), // ví dụ: "COD", "CARD"
-          voucher_code: null, // Bạn có thể thêm input chọn mã giảm giá nếu muốn
+          payment_method: paymentMethod.toUpperCase(), // COD, CARD,...
+          voucher_code: voucherCode || null,
         },
         {
           headers: {
@@ -58,7 +83,7 @@ export default function OrderSummary({ cartItems, totalPrice, paymentMethod, add
 
       setSuccessMessage('Đặt hàng thành công!');
       console.log('Order response:', response.data);
-      // Nếu có redirect URL thì xử lý
+
       if (response.data.redirect_url) {
         window.location.href = response.data.redirect_url;
       }
@@ -73,22 +98,30 @@ export default function OrderSummary({ cartItems, totalPrice, paymentMethod, add
   return (
     <div className="space-y-6 text-sm">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Order summary</h3>
+        <h3 className="text-lg font-semibold mb-2">Tóm tắt đơn hàng</h3>
         <div className="border-t border-gray-300 pt-4 space-y-1">
           <div className="flex justify-between pb-2 border-b border-gray-200">
-            <span>Subtotal:</span>
-            <span>{totalPrice.toLocaleString()}đ</span>
+            <span>Tạm tính (giá gốc):</span>
+            <span>{subtotal.toLocaleString()}đ</span>
           </div>
+
           <div className="flex justify-between py-2 border-b border-gray-200">
-            <span>Shipping:</span>
+            <span>Khuyến mãi (giảm giá sản phẩm):</span>
+            <span className="text-green-700">-{promotionDiscount.toLocaleString()}đ</span>
+          </div>
+
+          <div className="flex justify-between py-2 border-b border-gray-200">
+            <span>Giảm giá từ voucher:</span>
+            <span className="text-green-700">-{voucherDiscount.toLocaleString()}đ</span>
+          </div>
+
+          <div className="flex justify-between py-2 border-b border-gray-200">
+            <span>Phí vận chuyển:</span>
             <span>{shipping.toLocaleString()}đ</span>
           </div>
-          <div className="flex justify-between py-2 border-b border-gray-200">
-            <span>Discount:</span>
-            <span className="text-green-700">-{discount.toLocaleString()}đ</span>
-          </div>
+
           <div className="flex justify-between font-semibold text-lg text-brand pt-3">
-            <span>Total:</span>
+            <span>Tổng thanh toán:</span>
             <span>{finalTotal.toLocaleString()}đ</span>
           </div>
         </div>
@@ -102,7 +135,7 @@ export default function OrderSummary({ cartItems, totalPrice, paymentMethod, add
             disabled={loading}
             className="bg-brand hover:bg-red-600 text-white w-[186px] h-[56px] rounded text-sm font-semibold disabled:opacity-60"
           >
-            {loading ? 'Đang xử lý...' : 'Place Order'}
+            {loading ? 'Đang xử lý...' : 'Đặt hàng'}
           </button>
         </div>
       </div>
