@@ -42,22 +42,28 @@ export default function OrderSection() {
     return data.filter((o) => o.order_status.toLowerCase() === status);
   };
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_BASE_URL}/orderall`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setOrders(res.data);
-      setFilteredOrders(filterOrders(activeTab, res.data));
-    } catch (err) {
-      console.error("❌ Lỗi khi lấy đơn hàng:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchOrders = async () => {
+  setLoading(true);
+  try {
+    const res = await axios.get(`${API_BASE_URL}/orderall`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("🔥 API response:", res.data);
+
+    const data = Array.isArray(res.data.orders) ? res.data.orders : [];
+    setOrders(data);
+    setFilteredOrders(filterOrders(activeTab, data));
+  } catch (err) {
+    console.error("❌ Lỗi khi lấy đơn hàng:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   const handleCancelOrder = async (orderId: number) => {
     try {
