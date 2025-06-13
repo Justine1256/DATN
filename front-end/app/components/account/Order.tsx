@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from '@/utils/api';
+
 interface Order {
   id: number;
   final_amount: number;
@@ -65,8 +66,8 @@ export default function OrderSection() {
   }, [activeTab, orders]);
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto mt-10 px-4">
-      <div className="bg-white p-4 rounded-xl shadow-sm">
+    <div className="w-full max-w-[1400px] mx-auto mt-10 px-4">
+      <div className="bg-white p-4 rounded-xl shadow-sm min-h-[500px]">
         <h2 className="text-xl font-semibold text-red-500 mb-4 text-center">Đơn mua của tôi</h2>
 
         {/* Tabs */}
@@ -75,11 +76,11 @@ export default function OrderSection() {
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
-              className={`px-4 py-2 rounded-full border ${
-                activeTab === tab.value
+              className={`px-8 py-2 rounded-full border text-base transition-all ${activeTab === tab.value
                   ? "bg-red-500 text-white border-red-500"
                   : "text-gray-600 border-gray-300 hover:bg-gray-100"
-              }`}
+                }`}
+
             >
               {tab.label}
             </button>
@@ -90,7 +91,9 @@ export default function OrderSection() {
         {loading ? (
           <p className="text-center text-gray-500">Đang tải đơn hàng...</p>
         ) : filteredOrders.length === 0 ? (
-          <p className="text-center text-gray-500">Không có đơn hàng phù hợp.</p>
+          <div className="flex flex-col items-center justify-center h-[400px] bg-gray-50 rounded-md">
+            <p className="text-lg text-gray-500">Không có đơn hàng phù hợp.</p>
+          </div>
         ) : (
           <div className="space-y-4">
             {filteredOrders.map((order) => (

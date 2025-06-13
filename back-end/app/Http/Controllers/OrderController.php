@@ -13,6 +13,18 @@ use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
+    public function index()
+    {
+        $userId = Auth::id();
+        $orders = Order::where('user_id', $userId)
+            ->with('orderDetails.product') // nếu bạn đã thiết lập quan hệ
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'orders' => $orders
+        ]);
+    }
     public function checkout(Request $request)
     {
         $userId = Auth::id();

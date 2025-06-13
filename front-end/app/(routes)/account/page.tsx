@@ -75,7 +75,7 @@ export default function AccountRoute() {
 
           {/* ✅ Nội dung từng mục bên phải */}
           <div className="md:col-span-9 pt-2">
-            <div className="w-full max-w-[600px] mx-auto transition-all duration-300">
+            <div className="w-full max-w-[800px] mx-auto transition-all duration-300">
               {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
               {section === 'changepassword' && <ChangePassword />}
               {section === 'address' && user && <AddressComponent userId={user.id} />}
