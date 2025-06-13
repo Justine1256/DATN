@@ -45,7 +45,7 @@ export default function OrderSection() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/showdh`, {
+      const res = await axios.get(`${API_BASE_URL}/orderall`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
