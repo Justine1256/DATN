@@ -269,20 +269,23 @@ export default function AddressComponent() {
   const handleDelete = async () => {
     if (!confirmDeleteId || !userId) return;
     const token = Cookies.get("authToken");
+
     try {
-      await axios.delete(
-        `${API_BASE_URL}/addresses/${confirmDeleteId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      // ✅ Gọi API xoá
+      await axios.delete(`${API_BASE_URL}/addresses/${confirmDeleteId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // ✅ Nếu xoá thành công, cập nhật UI
       triggerPopup("Xoá địa chỉ thành công!", "success");
 
       const updated = addresses.filter((addr) => addr.id !== confirmDeleteId);
+
+      // ✅ Nếu chỉ còn 1 địa chỉ, đặt làm mặc định nếu chưa
       if (updated.length === 1 && !updated[0].is_default) {
         const newDefaultId = updated[0].id;
         await axios.patch(
-          `${ API_BASE_URL } /addresses/${newDefaultId}`,
+          `${API_BASE_URL}/addresses/${newDefaultId}`,
           {
             ...updated[0],
             is_default: true,
@@ -291,13 +294,16 @@ export default function AddressComponent() {
         );
       }
 
+      // ✅ Refresh lại danh sách địa chỉ
       fetchAddresses(userId);
-    } catch {
-      triggerPopup("Xoá thất bại!", "error");
+    } catch (error) {
+      console.error("Lỗi xoá địa chỉ:", error);
+      triggerPopup("❌ Xoá thất bại!", "error");
     } finally {
-      setConfirmDeleteId(null);
+      setConfirmDeleteId(null); // ✅ Đóng modal xác nhận
     }
   };
+  
 
   // ✅ JSX render danh sách địa chỉ và form thêm/sửa
   return (

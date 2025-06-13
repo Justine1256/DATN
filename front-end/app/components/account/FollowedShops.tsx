@@ -5,7 +5,8 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import FollowedShopLoading from "../loading/loading";
-import { API_BASE_URL } from '@/utils/api';   
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
+
 // ✅ Interface cho đối tượng Shop
 interface Shop {
     id: number;
@@ -27,7 +28,6 @@ export default function FollowedShopsSection() {
     const [showPopup, setShowPopup] = useState(false);
     const router = useRouter();
 
-    // ✅ Phân trang - chia mỗi trang 6 shop
     const shopsPerPage = 6;
     const totalPages = Math.ceil(shops.length / shopsPerPage);
     const paginatedShops = shops.slice(
@@ -35,7 +35,7 @@ export default function FollowedShopsSection() {
         currentPage * shopsPerPage
     );
 
-    // ✅ Gọi API lấy danh sách shop đã theo dõi
+    // ✅ Lấy danh sách shop đã theo dõi
     useEffect(() => {
         const fetchFollowedShops = async () => {
             const token = Cookies.get("authToken");
@@ -56,7 +56,7 @@ export default function FollowedShopsSection() {
         fetchFollowedShops();
     }, []);
 
-    // ✅ Hủy theo dõi shop
+    // ✅ Hủy theo dõi
     const handleUnfollow = async (shopId: number) => {
         const token = Cookies.get("authToken");
         if (!token) return;
@@ -87,9 +87,9 @@ export default function FollowedShopsSection() {
     };
 
     return (
-        <div className="w-full max-w-[1200px] mx-auto mt-10 px-4 mt-20">
+        <div className="w-full max-w-[1200px] mx-auto px-4 mt-20">
             <section className="p-4 bg-white rounded-xl shadow-md">
-                <h2 className="text-[1.25rem] font-semibold text-red-500  mb-6">
+                <h2 className="text-[1.25rem] font-semibold text-red-500 mb-6">
                     Danh sách shop theo dõi
                 </h2>
 
@@ -101,61 +101,64 @@ export default function FollowedShopsSection() {
                     </p>
                 ) : (
                     <>
-                        <div className="flex flex-wrap gap-4 justify-start">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                             {paginatedShops.map((shop) => (
                                 <div
                                     key={shop.id}
-                                    className="w-full sm:w-[calc(50%-0.5rem)] border rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition flex flex-col justify-between min-h-[180px]"
+                                    className="flex flex-col justify-between border rounded-xl bg-white shadow hover:shadow-md transition p-4 min-h-[200px]"
                                 >
                                     <div
                                         onClick={() => router.push(`/shop/${shop.slug}`)}
-                                        className="cursor-pointer"
+                                        className="cursor-pointer flex items-start gap-4"
                                     >
-                                        <div className="flex items-center gap-4">
+                                        {/* ✅ Avatar nhỏ lại */}
+                                        <div className="w-12 h-12 rounded-full overflow-hidden border shrink-0 bg-white">
                                             <img
-                                                src={shop.logo || "/default-avatar.png"}
-                                                alt={shop.name}
-                                                className="w-14 h-14 rounded-full object-cover border"
-                                            />
+                                                src={
+                                                    shop.logo?.startsWith("http")
+                                                        ? shop.logo
+                                                        : shop.logo
+                                                            ? `${STATIC_BASE_URL}/${shop.logo}`
+                                                            : "/default-avatar.png"
+                                                }
 
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex flex-col">
-                                                    <h3 className="text-base font-semibold text-black truncate whitespace-nowrap">
-                                                        {shop.name}
-                                                    </h3>
-                                                    <span
-                                                        className={`text-xs mt-1 ${shop.status === "activated"
-                                                            ? "text-green-600"
-                                                            : shop.status === "pending"
-                                                                ? "text-yellow-500"
-                                                                : "text-gray-400"
-                                                            }`}
-                                                    >
-                                                        {shop.status === "activated"
-                                                            ? "Đang hoạt động"
-                                                            : shop.status === "pending"
-                                                                ? "Chờ duyệt"
-                                                                : "Tạm khóa"}
-                                                    </span>
-                                                </div>
-                                                <div className="text-sm text-yellow-600 flex items-center gap-1 whitespace-nowrap mt-[2px]">
-                                                    <span>Đánh giá:</span>
-                                                    <span className="font-medium">
-                                                        {shop.rating ?? "Chưa có"}
-                                                    </span>
-                                                    <span>⭐</span>
-                                                </div>
+                                                
+                                            />
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-sm font-semibold text-black truncate max-w-[180px]">
+                                                {shop.name}
+                                            </h3>
+                                            <p
+                                                className={`text-xs mt-1 font-medium ${shop.status === "activated"
+                                                        ? "text-green-600"
+                                                        : shop.status === "pending"
+                                                            ? "text-yellow-500"
+                                                            : "text-gray-400"
+                                                    }`}
+                                            >
+                                                {shop.status === "activated"
+                                                    ? "Đang hoạt động"
+                                                    : shop.status === "pending"
+                                                        ? "Chờ duyệt"
+                                                        : "Tạm khóa"}
+                                            </p>
+
+                                            <div className="text-xs text-yellow-600 flex items-center gap-1 mt-2">
+                                                <span>Đánh giá:</span>
+                                                <span className="font-semibold">
+                                                    {shop.rating ?? "Chưa có"}
+                                                </span>
+                                                <span>⭐</span>
                                             </div>
                                         </div>
-                                        <p className="text-sm text-gray-600 mt-2 overflow-hidden text-ellipsis whitespace-nowrap">
-                                            {shop.description}
-                                        </p>
                                     </div>
 
                                     <button
                                         onClick={() => handleUnfollow(shop.id)}
                                         disabled={unfollowing === shop.id}
-                                        className="mt-4 text-sm px-4 py-1 rounded border border-red-500 text-red-500 transition hover:bg-[#DB4444] hover:text-white disabled:opacity-60"
+                                        className="mt-4 text-sm px-4 py-2 rounded-md border border-red-500 text-red-500 transition hover:bg-[#DB4444] hover:text-white disabled:opacity-60"
                                     >
                                         {unfollowing === shop.id ? "Đang hủy..." : "Hủy theo dõi"}
                                     </button>
@@ -166,18 +169,20 @@ export default function FollowedShopsSection() {
                         {/* ✅ Phân trang */}
                         {totalPages > 1 && (
                             <div className="flex justify-center gap-2 mt-8 text-sm">
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`px-3 py-1 rounded border ${page === currentPage
-                                            ? "bg-red-500 text-white border-red-500"
-                                            : "bg-white text-gray-700 hover:bg-gray-100"
-                                            }`}
-                                    >
-                                        {page}
-                                    </button>
-                                ))}
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                                    (page) => (
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`px-3 py-1 rounded border ${page === currentPage
+                                                    ? "bg-red-500 text-white border-red-500"
+                                                    : "bg-white text-gray-700 hover:bg-gray-100"
+                                                }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    )
+                                )}
                             </div>
                         )}
                     </>

@@ -3,15 +3,21 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-// import ProductComments from "./ProductCommernt";
 import BestSelling from "../home/BestSelling";
 import Cookies from "js-cookie";
 import ShopInfo from "./ShopInfo";
 import LoadingProductDetail from "../loading/loading";
 import ProductDescriptionAndSpecs from "./ProductDescriptionAndSpecs";
 import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
-import { API_BASE_URL } from '@/utils/api';
-// ✅ Interface định nghĩa dữ liệu sản phẩm
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
+
+// ✅ Hàm xử lý ảnh – chuẩn hóa đường dẫn ảnh từ server
+const formatImageUrl = (img: string): string => {
+  if (img.startsWith("http")) return img;
+  return img.startsWith("/") ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
+};
+
+// ✅ Kiểu dữ liệu sản phẩm
 interface Product {
   id: number;
   name: string;
@@ -42,17 +48,13 @@ interface Product {
   };
 }
 
-// ✅ Props cho component ProductDetail
 interface ProductDetailProps {
   shopslug: string;
   productslug: string;
 }
 
 // ✅ Component chi tiết sản phẩm
-export default function ProductDetail({
-  shopslug,
-  productslug,
-}: ProductDetailProps) {
+export default function ProductDetail({ shopslug, productslug }: ProductDetailProps) {
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -64,6 +66,62 @@ export default function ProductDetail({
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState("");
 
+  // ✅ Gọi API chi tiết sản phẩm + ảnh lớn + theo dõi shop
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token") || Cookies.get("authToken");
+        const productRes = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
+
+        if (!productRes.ok) {
+          router.push("/not-found");
+          return;
+        }
+
+        const productData = await productRes.json();
+        setProduct(productData);
+
+        // ✅ Ảnh chính mặc định là ảnh đầu tiên
+        const firstImage = productData.images?.[0] || productData.image;
+        setMainImage(formatImageUrl(firstImage));
+
+        // ✅ Màu và size mặc định
+        setSelectedColor(productData.value1?.split(",")[0] || "");
+        setSelectedSize(productData.value2?.split(",")[0] || "");
+
+        // ✅ Kiểm tra trạng thái follow
+        if (token && productData.shop?.id) {
+          const followRes = await fetch(`${API_BASE_URL}/shops/${productData.shop.id}/is-following`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (followRes.ok) {
+            const followData = await followRes.json();
+            setFollowed(followData.followed);
+          }
+        }
+
+        console.log("📦 Chi tiết sản phẩm:", productData);
+      } catch (err) {
+        console.error("❌ Lỗi khi load product & follow:", err);
+      }
+    };
+
+    fetchData();
+  }, [shopslug, productslug, router]);
+
+  if (!product) return <LoadingProductDetail />;
+
+  // ✅ Tạo danh sách thumbnail từ images[] hoặc image
+  const thumbnails = (product.images && product.images.length > 0)
+    ? product.images.map(img => formatImageUrl(img))
+    : [formatImageUrl(product.image)];
+
+  // ✅ Danh sách tùy chọn màu và size
+  const colorOptions = product.value1?.split(",") || [];
+  const sizeOptions = product.value2?.split(",") || [];
+
+  // ✅ Thêm vào giỏ hàng
   const handleAddToCart = async () => {
     const token = localStorage.getItem("token") || Cookies.get("authToken");
     if (!token) {
@@ -103,155 +161,13 @@ export default function ProductDetail({
     }
   };
 
-  // chạy song song api
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token") || Cookies.get("authToken");
-        const productRes = await fetch(
-          `${ API_BASE_URL }/${shopslug}/product/${productslug}`
-        );
-
-        if (!productRes.ok) {
-          router.push("/not-found");
-          return;
-        }
-
-        const productData = await productRes.json();
-
-        if (!productData.images) {
-          productData.images = ["/1.png", "/2.webp", "/3.webp", "/4.webp"];
-        }
-
-        // Cập nhật sản phẩm + ảnh chính + option mặc định
-        setProduct(productData);
-        console.log("📦 Chi tiết sản phẩm:", productData);
-
-        setMainImage(
-          productData.image.startsWith("/")
-            ? productData.image
-            : `/${productData.image}`
-        );
-        setSelectedColor(productData.value1?.split(",")[0] || "");
-        setSelectedSize(productData.value2?.split(",")[0] || "");
-
-        // Nếu có token và shop id thì gọi song song
-        if (token && productData.shop?.id) {
-          const followRes = await fetch(
-            `${API_BASE_URL}/shops/${productData.shop.id}/is-following`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          if (followRes.ok) {
-            const followData = await followRes.json();
-            setFollowed(followData.followed);
-          }
-        }
-      } catch (err) {
-        console.error("❌ Lỗi khi load product & follow:", err);
-      }
-    };
-
-    fetchData();
-  }, [shopslug, productslug, router]);
-
-  // ✅ Xử lý theo dõi shop
-  const handleFollow = async () => {
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
-
-    if (!token) {
-      setPopupText("Vui lòng đăng nhập để theo dõi shop");
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-      return;
-    }
-
-    if (!product?.shop?.id) return;
-
-    try {
-      const shopId = product.shop.id;
-
-      if (followed) {
-        // UNFOLLOW
-        const res = await fetch(
-          `${ API_BASE_URL } /shops/${shopId}/unfollow`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: "application/json",
-            },
-          }
-        );
-
-        if (res.ok) {
-          setFollowed(false);
-        } else {
-          const data = await res.json();
-          console.error("❌ Lỗi unfollow:", data.message || res.statusText);
-        }
-      } else {
-        // FOLLOW
-        const res = await fetch(
-          `${API_BASE_URL}/shops/${shopId}/follow`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: "application/json",
-            },
-          }
-        );
-
-        if (res.ok) {
-          setFollowed(true);
-        } else {
-          const data = await res.json();
-          console.error("❌ Lỗi follow:", data.message || res.statusText);
-        }
-      }
-    } catch (err) {
-      console.error("❌ Lỗi xử lý follow/unfollow:", err);
-    }
-  };
-
-  useEffect(() => {
-    const checkFollowStatus = async () => {
-      const token = localStorage.getItem("token") || Cookies.get("authToken");
-      if (!token || !product?.shop?.id) return;
-
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/shops/${product.shop?.id}/is-following`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (res.ok) {
-          const data = await res.json();
-          setFollowed(data.followed); // Cập nhật trạng thái ban đầu
-        }
-      } catch (err) {
-        console.error("❌ Lỗi kiểm tra follow status:", err);
-      }
-    };
-
-    checkFollowStatus();
-  }, [product]);
-
-  // ✅ Xử lý thêm/bỏ yêu thích sản phẩm
+  // ✅ Thêm / bỏ yêu thích
   const toggleLike = async () => {
     if (!product) return;
     const token = localStorage.getItem("token") || Cookies.get("authToken");
     if (!token) {
       setShowPopup(true);
+      setPopupText("Vui lòng đăng nhập để yêu thích sản phẩm");
       setTimeout(() => setShowPopup(false), 2000);
       return;
     }
@@ -270,33 +186,44 @@ export default function ProductDetail({
           body: JSON.stringify({ product_id: product.id }),
         });
       } else {
-        await fetch(`${ API_BASE_URL }/wishlist/${product.id}`, {
+        await fetch(`${API_BASE_URL}/wishlist/${product.id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
       }
     } catch (err) {
-      console.error("❌ Lỗi xử lý wishlist:", err);
+      console.error("❌ Lỗi xử lý yêu thích:", err);
     } finally {
       setShowPopup(true);
+      setPopupText(newLiked ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích");
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
-  if (!product) return <LoadingProductDetail />;
 
-  // ✅ Danh sách thumbnail ảnh
-  const thumbnails = product.images?.map((img) =>
-    img.startsWith("/") ? img : `/${img}`
-  ) || [`/${product.image}`];
-  const colorOptions = product.value1?.split(",") || [];
-  const sizeOptions = product.value2?.split(",") || [];
+  // ✅ Follow / Unfollow shop
+  const handleFollow = async () => {
+    const token = localStorage.getItem("token") || Cookies.get("authToken");
+    if (!token || !product?.shop?.id) return;
+
+    try {
+      const url = `${API_BASE_URL}/shops/${product.shop.id}/${followed ? "unfollow" : "follow"}`;
+      const method = followed ? "DELETE" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) setFollowed(!followed);
+    } catch (err) {
+      console.error("❌ Lỗi follow/unfollow:", err);
+    }
+  };
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
-      {/* ✅ Bọc ảnh + info trong cùng 1 box trắng viền đẹp */}
       <div className="rounded-xl border shadow-sm bg-white p-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
-          {/* ✅ Hình ảnh sản phẩm bên trái */}
           <div className="md:col-span-6 flex flex-col gap-4">
             <div className="flex justify-center items-center w-full bg-gray-100 rounded-lg p-6 min-h-[220px]">
               <div className="w-full max-w-[400px] h-[320px] relative">
@@ -309,14 +236,13 @@ export default function ProductDetail({
                 />
               </div>
             </div>
-
-            {/* ✅ Thumbnail nằm ngang bên dưới */}
-            <div className="flex justify-center gap-3">
-              {thumbnails.map((thumb, idx) => (
+            {thumbnails.map((img, idx) => {
+              const thumb = formatImageUrl(img);
+              return (
                 <div
                   key={idx}
                   onClick={() => setMainImage(thumb)}
-                  className={`cursor-pointer border-2 rounded overflow-hidden w-[80px] h-[80px] ${mainImage === thumb ? "border-brand" : "border-gray-300"
+                  className={`cursor-pointer border-2 rounded w-[80px] h-[80px] ${mainImage === thumb ? "border-brand" : "border-gray-300"
                     }`}
                 >
                   <Image
@@ -324,12 +250,15 @@ export default function ProductDetail({
                     alt={`Thumb ${idx}`}
                     width={80}
                     height={80}
-                    className="object-contain w-full h-full"
+                    className="object-contain w-full item h-full"
                   />
                 </div>
-              ))}
-            </div>
-          </div>
+              );
+            })}
+
+
+
+</div>
 
           {/* ✅ Thông tin sản phẩm bên phải */}
           <div className="md:col-span-6 space-y-6 ">
