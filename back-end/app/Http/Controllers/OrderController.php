@@ -32,10 +32,20 @@ public function checkout(Request $request)
     $userId = Auth::id();
 
     $validated = $request->validate([
-        'address_id' => 'required|exists:addresses,id',
         'payment_method' => 'required|in:COD,Card,Wallet,Bank',
-        'voucher_code' => 'nullable|string'
+        'voucher_code' => 'nullable|string',
+        'address_id' => 'nullable|exists:addresses,id',
+        'address_manual' => 'nullable|array',
+        'address_manual.full_name' => 'required_with:address_manual|string',
+        'address_manual.address' => 'required_with:address_manual|string',
+        'address_manual.city' => 'required_with:address_manual|string',
+        'address_manual.phone' => 'required_with:address_manual|string',
+        'address_manual.email' => 'required_with:address_manual|email',
     ]);
+
+    if (empty($validated['address_id']) && empty($validated['address_manual'])) {
+        return response()->json(['message' => 'Phải chọn địa chỉ có sẵn hoặc nhập địa chỉ mới'], 422);
+    }
 
     $carts = Cart::with('product')->where('user_id', $userId)->where('is_active', true)->get();
     if ($carts->isEmpty()) {
@@ -44,8 +54,14 @@ public function checkout(Request $request)
 
     DB::beginTransaction();
     try {
-        $address = Address::where('user_id', $userId)->findOrFail($validated['address_id']);
-        $fullAddress = "{$address->address}, {$address->ward}, {$address->district}, {$address->city}";
+        // Xác định địa chỉ giao hàng
+        if (!empty($validated['address_id'])) {
+            $address = Address::where('user_id', $userId)->findOrFail($validated['address_id']);
+            $fullAddress = "{$address->address}, {$address->ward}, {$address->district}, {$address->city}";
+        } elseif (!empty($validated['address_manual'])) {
+            $manual = $validated['address_manual'];
+            $fullAddress = "{$manual['address']}, {$manual['city']} ({$manual['full_name']} - {$manual['phone']})";
+        }
 
         // Tính tổng giá gốc (không giảm giá sale)
         $subtotalAll = 0;
@@ -58,7 +74,7 @@ public function checkout(Request $request)
             $subtotalAll += $cart->quantity * $cart->product->price;
         }
 
-        // --- XỬ LÝ VOUCHER ---
+        // Xử lý voucher (giữ nguyên)
         $discountAmount = 0;
         $voucher = null;
         $subtotalApplicable = $subtotalAll;
@@ -128,9 +144,9 @@ public function checkout(Request $request)
 
         $orders = [];
         foreach ($cartsByShop as $shopId => $shopCarts) {
-            $shopTotalAmount = 0; // Giá gốc chưa sale
-            $shopFinalAmount = 0; // Giá sau khi tính sale
-            $shopApplicableTotal = 0; // Tổng áp dụng voucher
+            $shopTotalAmount = 0;
+            $shopFinalAmount = 0;
+            $shopApplicableTotal = 0;
 
             foreach ($shopCarts as $cart) {
                 $originalPrice = $cart->product->price;
@@ -140,13 +156,11 @@ public function checkout(Request $request)
                 $shopTotalAmount += $quantity * $originalPrice;
                 $shopFinalAmount += $quantity * $salePrice;
 
-                // Dùng giá gốc để tính phần giảm giá áp dụng nếu có
                 if (!$voucher || empty($applicableCategoryIds) || in_array($cart->product->category_id, $applicableCategoryIds)) {
                     $shopApplicableTotal += $quantity * $originalPrice;
                 }
             }
 
-            // Áp dụng chiết khấu theo tỉ lệ
             $shopDiscount = $voucher && $subtotalApplicable > 0
                 ? ($shopApplicableTotal / $subtotalApplicable) * $discountAmount
                 : 0;
@@ -193,7 +207,7 @@ public function checkout(Request $request)
         DB::commit();
 
         return response()->json([
-            'message' => 'Tạo đơn hàng thành công cho nhiều shop',
+            'message' => 'Tạo đơn hàng thành công',
             'order_ids' => collect($orders)->pluck('id'),
             'payment_method' => $validated['payment_method'],
             'redirect_url' => null
@@ -203,6 +217,7 @@ public function checkout(Request $request)
         return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
     }
 }
+
 
 
     public function show($id)

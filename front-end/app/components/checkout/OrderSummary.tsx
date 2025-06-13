@@ -13,20 +13,42 @@ interface CartItem {
     sale_price?: number | null;
   };
 }
-
+interface OrderRequestBody {
+  payment_method: string;
+  voucher_code: string | null;
+  address_id?: number;
+  address_manual?: {
+    full_name: string;
+    address: string;
+    city: string;
+    phone: string;
+    email: string;
+  };
+}
 interface Props {
   cartItems: CartItem[];
   paymentMethod: string;
   addressId: number | null;
   voucherCode?: string | null;
+  manualAddressData?: {
+    firstName: string;
+    streetAddress: string;
+    apartment?: string;
+    city: string;
+    phone: string;
+    email: string;
+  };
 }
+
 
 export default function OrderSummary({
   cartItems,
   paymentMethod,
   addressId,
   voucherCode = null,
-}: Props) {
+  manualAddressData,
+}: Props)
+ {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -50,50 +72,68 @@ export default function OrderSummary({
   const voucherDiscount = 0; // giả định chưa tính trước ở FE, BE sẽ xử lý
   const finalTotal = discountedSubtotal - voucherDiscount + shipping;
 
-  const handlePlaceOrder = async () => {
-    if (!addressId) {
-      setError('Vui lòng chọn địa chỉ giao hàng.');
+const handlePlaceOrder = async () => {
+  if (!addressId && !manualAddressData) {
+    setError('Vui lòng chọn hoặc nhập địa chỉ giao hàng.');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+  setSuccessMessage('');
+
+  try {
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    if (!token) {
+      setError('Bạn chưa đăng nhập.');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError('');
-    setSuccessMessage('');
+    const requestBody: OrderRequestBody = {
+      payment_method: paymentMethod.toUpperCase(),
+      voucher_code: voucherCode || null,
+    };
 
-    try {
-      const token = localStorage.getItem('token') || Cookies.get('authToken');
-      if (!token) {
-        setError('Bạn chưa đăng nhập.');
-        return;
-      }
-
-      const response = await axios.post(
-        `${API_BASE_URL}/dathang`,
-        {
-          address_id: addressId,
-          payment_method: paymentMethod.toUpperCase(), // COD, CARD,...
-          voucher_code: voucherCode || null,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setSuccessMessage('Đặt hàng thành công!');
-      console.log('Order response:', response.data);
-
-      if (response.data.redirect_url) {
-        window.location.href = response.data.redirect_url;
-      }
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Lỗi khi đặt hàng';
-      setError(msg);
-    } finally {
+    if (manualAddressData && Object.values(manualAddressData).some((v) => v.trim() !== '')) {
+      requestBody.address_manual = {
+        full_name: manualAddressData.firstName,
+        address: `${manualAddressData.streetAddress}${
+          manualAddressData.apartment ? ', ' + manualAddressData.apartment : ''
+        }`,
+        city: manualAddressData.city,
+        phone: manualAddressData.phone,
+        email: manualAddressData.email,
+      };
+    } else if (addressId) {
+      requestBody.address_id = addressId;
+    } else {
+      setError('Vui lòng chọn hoặc nhập địa chỉ giao hàng.');
       setLoading(false);
+      return;
     }
-  };
+
+    const response = await axios.post(`${API_BASE_URL}/dathang`, requestBody, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    setSuccessMessage('Đặt hàng thành công!');
+    console.log('Order response:', response.data);
+
+    if (response.data.redirect_url) {
+      window.location.href = response.data.redirect_url;
+    }
+  } catch (err: any) {
+    const msg = err.response?.data?.message || 'Lỗi khi đặt hàng';
+    setError(msg);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <div className="space-y-6 text-sm">

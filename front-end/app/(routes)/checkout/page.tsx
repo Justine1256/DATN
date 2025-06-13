@@ -6,7 +6,6 @@ import CheckoutForm from '@/app/components/checkout/CheckoutForm';
 import OrderSummary from '@/app/components/checkout/OrderSummary';
 import { useState } from 'react';
 
-// Định nghĩa kiểu CartItem đồng bộ với CartAndPayment
 interface CartItem {
   id: number;
   quantity: number;
@@ -22,7 +21,9 @@ export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [totalPrice, setTotalPrice] = useState(0);
+  const [manualAddressData, setManualAddressData] = useState<any>(null);
   const [addressId, setAddressId] = useState<number | null>(null);
+  const [voucherCode, setVoucherCode] = useState<string | null>(null);
 
   return (
     <div className="container my-10 px-4">
@@ -39,7 +40,14 @@ export default function CheckoutPage() {
       <div className="text-black mx-auto py-8 grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="pr-6">
           <CheckoutForm
-            onAddressSelect={(selectedId) => setAddressId(selectedId)}
+            onAddressSelect={(selectedId) => {
+              setAddressId(selectedId);
+              setManualAddressData(null);
+            }}
+            onAddressChange={(manualData) => {
+              setManualAddressData(manualData);
+              setAddressId(null);
+            }}
           />
         </div>
         <div className="space-y-8 pl-6">
@@ -53,8 +61,9 @@ export default function CheckoutPage() {
           <OrderSummary
             cartItems={cartItems}
             paymentMethod={paymentMethod}
-            totalPrice={totalPrice}
             addressId={addressId}
+            voucherCode={voucherCode}
+            manualAddressData={manualAddressData}
           />
         </div>
       </div>
