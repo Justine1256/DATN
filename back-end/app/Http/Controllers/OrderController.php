@@ -15,13 +15,7 @@ class OrderController extends Controller
 {
     public function index()
 {
-    $orders = Order::with('orderDetails.product') // load quan hệ nếu có
-        ->latest()
-        ->get();
-
-    return response()->json([
-        'orders' => $orders
-    ]);
+    return response()->json(Order::all());
 }
 
     public function checkout(Request $request)
