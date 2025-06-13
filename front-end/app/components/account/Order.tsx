@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { API_BASE_URL } from '@/utils/api';
+import { API_BASE_URL } from "@/utils/api";
 
 interface Order {
   id: number;
@@ -30,6 +30,8 @@ export default function OrderSection() {
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
 
+  const token = Cookies.get("authToken");
+
   const filterOrders = (status: string, data: Order[]) => {
     if (status === "all") return data;
     if (status === "processing") {
@@ -40,24 +42,56 @@ export default function OrderSection() {
     return data.filter((o) => o.order_status.toLowerCase() === status);
   };
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      const token = Cookies.get("authToken");
-      try {
-        const res = await axios.get(`${API_BASE_URL}/showdh`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setOrders(res.data);
-        setFilteredOrders(filterOrders(activeTab, res.data));
-      } catch (err) {
-        console.error("❌ Lỗi khi lấy đơn hàng:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/showdh`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setOrders(res.data);
+      setFilteredOrders(filterOrders(activeTab, res.data));
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy đơn hàng:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleCancelOrder = async (orderId: number) => {
+    try {
+      await axios.post(
+        `${API_BASE_URL}/cancel`,
+        { order_id: orderId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      alert("✅ Đã gửi yêu cầu hủy đơn hàng.");
+      fetchOrders();
+    } catch (err) {
+      console.error("❌ Hủy đơn hàng thất bại:", err);
+    }
+  };
+
+  const handleMarkAsShipped = async (orderId: number) => {
+    try {
+      await axios.post(
+        `${API_BASE_URL}/ordership/${orderId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      alert("🚚 Đã cập nhật trạng thái giao hàng.");
+      fetchOrders();
+    } catch (err) {
+      console.error("❌ Cập nhật trạng thái giao hàng thất bại:", err);
+    }
+  };
+
+  useEffect(() => {
     fetchOrders();
   }, []);
 
@@ -80,7 +114,6 @@ export default function OrderSection() {
                   ? "bg-red-500 text-white border-red-500"
                   : "text-gray-600 border-gray-300 hover:bg-gray-100"
                 }`}
-
             >
               {tab.label}
             </button>
@@ -102,9 +135,7 @@ export default function OrderSection() {
                 className="border rounded-md p-4 shadow-sm bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center"
               >
                 <div>
-                  <p className="font-semibold text-sm text-black">
-                    Mã đơn: #{order.id}
-                  </p>
+                  <p className="font-semibold text-sm text-black">Mã đơn: #{order.id}</p>
                   <p className="text-xs text-gray-500">
                     Ngày đặt: {new Date(order.created_at).toLocaleDateString()}
                   </p>
@@ -125,6 +156,24 @@ export default function OrderSection() {
                   <p className="font-bold text-red-600">
                     {order.final_amount.toLocaleString()}₫
                   </p>
+                  <div className="mt-2 space-x-2">
+                    {order.order_status !== "Canceled" && (
+                      <button
+                        className="text-sm text-red-500 hover:underline"
+                        onClick={() => handleCancelOrder(order.id)}
+                      >
+                        Hủy đơn
+                      </button>
+                    )}
+                    {order.shipping_status === "Shipping" && (
+                      <button
+                        className="text-sm text-blue-500 hover:underline"
+                        onClick={() => handleMarkAsShipped(order.id)}
+                      >
+                        Đã giao
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

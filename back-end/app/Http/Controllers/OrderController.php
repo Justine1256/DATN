@@ -185,7 +185,6 @@ class OrderController extends Controller
             return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
         }
     }
-
     public function show($id)
     {
         $order = Order::find($id);

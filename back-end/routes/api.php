@@ -93,11 +93,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/addresses/{id}', [AddressController::class, 'update']);
     Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);
 
-    Route::get('/orderall', [OrderController::class, 'index']);
-    Route::post('/dathang', [OrderController::class, 'checkout']);
-    Route::get('/showdh', [OrderController::class, 'show']);
-    Route::post('/cancel', [OrderController::class, 'cancel']);
-    Route::post('/ordership/{id}', [OrderController::class, 'updateShippingStatus']);
+        Route::get('/orderall', [OrderController::class, 'index']);
+        Route::post('/dathang', [OrderController::class, 'checkout']);
+        Route::get('/showdh/{id}', [OrderController::class, 'show']);
+        Route::post('/cancel', [OrderController::class, 'cancel']);
+        Route::post('/ordership/{id}', [OrderController::class, 'updateShippingStatus']);
 
     Route::get('/order-details', [OrderDetailController::class, 'index']);
     Route::post('/order-details', [OrderDetailController::class, 'store']);
