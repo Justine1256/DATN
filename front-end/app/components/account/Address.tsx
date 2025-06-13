@@ -138,7 +138,7 @@ export default function AddressComponent() {
   };
 
   // ✅ Gọi API lấy danh sách địa chỉ của user
-  const fetchAddresses = async (uid: number) => {
+  const fetchAddresses = async (id: string) => {
     const token = Cookies.get("authToken");
     if (!token) return;
   
@@ -146,7 +146,7 @@ export default function AddressComponent() {
       setLoading(true); // ✅ Bắt đầu loading
   
       const res = await axios.get(
-        `${API_BASE_URL}/addressesUser/${uid}`,
+        `${API_BASE_URL}/addressesUser/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
