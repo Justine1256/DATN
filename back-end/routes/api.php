@@ -65,7 +65,7 @@ Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 
 Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
-Route::get('/orderall', [OrderController::class, 'index']);
+
 Route::middleware('auth:sanctum')->group(function () {
     // User
     Route::get('/user', [UserController::class, 'show']);
@@ -92,7 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/addresses/{id}', [AddressController::class, 'update']);
     Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);
 
-
+    Route::get('/orderall', [OrderController::class, 'index']);
     Route::post('/dathang', [OrderController::class, 'checkout']);
     Route::get('/showdh/{id}', [OrderController::class, 'show']);
     Route::post('/cancel', [OrderController::class, 'cancel']);
