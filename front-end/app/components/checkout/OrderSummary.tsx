@@ -31,8 +31,8 @@ interface Props {
   addressId: number | null;
   voucherCode?: string | null;
   manualAddressData?: {
-    firstName: string;
-    streetAddress: string;
+    full_name: string;
+    address: string;
     apartment?: string;
     city: string;
     phone: string;
@@ -73,6 +73,7 @@ export default function OrderSummary({
   const finalTotal = discountedSubtotal - voucherDiscount + shipping;
 
 const handlePlaceOrder = async () => {
+    
   if (!addressId && !manualAddressData) {
     setError('Vui lòng chọn hoặc nhập địa chỉ giao hàng.');
     return;
@@ -97,14 +98,15 @@ const handlePlaceOrder = async () => {
 
     if (manualAddressData && Object.values(manualAddressData).some((v) => v.trim() !== '')) {
       requestBody.address_manual = {
-        full_name: manualAddressData.firstName,
-        address: `${manualAddressData.streetAddress}${
+        full_name: manualAddressData.full_name,
+        address: `${manualAddressData.address}${
           manualAddressData.apartment ? ', ' + manualAddressData.apartment : ''
         }`,
         city: manualAddressData.city,
         phone: manualAddressData.phone,
         email: manualAddressData.email,
       };
+      console.log("manualAddressData:", manualAddressData);
     } else if (addressId) {
       requestBody.address_id = addressId;
     } else {
@@ -114,10 +116,13 @@ const handlePlaceOrder = async () => {
     }
 
     const response = await axios.post(`${API_BASE_URL}/dathang`, requestBody, {
+        
+        
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
+    console.log(requestBody);
 
     setSuccessMessage('Đặt hàng thành công!');
     console.log('Order response:', response.data);
