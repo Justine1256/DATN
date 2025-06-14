@@ -13,7 +13,7 @@ import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 export interface Product {
   id: number;
   name: string;
-  image: string[]; // ✅ Là mảng ảnh
+  image: string[]; // mảng ảnh
   slug: string;
   price: number;
   oldPrice: number;
@@ -25,7 +25,7 @@ export interface Product {
   shop_slug: string;
 }
 
-// ✅ Chuẩn hóa đường dẫn ảnh từ server
+// ✅ Chuẩn hóa đường dẫn ảnh
 const formatImageUrl = (img: unknown): string => {
   if (Array.isArray(img)) img = img[0];
   if (typeof img !== "string" || !img.trim()) {
@@ -37,7 +37,6 @@ const formatImageUrl = (img: unknown): string => {
     : `${STATIC_BASE_URL}/${img}`;
 };
 
-// ✅ Component hiển thị 1 card sản phẩm
 export default function ProductCard({
   product,
   onUnlike,
@@ -51,14 +50,17 @@ export default function ProductCard({
 }) {
   const router = useRouter();
 
+  // Kiểm tra sản phẩm có trong wishlist không
   const isInWishlist = product
     ? wishlistProductIds.includes(product.id)
     : false;
 
+  // State trạng thái yêu thích để phản hồi UI nhanh
   const [liked, setLiked] = useState(isInWishlist);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
 
+  // Đồng bộ khi wishlist thay đổi
   useEffect(() => {
     setLiked(isInWishlist);
   }, [isInWishlist, product?.id]);
@@ -70,8 +72,10 @@ export default function ProductCard({
     ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
     : 0;
 
+  // Ảnh chính hiển thị (ảnh đầu tiên)
   const mainImage = formatImageUrl(product.image?.[0]);
 
+  // Xử lý bấm like/unlike
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const newLiked = !liked;
@@ -130,6 +134,7 @@ export default function ProductCard({
     }
   };
 
+  // Thêm sản phẩm vào giỏ hàng
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -171,6 +176,7 @@ export default function ProductCard({
     }
   };
 
+  // Chuyển tới trang chi tiết sản phẩm
   const handleViewDetail = () => {
     router.push(`/shop/${product.shop_slug}/product/${product.slug}`);
   };
@@ -180,21 +186,21 @@ export default function ProductCard({
       onClick={handleViewDetail}
       className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
     >
-      {/* ✅ Popup thông báo */}
+      {/* Popup thông báo */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
           {popupMessage}
         </div>
       )}
 
-      {/* ✅ Label giảm giá */}
+      {/* Label giảm giá */}
       {hasDiscount && discountPercentage > 0 && (
         <div className="absolute top-2 left-2 bg-brand text-white text-[10px] px-2 py-0.5 rounded">
           -{discountPercentage}%
         </div>
       )}
 
-      {/* ✅ Icon ❤️ */}
+      {/* Icon ❤️ */}
       <button
         onClick={handleLike}
         className="absolute top-2 right-2 text-xl z-20 pointer-events-auto"
@@ -206,7 +212,7 @@ export default function ProductCard({
         )}
       </button>
 
-      {/* ✅ Ảnh sản phẩm */}
+      {/* Ảnh sản phẩm */}
       <div className="w-full h-[140px] mt-8 flex items-center justify-center">
         <Image
           src={mainImage}
@@ -217,7 +223,7 @@ export default function ProductCard({
         />
       </div>
 
-      {/* ✅ Thông tin sản phẩm */}
+      {/* Thông tin sản phẩm */}
       <div className="flex flex-col mt-4 w-full px-1 pb-14">
         <h4 className="text-sm font-semibold text-black truncate capitalize pointer-events-none">
           {product.name}
@@ -247,7 +253,7 @@ export default function ProductCard({
         </div>
       </div>
 
-      {/* ✅ Nút Add to cart */}
+      {/* Nút Add to cart */}
       <button
         onClick={handleAddToCart}
         className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
