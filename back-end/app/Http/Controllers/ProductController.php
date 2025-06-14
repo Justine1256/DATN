@@ -21,7 +21,7 @@ class ProductController extends Controller
     // Chi tiết 1 sản phẩm
 public function show($shopslug, $productslug)
 {
-    $product = Product::with(['shop', 'category']) // load cả shop & category
+    $product = Product::with('shop') // <-- Load thông tin shop
         ->where('slug', $productslug)
         ->whereHas('shop', function($query) use ($shopslug) {
             $query->where('slug', $shopslug);
@@ -32,18 +32,8 @@ public function show($shopslug, $productslug)
         return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
     }
 
-    // Truy ngược lên category cha cấp cao nhất
-    $category = $product->category;
-    while ($category && $category->parent) {
-        $category = $category->parent;
-    }
-
-    return response()->json([
-        'product' => $product,
-        'top_category' => $category
-    ]);
+    return response()->json($product);
 }
-
 
 
 public function getCategoryAndProductsBySlug($slug)
