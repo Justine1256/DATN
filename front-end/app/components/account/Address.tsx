@@ -424,9 +424,10 @@ export default function AddressComponent() {
   // ✅ Hàm hiển thị form nhập/sửa địa chỉ
   function renderForm() {
     return (
-      <div className="fixed inset-0 z-50 flex justify-end items-center bg-black bg-opacity-50 px-12">
+      <div className="fixed inset-0 z-50 flex justify-end items-center bg-black bg-opacity-50 px-4 md:px-18">
 
-        <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-auto relative shadow-xl text-sm">
+        <div className="bg-white rounded-lg p-6 w-full max-w-4xl relative shadow-xl text-sm">
+
           <button
             className="absolute top-3 right-4 text-xl text-gray-600 hover:text-red-600"
             onClick={() => {
