@@ -150,91 +150,53 @@ export default function AccountPage({ onProfileUpdated }: Props) {
   return (
     <div className="w-full flex justify-center text-[15px] text-gray-800">
       <div className="w-full max-w-[1880px] mx-auto">
-        <div className="w-full max-w-[1800px] mx-auto pt-16">
+        <div className="w-full max-w-[1200px] mx-auto pt-16">
           <form
             onSubmit={handleSubmit}
-            className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 space-y-6 max-w-2xl mx-auto"
+            className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 space-y-6 w-full max-w-md mx-auto"
           >
-            <h2 className="text-2xl font-semibold text-[#DB4444] mb-1">Quản lý hồ sơ</h2>
-            <p className="text-sm text-gray-500 mb-6">Xem và chỉnh sửa thông tin cá nhân</p>
+            <h2 className="text-2xl font-semibold text-[#DB4444] mb-1 text-center">Quản lý hồ sơ</h2>
+            <p className="text-sm text-gray-500 mb-6 text-center">Xem và chỉnh sửa thông tin cá nhân</p>
 
-            {/* ✅ Luôn giữ 2 cột để ảnh luôn hiển thị bên phải */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              {/* Cột trái: thông tin */}
-              <div className="space-y-6 w-full">
-                <div>
-                  <label className="text-sm font-medium block mb-1">Họ và tên</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={userData.name}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className={getInputClass(isEditing)}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium block mb-1">Số điện thoại</label>
-                  <input
-                    type="text"
-                    name="phone"
-                    value={userData.phone}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className={getInputClass(isEditing)}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium block mb-1">Vai trò</label>
-                  <input
-                    type="text"
-                    name="role"
-                    value={userData.role}
-                    disabled
-                    className="w-full p-3 text-sm rounded-md bg-gray-50 border border-gray-200 text-gray-600 cursor-not-allowed"
-                  />
-                </div>
+            {/* ✅ Chỉ còn 3 ô nhập căn giữa nhỏ gọn */}
+            <div className="space-y-5">
+              <div>
+                <label className="text-sm font-medium block mb-1">Họ và tên</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={userData.name}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                  className={getInputClass(isEditing)}
+                />
               </div>
 
-              {/* Cột phải: ảnh avatar luôn hiển thị */}
-              <div className="flex flex-col items-center justify-start pt-2">
-                <div className="w-24 h-24 mb-2 rounded-full border border-gray-300 overflow-hidden flex items-center justify-center">
-                  <img
-                    src={avatarUrl}
-                    alt="Avatar"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
-                    }}
-                  />
-                </div>
-                <label className="text-[11px] text-gray-500 text-center leading-tight mb-1">
-                 
-                </label>
+              <div>
+                <label className="text-sm font-medium block mb-1">Số điện thoại</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={userData.phone}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                  className={getInputClass(isEditing)}
+                />
+              </div>
 
-                {isEditing && (
-                  <>
-                    <input
-                      type="file"
-                      accept="image/png, image/jpeg"
-                      onChange={handleAvatarUpload}
-                      className="hidden"
-                      id="avatarUpload"
-                    />
-                    <label
-                      htmlFor="avatarUpload"
-                      className="cursor-pointer bg-[#DB4444] hover:opacity-90 transition text-white px-4 py-1.5 rounded text-xs"
-                    >
-                      Chọn ảnh
-                    </label>
-                  </>
-                )}
+              <div>
+                <label className="text-sm font-medium block mb-1">Vai trò</label>
+                <input
+                  type="text"
+                  name="role"
+                  value={userData.role}
+                  disabled
+                  className="w-full p-3 text-sm rounded-md bg-gray-50 border border-gray-200 text-gray-600 cursor-not-allowed"
+                />
               </div>
             </div>
 
-            {/* Nút hành động */}
+            {/* ✅ Nút hành động */}
             <div className="flex justify-center gap-4 mt-6">
               {isEditing ? (
                 <>
@@ -268,10 +230,12 @@ export default function AccountPage({ onProfileUpdated }: Props) {
             </div>
           </form>
 
-          {/* Thông báo popup */}
+          {/* ✅ Popup */}
           {showPopup && (
             <div
-              className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade ${popupType === "success"
+              className={`fixed top-20 right-5 z-[9999] 
+    px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-fadeIn
+    ${popupType === "success"
                   ? "bg-white text-black border-green-500"
                   : "bg-white text-red-600 border-red-500"
                 }`}
@@ -279,8 +243,12 @@ export default function AccountPage({ onProfileUpdated }: Props) {
               {popupMessage}
             </div>
           )}
+
+
         </div>
       </div>
     </div>
   );
+    
+    
 }

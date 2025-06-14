@@ -23,14 +23,15 @@ module.exports = {
         },
         extend: {
             colors: {
-                // Định nghĩa màu custom 'brand' hoặc 'myprimary'
-                brand: "#DB4444", // Màu thương hiệu
+                brand: "#DB4444",
             },
             fontFamily: {
-                sans: ["Montserrat", "sans-serif"], // Sử dụng font Montserrat
+                sans: ["Montserrat", "sans-serif"],
             },
             animation: {
-                "loading-bar": "loading 2s ease-in-out infinite", // Hiệu ứng loading bar
+                "loading-bar": "loading 2s ease-in-out infinite",
+                fadeIn: "fadeIn 0.3s ease-out",
+                bounce: "bounce 0.5s ease-in-out",
             },
             keyframes: {
                 loading: {
@@ -38,15 +39,20 @@ module.exports = {
                     "50%": { width: "80%" },
                     "100%": { width: "0%" },
                 },
+                fadeIn: {
+                    "0%": { opacity: 0, transform: "scale(0.95)" },
+                    "100%": { opacity: 1, transform: "scale(1)" },
+                },
             },
             fontSize: {
-                base: "1rem", // 16px (body)
-                "sm-detail": "0.875rem", // 14px
-                h1: "2.25rem", // 36px (Tiêu đề cấp 1)
-                h2: "1.5rem", // 24px (Tiêu đề cấp 2)
-                h3: "1.25rem", // 20px (Tiêu đề cấp 3)
+                base: "1rem",
+                "sm-detail": "0.875rem",
+                h1: "2.25rem",
+                h2: "1.5rem",
+                h3: "1.25rem",
             },
         },
+          
     },
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     // plugins: [require("@tailwindcss/line-clamp")], // Plugin cho line-clamp nếu cần
