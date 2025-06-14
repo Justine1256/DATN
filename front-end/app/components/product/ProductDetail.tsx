@@ -213,7 +213,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     }
   };
 
-  // Giữ nguyên giao diện và phần còn lại
+  
 
 
 
