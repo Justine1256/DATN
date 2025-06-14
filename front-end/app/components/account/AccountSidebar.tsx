@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { useRouter } from 'next/navigation';
 import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit } from 'react-icons/fa';
 import { STATIC_BASE_URL, API_BASE_URL } from '@/utils/api';
 import Cookies from 'js-cookie';
@@ -27,18 +26,31 @@ export default function AccountSidebar({
 }: AccountSidebarProps) {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [popup, setPopup] = useState<{ message: string; visible: boolean; type: 'confirm' | 'success' }>({
+  const [popup, setPopup] = useState<{
+    message: string;
+    visible: boolean;
+    type: 'confirm' | 'success';
+  }>({
     message: '',
     visible: false,
     type: 'confirm',
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  useEffect(() => {
+    if (currentSection === 'profile') {
+      setIsAccountOpen(true);
+    }
+  }, [currentSection]);
+
   const getActiveClass = (section: string) =>
     currentSection === section ? 'text-[#DB4444] font-medium' : 'text-[#6c757d]';
 
   const handleAccountClick = () => {
     setIsAccountOpen(!isAccountOpen);
+    if (currentSection !== 'profile') {
+      onChangeSection('profile');
+    }
   };
 
   const avatarUrl =
@@ -108,7 +120,7 @@ export default function AccountSidebar({
       {/* ✅ Thông tin người dùng */}
       {user && (
         <div className="flex items-center space-x-3 mb-6">
-          {/* ✅ Avatar với icon chỉnh sửa */}
+          {/* ✅ Avatar + chỉnh sửa */}
           <div className="relative w-14 h-14 group">
             <img
               src={avatarUrl}
@@ -136,7 +148,7 @@ export default function AccountSidebar({
             />
           </div>
 
-          {/* ✅ Tên và chỉnh sửa */}
+          {/* ✅ Tên người dùng */}
           <div>
             <span className="text-xl font-semibold text-black block">{user.name}</span>
             <div
@@ -155,7 +167,10 @@ export default function AccountSidebar({
         <li>
           <button
             onClick={handleAccountClick}
-            className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('profile'))}
+            className={clsx(
+              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
+              getActiveClass('profile')
+            )}
           >
             <FaUserCircle className="w-6 h-6 text-[#DB4444]" />
             <span className="text-xl font-bold">Tài khoản của tôi</span>
@@ -165,7 +180,10 @@ export default function AccountSidebar({
               <li>
                 <button
                   onClick={() => onChangeSection('profile')}
-                  className={clsx('block text-left w-full hover:text-[#DB4444]', getActiveClass('profile'))}
+                  className={clsx(
+                    'block text-left w-full hover:text-[#DB4444]',
+                    getActiveClass('profile')
+                  )}
                 >
                   Hồ Sơ
                 </button>
@@ -173,7 +191,10 @@ export default function AccountSidebar({
               <li>
                 <button
                   onClick={() => onChangeSection('changepassword')}
-                  className={clsx('block text-left w-full hover:text-[#DB4444]', getActiveClass('changepassword'))}
+                  className={clsx(
+                    'block text-left w-full hover:text-[#DB4444]',
+                    getActiveClass('changepassword')
+                  )}
                 >
                   Đổi Mật Khẩu
                 </button>
@@ -181,7 +202,10 @@ export default function AccountSidebar({
               <li>
                 <button
                   onClick={() => onChangeSection('address')}
-                  className={clsx('block text-left w-full hover:text-[#DB4444]', getActiveClass('address'))}
+                  className={clsx(
+                    'block text-left w-full hover:text-[#DB4444]',
+                    getActiveClass('address')
+                  )}
                 >
                   Địa chỉ
                 </button>
@@ -189,7 +213,10 @@ export default function AccountSidebar({
               <li>
                 <button
                   onClick={() => onChangeSection('followedshops')}
-                  className={clsx('block text-left w-full hover:text-[#DB4444]', getActiveClass('followedshops'))}
+                  className={clsx(
+                    'block text-left w-full hover:text-[#DB4444]',
+                    getActiveClass('followedshops')
+                  )}
                 >
                   Shop Theo Dõi
                 </button>
@@ -201,21 +228,29 @@ export default function AccountSidebar({
         <li>
           <button
             onClick={() => onChangeSection('orders')}
-            className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('orders'))}
+            className={clsx(
+              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
+              getActiveClass('orders')
+            )}
           >
             <FaBoxOpen className="w-6 h-6 text-[#28A745]" />
             <span className="text-xl font-bold">Đơn hàng</span>
           </button>
+
         </li>
 
         <li>
           <button
             onClick={() => onChangeSection('vouchers')}
-            className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('vouchers'))}
+            className={clsx(
+              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
+              getActiveClass('vouchers')
+            )}
           >
             <FaTicketAlt className="w-6 h-6 text-[#007BFF]" />
             <span className="text-xl font-bold">Mã giảm giá</span>
           </button>
+
         </li>
       </ul>
 
@@ -223,7 +258,7 @@ export default function AccountSidebar({
       {popup.visible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="bg-white text-center p-6 rounded-xl shadow-xl w-[320px] animate-fadeIn">
-            {/* ✅ Dấu tick khi thành công */}
+            {/* Dấu tick khi thành công */}
             {popup.type === 'success' && (
               <div className="flex justify-center mb-4">
                 <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center animate-bounce">
@@ -239,7 +274,7 @@ export default function AccountSidebar({
                 <>
                   <button
                     onClick={() => setPopup({ ...popup, visible: false })}
-                    className="px-4 py-1.5 text-sm rounded border border-black-300 hover:bg-gray-100 text-black"
+                    className="px-4 py-1.5 text-sm rounded border border-black hover:bg-gray-100 text-black"
                   >
                     Hủy
                   </button>
@@ -264,7 +299,6 @@ export default function AccountSidebar({
           </div>
         </div>
       )}
-
     </div>
   );
 }
