@@ -11,9 +11,9 @@ interface CartItem {
   quantity: number;
   product: {
     name: string;
-    image: string;
-    price: number;             // Giá gốc
-    sale_price?: number | null; // Giá giảm (nếu có)
+    image: string[]; // ✅ CHỈNH image thành mảng
+    price: number;
+    sale_price?: number | null;
   };
 }
 
@@ -27,13 +27,11 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Tính tổng tiền theo sale_price nếu có
   const totalPrice = cartItems.reduce((sum, item) => {
     const finalPrice = item.product.sale_price ?? item.product.price;
     return sum + finalPrice * item.quantity;
   }, 0);
 
-  // Lấy giỏ hàng từ API
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) return;
@@ -49,7 +47,6 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
       .finally(() => setLoading(false));
   }, []);
 
-  // Gửi payment info + totalPrice lên parent khi thay đổi
   useEffect(() => {
     onPaymentInfoChange({ paymentMethod, totalPrice });
   }, [paymentMethod, totalPrice]);
@@ -71,12 +68,13 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
           const { product, quantity } = item;
           const hasSale = product.sale_price && product.sale_price < product.price;
           const displayPrice = hasSale ? product.sale_price! : product.price;
+          const firstImage = product.image?.[0] || 'placeholder.jpg';
 
           return (
             <div key={item.id} className="grid grid-cols-4 items-center px-4 py-3 bg-white shadow">
               <div className="col-span-2 flex items-center gap-4">
                 <Image
-                  src={`${STATIC_BASE_URL}/${product.image}`}
+                  src={`${STATIC_BASE_URL}/${firstImage}`}
                   alt={product.name}
                   width={50}
                   height={50}

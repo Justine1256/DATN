@@ -1,9 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import Cookies from 'js-cookie';
-import { API_BASE_URL } from '@/utils/api';
 import Link from 'next/link';
 
 const discounts = [
@@ -32,30 +29,11 @@ interface CartItem {
 
 interface Props {
   cartItems: CartItem[];
-  paymentMethod: string;
-  addressId: number | null;
-  manualAddressData?: {
-    full_name: string;
-    address: string;
-    apartment?: string;
-    city: string;
-    phone: string;
-    email: string;
-  };
 }
 
-export default function CartSummarySection({
-  cartItems,
-  paymentMethod,
-  addressId,
-  manualAddressData,
-}: Props) {
+export default function CartSummarySection({ cartItems }: Props) {
   const [selectedDiscountId, setSelectedDiscountId] = useState<number | null>(null);
   const [showShadow, setShowShadow] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,64 +62,8 @@ export default function CartSummarySection({
 
   const discountedSubtotal = subtotal - promotionDiscount;
   const shipping = cartItems.length > 0 ? 20000 : 0;
-  const voucherDiscount = 0; // Optional: this would be returned from backend
+  const voucherDiscount = 0;
   const total = discountedSubtotal + shipping - voucherDiscount;
-
-  const selectedVoucher = discounts.find((d) => d.id === selectedDiscountId);
-  const voucherCode = selectedVoucher?.code || null;
-
-  const handlePlaceOrder = async () => {
-    if (!addressId && !manualAddressData) {
-      setError('Vui lòng chọn hoặc nhập địa chỉ giao hàng.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccessMessage('');
-
-    try {
-      const token = localStorage.getItem('token') || Cookies.get('authToken');
-      if (!token) {
-        setError('Bạn chưa đăng nhập.');
-        setLoading(false);
-        return;
-      }
-
-      const requestBody: any = {
-        payment_method: paymentMethod.toUpperCase(),
-        voucher_code: voucherCode,
-      };
-
-      if (manualAddressData && Object.values(manualAddressData).some((v) => v.trim() !== '')) {
-        requestBody.address_manual = {
-          full_name: manualAddressData.full_name,
-          address: `${manualAddressData.address}${manualAddressData.apartment ? ', ' + manualAddressData.apartment : ''}`,
-          city: manualAddressData.city,
-          phone: manualAddressData.phone,
-          email: manualAddressData.email,
-        };
-      } else if (addressId) {
-        requestBody.address_id = addressId;
-      }
-
-      const res = await axios.post(`${API_BASE_URL}/dathang`, requestBody, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setSuccessMessage('Đặt hàng thành công!');
-      if (res.data.redirect_url) {
-        window.location.href = res.data.redirect_url;
-      }
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Lỗi khi đặt hàng';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black min-h-[250px]">
@@ -167,7 +89,10 @@ export default function CartSummarySection({
                 : 'text-gray-400';
 
               return (
-                <label key={d.id} className={`flex items-start justify-between border ${borderColor} rounded-md px-4 py-2 shadow-sm bg-white`}>
+                <label
+                  key={d.id}
+                  className={`flex items-start justify-between border ${borderColor} rounded-md px-4 py-2 shadow-sm bg-white`}
+                >
                   <div className="space-y-1">
                     <p className={`text-xs ${textColor}`}>Vận chuyển</p>
                     <p className="text-sm font-medium">{d.label}</p>
@@ -191,51 +116,46 @@ export default function CartSummarySection({
         </div>
       </div>
 
-{/* Cart Summary Section */}
-<div className="border rounded-md p-5 h-full flex flex-col justify-between text-sm">
-  <div>
-    <h2 className="text-lg font-semibold mb-2">Tóm tắt đơn hàng</h2>
-    <div className="border-t border-gray-300 pt-4 space-y-1">
-      <div className="flex justify-between pb-2 border-b border-gray-200">
-        <span>Tạm tính (giá gốc):</span>
-        <span>{subtotal.toLocaleString()}đ</span>
+      {/* Cart Summary Section */}
+      <div className="border rounded-md p-5 h-full flex flex-col justify-between text-sm">
+        <div>
+          <h2 className="text-lg font-semibold mb-2">Tóm tắt đơn hàng</h2>
+          <div className="border-t border-gray-300 pt-4 space-y-1">
+            <div className="flex justify-between pb-2 border-b border-gray-200">
+              <span>Tạm tính (giá gốc):</span>
+              <span>{subtotal.toLocaleString()}đ</span>
+            </div>
+
+            <div className="flex justify-between py-2 border-b border-gray-200">
+              <span>Khuyến mãi (giảm giá sản phẩm):</span>
+              <span className="text-green-700">-{promotionDiscount.toLocaleString()}đ</span>
+            </div>
+
+            <div className="flex justify-between py-2 border-b border-gray-200">
+              <span>Giảm giá từ voucher:</span>
+              <span className="text-green-700">-{voucherDiscount.toLocaleString()}đ</span>
+            </div>
+
+            <div className="flex justify-between py-2 border-b border-gray-200">
+              <span>Phí vận chuyển:</span>
+              <span>{shipping.toLocaleString()}đ</span>
+            </div>
+
+            <div className="flex justify-between font-semibold text-lg text-brand pt-3">
+              <span>Tổng thanh toán:</span>
+              <span>{total.toLocaleString()}đ</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <Link href="/checkout">
+            <button className="w-[170px] h-[56px] bg-brand hover:bg-red-600 text-white font-semibold py-3 rounded">
+              Đặt hàng
+            </button>
+          </Link>
+        </div>
       </div>
-
-      <div className="flex justify-between py-2 border-b border-gray-200">
-        <span>Khuyến mãi (giảm giá sản phẩm):</span>
-        <span className="text-green-700">-{promotionDiscount.toLocaleString()}đ</span>
-      </div>
-
-      <div className="flex justify-between py-2 border-b border-gray-200">
-        <span>Giảm giá từ voucher:</span>
-        <span className="text-green-700">-{voucherDiscount.toLocaleString()}đ</span>
-      </div>
-
-      <div className="flex justify-between py-2 border-b border-gray-200">
-        <span>Phí vận chuyển:</span>
-        <span>{shipping.toLocaleString()}đ</span>
-      </div>
-
-      <div className="flex justify-between font-semibold text-lg text-brand pt-3">
-        <span>Tổng thanh toán:</span>
-        <span>{total.toLocaleString()}đ</span>
-      </div>
-    </div>
-  </div>
-
-      <div className="mt-6 flex justify-center">
-        <Link href="/checkout">
-  <button
-    disabled={loading}
-    className="w-[170px] h-[56px] bg-brand hover:bg-red-600 text-white font-semibold py-3 rounded disabled:opacity-60"
-  >
-    {loading ? 'Đang xử lý...' : 'Đặt hàng'}
-  </button>
-  </Link>
-</div>
-
-</div>
-
     </div>
   );
 }

@@ -55,7 +55,7 @@ export default function CheckoutPage() {
               setPaymentMethod(paymentMethod);
               setTotalPrice(totalPrice);
             }}
-            onCartChange={setCartItems}
+            onCartChange={(items) => setCartItems(items as any)}
           />
           <OrderSummary
             cartItems={cartItems}

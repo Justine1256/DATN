@@ -12,7 +12,7 @@ interface CartItem {
   product: {
     id: number;
     name: string;
-    image: string;
+    image: string[]; // ✅ CHỈNH image thành mảng
     price: number;
     sale_price?: number | null;
     option1?: string;
@@ -154,6 +154,8 @@ export default function CartItemsSection({
       {/* Items */}
       {cartItems.map((item) => {
         const priceToUse = item.product.sale_price ?? item.product.price;
+        const firstImage = item.product.image?.[0] || 'placeholder.jpg';
+
         return (
           <div
             key={item.id}
@@ -171,7 +173,7 @@ export default function CartItemsSection({
 
               <div className="w-16 h-16 relative shrink-0">
                 <Image
-                  src={`${STATIC_BASE_URL}/${item.product.image}`}
+                  src={`${STATIC_BASE_URL}/${firstImage}`}
                   alt={item.product.name}
                   fill
                   className="object-contain"
