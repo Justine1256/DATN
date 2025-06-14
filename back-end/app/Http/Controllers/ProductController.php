@@ -58,7 +58,8 @@ public function getCategoryAndProductsBySlug($slug)
     $products = [];
 
     if (!empty($categoryIds)) {
-        $products = Product::whereIn('category_id', $categoryIds)
+        $products = Product::with('shop')
+            ->whereIn('category_id', $categoryIds)
             ->where('status', 'activated')
             ->get();
     }

@@ -177,9 +177,24 @@ export default function ProductCard({
   };
 
   // Chuyển tới trang chi tiết sản phẩm
-  const handleViewDetail = () => {
-    router.push(`/shop/${product.shop_slug}/product/${product.slug}`);
-  };
+const handleViewDetail = () => {
+  console.log("Product:", product);
+
+  const shopSlug = product.shop_slug || (product as any)?.shop?.slug;
+
+if (!product?.slug || !shopSlug) {
+
+    setPopupMessage("Không thể mở chi tiết sản phẩm");
+    setShowPopup(true);
+    setTimeout(() => setShowPopup(false), 2000);
+    return;
+  }
+
+  router.push(`/shop/${shopSlug}/product/${product.slug}`);
+};
+
+
+
 
   return (
     <div
