@@ -42,34 +42,34 @@ export default function OrderSection() {
     return data.filter((o) => o.order_status.toLowerCase() === status);
   };
 
-const fetchOrders = async () => {
-  setLoading(true);
-  try {
-    const res = await axios.get(`${API_BASE_URL}/orderall`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/orderall`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    console.log("🔥 API response:", res.data);
+      console.log("🔥 API response:", res.data);
 
-    const data = Array.isArray(res.data.orders) ? res.data.orders : [];
-    setOrders(data);
-    setFilteredOrders(filterOrders(activeTab, data));
-  } catch (err) {
-    console.error("❌ Lỗi khi lấy đơn hàng:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+      const data = Array.isArray(res.data.orders) ? res.data.orders : [];
+      setOrders(data);
+      setFilteredOrders(filterOrders(activeTab, data));
+    } catch (err) {
+      console.error("❌ Lỗi khi lấy đơn hàng:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
 
   const handleCancelOrder = async (orderId: number) => {
     try {
-      await axios.post(
-        `${API_BASE_URL}/cancel`,
-        { order_id: orderId },
+      await axios.patch(
+        `${API_BASE_URL}/cancel/${orderId}`,
+        {}, // PATCH không cần truyền dữ liệu nếu không yêu cầu
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -80,6 +80,7 @@ const fetchOrders = async () => {
       console.error("❌ Hủy đơn hàng thất bại:", err);
     }
   };
+
 
   const handleMarkAsShipped = async (orderId: number) => {
     try {
@@ -117,8 +118,8 @@ const fetchOrders = async () => {
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
               className={`px-8 py-2 rounded-full border text-base transition-all ${activeTab === tab.value
-                  ? "bg-red-500 text-white border-red-500"
-                  : "text-gray-600 border-gray-300 hover:bg-gray-100"
+                ? "bg-red-500 text-white border-red-500"
+                : "text-gray-600 border-gray-300 hover:bg-gray-100"
                 }`}
             >
               {tab.label}
