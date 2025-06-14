@@ -50,6 +50,16 @@ interface Product {
     email: string;
     slug: string;
   };
+    category?: {
+    id: number;
+    name: string;
+    slug: string;
+    parent?: {
+      id: number;
+      name: string;
+      slug: string;
+    };
+  };
 }
 
 interface ProductDetailProps {
@@ -215,13 +225,15 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   
   return (
     <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
-      <div><Breadcrumb
-              items={[
-                { label: "Trang chủ", href: "/" },
-                { label: "Danh mục", href: "/account/profile" },
-                { label: `${product.name}`},
-              ]}
-            /></div>
+      <div className="mb-8"><Breadcrumb
+  items={[
+    { label: "Trang chủ", href: "/" },
+    { label: product.category?.parent?.name || "Danh mục", href: `/category/${product.category?.parent?.slug}` },
+    { label: product.category?.name || "Danh mục", href: `/category/${product.category?.slug}` },
+    { label: product.name },
+  ]}
+/>
+</div>
       <div className="rounded-xl border shadow-sm bg-white p-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
           <div className="md:col-span-6 flex flex-col gap-4">
