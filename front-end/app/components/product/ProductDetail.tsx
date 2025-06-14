@@ -8,11 +8,15 @@ import Cookies from "js-cookie";
 import ShopInfo from "./ShopInfo";
 import LoadingProductDetail from "../loading/loading";
 import ProductDescriptionAndSpecs from "./ProductDescriptionAndSpecs";
-import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
+import { FaStar, FaRegStar } from "react-icons/fa";
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 
 // ✅ Hàm xử lý ảnh – chuẩn hóa đường dẫn ảnh từ server
-const formatImageUrl = (img: string): string => {
+const formatImageUrl = (img: unknown): string => {
+  if (Array.isArray(img)) img = img[0];
+  if (typeof img !== "string" || !img.trim()) {
+    return `${STATIC_BASE_URL}/products/default-product.png`;
+  }
   if (img.startsWith("http")) return img;
   return img.startsWith("/") ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
 };
@@ -24,8 +28,7 @@ interface Product {
   price: number;
   sale_price?: number;
   description: string;
-  image: string;
-  images?: string[];
+  image: string[]; // ✅ sửa từ string → string[]
   option1?: string;
   value1?: string;
   option2?: string;
@@ -53,7 +56,6 @@ interface ProductDetailProps {
   productslug: string;
 }
 
-// ✅ Component chi tiết sản phẩm
 export default function ProductDetail({ shopslug, productslug }: ProductDetailProps) {
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
@@ -66,7 +68,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState("");
 
-  // ✅ Gọi API chi tiết sản phẩm + ảnh lớn + theo dõi shop
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -81,15 +82,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         const productData = await productRes.json();
         setProduct(productData);
 
-        // ✅ Ảnh chính mặc định là ảnh đầu tiên
-        const firstImage = productData.images?.[0] || productData.image;
+        const firstImage = Array.isArray(productData.image) ? productData.image[0] : productData.image;
         setMainImage(formatImageUrl(firstImage));
 
-        // ✅ Màu và size mặc định
         setSelectedColor(productData.value1?.split(",")[0] || "");
         setSelectedSize(productData.value2?.split(",")[0] || "");
 
-        // ✅ Kiểm tra trạng thái follow
         if (token && productData.shop?.id) {
           const followRes = await fetch(`${API_BASE_URL}/shops/${productData.shop.id}/is-following`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -112,16 +110,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   if (!product) return <LoadingProductDetail />;
 
-  // ✅ Tạo danh sách thumbnail từ images[] hoặc image
-  const thumbnails = (product.images && product.images.length > 0)
-    ? product.images.map(img => formatImageUrl(img))
-    : [formatImageUrl(product.image)];
+  const thumbnails = Array.isArray(product.image) && product.image.length > 0
+    ? product.image.map((img: string) => formatImageUrl(img))
+    : [`${STATIC_BASE_URL}/products/default-product.png`];
 
-  // ✅ Danh sách tùy chọn màu và size
   const colorOptions = product.value1?.split(",") || [];
   const sizeOptions = product.value2?.split(",") || [];
 
-  // ✅ Thêm vào giỏ hàng
   const handleAddToCart = async () => {
     const token = localStorage.getItem("token") || Cookies.get("authToken");
     if (!token) {
@@ -161,7 +156,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     }
   };
 
-  // ✅ Thêm / bỏ yêu thích
   const toggleLike = async () => {
     if (!product) return;
     const token = localStorage.getItem("token") || Cookies.get("authToken");
@@ -200,7 +194,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     }
   };
 
-  // ✅ Follow / Unfollow shop
   const handleFollow = async () => {
     const token = localStorage.getItem("token") || Cookies.get("authToken");
     if (!token || !product?.shop?.id) return;
@@ -220,6 +213,10 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     }
   };
 
+  // Giữ nguyên giao diện và phần còn lại
+
+
+
   return (
     <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
       <div className="rounded-xl border shadow-sm bg-white p-10">
@@ -236,29 +233,25 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 />
               </div>
             </div>
-            {thumbnails.map((img, idx) => {
-              const thumb = formatImageUrl(img);
-              return (
+            <div className="flex gap-2">
+              {thumbnails.map((img, idx) => (
                 <div
                   key={idx}
-                  onClick={() => setMainImage(thumb)}
-                  className={`cursor-pointer border-2 rounded w-[80px] h-[80px] ${mainImage === thumb ? "border-brand" : "border-gray-300"
+                  onClick={() => setMainImage(img)}
+                  className={`cursor-pointer border-2 rounded w-[80px] h-[80px] ${mainImage === img ? "border-brand" : "border-gray-300"
                     }`}
                 >
                   <Image
-                    src={thumb}
+                    src={img}
                     alt={`Thumb ${idx}`}
                     width={80}
                     height={80}
-                    className="object-contain w-full item h-full"
+                    className="object-contain w-full h-full"
                   />
                 </div>
-              );
-            })}
-
-
-
-</div>
+              ))}
+            </div>
+          </div>
 
           {/* ✅ Thông tin sản phẩm bên phải */}
           <div className="md:col-span-6 space-y-6 ">
