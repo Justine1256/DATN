@@ -213,15 +213,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   };
 
   
-
-
-
   return (
     <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
       <div><Breadcrumb
               items={[
-                { label: "Trang chủ", href: "/account" },
-                { label: "Tài khoản của tôi", href: "/account/profile" },
+                { label: "Trang chủ", href: "/" },
+                { label: "Danh mục", href: "/account/profile" },
                 { label: `${product.name}`},
               ]}
             /></div>
