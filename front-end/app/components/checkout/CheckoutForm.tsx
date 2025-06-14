@@ -160,9 +160,9 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
 
   return (
     <div className="text-sm">
-      <h2 className="text-2xl font-bold mb-6">Billing Details</h2>
+      <h2 className="text-2xl font-bold mb-6">Thanh toán</h2>
 
-      <label className="block mb-1 font-medium">Shipping Address</label>
+      <label className="block mb-1 font-medium">Địa chỉ nhận hàng</label>
       <select
         className="w-full border rounded-md bg-gray-100 px-3 py-2 mb-4 outline-none"
         value={selectedAddressId}
@@ -186,9 +186,9 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
       <p className="text-sm text-gray-500 mb-4">Hoặc nhập địa chỉ giao hàng mới bên dưới</p>
 
       <div className="space-y-4">
-        <InputField label="First Name" field="firstName" required value={formData.firstName} onChange={handleInputChange} disabled={disableForm} />
-        <InputField label="Street Address" field="streetAddress" required value={formData.streetAddress} onChange={handleInputChange} disabled={disableForm} />
-        <InputField label="Apartment, floor, etc. (optional)" field="apartment" value={formData.apartment} onChange={handleInputChange} disabled={disableForm} />
+        <InputField label="Họ tên " field="firstName" required value={formData.firstName} onChange={handleInputChange} disabled={disableForm} />
+        <InputField label="Số nhà, tòa nhà, căn hộ... " field="streetAddress" required value={formData.streetAddress} onChange={handleInputChange} disabled={disableForm} />
+        <InputField label="Tên đường " required field="apartment" value={formData.apartment} onChange={handleInputChange} disabled={disableForm} />
 
         <div>
           <label className="block mb-1 text-gray-700">Tỉnh/Thành phố <span className="text-brand">*</span></label>
@@ -239,8 +239,8 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
           />
         </div>
 
-        <InputField label="Phone Number" field="phone" required value={formData.phone} onChange={handleInputChange} disabled={disableForm} />
-        <InputField label="Email Address" field="email" required value={formData.email} onChange={handleInputChange} disabled={disableForm} />
+        <InputField label="Số điện thoại" field="phone" required value={formData.phone} onChange={handleInputChange} disabled={disableForm} />
+        <InputField label="Email" field="email" required value={formData.email} onChange={handleInputChange} disabled={disableForm} />
       </div>
 
       <label className="flex items-center gap-2 mt-4">

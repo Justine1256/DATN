@@ -57,9 +57,9 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-4 text-sm font-semibold px-4 py-3 bg-white shadow">
-        <div className="col-span-2">Product</div>
-        <div className="text-center">Quantity</div>
-        <div className="text-right">Price</div>
+        <div className="col-span-2">Sản phẩm</div>
+        <div className="text-center">Số lượng</div>
+        <div className="text-right">Thành tiền</div>
       </div>
 
       {loading ? (
@@ -118,7 +118,7 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
             onChange={() => setPaymentMethod('cod')}
             className="w-4 h-4 accent-brand"
           />
-          <span>Cash on delivery</span>
+          <span>Thanh toán khi nhận hàng</span>
         </label>
 
         <label className="flex items-center gap-2 cursor-pointer">
