@@ -158,7 +158,7 @@ export default function AccountSidebar({
             className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('profile'))}
           >
             <FaUserCircle className="w-6 h-6 text-[#DB4444]" />
-            <span className="text-xl font-bold">Tài Khoản Của Tôi</span>
+            <span className="text-xl font-bold">Tài khoản của tôi</span>
           </button>
           {isAccountOpen && (
             <ul className="pl-6 space-y-2 pt-2">
@@ -204,7 +204,7 @@ export default function AccountSidebar({
             className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('orders'))}
           >
             <FaBoxOpen className="w-6 h-6 text-[#28A745]" />
-            <span className="text-xl font-bold">Đơn Hàng</span>
+            <span className="text-xl font-bold">Đơn hàng</span>
           </button>
         </li>
 
@@ -214,7 +214,7 @@ export default function AccountSidebar({
             className={clsx('flex items-center space-x-3 block text-left w-full', getActiveClass('vouchers'))}
           >
             <FaTicketAlt className="w-6 h-6 text-[#007BFF]" />
-            <span className="text-xl font-bold">Mã Giảm Giá</span>
+            <span className="text-xl font-bold">Mã giảm giá</span>
           </button>
         </li>
       </ul>

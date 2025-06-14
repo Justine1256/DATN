@@ -203,13 +203,12 @@ export default function OrderSummary({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[9999]">
           <div
             ref={popupRef}
-            className="bg-white rounded-lg p-6 w-80 flex flex-col items-center relative"
+            className="bg-white rounded-lg p-6 w-80 flex flex-col items-center relative animate-scaleIn"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-16 w-16 mb-4 ${
-                popupType === 'success' ? 'text-green-600' : 'text-red-600'
-              }`}
+              className={`h-16 w-16 mb-4 ${popupType === 'success' ? 'text-green-600' : 'text-red-600'
+                }`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -226,15 +225,15 @@ export default function OrderSummary({
               />
             </svg>
             <p
-              className={`text-base font-semibold text-center ${
-                popupType === 'success' ? 'text-green-700' : 'text-red-700'
-              }`}
+              className={`text-base font-semibold text-center ${popupType === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}
             >
               {popupType === 'success' ? successMessage : error}
             </p>
           </div>
         </div>
       )}
+
     </div>
   );
 }
