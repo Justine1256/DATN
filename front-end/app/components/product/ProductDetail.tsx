@@ -10,6 +10,7 @@ import LoadingProductDetail from "../loading/loading";
 import ProductDescriptionAndSpecs from "./ProductDescriptionAndSpecs";
 import { FaStar, FaRegStar } from "react-icons/fa";
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
+import Breadcrumb from "../cart/CartBreadcrumb";
 
 // ✅ Hàm xử lý ảnh – chuẩn hóa đường dẫn ảnh từ server
 const formatImageUrl = (img: unknown): string => {
@@ -98,8 +99,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
             setFollowed(followData.followed);
           }
         }
-
-        console.log("📦 Chi tiết sản phẩm:", productData);
       } catch (err) {
         console.error("❌ Lỗi khi load product & follow:", err);
       }
@@ -219,6 +218,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
+      <div><Breadcrumb
+              items={[
+                { label: "Trang chủ", href: "/account" },
+                { label: "Tài khoản của tôi", href: "/account/profile" },
+                { label: `${product.name}`},
+              ]}
+            /></div>
       <div className="rounded-xl border shadow-sm bg-white p-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
           <div className="md:col-span-6 flex flex-col gap-4">
