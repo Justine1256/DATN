@@ -42,13 +42,12 @@ export default function CheckoutPage() {
           <CheckoutForm
             onAddressSelect={(selectedId) => {
               setAddressId(selectedId);
-              setManualAddressData(null);
             }}
             onAddressChange={(manualData) => {
               setManualAddressData(manualData);
-              setAddressId(null);
             }}
           />
+          
         </div>
         <div className="space-y-8 pl-6">
           <CartAndPayment
