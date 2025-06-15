@@ -1,4 +1,5 @@
 <?php
+
 use App\Http\Controllers\AIController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -110,8 +111,22 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Mã giảm giá
     Route::post('/voucher', [VoucherController::class, 'apply']);
+    Route::get('/vouchers', [VoucherController::class, 'index']);
+    Route::post('/vouchers', [VoucherController::class, 'store']);
+    Route::get('/vouchers/{id}', [VoucherController::class, 'show']);
+    Route::put('/vouchers/{id}', [VoucherController::class, 'update']);
+    Route::delete('/vouchers/{id}', [VoucherController::class, 'destroy']);
+
     Route::post('/voucher-users', [VoucherUserController::class, 'assignToUser']);
+    Route::get('/voucher-users', [VoucherUserController::class, 'index']);
+    Route::get('/voucher-users/by-voucher/{voucher_id}', [VoucherUserController::class, 'showByVoucherId']);
+    Route::get('/voucher-users/by-user/{user_id}', [VoucherUserController::class, 'showByUserId']);
+    Route::post('voucher-users/rank', [VoucherUserController::class, 'assignToRank']);
+
     Route::post('/voucher-categories', [VoucherCategoryController::class, 'assignToCategory']);
+    Route::get('/voucher-categories', [VoucherCategoryController::class, 'index']);
+    Route::get('/voucher-categories/{voucher_id}', [VoucherCategoryController::class, 'showByVoucherId']);
+
 
     // bình luận
     Route::post('/{shopslug}/product/{productslug}/comment', [CommentController::class, 'addCommentIntoProduct']);
