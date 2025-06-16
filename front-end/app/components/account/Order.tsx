@@ -131,56 +131,46 @@ export default function OrderSection() {
       setOrderToCancelId(null);
     }
   };
-
+/// dặt lại
   const handleReorder = async (order: Order) => {
     const token = localStorage.getItem('authToken') || Cookies.get('authToken');
 
-    // Kiểm tra xem token có hợp lệ không
     if (!token) {
       console.error("User is not authenticated.");
+      alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
       return; // Nếu không có token, không thực hiện yêu cầu API
     }
+
+    console.log("Auth token:", token); // Log token để kiểm tra
 
     try {
       // Gửi yêu cầu tái tạo đơn hàng
       const response = await axios.post(
-        `http://localhost:8000/api/reorder/${order.id}`,
-        {}, // Nếu API không yêu cầu body, có thể để trống
+        `http://localhost:8000/api/reorder/${order.id}`, // API URL
+        {}, // Body nếu cần
         {
-          headers: { Authorization: `Bearer ${token}` }, // Gửi token xác thực
+          headers: { Authorization: `Bearer ${token}` }, // Đảm bảo gửi đúng token
         }
       );
 
-      // Kiểm tra phản hồi từ API
-      if (response.status === 200) {
-        // Kiểm tra xem API có trả về thông tin thành công không
-        if (response.data.success) {
-          console.log("Đặt lại đơn hàng thành công!");
-          router.push(`/checkout?orderId=${order.id}`); // Chuyển hướng người dùng đến trang checkout
-        } else {
-          console.error("Lỗi khi tái tạo đơn hàng:", response.data.message);
-          alert(response.data.message || "Có lỗi khi tạo lại đơn hàng.");
-        }
+      if (response.status === 200 && response.data.success) {
+        console.log("Đặt lại đơn hàng thành công!");
+        router.push(`/checkout?orderId=${order.id}`); // Chuyển hướng tới trang checkout
       } else {
-        // Xử lý khi status code không phải 200
-        console.error(`Lỗi API: ${response.statusText}`);
-        alert(`Có lỗi trong quá trình tái tạo đơn hàng: ${response.statusText}`);
+        console.error("Lỗi khi tái tạo đơn hàng:", response.data.message);
+        alert(response.data.message || "Có lỗi khi tạo lại đơn hàng.");
       }
     } catch (error) {
-      // Nếu có lỗi khi gửi yêu cầu hoặc phản hồi không hợp lệ
       console.error("Có lỗi khi gửi yêu cầu tái tạo đơn hàng:", error);
 
-      // Kiểm tra chi tiết lỗi
+      // Xử lý lỗi chi tiết
       if (error.response) {
-        // Lỗi khi có phản hồi từ API
         console.error("Lỗi phản hồi API:", error.response.data);
         alert(`Lỗi: ${error.response.data.message || "Không thể tái tạo đơn hàng."}`);
       } else if (error.request) {
-        // Lỗi không nhận được phản hồi từ API
         console.error("Không nhận được phản hồi từ API:", error.request);
         alert("Lỗi kết nối, vui lòng thử lại.");
       } else {
-        // Lỗi khác
         console.error("Lỗi khác:", error.message);
         alert("Đã có lỗi, vui lòng thử lại.");
       }
@@ -188,8 +178,6 @@ export default function OrderSection() {
   };
   
   
-  
-
   return (
     <div className="w-full max-w-[1400px] mx-auto mt-10 px-4">
       {/* Popup thông báo */}
