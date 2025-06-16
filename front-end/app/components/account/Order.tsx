@@ -2,16 +2,14 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/utils/api";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 
-// **Các component được sử dụng**
+// Các component được sử dụng
 import { Order } from "../../../types/oder";
 import OrderFilterTabs from "./OrderFilterTabs";
 import OrderListItem from "./OrderListItem";
 import OrderDetailModal from "./OrderDetailModal";
 import ConfirmCancelModal from "./ConfirmCancelModal";
-
-// OrderSection.tsx
 
 export default function OrderSection() {
   const router = useRouter();
@@ -28,7 +26,10 @@ export default function OrderSection() {
   const [showConfirmCancelPopup, setShowConfirmCancelPopup] = useState(false);
   const [orderToCancelId, setOrderToCancelId] = useState<number | null>(null);
 
-  const token = Cookies.get("authToken");
+  // Chỉ còn state cho thông báo thành công khi thêm vào giỏ hàng
+  const [addToCartSuccess, setAddToCartSuccess] = useState(false);
+
+  const token = Cookies.get("authToken"); // Lấy token từ Cookies một lần
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -56,7 +57,7 @@ export default function OrderSection() {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [activeTab]);
 
   const filterOrders = (status: string) => {
     setActiveTab(status);
@@ -131,51 +132,62 @@ export default function OrderSection() {
       setOrderToCancelId(null);
     }
   };
-/// dặt lại
-  const handleReorder = async (order: Order) => {
-    const token = localStorage.getItem('authToken') || Cookies.get('authToken');
 
+  // Đặt lại đơn hàng và thêm vào giỏ hàng
+  const handleReorder = async (order: Order) => {
     if (!token) {
-      alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
-      return; // Nếu không có token, không thực hiện yêu cầu API
+      setNotificationMessage("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+      setShowNotification(true);
+      return;
     }
 
     try {
-      // Gửi yêu cầu tái tạo đơn hàng
       const response = await axios.post(
-        `${API_BASE_URL}/reorder/${order.id}`, // Sử dụng API_BASE_URL để thay thế URL cố định
-        {}, // Body nếu API không yêu cầu, có thể để trống
+        `${API_BASE_URL}/reorder/${order.id}`,
+        {},
         {
-          headers: { Authorization: `Bearer ${token}` }, // Gửi token xác thực trong header
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      if (response.status === 200 && response.data.success) {
-        // Nếu API trả về thành công, chuyển hướng người dùng tới trang checkout
-        router.push(`/checkout?orderId=${order.id}`);
-      } else {
-        // Nếu có lỗi trong quá trình tái tạo đơn hàng, hiển thị thông báo lỗi
-        alert(response.data.message || "Có lỗi khi tái tạo đơn hàng.");
-      }
+      // Kiểm tra nếu API gọi thành công, chuyển hướng đến giỏ hàng
+      router.push(`/checkout`);
+
+      // Hiển thị thông báo thành công
+      setNotificationMessage("✔ Đã thêm vào giỏ hàng!");
+      setShowNotification(true);
+
+      setTimeout(() => {
+        setShowNotification(false);
+      }, 1500);
+
     } catch (error) {
-      // Xử lý các lỗi khi gửi yêu cầu tái tạo đơn hàng
-      if (error.response) {
-        alert(`Lỗi: ${error.response.data.message || "Không thể tái tạo đơn hàng."}`);
-      } else if (error.request) {
-        alert("Lỗi kết nối, vui lòng thử lại.");
-      } else {
-        alert("Đã có lỗi, vui lòng thử lại.");
-      }
+      // Log lỗi khi có vấn đề
+      console.error("❌ Lỗi khi thêm vào giỏ hàng:", error);
+
+      // Hiển thị thông báo lỗi đơn giản
+      setNotificationMessage("Có lỗi xảy ra, vui lòng thử lại.");
+      setShowNotification(true);
+
+      setTimeout(() => {
+        setShowNotification(false);
+      }, 3000);
     }
   };
 
-  
   return (
     <div className="w-full max-w-[1400px] mx-auto mt-10 px-4">
-      {/* Popup thông báo */}
+      {/* Popup thông báo chung */}
       {showNotification && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
           {notificationMessage}
+        </div>
+      )}
+
+      {/* Popup thành công khi thêm vào giỏ hàng (chỉ hiển thị khi addToCartSuccess là true) */}
+      {addToCartSuccess && (
+        <div className="fixed top-20 right-5 z-[9999] bg-white text-green-500 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
+          {notificationMessage} {/* Hiển thị thông báo thành công */}
         </div>
       )}
 
@@ -184,10 +196,8 @@ export default function OrderSection() {
           Đơn mua của tôi
         </h2>
 
-        {/* Lọc đơn hàng */}
         <OrderFilterTabs activeTab={activeTab} onFilterChange={filterOrders} />
 
-        {/* Danh sách đơn hàng */}
         {loading ? (
           <p className="text-center text-gray-500">Đang tải đơn hàng...</p>
         ) : filteredOrders.length === 0 ? (
@@ -202,7 +212,7 @@ export default function OrderSection() {
                   key={order.id}
                   order={order}
                   onViewDetails={handleViewOrderDetails}
-                  onReorder={handleReorder} // Truyền hàm reorder
+                  onReorder={handleReorder}
                 />
               </div>
             ))}
