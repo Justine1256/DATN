@@ -13,6 +13,15 @@ class VoucherCategoryController extends Controller
 
         return response()->json(['data' => $data]);
     }
+    public function showVouchersByCategory($category_id)
+    {
+        $vouchers = \App\Models\Voucher::whereHas('categories', function ($query) use ($category_id) {
+            $query->where('category_id', $category_id);
+        })->get();
+
+        return response()->json(['data' => $vouchers]);
+    }
+
     public function showByVoucherId($voucher_id)
     {
         $data = VoucherCategory::with('category')

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Voucher;
 use Illuminate\Http\Request;
+use App\Models\VoucherUser;
+use Illuminate\Support\Facades\Auth;
 
 class VoucherController extends Controller
 {
@@ -132,6 +134,39 @@ class VoucherController extends Controller
             'voucher_id' => $voucher->id,
             'discount_amount' => $discount,
             'is_free_shipping' => $isFreeShipping
+        ]);
+    }
+    public function saveVoucherForUser(Request $request)
+    {
+        $request->validate([
+            'voucher_id' => 'required|exists:vouchers,id',
+        ]);
+
+        $user = Auth::user();
+
+        // Trường hợp chưa đăng nhập
+        if (!$user) {
+            return response()->json(['message' => 'Bạn cần đăng nhập để lưu voucher'], 401);
+        }
+
+        // Kiểm tra xem user đã lưu voucher chưa
+        $exists = VoucherUser::where('voucher_id', $request->voucher_id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['message' => 'Bạn đã lưu voucher này trước đó'], 409);
+        }
+
+        // Tạo bản ghi mới
+        $voucherUser = VoucherUser::create([
+            'voucher_id' => $request->voucher_id,
+            'user_id' => $user->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Lưu voucher thành công',
+            'data' => $voucherUser,
         ]);
     }
 }

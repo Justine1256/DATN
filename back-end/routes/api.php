@@ -63,7 +63,9 @@ Route::get('/notification', [NotificationController::class, 'index']);
 Route::post('/notification', [NotificationController::class, 'store']);
 Route::get('/notification/{id}', [NotificationController::class, 'show']);
 Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
+
 Route::get('/vouchers', [VoucherController::class, 'index']);
+Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::class, 'showVouchersByCategory']);
 
 
 Route::get('/reviews', [ReviewController::class, 'index']);
@@ -113,6 +115,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Mã giảm giá
     Route::post('/voucher', [VoucherController::class, 'apply']);
+    Route::post('/voucherseve', [VoucherController::class, 'saveVoucherForUser']);
     Route::post('/vouchers', [VoucherController::class, 'store']);
     Route::get('/vouchers/{id}', [VoucherController::class, 'show']);
     Route::put('/vouchers/{id}', [VoucherController::class, 'update']);
@@ -127,6 +130,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/voucher-categories', [VoucherCategoryController::class, 'assignToCategory']);
     Route::get('/voucher-categories', [VoucherCategoryController::class, 'index']);
     Route::get('/voucher-categories/{voucher_id}', [VoucherCategoryController::class, 'showByVoucherId']);
+
 
 
     // bình luận

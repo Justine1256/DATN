@@ -41,4 +41,8 @@ class Voucher extends Model
     {
         return $this->hasMany(VoucherCategory::class);
     }
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'voucher_categories');
+    }
 }
