@@ -19,7 +19,6 @@ export default function Page() {
                         className="w-full h-full object-cover"
                     />
                 </div>
-
                 {/* Danh sách mã giảm giá chính */}
                 <div className="w-full max-w-[1170px]">
                     <VoucherList />
