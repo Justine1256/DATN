@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import Select from "react-select";
-import { AddressCardLoading } from "../loading/loading";
+
 import { API_BASE_URL } from '@/utils/api';
 
 // ✅ Interface định nghĩa tỉnh/huyện/xã và địa chỉ người dùng
