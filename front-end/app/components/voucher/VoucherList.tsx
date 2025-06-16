@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import VoucherShipCard, { VoucherShip } from './VoucherCard';
 import Cookies from 'js-cookie';
-import { API_BASE_URL } from "@/utils/api";
+import { API_BASE_URL } from "@/utils/api"; // Sử dụng biến môi trường API_BASE_URL
 import axios from 'axios';
 
 export default function VoucherList() {
@@ -14,9 +14,6 @@ export default function VoucherList() {
     const [showPopup, setShowPopup] = useState(false);
 
     const token = Cookies.get('authToken');  // Lấy token từ cookie
-
-    // Log token ra console để kiểm tra
-    console.log('Token trong cookie:', token);
 
     // Hiển thị popup trong 2.5s
     const showPopupTemp = (message: string) => {
@@ -32,8 +29,9 @@ export default function VoucherList() {
             return;
         }
 
+        // Đổi URL thành API_BASE_URL thay vì localhost
         axios
-            .get('http://localhost:8000/api/vouchers', {
+            .get(`${API_BASE_URL}/api/vouchers`, {
                 headers: {
                     Authorization: `Bearer ${token}`,  // Gửi token trong header
                     Accept: 'application/json',
@@ -62,12 +60,11 @@ export default function VoucherList() {
 
     const handleSaveVoucher = async (voucherId: number) => {
         if (!token) return showPopupTemp('⚠️ Bạn cần đăng nhập');
-        console.log('🔑 Token từ Cookie:', token);
 
-        
         try {
+            // Đổi URL thành API_BASE_URL thay vì localhost
             const response = await axios.post(
-                'http://localhost:8000/api/voucherseve',
+                `${API_BASE_URL}/api/voucherseve`,
                 { voucher_id: voucherId },
                 {
                     headers: {
