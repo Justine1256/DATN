@@ -12,7 +12,7 @@ class Voucher extends Model
     protected $fillable = [
         'code',
         'discount_value',
-        'discount_type', 
+        'discount_type',
         'start_date',
         'end_date',
         'created_by',
@@ -20,6 +20,7 @@ class Voucher extends Model
         'max_discount_value',
         'usage_limit',
         'usage_count',
+        'is_free_shipping',
     ];
 
     protected $casts = [
