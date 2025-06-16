@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Image from "next/image";
 import { Order } from "../../../types/oder";
 import { formatImageUrl, statusColors, translateOrderStatus, groupByShop } from "../../../types/utils";
@@ -8,13 +9,42 @@ interface OrderListItemProps {
     onReorder: (order: Order) => void; // Hàm reorder khi nhấn nút đặt lại
 }
 
-// OrderListItem.tsx
-
 export default function OrderListItem({
     order,
     onViewDetails,
     onReorder,
 }: OrderListItemProps) {
+    // State để hiển thị popup xác nhận
+    const [showAddToCartPopup, setShowAddToCartPopup] = useState(false);
+    const [addToCartSuccess, setAddToCartSuccess] = useState(false); // State để hiển thị dấu tick
+
+    // Hàm để xử lý đặt lại đơn hàng
+    const handleReorder = (order: Order) => {
+        // Nếu đơn hàng có trạng thái "canceled" thì hiển thị popup xác nhận
+        if (order.order_status.toLowerCase() === "canceled") {
+            setShowAddToCartPopup(true);
+        } else {
+            // Nếu trạng thái đơn hàng không phải "canceled", có thể xử lý hoặc thông báo lỗi ở đây
+            alert("Đơn hàng này không thể đặt lại.");
+        }
+    };
+
+    // Hàm xác nhận thêm vào giỏ hàng từ popup
+    const handleAddToCartConfirmation = (confirmation: boolean, order: Order) => {
+        setShowAddToCartPopup(false); // Đóng popup khi người dùng chọn
+
+        if (confirmation) {
+            onReorder(order); // Gọi hàm onReorder để thực hiện đặt lại đơn hàng
+
+            // Hiển thị dấu tick và chuyển hướng sau khi thêm vào giỏ hàng
+            setAddToCartSuccess(true); // Hiển thị dấu tick xanh
+            setTimeout(() => {
+                setAddToCartSuccess(false); // Tắt dấu tick sau 1.5s
+                router.push("/checkout"); // Chuyển hướng đến giỏ hàng
+            }, 1500);
+        }
+    };
+
     return (
         <div className="border rounded-lg p-6 shadow-lg bg-white hover:shadow-xl transition-shadow">
             <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6">
@@ -112,14 +142,43 @@ export default function OrderListItem({
                     {order.order_status.toLowerCase() === "canceled" && (
                         <button
                             className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838] transition-colors font-medium"
-                            onClick={() => onReorder(order)} // Gọi hàm onReorder khi nhấn "Đặt lại"
+                            onClick={() => handleReorder(order)} // Gọi hàm handleReorder khi nhấn "Đặt lại"
                         >
                             Đặt lại
                         </button>
                     )}
                 </div>
             </div>
+
+            {/* Popup xác nhận thêm vào giỏ hàng */}
+            {showAddToCartPopup && (
+                <div className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex justify-center items-center z-10">
+                    <div className="bg-white p-6 rounded-lg shadow-lg text-center w-80">
+                        <p className="mb-4 text-black">Bạn có muốn thêm vào giỏ hàng?</p>
+                        <div className="flex justify-around">
+                            <button
+                                onClick={() => handleAddToCartConfirmation(true, order)} // Người dùng chọn "Có"
+                                className="px-4 py-2 bg-green-500 text-white rounded-lg"
+                            >
+                                Có
+                            </button>
+                            <button
+                                onClick={() => handleAddToCartConfirmation(false, order)} // Người dùng chọn "Không"
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg"
+                            >
+                                Không
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Hiển thị dấu tick khi thành công */}
+            {addToCartSuccess && (
+                <div className="fixed top-20 right-5 z-[9999] bg-white text-green-500 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
+                    ✔ Đã thêm vào giỏ hàng!
+                </div>
+            )}
         </div>
     );
 }
-
