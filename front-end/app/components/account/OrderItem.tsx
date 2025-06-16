@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import Image from "next/image";
 
 interface Product {
@@ -8,7 +8,7 @@ interface Product {
   value1: string | null;
   option2: string | null;
   value2: string | null;
-  quantity: number; 
+  quantity: number;
   price: number;
   original_price: number;
   image: string | null;
@@ -27,14 +27,14 @@ export default function OrderItem({ order }: { order: Order }) {
   return (
     <div className="border mb-4 rounded-md bg-white shadow-sm">
       <div className="flex justify-between items-center px-4 py-2 border-b">
-        <div className="font-semibold">{order.shop_name}</div>
+        <div className="font-semibold text-black">{order.shop_name}</div>
         <div className="text-sm text-red-500">{order.status}</div>
       </div>
 
       {order.products.map((product) => {
         const variant = [product.option1 && product.value1 ? `${product.option1}: ${product.value1}` : "",
-                         product.option2 && product.value2 ? `${product.option2}: ${product.value2}` : ""]
-                         .filter(Boolean).join(" | ");
+        product.option2 && product.value2 ? `${product.option2}: ${product.value2}` : ""]
+          .filter(Boolean).join(" | ");
 
         return (
           <div
@@ -49,11 +49,11 @@ export default function OrderItem({ order }: { order: Order }) {
               className="rounded-md border"
             />
             <div className="flex-1">
-              <div className="font-medium">{product.name}</div>
+              <div className="font-medium text-black">{product.name}</div>
               {variant && (
                 <div className="text-sm text-gray-500">Phân loại: {variant}</div>
               )}
-              <div className="text-sm">x{product.quantity}</div>
+              <div className="text-sm text-black">x{product.quantity}</div>
             </div>
             <div className="text-right text-sm text-red-500">
               {product.original_price !== product.price && (
@@ -61,7 +61,9 @@ export default function OrderItem({ order }: { order: Order }) {
                   {product.original_price.toLocaleString()}₫
                 </del>
               )}
-              <div>{product.price.toLocaleString()}₫</div>
+              <div className="text-black">
+                {product.price.toLocaleString()}₫
+              </div>
             </div>
           </div>
         );
@@ -74,7 +76,7 @@ export default function OrderItem({ order }: { order: Order }) {
       )}
 
       <div className="flex justify-end items-center p-4 gap-2 text-sm">
-        <div className="font-semibold">
+        <div className="font-semibold text-black">
           Thành tiền:{" "}
           <span className="text-red-500 text-lg">
             {order.total_amount.toLocaleString()}₫
