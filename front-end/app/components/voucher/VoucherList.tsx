@@ -33,7 +33,7 @@ export default function VoucherList() {
         }
 
         axios
-            .get('http://localhost:8000/api/vouchers', {
+            .get(`${API_BASE_URL}/vouchers`, {
                 headers: {
                     Authorization: `Bearer ${token}`,  // Gửi token trong header
                     Accept: 'application/json',
@@ -64,10 +64,9 @@ export default function VoucherList() {
         if (!token) return showPopupTemp('⚠️ Bạn cần đăng nhập');
         console.log('🔑 Token từ Cookie:', token);
 
-        
         try {
             const response = await axios.post(
-                'http://localhost:8000/api/voucherseve',
+                `${API_BASE_URL}/voucherseve`,
                 { voucher_id: voucherId },
                 {
                     headers: {
@@ -79,7 +78,6 @@ export default function VoucherList() {
 
             console.log(response.data);
 
-            // Kiểm tra phản hồi từ API và hiển thị thông báo thành công
             if (response.data.message === "Lưu voucher thành công") {
                 showPopupTemp('✔️ Đã lưu mã thành công!');
             } else {
@@ -89,19 +87,24 @@ export default function VoucherList() {
             console.error('❌ Lỗi lưu mã:', err);
 
             if (err.response) {
-                // Kiểm tra lỗi 401 (Unauthenticated)
-                if (err.response.status === 401) {
+                const status = err.response.status;
+                const message = err.response.data?.message;
+
+                if (status === 401) {
                     showPopupTemp('⚠️ Bạn cần đăng nhập lại.');
                     setError('❌ Bạn cần đăng nhập lại để lưu mã.');
+                } else if (status === 409) {
+                    showPopupTemp('⚠️ Bạn đã lưu mã này rồi!');
                 } else {
                     console.error('Lỗi từ server:', err.response.data);
                     showPopupTemp('❌ Không thể lưu mã giảm giá.');
                 }
             } else {
-                showPopupTemp('❌ Không thể lưu mã giảm giá.');
+                showPopupTemp('❌ Không thể kết nối đến server.');
             }
         }
     };
+
 
     return (
         <div className="py-10 px-4 max-w-[1170px] mx-auto">
