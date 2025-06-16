@@ -1,43 +1,56 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/utils/api";
+import Image from "next/image";
 
-const slides = [
-  {
-    id: 1,
-    image: "/Banner3.png",
-    buttonText: "Mua Ngay",
-    variant: "red",
-  },
-  {
-    id: 2,
-    image: "/Banner4.png",
-    buttonText: "Mua Ngay",
-    variant: "black",
-  },
-  {
-    id: 3,
-    image: "/Banner2.png",
-    buttonText: "Mua Ngay",
-    variant: "red",
-  },
-];
+interface Slide {
+  id: number;
+  image: string;
+  buttonText: string;
+  variant: "red" | "black";
+}
 
 export default function LandingSlider() {
+  const [slides, setSlides] = useState<Slide[]>([]);
   const [current, setCurrent] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
-  const router = useRouter(); // ✅ dùng router để chuyển trang
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/banner`);
+        const data = await res.json();
+
+        const formatted = data.map((item: any) => ({
+          id: item.id,
+          image: `${API_BASE_URL}/image/${item.image}`, // remove quotes
+          buttonText: "Mua Ngay",
+          variant: item.id % 2 === 0 ? "black" : "red",
+        }));
+
+        setSlides(formatted);
+      } catch (error) {
+        console.error("Lỗi fetch banner:", error);
+      }
+    };
+
+    fetchBanners();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!isHovered) {
+      if (!isHovered && slides.length > 0) {
         setCurrent((prev) => (prev + 1) % slides.length);
       }
     }, 4000);
     return () => clearInterval(interval);
-  }, [isHovered]);
+  }, [isHovered, slides.length]);
 
   const handleDotClick = (index: number) => {
     setCurrent(index);
@@ -82,16 +95,18 @@ export default function LandingSlider() {
           className={`absolute inset-0 transition-all duration-700 ease-in-out ${
             index === current ? "opacity-100 z-10" : "opacity-0 z-0"
           }`}
-          style={{
-            backgroundImage: `url(${slide.image})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
         >
+          <Image
+  src={slide.image}
+  alt={`banner-${slide.id}`}
+  width={1120}
+  height={344}
+  className="object-cover rounded-lg"
+/>
           {index === current && (
             <div className="absolute left-10 bottom-12 z-20">
               <button
-                onClick={() => router.push("/shop")} // ✅ click vào Shop now sẽ chuyển hướng
+                onClick={() => router.push("/shop")}
                 className={`w-[143px] h-[43px] rounded-md text-white font-semibold transition ${
                   slide.variant === "red"
                     ? "bg-brand hover:bg-red-600"
@@ -110,7 +125,7 @@ export default function LandingSlider() {
           <div
             key={index}
             onClick={() => handleDotClick(index)}
-            className={`w-2 h-2 rounded-full cursor-pointer transition-all duration-300 ${
+            className={`w-2 h-2 mb-2 rounded-full cursor-pointer transition-all duration-300 ${
               index === current ? "bg-brand" : "bg-gray-300"
             }`}
           />
