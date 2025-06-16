@@ -214,7 +214,7 @@ const Header = () => {
             {/* 👤 Avatar người dùng */}
             {user && (
               <div className="relative" ref={dropdownRef}>
-                <img
+                <Image
                   src={user.avatar ? `${STATIC_BASE_URL}/${user.avatar}?t=${Date.now()}` : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`}
                   onError={(e) => {
                     e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;

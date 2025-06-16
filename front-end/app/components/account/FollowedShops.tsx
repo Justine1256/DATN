@@ -6,6 +6,7 @@ import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import FollowedShopLoading from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
+import Image from "next/image";
 
 // ✅ Interface cho đối tượng Shop
 interface Shop {
@@ -136,7 +137,7 @@ export default function FollowedShopsSection() {
                                             {/* Avatar với border gradient */}
                                             <div className="relative">
                                                 <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-gray-200 group-hover:border-[#DB4444]/30 transition-colors duration-300 bg-gradient-to-br from-gray-50 to-gray-100">
-                                                    <img
+                                                    <Image
                                                         src={
                                                             shop.logo?.startsWith("http")
                                                                 ? shop.logo

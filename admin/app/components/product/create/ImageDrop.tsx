@@ -5,6 +5,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
 import { Navigation } from "swiper/modules";
+import Image from "next/image";
 
 type ImageItem = {
   id: string;
@@ -113,11 +114,14 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
           {images.length > 0 ? (
             <div className="space-y-4">
               <div className="relative">
-                <img
+                <div className="relative w-full h-[200px]">
+                <Image
                   src={images[0].url}
                   alt="Main"
-                  className="w-full max-h-[200px] object-contain rounded border"
+                  fill
+                  className="object-contain rounded border"
                 />
+              </div>
                 <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
                   Main image
                 </span>
@@ -145,7 +149,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
                     {images.slice(1).map((img) => (
                       <SwiperSlide key={img.id}>
                         <div className="flex flex-col items-center gap-1">
-                          <img
+                          <Image
                             src={img.url}
                             alt="Other"
                             className="w-full h-24 object-cover border rounded"
