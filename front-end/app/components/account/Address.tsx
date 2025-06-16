@@ -305,7 +305,7 @@ export default function AddressComponent() {
   };
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen py-16">
       {/* Overlay khi mở form */}
       {isAdding && <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" />}
 
@@ -354,7 +354,8 @@ export default function AddressComponent() {
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-12 h-12 border-4  border-t-transparent rounded-full animate-spin mb-4"></div>
+              {/* Changed spinner color to db4444 */}
+              <div className="w-12 h-12 border-4 border-[#db4444] border-t-transparent rounded-full animate-spin mb-4"></div>
               <p className="text-gray-500">Đang tải danh sách địa chỉ...</p>
             </div>
           ) : addresses.length === 0 ? (
