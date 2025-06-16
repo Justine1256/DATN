@@ -6,6 +6,7 @@ import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit } from 'react-icons/fa';
 import { STATIC_BASE_URL, API_BASE_URL } from '@/utils/api';
 import Cookies from 'js-cookie';
 import axios from 'axios';
+import Image from 'next/image';
 
 interface UserProps {
   name: string;
@@ -122,7 +123,7 @@ export default function AccountSidebar({
         <div className="flex items-center space-x-3 mb-6">
           {/* ✅ Avatar + chỉnh sửa */}
           <div className="relative w-14 h-14 group">
-            <img
+            <Image
               src={avatarUrl}
               alt="Avatar"
               id="avatarPreview"

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from "next/image";
 import React from "react";
 
 export interface VoucherShip {
@@ -52,7 +53,7 @@ export default function VoucherShipCard({
             {/* Logo */}
             <div className="flex items-center justify-center w-[130px] h-full bg-white">
                 <div className="w-[114px] h-[114px] rounded-md overflow-hidden border border-gray-200 flex items-center justify-center bg-white">
-                    <img
+                    <Image
                         src={imageUrl || "/ship.jpg"}
                         alt="logo"
                         className="w-full h-full object-contain"

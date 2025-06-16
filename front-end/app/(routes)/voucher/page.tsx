@@ -2,6 +2,7 @@
 import React from "react";
 import VoucherList from "@/app/components/voucher/VoucherList";
 import VoucherByCategory from "@/app/components/voucher/VoucherByCategory";
+import Image from "next/image";
 
 export default function Page() {
     return (
@@ -12,7 +13,7 @@ export default function Page() {
             <div className="relative flex flex-col items-center min-h-screen w-full px-4 py-10">
                 {/* Banner */}
                 <div className="w-full max-w-[1170px] h-[400px] md:h-[500px] lg:h-[700px] overflow-hidden rounded-2xl shadow-lg mb-16">
-                    <img
+                    <Image
                         src="/shipfree.png"
                         alt="Banner Hot Coupon"
                         className="w-full h-full object-cover"

@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import React from "react";
 
 interface ProductDescriptionAndSpecsProps {
@@ -45,7 +46,7 @@ const ProductDescriptionAndSpecs: React.FC<ProductDescriptionAndSpecsProps> = ({
 
         {/* Hình ảnh sản phẩm bên phải */}
         <div className="flex-shrink-0 w-full md:w-[300px] ml-auto">
-          <img
+          <Image
             src={imageUrl}
             alt="Product image"
             className="w-full h-[300px] object-cover rounded-xl" // Tăng chiều cao ảnh và dùng object-cover để duy trì tỷ lệ

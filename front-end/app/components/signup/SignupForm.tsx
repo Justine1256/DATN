@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/utils/api';
+import Image from 'next/image';
 export default function SignupForm() {
   // ✅ Khởi tạo state
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '' });
@@ -155,7 +156,7 @@ export default function SignupForm() {
         className="w-full mb-2 border flex items-center justify-center py-2 rounded text-black hover:bg-gray-100 text-sm"
         onClick={() => alert('Google signup coming soon!')}
       >
-        <img src="/google-logo.png" alt="Google" className="w-5 h-5 mr-2" />
+        <Image src="/google-logo.png" alt="Google" className="w-5 h-5 mr-2" />
         Sign up with Google
       </button>
 
