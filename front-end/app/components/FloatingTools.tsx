@@ -29,7 +29,7 @@ export default function FloatingTools() {
     return (
         <>
             {/* Nút nổi cố định */}
-            <div className="fixed right-4 bottom-6 z-[9999] flex flex-col items-center">
+            <div className="fixed right-52 bottom-6 z-[9999] flex flex-col items-center">
                 <div className="bg-[#db4444] text-white rounded-[1rem] overflow-hidden w-14">
                     <button
                         onClick={() => {
@@ -56,7 +56,7 @@ export default function FloatingTools() {
 
             {/* Box danh sách + chat */}
             {showList && (
-                <div className="fixed bottom-6 right-[80px] z-[9998] flex shadow-xl rounded-xl overflow-hidden">
+                <div className="fixed bottom-6 right-[280px] z-[9998] flex shadow-xl rounded-xl overflow-hidden">
 
                     {/* Cột trái luôn hiển thị */}
                     <div className="bg-white border-r flex flex-col text-black w-[320px] h-[580px]">
