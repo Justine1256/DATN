@@ -132,15 +132,26 @@ const Header = () => {
           {/* 📋 Menu chính */}
           <nav className="hidden md:flex items-center space-x-6 col-span-6 justify-center">
             {navLinks.map((link) => (
-              <button key={link.href} onClick={() => router.push(link.href)} className="relative group text-black text-sm md:text-base transition duration-300 hover:opacity-90">
+              <button
+                key={link.href}
+                onClick={() => router.push(link.href)}
+                className="relative group text-black text-sm md:text-base transition duration-300 hover:opacity-90"
+              >
                 {link.label}
                 <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
               </button>
             ))}
+
             {!user && (
-              <Link href="/login" className="text-black text-sm md:text-base hover:underline">Đăng Nhập</Link>
+              <div className="relative group cursor-pointer text-black text-sm md:text-base transition duration-300 hover:opacity-90">
+                <Link href="/login" className="block">
+                  Đăng Nhập
+                </Link>
+                <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
+              </div>
             )}
           </nav>
+
 
           {/* 🔍 Tìm kiếm + Thông báo + Yêu thích + Giỏ hàng + Avatar */}
           <div className="col-span-4 flex items-center justify-end space-x-4">
