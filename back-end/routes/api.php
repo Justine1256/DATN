@@ -64,6 +64,8 @@ Route::post('/notification', [NotificationController::class, 'store']);
 Route::get('/notification/{id}', [NotificationController::class, 'show']);
 Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 
+Route::get('/vouchers', [VoucherController::class, 'index']);
+
 Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
 
@@ -111,7 +113,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Mã giảm giá
     Route::post('/voucher', [VoucherController::class, 'apply']);
-    Route::get('/vouchers', [VoucherController::class, 'index']);
     Route::post('/vouchers', [VoucherController::class, 'store']);
     Route::get('/vouchers/{id}', [VoucherController::class, 'show']);
     Route::put('/vouchers/{id}', [VoucherController::class, 'update']);
