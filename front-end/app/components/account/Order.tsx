@@ -136,47 +136,39 @@ export default function OrderSection() {
     const token = localStorage.getItem('authToken') || Cookies.get('authToken');
 
     if (!token) {
-      console.error("User is not authenticated.");
       alert("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
       return; // Nếu không có token, không thực hiện yêu cầu API
     }
 
-    console.log("Auth token:", token); // Log token để kiểm tra
-
     try {
       // Gửi yêu cầu tái tạo đơn hàng
       const response = await axios.post(
-        `http://localhost:8000/api/reorder/${order.id}`, // API URL
-        {}, // Body nếu cần
+        `${API_BASE_URL}/reorder/${order.id}`, // Sử dụng API_BASE_URL để thay thế URL cố định
+        {}, // Body nếu API không yêu cầu, có thể để trống
         {
-          headers: { Authorization: `Bearer ${token}` }, // Đảm bảo gửi đúng token
+          headers: { Authorization: `Bearer ${token}` }, // Gửi token xác thực trong header
         }
       );
 
       if (response.status === 200 && response.data.success) {
-        console.log("Đặt lại đơn hàng thành công!");
-        router.push(`/checkout?orderId=${order.id}`); // Chuyển hướng tới trang checkout
+        // Nếu API trả về thành công, chuyển hướng người dùng tới trang checkout
+        router.push(`/checkout?orderId=${order.id}`);
       } else {
-        console.error("Lỗi khi tái tạo đơn hàng:", response.data.message);
-        alert(response.data.message || "Có lỗi khi tạo lại đơn hàng.");
+        // Nếu có lỗi trong quá trình tái tạo đơn hàng, hiển thị thông báo lỗi
+        alert(response.data.message || "Có lỗi khi tái tạo đơn hàng.");
       }
     } catch (error) {
-      console.error("Có lỗi khi gửi yêu cầu tái tạo đơn hàng:", error);
-
-      // Xử lý lỗi chi tiết
+      // Xử lý các lỗi khi gửi yêu cầu tái tạo đơn hàng
       if (error.response) {
-        console.error("Lỗi phản hồi API:", error.response.data);
         alert(`Lỗi: ${error.response.data.message || "Không thể tái tạo đơn hàng."}`);
       } else if (error.request) {
-        console.error("Không nhận được phản hồi từ API:", error.request);
         alert("Lỗi kết nối, vui lòng thử lại.");
       } else {
-        console.error("Lỗi khác:", error.message);
         alert("Đã có lỗi, vui lòng thử lại.");
       }
     }
   };
-  
+
   
   return (
     <div className="w-full max-w-[1400px] mx-auto mt-10 px-4">
