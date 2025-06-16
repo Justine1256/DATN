@@ -11,9 +11,13 @@ export default function VoucherList() {
     const [error, setError] = useState<string | null>(null);
     const [popupMessage, setPopupMessage] = useState('');
     const [showPopup, setShowPopup] = useState(false);
-    const token = Cookies.get('authToken');
 
-    // ✅ Show popup trong 2.5s
+    const token = Cookies.get('authToken');  // Lấy token từ cookie
+
+    // Log token ra console để kiểm tra
+    console.log('Token trong cookie:', token);
+
+    // Hiển thị popup trong 2.5s
     const showPopupTemp = (message: string) => {
         setPopupMessage(message);
         setShowPopup(true);
@@ -30,7 +34,7 @@ export default function VoucherList() {
         axios
             .get('http://localhost:8000/api/vouchers', {
                 headers: {
-                    Authorization: `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`,  // Gửi token trong header
                     Accept: 'application/json',
                 },
             })
@@ -59,25 +63,46 @@ export default function VoucherList() {
         if (!token) return showPopupTemp('⚠️ Bạn cần đăng nhập');
 
         try {
-            await axios.post(
-                'http://localhost:8000/api/voucher-users',
+            const response = await axios.post(
+                'http://localhost:8000/api/voucherseve',
                 { voucher_id: voucherId },
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
+                        Accept: 'application/json',
                     },
                 }
             );
-            showPopupTemp('✔️ Đã lưu mã thành công!');
-        } catch (err) {
+
+            console.log(response.data);
+
+            // Kiểm tra phản hồi từ API và hiển thị thông báo thành công
+            if (response.data.message === "Lưu voucher thành công") {
+                showPopupTemp('✔️ Đã lưu mã thành công!');
+            } else {
+                showPopupTemp('❌ Không thể lưu mã giảm giá.');
+            }
+        } catch (err: any) {
             console.error('❌ Lỗi lưu mã:', err);
-            showPopupTemp('❌ Không thể lưu mã giảm giá.');
+
+            if (err.response) {
+                // Kiểm tra lỗi 401 (Unauthenticated)
+                if (err.response.status === 401) {
+                    showPopupTemp('⚠️ Bạn cần đăng nhập lại.');
+                    setError('❌ Bạn cần đăng nhập lại để lưu mã.');
+                } else {
+                    console.error('Lỗi từ server:', err.response.data);
+                    showPopupTemp('❌ Không thể lưu mã giảm giá.');
+                }
+            } else {
+                showPopupTemp('❌ Không thể lưu mã giảm giá.');
+            }
         }
     };
 
     return (
         <div className="py-10 px-4 max-w-[1170px] mx-auto">
-            {/* ✅ Popup thông báo */}
+            {/* Popup thông báo */}
             {showPopup && (
                 <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#db4444] animate-slideInFade">
                     {popupMessage}
