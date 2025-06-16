@@ -6,6 +6,7 @@ use App\Models\VoucherUser;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Voucher;
+use Illuminate\Support\Facades\Auth;
 
 class VoucherUserController extends Controller
 {
@@ -81,5 +82,37 @@ class VoucherUserController extends Controller
         ]);
 
         return response()->json(['message' => 'Đã gán voucher cho user', 'data' => $voucherUser]);
+    }
+    public function isVoucherSaved(Request $request)
+    {
+        $request->validate([
+            'voucher_id' => 'required|exists:vouchers,id',
+        ]);
+
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Bạn cần đăng nhập'], 401);
+        }
+
+        $exists = VoucherUser::where('voucher_id', $request->voucher_id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        return response()->json(['saved' => $exists]);
+    }
+    public function showMySavedVouchers()
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Bạn cần đăng nhập'], 401);
+        }
+
+        $data = VoucherUser::with('voucher')
+            ->where('user_id', $user->id)
+            ->get();
+
+        return response()->json(['data' => $data]);
     }
 }

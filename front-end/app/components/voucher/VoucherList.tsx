@@ -61,7 +61,9 @@ export default function VoucherList() {
 
     const handleSaveVoucher = async (voucherId: number) => {
         if (!token) return showPopupTemp('⚠️ Bạn cần đăng nhập');
+        console.log('🔑 Token từ Cookie:', token);
 
+        
         try {
             const response = await axios.post(
                 'http://localhost:8000/api/voucherseve',

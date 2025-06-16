@@ -124,6 +124,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Mã giảm giá
     Route::post('/voucher', [VoucherController::class, 'apply']);
     Route::post('/voucherseve', [VoucherController::class, 'saveVoucherForUser']);
+    Route::post('/vouchers/unsave', [VoucherUserController::class, 'unsaveVoucher']);
+    Route::get('/my-vouchers', [VoucherUserController::class, 'showMySavedVouchers']);
     Route::post('/vouchers', [VoucherController::class, 'store']);
     Route::get('/vouchers/{id}', [VoucherController::class, 'show']);
     Route::put('/vouchers/{id}', [VoucherController::class, 'update']);
