@@ -109,16 +109,29 @@ class VoucherController extends Controller
         }
 
         $discount = 0;
-        if ($voucher->discount_type === 'percent') {
-            $discount = min($voucher->discount_value / 100 * $request->subtotal, $voucher->max_discount_value ?? $request->subtotal);
-        } else {
-            $discount = min($voucher->discount_value, $request->subtotal);
+        $isFreeShipping = false;
+
+        if ($voucher->is_free_shipping) {
+            // Nếu voucher là freeship, vẫn có thể áp dụng giảm giá kèm nếu có discount_value
+            $isFreeShipping = true;
+        }
+
+        if ($voucher->discount_value > 0) {
+            if ($voucher->discount_type === 'percent') {
+                $discount = min(
+                    $voucher->discount_value / 100 * $request->subtotal,
+                    $voucher->max_discount_value ?? $request->subtotal
+                );
+            } else {
+                $discount = min($voucher->discount_value, $request->subtotal);
+            }
         }
 
         return response()->json([
             'message' => 'Áp dụng mã giảm giá thành công',
             'voucher_id' => $voucher->id,
-            'discount_amount' => $discount
+            'discount_amount' => $discount,
+            'is_free_shipping' => $isFreeShipping
         ]);
     }
 }

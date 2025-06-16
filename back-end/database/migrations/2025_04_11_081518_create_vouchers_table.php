@@ -18,6 +18,7 @@ return new class extends Migration
             $table->enum('discount_type', ['percent', 'fixed'])->default('percent');
             $table->decimal('max_discount_value', 10, 2)->nullable();
             $table->decimal('min_order_value', 10, 2)->default(0);
+            $table->boolean('is_free_shipping')->default(false);
             $table->integer('usage_limit')->nullable();
             $table->integer('usage_count')->default(0);
             $table->date('start_date')->nullable();
