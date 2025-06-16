@@ -9,6 +9,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\FollowController;
@@ -30,6 +31,11 @@ use App\Http\Controllers\ReviewController;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::get('/banner', [BannerController::class, 'index']);
+Route::post('/banner', [BannerController::class, 'store']);
+Route::put('/banner/{id}', [BannerController::class, 'update']);
+Route::delete('/banner/{id}', [BannerController::class, 'destroy']);
 
 Route::get('/images', [ImageController::class, 'index']);
 Route::get('/image/{path}', [ImageController::class, 'show'])->where('path', '.*');
@@ -67,6 +73,8 @@ Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 Route::get('/vouchers', [VoucherController::class, 'index']);
 Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::class, 'showVouchersByCategory']);
 
+
+Route::get('/vouchers', [VoucherController::class, 'index']);
 
 Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
