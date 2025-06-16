@@ -110,6 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/showdh/{id}', [OrderController::class, 'show']);
     Route::patch('/cancel/{id}', [OrderController::class, 'cancel']);
     Route::patch('/ordership/{id}', [OrderController::class, 'updateShippingStatus']);
+    Route::post('/reorder/{orderId}', [OrderController::class, 'reorder']);
 
     Route::get('/order-details', [OrderDetailController::class, 'index']);
     Route::post('/order-details', [OrderDetailController::class, 'store']);
