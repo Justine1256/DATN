@@ -9,6 +9,7 @@ import AccountPage from '@/app/components/account/AccountPage';
 import ChangePassword from '@/app/components/account/ChangePassword';
 import FollowedShops from '@/app/components/account/FollowedShops';
 import OrderSection from '@/app/components/account/Order';
+import NotificationDropdown from '@/app/components/account/NotificationDropdown';  // Import NotificationDropdown
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/utils/api';
 
@@ -78,6 +79,7 @@ export default function AccountRoute() {
 
           {/* ✅ Nội dung phải (chiếm 9/12) */}
           <div className="md:col-span-9 pt-2 transition-all duration-300">
+            {/* Điều kiện hiển thị từng section */}
             {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
             {section === 'changepassword' && <ChangePassword />}
             {section === 'address' && user && (
@@ -87,6 +89,7 @@ export default function AccountRoute() {
             )}
             {section === 'followedshops' && <FollowedShops />}
             {section === 'orders' && <OrderSection />}
+            {section === 'NotificationDropdown' && <NotificationDropdown />} {/* Hiển thị thông báo khi chọn "thongbao" */}
           </div>
         </div>
       </div>

@@ -1,12 +1,12 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit } from 'react-icons/fa';
+import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit, FaBell } from 'react-icons/fa'; // Import FaBell cho thông báo
 import { STATIC_BASE_URL, API_BASE_URL } from '@/utils/api';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 import Image from 'next/image';
+import NotificationDropdown from './NotificationDropdown';// Import NotificationDropdown
 
 interface UserProps {
   name: string;
@@ -240,7 +240,19 @@ export default function AccountSidebar({
             <FaBoxOpen className="w-6 h-6 text-[#28A745]" />
             <span className="text-xl font-bold">Đơn hàng</span>
           </button>
+        </li>
 
+        <li>
+          <button
+            onClick={() => onChangeSection('NotificationDropdown')}  
+            className={clsx(
+              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
+              getActiveClass('NotificationDropdown')
+            )}
+          >
+            <FaBell className="w-6 h-6 text-[#007BFF]" /> {/* Thêm biểu tượng chuông */}
+            <span className="text-xl font-bold">Thông Báo</span>
+          </button>
         </li>
 
         <li>
@@ -254,7 +266,6 @@ export default function AccountSidebar({
             <FaTicketAlt className="w-6 h-6 text-[#007BFF]" />
             <span className="text-xl font-bold">Mã giảm giá</span>
           </button>
-
         </li>
       </ul>
 
