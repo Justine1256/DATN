@@ -18,16 +18,46 @@ export default function OrderListItem({
 
     const handleReorder = (order: Order) => {
         if (order.order_status.toLowerCase() === "canceled") {
-            onReorder(order);  // Thực hiện đặt lại ngay lập tức
-            setAddToCartSuccess(true);  // Hiển thị thông báo thành công
+            onReorder(order);
+            setAddToCartSuccess(true);
             setTimeout(() => {
                 setAddToCartSuccess(false);
-                // Sau khi hoàn tất, chuyển hướng đến trang giỏ hàng (nếu cần)
-                window.location.href = "/checkout"; // Chuyển hướng bằng JavaScript
+                window.location.href = "/checkout";
             }, 1500);
         } else {
             alert("Đơn hàng này không thể đặt lại.");
         }
+    };
+
+    // Debug: In ra console để kiểm tra
+    console.log('Order status:', order.order_status);
+    console.log('Order status JSON:', JSON.stringify(order.order_status));
+    console.log('Order status type:', typeof order.order_status);
+    console.log('Status colors keys:', Object.keys(statusColors));
+    console.log('Applied color:', statusColors[order.order_status as OrderStatus]);
+
+    // Hàm lấy màu trạng thái với xử lý case-insensitive
+    const getStatusColor = (status: string) => {
+        // Làm sạch và chuẩn hóa status
+        const cleanStatus = status?.toString().trim().toLowerCase();
+        console.log('Clean status:', cleanStatus);
+
+        // Thử tìm key khớp (case-insensitive)
+        const matchingKey = Object.keys(statusColors).find(
+            key => key.toLowerCase() === cleanStatus
+        );
+
+        console.log('Matching key:', matchingKey);
+
+        if (matchingKey) {
+            const color = statusColors[matchingKey as OrderStatus];
+            console.log('Found color:', color);
+            return color;
+        }
+
+        console.log('Using fallback color');
+        // Fallback
+        return 'bg-gray-200 text-gray-800';
     };
 
     return (
@@ -37,10 +67,11 @@ export default function OrderListItem({
                     <div className="flex items-center gap-3 mb-3">
                         <h3 className="font-bold text-lg text-black">Mã đơn hàng: #{order.id}</h3>
                         <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${Object.values(OrderStatus).includes(order.order_status as OrderStatus) // Kiểm tra nếu trạng thái hợp lệ
-                                    ? statusColors[order.order_status as OrderStatus]
-                                    : 'bg-gray-200 text-gray-800'
-                                }`}
+                            className="px-3 py-1 rounded-full text-xs font-medium"
+                            style={{
+                                backgroundColor: order.order_status.toLowerCase() === 'canceled' ? '#fecaca' : '#e5e7eb',
+                                color: order.order_status.toLowerCase() === 'canceled' ? '#991b1b' : '#374151'
+                            }}
                         >
                             {translateOrderStatus(order.order_status as OrderStatus)}
                         </span>
@@ -55,9 +86,7 @@ export default function OrderListItem({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-gray-500 text-xs font-medium">Trạng thái</span>
-                            <span
-                                className={`font-semibold text-black ${statusColors[order.order_status as OrderStatus]}`}
-                            >
+                            <span className="font-semibold text-black">
                                 {translateOrderStatus(order.order_status as OrderStatus)}
                             </span>
                         </div>
@@ -134,7 +163,7 @@ export default function OrderListItem({
                     {order.order_status.toLowerCase() === "canceled" && (
                         <button
                             className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838] transition-colors font-medium"
-                            onClick={() => handleReorder(order)} // Tự động đặt lại đơn hàng
+                            onClick={() => handleReorder(order)}
                         >
                             Đặt lại
                         </button>

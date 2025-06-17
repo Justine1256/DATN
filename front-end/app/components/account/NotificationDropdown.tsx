@@ -151,7 +151,7 @@ const NotificationDropdown: React.FC = () => {
                                 >
                                     {/* Hình ảnh thông báo */}
                                     <div className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 mb-3 flex-shrink-0">
-                                        <img
+                                        {/* <img
                                             src={notification.image_url ? `${STATIC_BASE_URL}${notification.image_url}` : '/images/default-image.png'}
                                             alt={notification.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
@@ -159,7 +159,7 @@ const NotificationDropdown: React.FC = () => {
                                             onError={(e) => {
                                                 e.currentTarget.src = '/images/default-image.png'; // Use a default placeholder image if failed to load
                                             }}
-                                        />
+                                        /> */}
                                     </div>
 
                                     {/* Khu vực nội dung thông báo (tiêu đề, mô tả, thời gian) */}
