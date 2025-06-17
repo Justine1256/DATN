@@ -18,9 +18,29 @@ class OrderController extends Controller
         $userId = Auth::id();
 
         $orders = Order::where('user_id', $userId)
-            ->with('orderDetails.product')
+            ->with(['orderDetails.product', 'shop'])
             ->latest()
-            ->get();
+            ->get()
+            ->map(function ($order) {
+                return [
+                    'id' => $order->id,
+                    'user_id' => $order->user_id,
+                    'shop_name' => $order->shop->name ?? null, // 👈 thêm tên shop
+                    'final_amount' => $order->final_amount,
+                    'total_amount' => $order->total_amount,
+                    'payment_method' => $order->payment_method,
+                    'payment_status' => $order->payment_status,
+                    'transaction_id' => $order->transaction_id,
+                    'order_status' => $order->order_status,
+                    'cancel_status' => $order->cancel_status,
+                    'cancel_reason' => $order->cancel_reason,
+                    'shipping_status' => $order->shipping_status,
+                    'shipping_address' => $order->shipping_address,
+                    'created_at' => $order->created_at,
+                    'updated_at' => $order->updated_at,
+                    'order_details' => $order->orderDetails
+                ];
+            });
 
         return response()->json([
             'orders' => $orders
