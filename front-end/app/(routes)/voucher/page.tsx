@@ -27,23 +27,7 @@ export default function Page() {
                     <VoucherList />
                 </div>
 
-                {/* Tiêu đề */}
-                <div className="relative flex justify-center items-center mt-24 mb-12 w-full max-w-[1170px] px-4">
-                    <div className="relative z-10 bg-gradient-to-r from-[#db4444] to-[#b03030] 
-      text-white font-extrabold text-[32px] md:text-[36px] px-10 py-5 
-      rounded-full shadow-xl tracking-wide border-[6px] border-white 
-      transition duration-500 hover:brightness-110 text-center">
-
-                        Voucher Danh Mục
-
-                        {/* Ánh sáng quét ngang dịu */}
-                        <div className="absolute inset-0 overflow-hidden rounded-full pointer-events-none">
-                            <div className="absolute top-0 left-[-75%] w-[150%] h-full 
-          bg-gradient-to-r from-transparent via-white/10 to-transparent 
-          transform rotate-12 animate-glow-slide" />
-                        </div>
-                    </div>
-                </div>
+              
 
 
                 {/* Voucher theo danh mục */}
