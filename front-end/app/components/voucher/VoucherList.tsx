@@ -71,7 +71,7 @@ export default function VoucherList() {
         try {
             const token = Cookies.get('authToken');
             const response = await axios.post(
-                `${API_BASE_URL}/vouchersave`,
+                `${API_BASE_URL}/voucherseve`,
                 { voucherId },
                 {
                     headers: {

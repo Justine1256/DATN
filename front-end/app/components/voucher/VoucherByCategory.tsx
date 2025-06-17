@@ -44,43 +44,32 @@ export default function VoucherByCategory() {
     const [vouchers, setVouchers] = useState<any[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
     useEffect(() => {
         fetchVouchers();
     }, [selectedCategory]);
 
     const fetchVouchers = async () => {
-        try {
-            setIsTransitioning(true);
-            setLoading(true);
-            setError(null);
+        setLoading(true);
+        setError(null);
 
+        try {
             const response = await fetch(`${API_BASE_URL}/vouchers/by-category/${selectedCategory}`);
             if (!response.ok) {
-                throw new Error('Lỗi khi tải mã giảm giá');
+                setError('Không thể tải mã giảm giá');
+                return;
             }
 
             const data = await response.json();
-            console.log('Dữ liệu trả về:', data);
-
             if (Array.isArray(data)) {
-                // Add a small delay for smooth transition
-                setTimeout(() => {
-                    setVouchers(data);
-                    setLoading(false);
-                    setIsTransitioning(false);
-                }, 300);
+                setVouchers(data);
             } else {
                 setError('Dữ liệu không đúng định dạng');
-                setLoading(false);
-                setIsTransitioning(false);
             }
         } catch (err) {
-            console.error('Lỗi khi gọi API:', err);
-            setError('Lỗi khi tải mã giảm giá');
+            setError('Có lỗi khi tải dữ liệu');
+        } finally {
             setLoading(false);
-            setIsTransitioning(false);
         }
     };
 
@@ -129,8 +118,8 @@ export default function VoucherByCategory() {
                             >
                                 {/* Background */}
                                 <div className={`absolute inset-0 rounded-2xl transition-all duration-300 ${isActive
-                                        ? `bg-gradient-to-br ${gradientColor} shadow-lg`
-                                        : 'bg-white border-2 border-gray-200 group-hover:border-gray-300'
+                                    ? `bg-gradient-to-br ${gradientColor} shadow-lg`
+                                    : 'bg-white border-2 border-gray-200 group-hover:border-gray-300'
                                     }`} />
 
                                 {/* Glow effect for active category */}
@@ -141,14 +130,14 @@ export default function VoucherByCategory() {
                                 {/* Content */}
                                 <div className="relative z-10 flex flex-col items-center">
                                     <div className={`text-3xl mb-2 transition-all duration-300 ${isActive
-                                            ? 'text-white transform scale-110'
-                                            : 'text-gray-600 group-hover:text-gray-800'
+                                        ? 'text-white transform scale-110'
+                                        : 'text-gray-600 group-hover:text-gray-800'
                                         }`}>
                                         <Icon />
                                     </div>
                                     <span className={`font-semibold text-xs text-center leading-tight transition-all duration-300 ${isActive
-                                            ? 'text-white'
-                                            : 'text-gray-700 group-hover:text-gray-900'
+                                        ? 'text-white'
+                                        : 'text-gray-700 group-hover:text-gray-900'
                                         }`}>
                                         {cat}
                                     </span>
@@ -179,35 +168,16 @@ export default function VoucherByCategory() {
                 </div>
 
                 {/* Voucher List */}
-                <div className={`transition-all duration-500 ${isTransitioning ? 'opacity-50 transform translate-y-4' : 'opacity-100'}`}>
+                <div className="transition-all duration-500">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[300px]">
                         {loading ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-16">
-                                <div className="relative mb-6">
-                                    <div className="w-12 h-12 border-4 border-red-200 border-t-red-500 rounded-full animate-spin"></div>
-                                    <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-b-red-300 rounded-full animate-pulse"></div>
-                                </div>
-                                <div className="text-center space-y-2">
-                                    <h3 className="text-lg font-semibold text-gray-700">Đang tải mã giảm giá...</h3>
-                                    <p className="text-sm text-gray-500">Vui lòng chờ trong giây lát</p>
-                                </div>
+                                <div className="w-12 h-12 border-4 border-red-200 border-t-red-500 rounded-full animate-spin"></div>
                             </div>
                         ) : error ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-16">
-                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
-                                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.084 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                    </svg>
-                                </div>
                                 <div className="text-center space-y-2">
-                                    <h3 className="text-lg font-semibold text-gray-700">Có lỗi xảy ra</h3>
-                                    <p className="text-sm text-gray-600">{error}</p>
-                                    <button
-                                        onClick={fetchVouchers}
-                                        className="mt-4 px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200"
-                                    >
-                                        Thử lại
-                                    </button>
+                                    <h3 className="text-lg font-semibold text-gray-700">{error}</h3>
                                 </div>
                             </div>
                         ) : filtered.length > 0 ? (
@@ -244,20 +214,6 @@ export default function VoucherByCategory() {
                         <p className="text-gray-600 mb-4">
                             Tìm thấy <span className="font-bold text-red-500">{filtered.length}</span> mã giảm giá cho danh mục {selectedCategory}
                         </p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {categories.filter(cat => cat !== selectedCategory).slice(0, 3).map(cat => (
-                                <button
-                                    key={cat}
-                                    onClick={() => handleCategoryChange(cat)}
-                                    className="inline-flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full hover:bg-gray-50 transition-colors duration-200 text-sm"
-                                >
-                                    <div className="text-lg">
-                                        {React.createElement(iconMap[cat])}
-                                    </div>
-                                    <span>Xem {cat}</span>
-                                </button>
-                            ))}
-                        </div>
                     </div>
                 )}
             </div>

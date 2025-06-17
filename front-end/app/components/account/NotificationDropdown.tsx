@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import { useState, useEffect } from "react";
 import { Bell, ExternalLink, Clock } from "lucide-react";
 import Link from "next/link";
@@ -18,7 +18,6 @@ interface Notification {
 }
 
 const NotificationDropdown: React.FC = () => {
-    // Khởi tạo các state cần thiết cho component
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -156,8 +155,9 @@ const NotificationDropdown: React.FC = () => {
                                             src={notification.image_url ? `${STATIC_BASE_URL}${notification.image_url}` : '/images/default-image.png'}
                                             alt={notification.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                            loading="lazy" // Lazy load image to avoid continuous fetching
                                             onError={(e) => {
-                                                e.currentTarget.src = '/images/default-image.png';
+                                                e.currentTarget.src = '/images/default-image.png'; // Use a default placeholder image if failed to load
                                             }}
                                         />
                                     </div>
