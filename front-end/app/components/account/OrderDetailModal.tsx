@@ -161,22 +161,30 @@ export default function OrderDetailModal({
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="text-sm text-gray-900">
-                                                    {detail.product.option1 && (
+                                                    {/* Kiểm tra và hiển thị value1 nếu có */}
+                                                    {detail.product.value1 ? (
                                                         <div className="mb-1">
                                                             <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                                                {detail.product.option1}
+                                                                {detail.product.value1}
                                                             </span>
                                                         </div>
+                                                    ) : (
+                                                        <div className="text-xs text-gray-400">Không có giá trị 1</div>
                                                     )}
-                                                    {detail.product.option2 && (
+
+                                                    {/* Kiểm tra và hiển thị value2 nếu có */}
+                                                    {detail.product.value2 ? (
                                                         <div>
                                                             <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                                                {detail.product.option2}
+                                                                {detail.product.value2}
                                                             </span>
                                                         </div>
+                                                    ) : (
+                                                        <div className="text-xs text-gray-400">Không có giá trị 2</div>
                                                     )}
                                                 </div>
                                             </td>
+
                                             <td className="px-4 py-4 text-center">
                                                 <div className="text-sm font-medium text-gray-900">
                                                     {parseFloat(detail.price_at_time).toLocaleString()}₫

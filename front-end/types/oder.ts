@@ -16,10 +16,12 @@ export interface Product {
     image: string[];
     shop_id: number;
     description?: string;
-    option1?: string;
-    option2?: string;
+    value1?: string;  // Thêm trường này để lưu giá trị 1
+    value2?: string;  // Thêm trường này để lưu giá trị 2
     category_id?: number;
 }
+
+
 
 export interface OrderDetail {
     id: number;
