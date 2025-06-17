@@ -179,7 +179,8 @@ export default function OrderSummary({
           </div>
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Phí vận chuyển:</span>
-            <span>{shipping.toLocaleString()}đ</span>
+            <span>{shipping ? shipping.toLocaleString('vi-VN') : '0'}đ</span>
+
           </div>
           <div className="flex justify-between font-semibold text-lg text-brand pt-3">
             <span>Tổng thanh toán:</span>

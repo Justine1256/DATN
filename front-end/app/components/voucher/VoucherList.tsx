@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import VoucherShipCard, { VoucherShip } from './VoucherCard';
 import Cookies from 'js-cookie';
-import { API_BASE_URL } from "@/utils/api"; // Sử dụng biến môi trường API_BASE_URL
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import axios from 'axios';
 
 export default function VoucherList() {

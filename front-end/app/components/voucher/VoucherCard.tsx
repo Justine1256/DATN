@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import React from "react";
-
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 export interface VoucherShip {
     id: number;
     discountText?: string;
@@ -54,10 +54,13 @@ export default function VoucherShipCard({
             <div className="flex items-center justify-center w-[130px] h-full bg-white">
                 <div className="w-[114px] h-[114px] rounded-md overflow-hidden border border-gray-200 flex items-center justify-center bg-white">
                     <Image
-                        src={imageUrl || "/ship.jpg"}
+                        src={`${STATIC_BASE_URL}/path/to/your/image.jpg`}
                         alt="logo"
+                        width={114} // Đặt chiều rộng
+                        height={114} // Đặt chiều cao
                         className="w-full h-full object-contain"
                     />
+
                 </div>
             </div>
 

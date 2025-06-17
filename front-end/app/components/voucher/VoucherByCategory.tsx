@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import VoucherShipCard from './VoucherCard';
-
+import { API_BASE_URL } from "@/utils/api";
 import { IconType } from 'react-icons';
 import { FaTshirt, FaHeartbeat, FaTv } from "react-icons/fa";
 import {
@@ -35,36 +35,33 @@ export default function VoucherByCategory() {
     const [error, setError] = useState<string | null>(null); // Trạng thái lỗi
 
     useEffect(() => {
-        // Lấy dữ liệu voucher từ API khi thay đổi danh mục
         const fetchVouchers = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`http://localhost:8000/api/vouchers/by-category/3`);
+                // Sử dụng selectedCategory trong URL API
+                const response = await fetch(`${API_BASE_URL}/vouchers/by-category/${selectedCategory}`);
                 if (!response.ok) {
                     throw new Error('Lỗi khi tải mã giảm giá');
                 }
                 const data = await response.json();
-
-                // Log dữ liệu để kiểm tra cấu trúc
                 console.log('Dữ liệu trả về:', data);
 
-                // Kiểm tra xem dữ liệu có phải là mảng không trước khi cập nhật state
                 if (Array.isArray(data)) {
-                    setVouchers(data); // Giả sử dữ liệu trả về là một mảng các voucher
+                    setVouchers(data);
                 } else {
                     setError('Dữ liệu không đúng định dạng');
                 }
                 setLoading(false);
             } catch (err) {
+                console.error('Lỗi khi gọi API:', err);
                 setError('Lỗi khi tải mã giảm giá');
                 setLoading(false);
             }
         };
 
         fetchVouchers();
-    }, [selectedCategory]); // Lấy lại dữ liệu voucher khi thay đổi danh mục
+    }, [selectedCategory]); // Mỗi khi category thay đổi sẽ gọi lại API
 
-    // Kiểm tra xem vouchers có phải là mảng và sau đó lọc theo danh mục đã chọn
     const filtered = Array.isArray(vouchers)
         ? vouchers.filter((v) => v.category === selectedCategory)
         : [];
@@ -72,7 +69,7 @@ export default function VoucherByCategory() {
     return (
         <section className="w-full bg-white py-10">
             <div className="max-w-[1120px] mx-auto px-4">
-                {/* ✅ Danh mục theo icon */}
+                {/* Danh mục theo icon */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 mb-8">
                     {categories.map((cat) => {
                         const Icon = iconMap[cat];
@@ -96,7 +93,7 @@ export default function VoucherByCategory() {
                     })}
                 </div>
 
-                {/* ✅ Danh sách voucher */}
+                {/* Danh sách voucher */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[180px]">
                     {loading ? (
                         <div className="col-span-full text-center text-gray-500 text-base py-8">
