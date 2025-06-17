@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Image from "next/image";
-import { Order } from "../../../types/oder";
-import { formatImageUrl, statusColors,OrderStatus, translateOrderStatus, groupByShop } from "../../../types/utils";
+import { Order, OrderStatus } from "../../../types/oder";
+import { formatImageUrl, statusColors, translateOrderStatus, groupByShop } from "../../../types/utils";
 
 interface OrderListItemProps {
     order: Order;
@@ -14,28 +14,19 @@ export default function OrderListItem({
     onViewDetails,
     onReorder,
 }: OrderListItemProps) {
-    const [showAddToCartPopup, setShowAddToCartPopup] = useState(false);
     const [addToCartSuccess, setAddToCartSuccess] = useState(false);
 
     const handleReorder = (order: Order) => {
         if (order.order_status.toLowerCase() === "canceled") {
-            setShowAddToCartPopup(true);
-        } else {
-            alert("Đơn hàng này không thể đặt lại.");
-        }
-    };
-
-    const handleAddToCartConfirmation = (confirmation: boolean, order: Order) => {
-        setShowAddToCartPopup(false);
-
-        if (confirmation) {
-            onReorder(order);
-            setAddToCartSuccess(true);
+            onReorder(order);  // Thực hiện đặt lại ngay lập tức
+            setAddToCartSuccess(true);  // Hiển thị thông báo thành công
             setTimeout(() => {
                 setAddToCartSuccess(false);
                 // Sau khi hoàn tất, chuyển hướng đến trang giỏ hàng (nếu cần)
                 window.location.href = "/checkout"; // Chuyển hướng bằng JavaScript
             }, 1500);
+        } else {
+            alert("Đơn hàng này không thể đặt lại.");
         }
     };
 
@@ -46,13 +37,13 @@ export default function OrderListItem({
                     <div className="flex items-center gap-3 mb-3">
                         <h3 className="font-bold text-lg text-black">Mã đơn hàng: #{order.id}</h3>
                         <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[order.order_status as OrderStatus] || 'bg-gray-200 text-gray-800'}`}
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${Object.values(OrderStatus).includes(order.order_status as OrderStatus) // Kiểm tra nếu trạng thái hợp lệ
+                                    ? statusColors[order.order_status as OrderStatus]
+                                    : 'bg-gray-200 text-gray-800'
+                                }`}
                         >
                             {translateOrderStatus(order.order_status as OrderStatus)}
                         </span>
-
-
-
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
@@ -143,35 +134,13 @@ export default function OrderListItem({
                     {order.order_status.toLowerCase() === "canceled" && (
                         <button
                             className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838] transition-colors font-medium"
-                            onClick={() => handleReorder(order)}
+                            onClick={() => handleReorder(order)} // Tự động đặt lại đơn hàng
                         >
                             Đặt lại
                         </button>
                     )}
                 </div>
             </div>
-
-            {showAddToCartPopup && (
-                <div className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex justify-center items-center z-10">
-                    <div className="bg-white p-6 rounded-lg shadow-lg text-center w-80">
-                        <p className="mb-4 text-black">Bạn có muốn thêm vào giỏ hàng?</p>
-                        <div className="flex justify-around">
-                            <button
-                                onClick={() => handleAddToCartConfirmation(true, order)}
-                                className="px-4 py-2 bg-green-500 text-white rounded-lg"
-                            >
-                                Có
-                            </button>
-                            <button
-                                onClick={() => handleAddToCartConfirmation(false, order)}
-                                className="px-4 py-2 bg-red-500 text-white rounded-lg"
-                            >
-                                Không
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {addToCartSuccess && (
                 <div className="fixed top-20 right-5 z-[9999] bg-white text-green-500 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">

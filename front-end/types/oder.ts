@@ -1,12 +1,21 @@
-// types.ts
+// Giữ các enum tại đây
+
 export enum OrderStatus {
     Processing = "processing",
     Shipping = "shipping",
     Delivered = "delivered",
-    Canceled = "canceled", // Đảm bảo giá trị này có trong enum
+    Canceled = "canceled",
     Pending = "pending"
 }
-  
+
+export enum ShippingStatus {
+    Pending = "pending",
+    Preparing = "preparing",
+    Shipping = "shipping",
+    Delivered = "delivered",
+    Failed = "failed",
+    Returned = "returned"
+}
 
 export interface Product {
     id: number;
@@ -16,12 +25,10 @@ export interface Product {
     image: string[];
     shop_id: number;
     description?: string;
-    value1?: string;  // Thêm trường này để lưu giá trị 1
-    value2?: string;  // Thêm trường này để lưu giá trị 2
+    value1?: string;
+    value2?: string;
     category_id?: number;
 }
-
-
 
 export interface OrderDetail {
     id: number;
@@ -35,8 +42,8 @@ export interface OrderDetail {
 export interface Order {
     id: number;
     final_amount: string;
-    order_status: OrderStatus;  // Sử dụng enum ở đây
-    shipping_status: string;
+    order_status: OrderStatus;
+    shipping_status: ShippingStatus;
     payment_method: string;
     payment_status: string;
     created_at: string;

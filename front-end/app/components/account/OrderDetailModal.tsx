@@ -1,14 +1,6 @@
 import Image from "next/image";
-import { Order } from "../../../types/oder";
-import {
-    formatImageUrl,
-    statusColors,
-    shippingStatusColors,
-    translateOrderStatus,
-    translateShippingStatus,
-    OrderStatus,
-    ShippingStatus
-} from "../../../types/utils";
+import { Order, OrderStatus } from "../../../types/oder";
+import { formatImageUrl, translateOrderStatus } from "../../../types/utils";
 
 interface OrderDetailModalProps {
     order: Order | null;
@@ -62,9 +54,7 @@ export default function OrderDetailModal({
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Trạng thái:</span>
-                                    <span
-                                        className={`px-2 py-1 rounded-full text-xs font-bold ${statusColors[order.order_status as OrderStatus] || 'bg-gray-200 text-gray-800'}`}
-                                    >
+                                    <span className="px-2 py-1 rounded-full text-xs font-bold text-black">
                                         {translateOrderStatus(order.order_status as OrderStatus)}
                                     </span>
                                 </div>
@@ -72,14 +62,6 @@ export default function OrderDetailModal({
                                     <span className="text-gray-600">Thanh toán:</span>
                                     <span className="font-medium text-black">
                                         {order.payment_method}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Giao hàng:</span>
-                                    <span
-                                        className={`px-2 py-1 rounded-full text-xs font-bold ${shippingStatusColors[order.shipping_status as ShippingStatus] || 'bg-gray-200 text-gray-800'}`}
-                                    >
-                                        {translateShippingStatus(order.shipping_status as ShippingStatus)}
                                     </span>
                                 </div>
                             </div>
@@ -228,8 +210,7 @@ export default function OrderDetailModal({
                     <div className="flex justify-end gap-4">
                         {order.order_status.toLowerCase() !== "canceled" && (
                             <button
-                                className={`px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium ${isCancelling ? "opacity-50 cursor-not-allowed" : ""
-                                    }`}
+                                className={`px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium ${isCancelling ? "opacity-50 cursor-not-allowed" : ""}`}
                                 onClick={() => onShowConfirmCancel(order.id)}
                                 disabled={isCancelling}
                             >

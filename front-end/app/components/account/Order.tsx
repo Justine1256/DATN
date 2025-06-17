@@ -3,10 +3,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/utils/api";
 import { useRouter } from "next/navigation";
-
-// Các component được sử dụng
-
-import { Order ,OrderStatus} from "../../../types/oder";
+import { Order, OrderStatus } from "../../../types/oder";
 import OrderFilterTabs from "./OrderFilterTabs";
 import OrderListItem from "./OrderListItem";
 import OrderDetailModal from "./OrderDetailModal";
@@ -21,53 +18,35 @@ export default function OrderSection() {
   const [loading, setLoading] = useState(true);
   const [popupVisible, setPopupVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showNotification, setShowNotification] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const [showConfirmCancelPopup, setShowConfirmCancelPopup] = useState(false);
   const [orderToCancelId, setOrderToCancelId] = useState<number | null>(null);
-
-  // Chỉ còn state cho thông báo thành công khi thêm vào giỏ hàng
-  const [addToCartSuccess, setAddToCartSuccess] = useState(false);
 
   const token = Cookies.get("authToken"); // Lấy token từ Cookies một lần
 
   const fetchOrders = async () => {
     setLoading(true); // Bắt đầu loading
-    console.log('Đang tải đơn hàng...');
     try {
       const res = await axios.get(`${API_BASE_URL}/orderall`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Kiểm tra dữ liệu trả về
-      console.log('Dữ liệu trả về từ API:', res.data);
-
       const data = Array.isArray(res.data.orders) ? res.data.orders : [];
-
-      // Log dữ liệu đã được xử lý
-      console.log('Danh sách đơn hàng đã xử lý:', data);
 
       setOrders(data); // Lưu vào state orders
       if (activeTab === "all") {
         setFilteredOrders(data); // Nếu tab hiện tại là "all", lọc theo tất cả đơn hàng
       } else {
         // Lọc theo trạng thái đơn hàng
-        const filteredData = data.filter(order => order.order_status.toLowerCase() === activeTab);
-        console.log('Danh sách đơn hàng đã lọc theo trạng thái:', filteredData);
+        const filteredData = data.filter((order) => order.order_status.toLowerCase() === activeTab);
         setFilteredOrders(filteredData);
       }
     } catch (err) {
       console.error("❌ Lỗi khi lấy danh sách đơn hàng:", err);
-      setNotificationMessage("Lỗi khi tải đơn hàng. Vui lòng thử lại.");
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 3000);
     } finally {
       setLoading(false); // Kết thúc loading
-      console.log('Kết thúc tải đơn hàng');
     }
   };
-
 
   useEffect(() => {
     fetchOrders();
@@ -130,26 +109,12 @@ export default function OrderSection() {
             : order
         )
       );
-      
 
       setSelectedOrder((prevSelected) =>
         prevSelected ? { ...prevSelected, order_status: OrderStatus.Canceled } : null
       );
-      
-
-      setNotificationMessage("Yêu cầu hủy đơn hàng đã được gửi thành công!");
-      setShowNotification(true);
-
-      setTimeout(() => {
-        setShowNotification(false);
-        closePopup();
-      }, 1500);
-
     } catch (err) {
       console.error("❌ Hủy đơn hàng thất bại:", err);
-      setNotificationMessage("Hủy đơn hàng thất bại. Vui lòng thử lại.");
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 3000);
     } finally {
       setIsCancelling(false);
       setOrderToCancelId(null);
@@ -158,11 +123,7 @@ export default function OrderSection() {
 
   // Đặt lại đơn hàng và thêm vào giỏ hàng
   const handleReorder = async (order: Order) => {
-    if (!token) {
-      setNotificationMessage("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
-      setShowNotification(true);
-      return;
-    }
+    if (!token) return;
 
     try {
       const response = await axios.post(
@@ -173,47 +134,14 @@ export default function OrderSection() {
         }
       );
 
-      // Kiểm tra nếu API gọi thành công, chuyển hướng đến giỏ hàng
       router.push(`/checkout`);
-
-      // Hiển thị thông báo thành công
-      setNotificationMessage("✔ Đã thêm vào giỏ hàng!");
-      setShowNotification(true);
-
-      setTimeout(() => {
-        setShowNotification(false);
-      }, 1500);
-
     } catch (error) {
-      // Log lỗi khi có vấn đề
       console.error("❌ Lỗi khi thêm vào giỏ hàng:", error);
-
-      // Hiển thị thông báo lỗi đơn giản
-      setNotificationMessage("Có lỗi xảy ra, vui lòng thử lại.");
-      setShowNotification(true);
-
-      setTimeout(() => {
-        setShowNotification(false);
-      }, 3000);
     }
   };
 
   return (
     <div className="w-full max-w-[1400px] mx-auto mt-10 px-4">
-      {/* Popup thông báo chung */}
-      {showNotification && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
-          {notificationMessage}
-        </div>
-      )}
-
-      {/* Popup thành công khi thêm vào giỏ hàng (chỉ hiển thị khi addToCartSuccess là true) */}
-      {addToCartSuccess && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-green-500 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
-          {notificationMessage} {/* Hiển thị thông báo thành công */}
-        </div>
-      )}
-
       <div className="bg-white p-6 rounded-xl shadow-lg min-h-[500px]">
         <h2 className="text-xl font-semibold text-[#db4444] mb-4 text-center">
           Đơn mua của tôi
