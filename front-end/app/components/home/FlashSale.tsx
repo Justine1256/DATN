@@ -49,7 +49,6 @@ export default function FlashSale() {
       })
       .finally(() => setLoading(false));
   }, []);
-console.log('Flash Sale Products:', products); // Log sản phẩm để kiểm tra
   return (
     <section className="bg-white py-10">
       <div className="max-w-[1170px] mx-auto px-4">

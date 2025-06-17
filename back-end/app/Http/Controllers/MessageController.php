@@ -5,106 +5,55 @@ namespace App\Http\Controllers;
 use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 
 class MessageController extends Controller
 {
-    // Lấy tin nhắn giữa user hiện tại và một user khác (chat 1-1)
+    // GET /messages?user_id=2 → Lấy tất cả tin nhắn giữa người dùng hiện tại và người có id = 2
     public function index(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'user_id' => 'required|exists:users,id',
-            'limit' => 'integer|min:1|max:100',
-            'offset' => 'integer|min:0',
-        ]);
+        $user = Auth::user();
+        $otherUserId = $request->query('user_id');
 
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors()
-            ], 422);
+        if (!$otherUserId) {
+            return response()->json(['message' => 'Missing user_id'], 400);
         }
 
-        $userId = Auth::id();
-        $otherUserId = $request->user_id;
-
-        // Lấy tin nhắn giữa 2 user, sắp xếp mới nhất trước
-        $limit = $request->limit ?? 20;
-        $offset = $request->offset ?? 0;
-
-        $messages = Message::where(function($q) use ($userId, $otherUserId) {
-                $q->where('sender_id', $userId)
-                  ->where('receiver_id', $otherUserId);
+        $messages = Message::with(['sender:id,name,email,avatar', 'receiver:id,name,email,avatar']) // Optional fields
+            ->where(function ($query) use ($user, $otherUserId) {
+                $query->where('sender_id', $user->id)->where('receiver_id', $otherUserId);
             })
-            ->orWhere(function($q) use ($userId, $otherUserId) {
-                $q->where('sender_id', $otherUserId)
-                  ->where('receiver_id', $userId);
+            ->orWhere(function ($query) use ($user, $otherUserId) {
+                $query->where('sender_id', $otherUserId)->where('receiver_id', $user->id);
             })
-            ->orderBy('created_at', 'desc')
-            ->skip($offset)
-            ->take($limit)
+            ->orderBy('created_at', 'asc')
             ->get();
 
-        return response()->json($messages, 200);
+        return response()->json($messages);
     }
 
-    // Gửi tin nhắn mới
+    // POST /messages → Gửi tin nhắn mới
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'receiver_id' => 'required|exists:users,id|different:' . Auth::id(),
-            'message' => 'nullable|string|max:1000',
-            'image' => 'nullable|string|max:255', // hoặc validate hình ảnh nếu upload file
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'receiver_id' => 'required|integer|exists:users,id',
+            'message' => 'nullable|string',
+            'image' => 'nullable|string',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        if (empty($request->message) && empty($request->image)) {
-            return response()->json(['errors' => ['message' => ['Message or image is required']]], 422);
-        }
 
         $message = Message::create([
-            'sender_id' => Auth::id(),
-            'receiver_id' => $request->receiver_id,
-            'message' => $request->message,
-            'image' => $request->image,
-            'status' => 'show',
+            'sender_id' => $user->id,
+            'receiver_id' => $validated['receiver_id'],
+            'message' => $validated['message'] ?? null,
+            'image' => $validated['image'] ?? null,
         ]);
+
+        // Load lại sender/receiver để trả về dữ liệu đầy đủ
+        $message->load('sender:id,name,email,avatar', 'receiver:id,name,email,avatar');
 
         return response()->json($message, 201);
     }
 
-    // Ẩn tin nhắn (set status = hidden)
-    public function hide($id)
-    {
-        $message = Message::where('id', $id)
-            ->where('sender_id', Auth::id()) // chỉ người gửi được ẩn
-            ->first();
-
-        if (!$message) {
-            return response()->json(['message' => 'Message not found or permission denied'], 404);
-        }
-
-        $message->status = 'hidden';
-        $message->save();
-
-        return response()->json(['message' => 'Message hidden'], 200);
-    }
-
-    // Xoá tin nhắn (xoá mềm)
-    public function destroy($id)
-    {
-        $message = Message::where('id', $id)
-            ->where('sender_id', Auth::id()) // chỉ người gửi mới được xoá
-            ->first();
-
-        if (!$message) {
-            return response()->json(['message' => 'Message not found or permission denied'], 404);
-        }
-
-        $message->delete();
-
-        return response()->json(['message' => 'Message deleted'], 200);
-    }
+    // (Có thể có thêm hàm xóa hoặc đánh dấu đã đọc nếu cần)
 }

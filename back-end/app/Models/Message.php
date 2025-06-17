@@ -14,16 +14,15 @@ class Message extends Model
         'receiver_id',
         'message',
         'image',
-        'status',
     ];
 
-    // Quan hệ gửi
+    protected $with = ['sender', 'receiver']; // 👉 Auto load quan hệ
+
     public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id');
     }
 
-    // Quan hệ nhận
     public function receiver()
     {
         return $this->belongsTo(User::class, 'receiver_id');
