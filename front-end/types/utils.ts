@@ -1,5 +1,5 @@
-import { STATIC_BASE_URL } from "@/utils/api"; // Đảm bảo STATIC_BASE_URL đã được định nghĩa
-import { OrderStatus, ShippingStatus } from "./oder"; // Import các enum từ types.ts
+import { STATIC_BASE_URL } from "@/utils/api"; 
+import { OrderStatus, ShippingStatus } from "./oder"; 
 
 // Hàm xử lý URL ảnh sản phẩm
 export const formatImageUrl = (img: unknown): string => {
