@@ -33,18 +33,29 @@ export default function OrderSection() {
   const token = Cookies.get("authToken"); // Lấy token từ Cookies một lần
 
   const fetchOrders = async () => {
-    setLoading(true);
+    setLoading(true); // Bắt đầu loading
+    console.log('Đang tải đơn hàng...');
     try {
       const res = await axios.get(`${API_BASE_URL}/orderall`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // Kiểm tra dữ liệu trả về
+      console.log('Dữ liệu trả về từ API:', res.data);
+
       const data = Array.isArray(res.data.orders) ? res.data.orders : [];
-      setOrders(data);
+
+      // Log dữ liệu đã được xử lý
+      console.log('Danh sách đơn hàng đã xử lý:', data);
+
+      setOrders(data); // Lưu vào state orders
       if (activeTab === "all") {
-        setFilteredOrders(data);
+        setFilteredOrders(data); // Nếu tab hiện tại là "all", lọc theo tất cả đơn hàng
       } else {
-        setFilteredOrders(data.filter(order => order.order_status.toLowerCase() === activeTab));
+        // Lọc theo trạng thái đơn hàng
+        const filteredData = data.filter(order => order.order_status.toLowerCase() === activeTab);
+        console.log('Danh sách đơn hàng đã lọc theo trạng thái:', filteredData);
+        setFilteredOrders(filteredData);
       }
     } catch (err) {
       console.error("❌ Lỗi khi lấy danh sách đơn hàng:", err);
@@ -52,9 +63,11 @@ export default function OrderSection() {
       setShowNotification(true);
       setTimeout(() => setShowNotification(false), 3000);
     } finally {
-      setLoading(false);
+      setLoading(false); // Kết thúc loading
+      console.log('Kết thúc tải đơn hàng');
     }
   };
+
 
   useEffect(() => {
     fetchOrders();
