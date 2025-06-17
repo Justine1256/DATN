@@ -92,7 +92,7 @@ const Header = () => {
   // Định nghĩa các liên kết điều hướng
   const navLinks = [
     { href: "/", label: "Trang chủ" },
-    // { href: "/contact", label: "Liên hệ" },
+    { href: "/category", label: "Danh Mục" },
     { href: "/about", label: "Giới thiệu" },
     { href: "/voucher", label: "Mã giảm giá" },
   ];
