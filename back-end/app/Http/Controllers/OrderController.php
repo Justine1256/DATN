@@ -296,7 +296,10 @@ class OrderController extends Controller
     {
         $userId = Auth::id();
 
-        $order = Order::where('id', $orderId)->where('user_id', $userId)->first();
+        $order = Order::where('id', $orderId)
+            ->where('user_id', $userId)
+            ->first();
+
         if (!$order) {
             return response()->json(['message' => 'Đơn hàng không tồn tại hoặc không thuộc quyền truy cập'], 404);
         }
@@ -307,27 +310,29 @@ class OrderController extends Controller
             return response()->json(['message' => 'Đơn hàng không có sản phẩm'], 400);
         }
 
-        // (Optional) Xoá giỏ hàng hiện tại
+        // Xoá giỏ hàng hiện tại của user (nếu cần)
         Cart::where('user_id', $userId)->delete();
 
         foreach ($orderDetails as $detail) {
-            // Kiểm tra tồn kho
             $product = $detail->product;
             if (!$product || $product->stock <= 0) continue;
 
-            $quantity = min($detail->quantity, $product->stock); // Không vượt quá tồn kho
+            $quantity = min($detail->quantity, $product->stock);
 
             Cart::create([
-                'user_id' => $userId,
-                'product_id' => $detail->product_id,
-                'quantity' => $quantity,
-                'is_active' => true
+                'user_id'     => $userId,
+                'product_id'  => $detail->product_id,
+                'quantity'    => $quantity,
+                'is_active'   => true
             ]);
         }
 
+        // 👉 Ẩn (soft delete) đơn hàng cũ
+        $order->delete();
+
         return response()->json([
-            'message' => 'Đã thêm lại sản phẩm vào giỏ hàng',
-            'redirect_url' => '/checkout' // FE sẽ dùng để điều hướng
+            'message'       => 'Đã thêm sản phẩm vào giỏ hàng và ẩn đơn cũ',
+            'redirect_url'  => '/checkout'
         ]);
     }
 }

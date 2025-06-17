@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 // Các component được sử dụng
 
-import { Order ,OrderStatus} from "../../../types/oder";
+import { Order, OrderStatus } from "../../../types/oder";
 import OrderFilterTabs from "./OrderFilterTabs";
 import OrderListItem from "./OrderListItem";
 import OrderDetailModal from "./OrderDetailModal";
@@ -130,12 +130,12 @@ export default function OrderSection() {
             : order
         )
       );
-      
+
 
       setSelectedOrder((prevSelected) =>
         prevSelected ? { ...prevSelected, order_status: OrderStatus.Canceled } : null
       );
-      
+
 
       setNotificationMessage("Yêu cầu hủy đơn hàng đã được gửi thành công!");
       setShowNotification(true);
@@ -173,30 +173,21 @@ export default function OrderSection() {
         }
       );
 
-      // Kiểm tra nếu API gọi thành công, chuyển hướng đến giỏ hàng
-      router.push(`/checkout`);
+      // 🧹 Ẩn đơn cũ khỏi UI
+      setOrders((prev) => prev.filter((o) => o.id !== order.id));
+      setFilteredOrders((prev) => prev.filter((o) => o.id !== order.id));
 
-      // Hiển thị thông báo thành công
-      setNotificationMessage("✔ Đã thêm vào giỏ hàng!");
-      setShowNotification(true);
-
-      setTimeout(() => {
-        setShowNotification(false);
-      }, 1500);
+      // ✅ Điều hướng đến trang checkout
+      router.push("/checkout");
 
     } catch (error) {
-      // Log lỗi khi có vấn đề
       console.error("❌ Lỗi khi thêm vào giỏ hàng:", error);
-
-      // Hiển thị thông báo lỗi đơn giản
       setNotificationMessage("Có lỗi xảy ra, vui lòng thử lại.");
       setShowNotification(true);
-
-      setTimeout(() => {
-        setShowNotification(false);
-      }, 3000);
+      setTimeout(() => setShowNotification(false), 3000);
     }
   };
+
 
   return (
     <div className="w-full max-w-[1400px] mx-auto mt-10 px-4">
