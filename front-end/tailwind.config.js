@@ -1,4 +1,3 @@
-/** @type {import('tailwindcss').Config} */
 module.exports = {
     content: [
         "./pages/**/*.{js,ts,jsx,tsx}",
@@ -24,6 +23,7 @@ module.exports = {
         extend: {
             colors: {
                 brand: "#DB4444",
+                customGray: "#f0f0f0", // Example of another custom color
             },
             fontFamily: {
                 sans: ["Montserrat", "sans-serif"],
@@ -59,7 +59,5 @@ module.exports = {
             },
         },
     },
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    // plugins: [require("@tailwindcss/line-clamp")],
 };
   

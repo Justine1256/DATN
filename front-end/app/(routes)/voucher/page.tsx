@@ -16,8 +16,11 @@ export default function Page() {
                     <Image
                         src="/shipfree.png"
                         alt="Banner Hot Coupon"
+                        width={1170} // Set the width of the image
+                        height={700} // Set the height of the image
                         className="w-full h-full object-cover"
                     />
+
                 </div>
                 {/* Danh sách mã giảm giá chính */}
                 <div className="w-full max-w-[1170px]">

@@ -1,7 +1,14 @@
-// OrderDetailModal.tsx
 import Image from "next/image";
 import { Order } from "../../../types/oder";
-import { formatImageUrl, statusColors, translateOrderStatus } from "../../../types/utils";
+import {
+    formatImageUrl,
+    statusColors,
+    shippingStatusColors,
+    translateOrderStatus,
+    translateShippingStatus,
+    OrderStatus,
+    ShippingStatus
+} from "../../../types/utils";
 
 interface OrderDetailModalProps {
     order: Order | null;
@@ -19,6 +26,9 @@ export default function OrderDetailModal({
     isCancelling,
 }: OrderDetailModalProps) {
     if (!isVisible || !order) return null;
+
+    console.log("Trạng thái đơn hàng: ", order.order_status); // Kiểm tra giá trị trạng thái
+    console.log("Trạng thái giao hàng: ", order.shipping_status); // Kiểm tra trạng thái giao hàng
 
     return (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50 p-4 overflow-hidden">
@@ -53,10 +63,9 @@ export default function OrderDetailModal({
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Trạng thái:</span>
                                     <span
-                                        className={`px-2 py-1 rounded-full text-xs ${statusColors[order.order_status.toLowerCase()]
-                                            }`}
+                                        className={`px-2 py-1 rounded-full text-xs font-bold ${statusColors[order.order_status as OrderStatus] || 'bg-gray-200 text-gray-800'}`}
                                     >
-                                        {translateOrderStatus(order.order_status)}
+                                        {translateOrderStatus(order.order_status as OrderStatus)}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
@@ -67,8 +76,10 @@ export default function OrderDetailModal({
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Giao hàng:</span>
-                                    <span className="font-medium text-black">
-                                        {order.shipping_status}
+                                    <span
+                                        className={`px-2 py-1 rounded-full text-xs font-bold ${shippingStatusColors[order.shipping_status as ShippingStatus] || 'bg-gray-200 text-gray-800'}`}
+                                    >
+                                        {translateShippingStatus(order.shipping_status as ShippingStatus)}
                                     </span>
                                 </div>
                             </div>

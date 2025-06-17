@@ -127,12 +127,15 @@ export default function AccountSidebar({
               src={avatarUrl}
               alt="Avatar"
               id="avatarPreview"
+              width={56} // Đặt chiều rộng của hình ảnh
+              height={56} // Đặt chiều cao của hình ảnh
               className="w-full h-full object-cover rounded-full border border-gray-300"
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).onerror = null;
                 e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
               }}
             />
+
             <label
               htmlFor="avatarUpload"
               className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow cursor-pointer group-hover:opacity-100 opacity-0 transition"

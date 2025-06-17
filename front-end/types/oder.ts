@@ -1,4 +1,13 @@
 // types.ts
+export enum OrderStatus {
+    Processing = "processing",
+    Shipping = "shipping",
+    Delivered = "delivered",
+    Canceled = "canceled", // Đảm bảo giá trị này có trong enum
+    Pending = "pending"
+}
+  
+
 export interface Product {
     id: number;
     name: string;
@@ -24,11 +33,11 @@ export interface OrderDetail {
 export interface Order {
     id: number;
     final_amount: string;
-    order_status: string; // "processing", "shipping", "delivered", "canceled", "pending"
+    order_status: OrderStatus;  // Sử dụng enum ở đây
     shipping_status: string;
     payment_method: string;
     payment_status: string;
     created_at: string;
     shipping_address: string;
     order_details: OrderDetail[];
-  }
+}

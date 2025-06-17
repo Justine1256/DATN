@@ -1,12 +1,12 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Order } from "../../../types/oder";
-import { formatImageUrl, statusColors, translateOrderStatus, groupByShop } from "../../../types/utils";
+import { formatImageUrl, statusColors,OrderStatus, translateOrderStatus, groupByShop } from "../../../types/utils";
 
 interface OrderListItemProps {
     order: Order;
     onViewDetails: (order: Order) => void;
-    onReorder: (order: Order) => void; // Hàm reorder khi nhấn nút đặt lại
+    onReorder: (order: Order) => void;
 }
 
 export default function OrderListItem({
@@ -14,33 +14,27 @@ export default function OrderListItem({
     onViewDetails,
     onReorder,
 }: OrderListItemProps) {
-    // State để hiển thị popup xác nhận
     const [showAddToCartPopup, setShowAddToCartPopup] = useState(false);
-    const [addToCartSuccess, setAddToCartSuccess] = useState(false); // State để hiển thị dấu tick
+    const [addToCartSuccess, setAddToCartSuccess] = useState(false);
 
-    // Hàm để xử lý đặt lại đơn hàng
     const handleReorder = (order: Order) => {
-        // Nếu đơn hàng có trạng thái "canceled" thì hiển thị popup xác nhận
         if (order.order_status.toLowerCase() === "canceled") {
             setShowAddToCartPopup(true);
         } else {
-            // Nếu trạng thái đơn hàng không phải "canceled", có thể xử lý hoặc thông báo lỗi ở đây
             alert("Đơn hàng này không thể đặt lại.");
         }
     };
 
-    // Hàm xác nhận thêm vào giỏ hàng từ popup
     const handleAddToCartConfirmation = (confirmation: boolean, order: Order) => {
-        setShowAddToCartPopup(false); // Đóng popup khi người dùng chọn
+        setShowAddToCartPopup(false);
 
         if (confirmation) {
-            onReorder(order); // Gọi hàm onReorder để thực hiện đặt lại đơn hàng
-
-            // Hiển thị dấu tick và chuyển hướng sau khi thêm vào giỏ hàng
-            setAddToCartSuccess(true); // Hiển thị dấu tick xanh
+            onReorder(order);
+            setAddToCartSuccess(true);
             setTimeout(() => {
-                setAddToCartSuccess(false); // Tắt dấu tick sau 1.5s
-                router.push("/checkout"); // Chuyển hướng đến giỏ hàng
+                setAddToCartSuccess(false);
+                // Sau khi hoàn tất, chuyển hướng đến trang giỏ hàng (nếu cần)
+                window.location.href = "/checkout"; // Chuyển hướng bằng JavaScript
             }, 1500);
         }
     };
@@ -52,10 +46,13 @@ export default function OrderListItem({
                     <div className="flex items-center gap-3 mb-3">
                         <h3 className="font-bold text-lg text-black">Mã đơn hàng: #{order.id}</h3>
                         <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[order.order_status.toLowerCase()]}`}
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[order.order_status as OrderStatus] || 'bg-gray-200 text-gray-800'}`}
                         >
-                            {translateOrderStatus(order.order_status)}
+                            {translateOrderStatus(order.order_status as OrderStatus)}
                         </span>
+
+
+
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
@@ -67,8 +64,13 @@ export default function OrderListItem({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-gray-500 text-xs font-medium">Trạng thái</span>
-                            <span className="font-semibold text-black">{translateOrderStatus(order.order_status)}</span>
+                            <span
+                                className={`font-semibold text-black ${statusColors[order.order_status as OrderStatus]}`}
+                            >
+                                {translateOrderStatus(order.order_status as OrderStatus)}
+                            </span>
                         </div>
+
                         <div className="flex flex-col">
                             <span className="text-gray-500 text-xs font-medium">Thanh toán</span>
                             <span className="font-semibold text-black">{order.payment_method}</span>
@@ -138,11 +140,10 @@ export default function OrderListItem({
                     >
                         Xem chi tiết
                     </button>
-                    {/* Nút Đặt lại chỉ hiển thị khi trạng thái là "canceled" */}
                     {order.order_status.toLowerCase() === "canceled" && (
                         <button
                             className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838] transition-colors font-medium"
-                            onClick={() => handleReorder(order)} // Gọi hàm handleReorder khi nhấn "Đặt lại"
+                            onClick={() => handleReorder(order)}
                         >
                             Đặt lại
                         </button>
@@ -150,20 +151,19 @@ export default function OrderListItem({
                 </div>
             </div>
 
-            {/* Popup xác nhận thêm vào giỏ hàng */}
             {showAddToCartPopup && (
                 <div className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex justify-center items-center z-10">
                     <div className="bg-white p-6 rounded-lg shadow-lg text-center w-80">
                         <p className="mb-4 text-black">Bạn có muốn thêm vào giỏ hàng?</p>
                         <div className="flex justify-around">
                             <button
-                                onClick={() => handleAddToCartConfirmation(true, order)} // Người dùng chọn "Có"
+                                onClick={() => handleAddToCartConfirmation(true, order)}
                                 className="px-4 py-2 bg-green-500 text-white rounded-lg"
                             >
                                 Có
                             </button>
                             <button
-                                onClick={() => handleAddToCartConfirmation(false, order)} // Người dùng chọn "Không"
+                                onClick={() => handleAddToCartConfirmation(false, order)}
                                 className="px-4 py-2 bg-red-500 text-white rounded-lg"
                             >
                                 Không
@@ -173,7 +173,6 @@ export default function OrderListItem({
                 </div>
             )}
 
-            {/* Hiển thị dấu tick khi thành công */}
             {addToCartSuccess && (
                 <div className="fixed top-20 right-5 z-[9999] bg-white text-green-500 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
                     ✔ Đã thêm vào giỏ hàng!

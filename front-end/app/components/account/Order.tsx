@@ -5,7 +5,8 @@ import { API_BASE_URL } from "@/utils/api";
 import { useRouter } from "next/navigation";
 
 // Các component được sử dụng
-import { Order } from "../../../types/oder";
+
+import { Order ,OrderStatus} from "../../../types/oder";
 import OrderFilterTabs from "./OrderFilterTabs";
 import OrderListItem from "./OrderListItem";
 import OrderDetailModal from "./OrderDetailModal";
@@ -102,17 +103,26 @@ export default function OrderSection() {
       );
 
       setOrders((prevOrders) =>
-        prevOrders.map((order) => order.id === orderToCancelId ? { ...order, order_status: "canceled" } : order)
-      );
-      setFilteredOrders((prevFilteredOrders) =>
-        prevFilteredOrders.map((order) => order.id === orderToCancelId ? { ...order, order_status: "canceled" } : order)
+        prevOrders.map((order) =>
+          order.id === orderToCancelId
+            ? { ...order, order_status: OrderStatus.Canceled } // Dùng OrderStatus enum
+            : order
+        )
       );
 
-      if (selectedOrder && selectedOrder.id === orderToCancelId) {
-        setSelectedOrder((prevSelected) =>
-          prevSelected ? { ...prevSelected, order_status: "canceled" } : null
-        );
-      }
+      setFilteredOrders((prevFilteredOrders) =>
+        prevFilteredOrders.map((order) =>
+          order.id === orderToCancelId
+            ? { ...order, order_status: OrderStatus.Canceled } // Dùng OrderStatus enum
+            : order
+        )
+      );
+      
+
+      setSelectedOrder((prevSelected) =>
+        prevSelected ? { ...prevSelected, order_status: OrderStatus.Canceled } : null
+      );
+      
 
       setNotificationMessage("Yêu cầu hủy đơn hàng đã được gửi thành công!");
       setShowNotification(true);

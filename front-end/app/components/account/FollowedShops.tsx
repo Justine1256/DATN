@@ -146,6 +146,8 @@ export default function FollowedShopsSection() {
                                                                     : "/default-avatar.png"
                                                         }
                                                         alt={shop.name}
+                                                        width={48} // Đặt chiều rộng của hình ảnh nhỏ hơn
+                                                        height={48} // Đặt chiều cao của hình ảnh nhỏ hơn
                                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                                     />
                                                 </div>
@@ -211,7 +213,7 @@ export default function FollowedShopsSection() {
                                         <button
                                             onClick={() => handleUnfollow(shop.id)}
                                             disabled={unfollowing === shop.id}
-                                            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-[#DB4444] text-[#DB4444] font-medium transition-all duration-200 hover:bg-[#DB4444] hover:text-white hover:shadow-lg hover:shadow-[#DB4444]/25 disabled:opacity-50 disabled:cursor-not-allowed group"
+                                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border-2 border-[#DB4444] text-[#DB4444] font-medium transition-all duration-200 hover:bg-[#DB4444] hover:text-white hover:shadow-lg hover:shadow-[#DB4444]/25 disabled:opacity-50 disabled:cursor-not-allowed group"
                                         >
                                             {unfollowing === shop.id ? (
                                                 <>
@@ -231,6 +233,7 @@ export default function FollowedShopsSection() {
                                             )}
                                         </button>
                                     </div>
+
 
                                     {/* Hover Effect Overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-r from-[#DB4444]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
