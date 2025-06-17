@@ -2,45 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Notification;
 use Illuminate\Http\Request;
+use App\Models\Notification;
 
 class NotificationController extends Controller
 {
-    // Danh sách tất cả thông báo
+    // GET /notification → Lấy toàn bộ thông báo
     public function index()
     {
-        return response()->json(Notification::latest()->get());
+        return response()->json(Notification::orderBy('created_at', 'desc')->get());
     }
 
-    // Tạo mới một thông báo
-    public function store(Request $request)
-    {
-        $request->validate([
-            'content' => 'required|string|max:1000',
-        ]);
-
-        $notification = Notification::create([
-            'content' => $request->content,
-        ]);
-
-        return response()->json($notification, 201);
-    }
-
-    // Xem chi tiết thông báo
+    // GET /notification/{id} → Lấy chi tiết 1 thông báo
     public function show($id)
     {
-        $notification = Notification::findOrFail($id);
+        $notification = Notification::find($id);
+        if (!$notification) {
+            return response()->json(['message' => 'Notification not found'], 404);
+        }
         return response()->json($notification);
     }
 
+    // POST /notification → Thêm mới thông báo
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'image_url' => 'nullable|string|max:255',
+            'link' => 'nullable|string|max:255',
+        ]);
 
-    // Xóa mềm thông báo
+        $notification = Notification::create([
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+            'image_url' => $validated['image_url'] ?? null,
+            'link' => $validated['link'] ?? null,
+            'is_read' => 0,
+        ]);
+
+        return response()->json(['message' => 'Notification created successfully', 'data' => $notification], 201);
+    }
+
+    // DELETE /notification/{id} → Xoá mềm (soft delete)
     public function destroy($id)
     {
-        $notification = Notification::findOrFail($id);
-        $notification->delete();
+        $notification = Notification::find($id);
+        if (!$notification) {
+            return response()->json(['message' => 'Notification not found'], 404);
+        }
 
-        return response()->json(['message' => 'Notification deleted']);
+        $notification->delete();
+        return response()->json(['message' => 'Notification deleted successfully']);
     }
 }

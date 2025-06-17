@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { LoadingShopInfo } from '../loading/loading';
 import { useRouter } from 'next/navigation'; // Thêm useRouter để chuyển hướng trang
+import { API_BASE_URL } from '@/utils/api';
 
 interface Shop {
   id: number;
@@ -33,7 +34,7 @@ export default function ShopInfo({
   const [showPopup, setShowPopup] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter(); // Khởi tạo router để chuyển trang
-
+console.log('Shop Info:', shop); // Log thông tin shop để kiểm tra
   useEffect(() => {
     const timeout = setTimeout(() => setIsLoaded(true), 500);
     return () => clearTimeout(timeout);
@@ -70,7 +71,7 @@ export default function ShopInfo({
         <div className="flex gap-4 items-start">
           <div className="relative w-20 h-20">
             <Image
-              src="/shop.jpg"
+              src={`${API_BASE_URL}/image/${shop.logo}`}
               alt="Logo"
               width={60}
               height={60}

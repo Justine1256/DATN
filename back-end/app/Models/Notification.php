@@ -10,6 +10,6 @@ class Notification extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'content',
+        'title', 'content', 'image_url', 'link', 'is_read'
     ];
 }
