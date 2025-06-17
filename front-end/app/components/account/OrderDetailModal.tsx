@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Order, OrderStatus } from "../../../types/oder";
-import { formatImageUrl, translateOrderStatus } from "../../../types/utils";
+import { formatImageUrl, translateOrderStatus, statusColors } from "../../../types/utils";
 
 interface OrderDetailModalProps {
     order: Order | null;
@@ -19,8 +19,29 @@ export default function OrderDetailModal({
 }: OrderDetailModalProps) {
     if (!isVisible || !order) return null;
 
-    console.log("Trạng thái đơn hàng: ", order.order_status); // Kiểm tra giá trị trạng thái
-    console.log("Trạng thái giao hàng: ", order.shipping_status); // Kiểm tra trạng thái giao hàng
+    console.log("Trạng thái đơn hàng: ", order.order_status);
+    console.log("Trạng thái giao hàng: ", order.shipping_status);
+
+    // Hàm lấy màu trạng thái với xử lý case-insensitive (giống code thứ 2)
+    const getStatusColor = (status: string) => {
+        const cleanStatus = status?.toString().trim().toLowerCase();
+        console.log('Clean status:', cleanStatus);
+
+        const matchingKey = Object.keys(statusColors).find(
+            key => key.toLowerCase() === cleanStatus
+        );
+
+        console.log('Matching key:', matchingKey);
+
+        if (matchingKey) {
+            const color = statusColors[matchingKey as OrderStatus];
+            console.log('Found color:', color);
+            return color;
+        }
+
+        console.log('Using fallback color');
+        return 'bg-gray-200 text-gray-800';
+    };
 
     return (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50 p-4 overflow-hidden">
@@ -54,7 +75,7 @@ export default function OrderDetailModal({
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Trạng thái:</span>
-                                    <span className="px-2 py-1 rounded-full text-xs font-bold text-black">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.order_status)}`}>
                                         {translateOrderStatus(order.order_status as OrderStatus)}
                                     </span>
                                 </div>
@@ -143,7 +164,6 @@ export default function OrderDetailModal({
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="text-sm text-gray-900">
-                                                    {/* Kiểm tra và hiển thị value1 nếu có */}
                                                     {detail.product.value1 ? (
                                                         <div className="mb-1">
                                                             <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
@@ -154,7 +174,6 @@ export default function OrderDetailModal({
                                                         <div className="text-xs text-gray-400">Không có giá trị 1</div>
                                                     )}
 
-                                                    {/* Kiểm tra và hiển thị value2 nếu có */}
                                                     {detail.product.value2 ? (
                                                         <div>
                                                             <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
