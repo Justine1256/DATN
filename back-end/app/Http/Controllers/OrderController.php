@@ -327,9 +327,6 @@ class OrderController extends Controller
             ]);
         }
 
-        // 👉 Ẩn (soft delete) đơn hàng cũ
-        $order->delete();
-
         return response()->json([
             'message'       => 'Đã thêm sản phẩm vào giỏ hàng và ẩn đơn cũ',
             'redirect_url'  => '/checkout'
