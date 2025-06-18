@@ -54,7 +54,7 @@ public function checkout(Request $request)
     $userId = Auth::id();
 
     $validated = $request->validate([
-        'payment_method' => 'required|in:COD,Card,Wallet,Bank,VNPAY',
+        'payment_method' => 'required|in:cod,card,wallet,bank,vnpay',
         'voucher_code' => 'nullable|string',
         'address_id' => 'nullable|exists:addresses,id',
         'address_manual' => 'nullable|array',
@@ -233,7 +233,7 @@ public function checkout(Request $request)
 
         // Nếu là VNPAY, tạo redirect_url
         $redirectUrl = null;
-        if (strtoupper($validated['payment_method']) === 'VNPAY') {
+        if ($validated['payment_method'] === 'vnpay') {
             // Gọi Service tạo URL VNPAY (ví dụ bạn tự tạo class riêng)
             $redirectUrl = VnpayService::createPaymentUrl([
                 'user_id' => $userId,

@@ -92,9 +92,11 @@ export default function OrderSummary({
       }
 
       const requestBody: OrderRequestBody = {
-        payment_method: paymentMethod.toUpperCase(),
+        payment_method: paymentMethod,
+        
         voucher_code: voucherCode || null,
       };
+console.log('paymentMethod gửi lên:', paymentMethod);
 
       if (manualAddressData && Object.values(manualAddressData).some((v) => v.trim() !== '')) {
         requestBody.address_manual = {
