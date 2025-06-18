@@ -8,10 +8,10 @@ import AccountSidebar from '@/app/components/account/AccountSidebar';
 import AccountPage from '@/app/components/account/AccountPage';
 import ChangePassword from '@/app/components/account/ChangePassword';
 import FollowedShops from '@/app/components/account/FollowedShops';
-import OrderSection from '@/app/components/account/Order';
 import NotificationDropdown from '@/app/components/account/NotificationDropdown';  // Import NotificationDropdown
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/utils/api';
+import OrderSection from '@/app/components/account/Order';
 
 export default function AccountRoute() {
   const [section, setSection] = useState<string>('profile');
