@@ -9,7 +9,7 @@ return [
     'allowed_origins' => [
     'http://localhost:3000',
     'http://localhost:3001',
-    'https://duynhan.id.vn',
+    'https://marketo.info.vn',
 ],
 
     'allowed_origins_patterns' => [],
