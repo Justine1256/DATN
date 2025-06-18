@@ -440,7 +440,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         onFollowToggle={handleFollow}
       />
       {/*tạm*/}
-      <ProductDescriptionAndSpecs
+      {/* <ProductDescriptionAndSpecs
         breadcrumbs={[
           { name: "Trang chủ", href: "/" },
           { name: "Điện thoại", href: "/dien-thoai" },
@@ -472,7 +472,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           "hangchinhhang",
           "baohanh12thang",
         ]}
-      />
+      /> */}
 
       {/* ✅ Bình luận sản phẩm */}
       {/* <ProductComments shopslug={shopslug} productslug={productslug} /> */}

@@ -49,8 +49,7 @@ const Wishlist = () => {
             "❌ Token không hợp lệ hoặc hết hạn:",
             err.response.data
           );
-        } else if (err.request) {
-          console.error("❌ Không có phản hồi từ server:", err.request);
+        
         } else {
           console.error("❌ Lỗi khác:", err.message);
         }

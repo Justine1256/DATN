@@ -24,14 +24,14 @@ interface CartItem {
 
 interface Props {
   cartItems: CartItem[];
-  setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
+  setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>; // Ensure this is properly passed
 }
 
 export default function CartItemsSection({
   cartItems: propsCartItems,
   setCartItems: propsSetCartItems,
 }: Props) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]); // Local state
   const [loading, setLoading] = useState(true);
 
   const fetchCartItems = async () => {
@@ -50,7 +50,7 @@ export default function CartItemsSection({
 
       const data = await res.json();
       setCartItems(data);
-      propsSetCartItems(data);
+      propsSetCartItems(data); // Make sure this is set properly
       localStorage.setItem('cartItems', JSON.stringify(data));
     } catch (error) {
       console.warn('API thất bại, fallback localStorage');
@@ -59,7 +59,7 @@ export default function CartItemsSection({
         try {
           const data = JSON.parse(stored);
           setCartItems(data);
-          propsSetCartItems(data);
+          propsSetCartItems(data); // Make sure this is set properly
         } catch (err) {
           console.error('Lỗi đọc localStorage:', err);
         }
@@ -88,7 +88,7 @@ export default function CartItemsSection({
 
       const updated = cartItems.filter((item) => item.id !== id);
       setCartItems(updated);
-      propsSetCartItems(updated);
+      propsSetCartItems(updated); // Update the cart items in the parent
       localStorage.setItem('cartItems', JSON.stringify(updated));
     } catch (error) {
       console.error('Lỗi xoá sản phẩm khỏi giỏ:', error);
@@ -118,7 +118,7 @@ export default function CartItemsSection({
         item.id === id ? { ...item, quantity } : item
       );
       setCartItems(updated);
-      propsSetCartItems(updated);
+      propsSetCartItems(updated); // Update the cart items in the parent
       localStorage.setItem('cartItems', JSON.stringify(updated));
     } catch (error) {
       console.error('Lỗi cập nhật số lượng:', error);
