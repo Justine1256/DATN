@@ -1,20 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import VoucherShipCard from './VoucherCard';
+import VoucherShipCard, { VoucherShip } from './VoucherCard';
 import { API_BASE_URL } from "@/utils/api";
+import Cookies from 'js-cookie';
+import axios from 'axios';
+
 import { IconType } from 'react-icons';
 import { FaTshirt, FaHeartbeat, FaTv } from "react-icons/fa";
-import {
-    FiSmartphone, FiMonitor, FiCamera, FiHeadphones, FiWatch,
-} from "react-icons/fi";
-import {
-    MdSportsEsports, MdChair, MdOutlineLaptopMac, MdKitchen,
-    MdSportsSoccer, MdChildCare,
-} from "react-icons/md";
-import { GiSpeaker, GiVacuumCleaner } from "react-icons/gi";
+import { FiSmartphone } from "react-icons/fi";
+import { MdSportsEsports, MdOutlineLaptopMac } from "react-icons/md";
 import { TbAirConditioning, TbFridge } from "react-icons/tb";
 
+// Icon & color mapping
 const iconMap: Record<string, IconType> = {
     'Điện thoại': FiSmartphone,
     'Tủ lạnh': TbFridge,
@@ -37,13 +35,28 @@ const categoryColors: Record<string, string> = {
     'Tivi': 'from-indigo-500 to-indigo-600',
 };
 
+// Map tên danh mục → category_id
+const categoryMap: Record<string, number> = {
+    'Điện thoại': 1,
+    'Tủ lạnh': 2,
+    'Thời Trang': 3,
+    'Laptop': 4,
+    'Điều hòa': 5,
+    'Sức Khỏe & Làm Đẹp': 6,
+    'Game': 7,
+    'Tivi': 8,
+};
+
 const categories = Object.keys(iconMap);
 
 export default function VoucherByCategory() {
     const [selectedCategory, setSelectedCategory] = useState<string>(categories[0]);
-    const [vouchers, setVouchers] = useState<any[]>([]);
+    const [vouchers, setVouchers] = useState<VoucherShip[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [popupMessage, setPopupMessage] = useState<string | null>(null);
+
+    const token = Cookies.get('authToken');
 
     useEffect(() => {
         fetchVouchers();
@@ -52,17 +65,29 @@ export default function VoucherByCategory() {
     const fetchVouchers = async () => {
         setLoading(true);
         setError(null);
+        const categoryId = categoryMap[selectedCategory];
 
         try {
-            const response = await fetch(`${API_BASE_URL}/vouchers/by-category/${selectedCategory}`);
-            if (!response.ok) {
-                setError('Không thể tải mã giảm giá');
-                return;
-            }
-
+            const response = await fetch(`${API_BASE_URL}/vouchers/by-category/${categoryId}`);
             const data = await response.json();
-            if (Array.isArray(data)) {
-                setVouchers(data);
+
+            if (Array.isArray(data.data)) {
+                const formatted = data.data.map((v: any) => ({
+                    id: v.id,
+                    code: v.code,
+                    discount_value: v.discount_value,
+                    discount_type: v.discount_type,
+                    discountText:
+                        v.discount_type === 'percent'
+                            ? `Giảm ${v.discount_value}%`
+                            : `Giảm ${Number(v.discount_value).toLocaleString('vi-VN')}đ`,
+                    condition: `Đơn từ ${Number(v.min_order_value).toLocaleString('vi-VN')}đ`,
+                    expiry: v.end_date?.split('T')[0],
+                    imageUrl: '/ship.jpg',
+                    isSaved: v.is_saved || false,
+                }));
+
+                setVouchers(formatted);
             } else {
                 setError('Dữ liệu không đúng định dạng');
             }
@@ -73,20 +98,55 @@ export default function VoucherByCategory() {
         }
     };
 
+    const handleSave = async (voucherId: number) => {
+        const existing = vouchers.find(v => v.id === voucherId);
+        if (existing?.isSaved) {
+            setPopupMessage("Voucher này đã có trong giỏ hàng!");
+            setTimeout(() => setPopupMessage(null), 3000);
+            return;
+        }
+
+        try {
+            const res = await axios.post(
+                `${API_BASE_URL}/voucherseve`,
+                { voucher_id: voucherId },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        Accept: 'application/json',
+                    },
+                }
+            );
+
+            if (res.data.success) {
+                setVouchers(prev =>
+                    prev.map(v => v.id === voucherId ? { ...v, isSaved: true } : v)
+                );
+                setPopupMessage("Voucher đã được lưu vào giỏ hàng!");
+                setTimeout(() => setPopupMessage(null), 3000);
+            }
+        } catch (err: any) {
+            if (err.response?.status === 409) {
+                setVouchers(prev =>
+                    prev.map(v => v.id === voucherId ? { ...v, isSaved: true } : v)
+                );
+                setPopupMessage("Voucher này đã được lưu trước đó!");
+            } else {
+                setPopupMessage("Lỗi khi lưu voucher!");
+            }
+            setTimeout(() => setPopupMessage(null), 3000);
+        }
+    };
+
     const handleCategoryChange = (category: string) => {
         if (category !== selectedCategory) {
             setSelectedCategory(category);
         }
     };
 
-    const filtered = Array.isArray(vouchers)
-        ? vouchers.filter((v) => v.category === selectedCategory)
-        : [];
-
     return (
         <section className="w-full bg-gradient-to-br via-white to-red-50/20 py-16">
             <div className="max-w-[1120px] mx-auto px-4">
-                {/* Header */}
                 <div className="text-center mb-12">
                     <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4">
                         Mã Giảm Giá Theo Danh Mục
@@ -96,124 +156,55 @@ export default function VoucherByCategory() {
                     </p>
                 </div>
 
-                {/* Category Grid */}
+                {/* Category grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3 mb-12">
                     {categories.map((cat, index) => {
                         const Icon = iconMap[cat];
                         const isActive = selectedCategory === cat;
-                        const gradientColor = categoryColors[cat] || 'from-gray-500 to-gray-600';
+                        const gradientColor = categoryColors[cat];
 
                         return (
                             <div
                                 key={cat}
                                 onClick={() => handleCategoryChange(cat)}
-                                className={`group relative flex flex-col items-center justify-center w-full h-[110px] rounded-2xl cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl
-                                    ${isActive
-                                        ? 'shadow-lg scale-105'
-                                        : 'hover:scale-105'
-                                    }`}
-                                style={{
-                                    animationDelay: `${index * 50}ms`
-                                }}
+                                className={`group relative flex flex-col items-center justify-center w-full h-[110px] rounded-2xl cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl ${isActive ? 'shadow-lg scale-105' : ''}`}
                             >
-                                {/* Background */}
-                                <div className={`absolute inset-0 rounded-2xl transition-all duration-300 ${isActive
-                                    ? `bg-gradient-to-br ${gradientColor} shadow-lg`
-                                    : 'bg-white border-2 border-gray-200 group-hover:border-gray-300'
-                                    }`} />
-
-                                {/* Glow effect for active category */}
-                                {isActive && (
-                                    <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${gradientColor} opacity-20 blur-xl scale-110`} />
-                                )}
-
-                                {/* Content */}
+                                <div className={`absolute inset-0 rounded-2xl ${isActive ? `bg-gradient-to-br ${gradientColor}` : 'bg-white border-2 border-gray-200'}`} />
+                                {isActive && <div className={`absolute inset-0 bg-gradient-to-br ${gradientColor} opacity-20 blur-xl scale-110 rounded-2xl`} />}
                                 <div className="relative z-10 flex flex-col items-center">
-                                    <div className={`text-3xl mb-2 transition-all duration-300 ${isActive
-                                        ? 'text-white transform scale-110'
-                                        : 'text-gray-600 group-hover:text-gray-800'
-                                        }`}>
+                                    <div className={`text-3xl mb-2 ${isActive ? 'text-white scale-110' : 'text-gray-600'}`}>
                                         <Icon />
                                     </div>
-                                    <span className={`font-semibold text-xs text-center leading-tight transition-all duration-300 ${isActive
-                                        ? 'text-white'
-                                        : 'text-gray-700 group-hover:text-gray-900'
-                                        }`}>
-                                        {cat}
-                                    </span>
+                                    <span className={`font-semibold text-xs ${isActive ? 'text-white' : 'text-gray-700'}`}>{cat}</span>
                                 </div>
-
-                                {/* Active indicator */}
-                                {isActive && (
-                                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-                                        <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${gradientColor}`} />
-                                    </div>
-                                )}
                             </div>
                         );
                     })}
                 </div>
 
-                {/* Selected Category Header */}
-                <div className="flex items-center justify-center mb-8">
-                    <div className="flex items-center space-x-3 px-6 py-3 bg-white rounded-full shadow-md border border-gray-200">
-                        <div className={`text-2xl text-transparent bg-gradient-to-r ${categoryColors[selectedCategory]} bg-clip-text`}>
-                            {React.createElement(iconMap[selectedCategory])}
+                {/* Voucher list */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {loading ? (
+                        <div className="col-span-full text-center py-16">Đang tải dữ liệu...</div>
+                    ) : error ? (
+                        <div className="col-span-full text-center py-16 text-red-500">{error}</div>
+                    ) : vouchers.length > 0 ? (
+                        vouchers.map((voucher, index) => (
+                            <div key={voucher.id} className="animate-in fade-in slide-in-from-bottom duration-500">
+                                <VoucherShipCard voucher={voucher} onSave={() => handleSave(voucher.id)} />
+                            </div>
+                        ))
+                    ) : (
+                        <div className="col-span-full text-center py-16">
+                            <h3 className="text-lg font-semibold">Chưa có mã giảm giá cho danh mục này.</h3>
                         </div>
-                        <span className="font-semibold text-gray-800">{selectedCategory}</span>
-                        <div className="w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
-                            {filtered.length}
-                        </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* Voucher List */}
-                <div className="transition-all duration-500">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[300px]">
-                        {loading ? (
-                            <div className="col-span-full flex flex-col items-center justify-center py-16">
-                                <div className="w-12 h-12 border-4 border-red-200 border-t-red-500 rounded-full animate-spin"></div>
-                            </div>
-                        ) : error ? (
-                            <div className="col-span-full flex flex-col items-center justify-center py-16">
-                                <div className="text-center space-y-2">
-                                    <h3 className="text-lg font-semibold text-gray-700">{error}</h3>
-                                </div>
-                            </div>
-                        ) : filtered.length > 0 ? (
-                            filtered.map((voucher, index) => (
-                                <div
-                                    key={voucher.id}
-                                    className="animate-in fade-in slide-in-from-bottom duration-500"
-                                    style={{ animationDelay: `${index * 100}ms` }}
-                                >
-                                    <VoucherShipCard voucher={voucher} />
-                                </div>
-                            ))
-                        ) : (
-                            <div className="col-span-full flex flex-col items-center justify-center py-16">
-                                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                                    <div className={`text-3xl text-transparent bg-gradient-to-r ${categoryColors[selectedCategory]} bg-clip-text`}>
-                                        {React.createElement(iconMap[selectedCategory])}
-                                    </div>
-                                </div>
-                                <div className="text-center space-y-2">
-                                    <h3 className="text-lg font-semibold text-gray-700">Chưa có mã giảm giá</h3>
-                                    <p className="text-sm text-gray-600 max-w-md">
-                                        Hiện tại không có mã giảm giá cho danh mục <span className="font-semibold text-gray-800">{selectedCategory}</span>
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Bottom CTA */}
-                {filtered.length > 0 && (
-                    <div className="text-center mt-12 pt-8 border-t border-gray-200">
-                        <p className="text-gray-600 mb-4">
-                            Tìm thấy <span className="font-bold text-red-500">{filtered.length}</span> mã giảm giá cho danh mục {selectedCategory}
-                        </p>
+                {/* Popup */}
+                {popupMessage && (
+                    <div className="fixed top-20 right-5 bg-white border-l-4 border-red-500 shadow-lg px-4 py-3 rounded z-50">
+                        <p className="text-red-500">{popupMessage}</p>
                     </div>
                 )}
             </div>
