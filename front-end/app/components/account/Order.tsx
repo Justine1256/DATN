@@ -32,7 +32,7 @@ export default function OrderSection() {
       });
 
       const data = Array.isArray(res.data.orders) ? res.data.orders : [];
-
+      console.log("Fetched orders:", data);
       setOrders(data); // Lưu vào state orders
       if (activeTab === "all") {
         setFilteredOrders(data); // Nếu tab hiện tại là "all", lọc theo tất cả đơn hàng

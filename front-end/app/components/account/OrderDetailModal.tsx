@@ -25,23 +25,19 @@ export default function OrderDetailModal({
     // Hàm lấy màu trạng thái với xử lý case-insensitive (giống code thứ 2)
     const getStatusColor = (status: string) => {
         const cleanStatus = status?.toString().trim().toLowerCase();
-        console.log('Clean status:', cleanStatus);
 
         const matchingKey = Object.keys(statusColors).find(
             key => key.toLowerCase() === cleanStatus
         );
 
-        console.log('Matching key:', matchingKey);
-
         if (matchingKey) {
             const color = statusColors[matchingKey as OrderStatus];
-            console.log('Found color:', color);
             return color;
         }
 
-        console.log('Using fallback color');
-        return 'bg-gray-200 text-gray-800';
+        return 'bg-gray-200 text-gray-800'; // Default color
     };
+    
 
     return (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50 p-4 overflow-hidden">

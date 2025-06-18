@@ -30,11 +30,11 @@ export default function OrderListItem({
     };
 
     // Debug: In ra console để kiểm tra
-    console.log('Order status:', order.order_status);
-    console.log('Order status JSON:', JSON.stringify(order.order_status));
-    console.log('Order status type:', typeof order.order_status);
-    console.log('Status colors keys:', Object.keys(statusColors));
-    console.log('Applied color:', statusColors[order.order_status as OrderStatus]);
+    // console.log('Order status:', order.order_status);
+    // console.log('Order status JSON:', JSON.stringify(order.order_status));
+    // console.log('Order status type:', typeof order.order_status);
+    // console.log('Status colors keys:', Object.keys(statusColors));
+    // console.log('Applied color:', statusColors[order.order_status as OrderStatus]);
 
     // Hàm lấy màu trạng thái với xử lý case-insensitive
     const getStatusColor = (status: string) => {
