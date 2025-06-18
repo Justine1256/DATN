@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Bot, MessageCircle, X, User } from 'lucide-react';
+import { Bot, MessageCircle, X, User, ImageIcon } from 'lucide-react'; // ImageIcon for the upload button
 import Image from 'next/image';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -31,9 +31,12 @@ export default function ModernFloatingTools() {
   const [activeChat, setActiveChat] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [images, setImages] = useState<File[]>([]); // To store selected images
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]); // To store preview URLs of selected images
+  const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(3); // Mock unread count
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -70,7 +73,7 @@ export default function ModernFloatingTools() {
   };
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() && images.length === 0) return; // Do not send if there's no input or images
 
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) {
@@ -78,19 +81,36 @@ export default function ModernFloatingTools() {
       return;
     }
 
+    setLoading(true); // Set loading state to true when sending message
+
+    const formData = new FormData();
+    formData.append('receiver_id', RECEIVER_ID.toString());
+    formData.append('message', input);
+
+    images.forEach((image) => {
+      formData.append('images[]', image); // Append each image selected
+    });
+
     try {
       const res = await axios.post(
         `${API_BASE_URL}/messages`,
-        { receiver_id: RECEIVER_ID, message: input },
+        formData,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
           withCredentials: true,
         }
       );
       setMessages((prev) => [...prev, res.data]);
       setInput('');
+      setImages([]); // Clear images after sending
+      setImagePreviews([]); // Clear image previews after sending
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error);
+    } finally {
+      setLoading(false); // Reset loading state after sending
     }
   };
 
@@ -101,12 +121,27 @@ export default function ModernFloatingTools() {
     }
   };
 
-  useEffect(() => {
-    if (activeChat) {
-      fetchMessages();
-      setUnreadCount(0); // Reset unread when opening chat
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      setImages((prevImages) => [...prevImages, ...selectedFiles]);
+
+      const previewUrls = selectedFiles.map((file) =>
+        URL.createObjectURL(file)
+      );
+      setImagePreviews((prevPreviews) => [...prevPreviews, ...previewUrls]);
     }
-  }, [activeChat]);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const updatedImages = [...images];
+    updatedImages.splice(index, 1);
+    setImages(updatedImages);
+
+    const updatedPreviews = [...imagePreviews];
+    updatedPreviews.splice(index, 1);
+    setImagePreviews(updatedPreviews);
+  };
 
   const renderAvatar = (msg: Message) => {
     const isReceiver = msg.sender_id === RECEIVER_ID;
@@ -247,12 +282,6 @@ export default function ModernFloatingTools() {
               {/* Chat Header */}
               <div className="flex items-center justify-between px-4 h-[70px] border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center gap-3">
-                  {/* <button
-                    onClick={() => setActiveChat(false)}
-                    className="text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    ←
-                  </button> */}
                   <Image
                     src="/book.png"
                     alt="chat"
@@ -334,10 +363,50 @@ export default function ModernFloatingTools() {
                   rows={1}
                   style={{ minHeight: '40px', maxHeight: '80px' }}
                 />
+
+                {/* Image Upload Button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-[#db4444] hover:text-[#c93333] transition-colors"
+                >
+                  <ImageIcon size={20} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+
+                {/* Display selected images inside input */}
+                <div className="flex gap-2 mt-2">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative w-16 h-16 bg-gray-100 rounded-md overflow-hidden">
+                      <Image
+                        src={preview}
+                        alt={`Preview ${index}`}
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-0 right-0 bg-white rounded-full p-1 text-gray-600 hover:bg-gray-200"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Send Button */}
                 <button
                   onClick={sendMessage}
-                  disabled={!input.trim()}
-                  className="bg-[#db4444] hover:bg-[#c93333] disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                  disabled={!input.trim() && images.length === 0 || loading} // Disable if no input or images
+                  className={`${loading ? 'bg-gray-300' : 'bg-[#db4444] hover:bg-[#c93333]'
+                    } disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all`}
                 >
                   Gửi
                 </button>
