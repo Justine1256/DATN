@@ -23,8 +23,8 @@ interface CartItem {
 }
 
 interface Props {
-  cartItems: CartItem[];
-  setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>; // Ensure this is properly passed
+  cartItems: CartItem[]; // State cartItems
+  setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>; // Function để cập nhật state cartItems
 }
 
 export default function CartItemsSection({
@@ -59,7 +59,7 @@ export default function CartItemsSection({
         try {
           const data = JSON.parse(stored);
           setCartItems(data);
-          propsSetCartItems(data); // Make sure this is set properly
+          propsSetCartItems(data); // Ensure this is set properly
         } catch (err) {
           console.error('Lỗi đọc localStorage:', err);
         }

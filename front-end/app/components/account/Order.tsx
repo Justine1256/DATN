@@ -3,7 +3,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/utils/api";
 import { useRouter } from "next/navigation";
-import { Order, OrderStatus } from "../../../types/oder";
+import { Order, OrderStatus } from "../../../types/oder"; // Đảm bảo Order được khai báo đúng
 import OrderFilterTabs from "./OrderFilterTabs";
 import OrderListItem from "./OrderListItem";
 import OrderDetailModal from "./OrderDetailModal";
@@ -12,12 +12,12 @@ import ConfirmCancelModal from "./ConfirmCancelModal";
 export default function OrderSection() {
   const router = useRouter();
 
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);  // Khai báo kiểu dữ liệu là Order
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]); // Khai báo kiểu dữ liệu là Order
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
   const [popupVisible, setPopupVisible] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null); // Thêm | null
   const [isCancelling, setIsCancelling] = useState(false);
   const [showConfirmCancelPopup, setShowConfirmCancelPopup] = useState(false);
   const [orderToCancelId, setOrderToCancelId] = useState<number | null>(null);
@@ -38,7 +38,7 @@ export default function OrderSection() {
         setFilteredOrders(data); // Nếu tab hiện tại là "all", lọc theo tất cả đơn hàng
       } else {
         // Lọc theo trạng thái đơn hàng
-        const filteredData = data.filter((order) => order.order_status.toLowerCase() === activeTab);
+        const filteredData = data.filter((order: Order) => order.order_status.toLowerCase() === activeTab); // Khai báo kiểu cho order
         setFilteredOrders(filteredData);
       }
     } catch (err) {
@@ -58,13 +58,13 @@ export default function OrderSection() {
       setFilteredOrders(orders);
     } else {
       const filtered = orders.filter(
-        (order) => order.order_status.toLowerCase() === status
+        (order: Order) => order.order_status.toLowerCase() === status  // Khai báo kiểu cho order
       );
       setFilteredOrders(filtered);
     }
   };
 
-  const handleViewOrderDetails = (order: Order) => {
+  const handleViewOrderDetails = (order: Order) => { // Thêm kiểu Order cho tham số
     setSelectedOrder(order);
     setPopupVisible(true);
   };
@@ -122,7 +122,7 @@ export default function OrderSection() {
   };
 
   // Đặt lại đơn hàng và thêm vào giỏ hàng
-  const handleReorder = async (order: Order) => {
+  const handleReorder = async (order: Order) => { // Thêm kiểu Order cho tham số
     if (!token) return;
 
     try {
@@ -157,7 +157,7 @@ export default function OrderSection() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredOrders.map((order) => (
+            {filteredOrders.map((order: Order) => ( // Thêm kiểu Order cho order
               <div key={order.id}>
                 <OrderListItem
                   key={order.id}

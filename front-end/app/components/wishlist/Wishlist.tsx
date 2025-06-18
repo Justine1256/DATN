@@ -1,15 +1,16 @@
-"use client";
+'use client';
 
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import ProductCard from "../product/ProductCard";
 import { API_BASE_URL } from '@/utils/api';
+
 // ✅ Kiểu dữ liệu sản phẩm
 interface Product {
   id: number;
   name: string;
-  image: string;
+  image: string[]; // Đảm bảo image là mảng chuỗi
   slug: string;
   price: number;
   oldPrice: number;
@@ -49,9 +50,6 @@ const Wishlist = () => {
             "❌ Token không hợp lệ hoặc hết hạn:",
             err.response.data
           );
-        
-        } else {
-          console.error("❌ Lỗi khác:", err.message);
         }
       });
   }, []);
