@@ -36,7 +36,7 @@ const router = useRouter();
               Trong Tuần
             </p>
           </div>
-          <h2 className="text-3xl font-bold text-black mt-4">Sản phẩm mới </h2>
+          <h2 className="text-3xl font-bold text-black mt-4">Sản phẩm mới</h2>
         </div>
 
         {/* 🛒 Hiển thị sản phẩm hoặc loading */}
