@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import ProductCard from "../product/ProductCard";
 import { API_BASE_URL } from '@/utils/api';
+import { useRouter } from 'next/navigation'; // To navigate to product details
 
 // ✅ Kiểu dữ liệu sản phẩm
 interface Product {
@@ -34,34 +35,22 @@ interface WishlistItem {
 const Wishlist = () => {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  // ✅ Kiểm tra token hợp lệ một lần khi vào trang
+  // ✅ Check token hợp lệ
   useEffect(() => {
     const token = Cookies.get("authToken");
-    if (!token) return;
-
-    axios
-      .get("http://localhost:8000/api/user", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .catch((err) => {
-        if (err.response) {
-          console.error(
-            "❌ Token không hợp lệ hoặc hết hạn:",
-            err.response.data
-          );
-        }
-      });
-  }, []);
-
-  // ✅ Lấy danh sách wishlist khi vào trang
-  useEffect(() => {
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
     if (!token) {
       setLoading(false);
       return;
     }
 
+    // Only fetch wishlist if token exists
+    fetchWishlist(token);
+  }, []);
+
+  // ✅ Fetch wishlist data
+  const fetchWishlist = (token: string) => {
     fetch(`${API_BASE_URL}/wishlist`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -80,7 +69,7 @@ const Wishlist = () => {
         console.error("❌ Lỗi lấy wishlist:", error);
         setLoading(false);
       });
-  }, []);
+  };
 
   // ✅ Gỡ sản phẩm khỏi danh sách hiển thị khi đã unlike (xóa khỏi UI)
   const removeItem = (productId: number) => {
@@ -103,6 +92,11 @@ const Wishlist = () => {
 
   // ✅ Trích danh sách product_id để truyền xuống ProductCard
   const wishlistProductIds = wishlistItems.map((item) => item.product.id);
+
+  // ✅ Navigate to product detail page
+  const handleProductClick = (slug: string) => {
+    router.push(`/products/${slug}`); // Navigate to product details page using the slug
+  };
 
   return (
     <div className="container mx-auto px-4">
@@ -135,6 +129,7 @@ const Wishlist = () => {
               onUnlike={removeItem} // ✅ Gỡ khỏi UI nếu bỏ like
               onLiked={addItem} // ✅ Thêm vào UI nếu click ❤️
               wishlistProductIds={wishlistProductIds} // ✅ Kiểm tra hiện trạng ❤️
+             
             />
           ))}
         </div>
