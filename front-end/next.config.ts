@@ -9,6 +9,7 @@ const nextConfig = {
       'localhost',
       'api.marketo.info.vn',
       'duynhan.id.vn',
+      'your-static-base-url.com'
     ],
     remotePatterns: [
       {
