@@ -234,11 +234,12 @@ public function checkout(Request $request)
         // Nếu là VNPAY, tạo redirect_url
         $redirectUrl = null;
         if ($validated['payment_method'] === 'vnpay') {
-            $redirectUrl = ServicesVnpayService::createPaymentUrl(
-                $totalFinalAmount,
-                implode(',', collect($orders)->pluck('id')->toArray()),
-                env('VNP_RETURNURL')
-            );
+            $redirectUrl = ServicesVnpayService::createPaymentUrl([
+                'user_id' => $userId,
+                'order_ids' => collect($orders)->pluck('id')->toArray(),
+                'amount' => $totalFinalAmount,
+                'return_url' => env('VNP_RETURNURL')
+            ]);
         }
 
         return response()->json([
@@ -258,7 +259,6 @@ public function checkout(Request $request)
         return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
     }
 }
-
 
 
 
