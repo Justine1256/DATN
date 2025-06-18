@@ -7,11 +7,11 @@ use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\Address;
 use App\Models\Voucher;
+use App\Services\VnpayService as ServicesVnpayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use VnpayService;
 
 class OrderController extends Controller
 {
@@ -235,7 +235,7 @@ public function checkout(Request $request)
         $redirectUrl = null;
         if ($validated['payment_method'] === 'vnpay') {
             // Gọi Service tạo URL VNPAY (ví dụ bạn tự tạo class riêng)
-            $redirectUrl = VnpayService::createPaymentUrl([
+            $redirectUrl = ServicesVnpayService::createPaymentUrl([
                 'user_id' => $userId,
                 'order_ids' => collect($orders)->pluck('id')->toArray(),
                 'amount' => $totalFinalAmount,
