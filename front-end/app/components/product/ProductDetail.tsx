@@ -278,7 +278,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
           <div className="md:col-span-6 flex flex-col gap-4">
             <div className="flex justify-center items-center w-full bg-gray-100 rounded-lg p-6 min-h-[220px]">
-              <div className="w-full max-w-[400px] h-[320px] relative">
+              <div className="w-full max-w-[300px] h-[320px] relative">
                 <Image
                   src={mainImage}
                   alt={product.name}

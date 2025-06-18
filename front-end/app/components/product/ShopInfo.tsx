@@ -72,7 +72,7 @@ export default function ShopInfo({
   if (!isLoaded) return <LoadingShopInfo />;
 
   return (
-    <div className="mt-12 border rounded-lg bg-white p-6 relative">
+    <div className="mt-12 border rounded-lg bg-white p-8 relative">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         {/* Trái: logo + tên + nút */}
         <div className="flex gap-4 items-start">

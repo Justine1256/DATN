@@ -157,7 +157,7 @@ const Header = () => {
 
       {/* 🔲 Thanh điều hướng chính */}
       <div className="py-0 px-2">
-        <div className="grid grid-cols-12 items-center py-4 px-6 md:px-16 max-w-[1260px] mx-auto w-full">
+        <div className="grid grid-cols-12 items-center py-4 px-6 md:px-16 max-w-[1280px] mx-auto w-full">
           {/* 🅰️ Logo */}
           <div className="col-span-2">
             <Link href="/">
