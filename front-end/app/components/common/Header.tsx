@@ -229,13 +229,13 @@ const Header = () => {
                     >
                       <div className="w-[56px] h-[56px] flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
                         <Image
-                          src={note.image_url ? `${STATIC_BASE_URL}${note.image_url}` : '/images/default-image.png'}
+                          src={note.image_url ? `${STATIC_BASE_URL}${note.image_url}` : `${STATIC_BASE_URL}/products/default-product.png`}
                           alt={note.title}
                           width={56}
                           height={56}
                           className="object-cover w-full h-full"
                           onError={(e) => {
-                            e.currentTarget.src = '/images/default-image.png';
+                            e.currentTarget.src = `${STATIC_BASE_URL}/products/default-product.png`;
                           }}
                         />
                       </div>
