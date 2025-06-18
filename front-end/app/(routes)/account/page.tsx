@@ -84,6 +84,7 @@ export default function AccountRoute() {
             {section === 'changepassword' && <ChangePassword />}
             {section === 'address' && user && (
               <div className="max-w-[700px] mx-auto w-full">
+                {/* Truyền userId đúng kiểu */}
                 <AddressComponent userId={user.id} />
               </div>
             )}

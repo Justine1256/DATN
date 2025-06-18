@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import BestSelling from "../home/BestSelling";
-import Cookies from "js-cookie";
-import ShopInfo from "./ShopInfo";
-import LoadingProductDetail from "../loading/loading";
-import ProductDescriptionAndSpecs from "./ProductDescriptionAndSpecs";
-import { FaStar, FaRegStar } from "react-icons/fa";
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import BestSelling from '../home/BestSelling';
+import Cookies from 'js-cookie';
+import ShopInfo from './ShopInfo';
+import LoadingProductDetail from '../loading/loading';
+import ProductDescriptionAndSpecs from './ProductDescriptionAndSpecs';
+import { FaStar, FaRegStar } from 'react-icons/fa';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
-import Breadcrumb from "../cart/CartBreadcrumb";
+import Breadcrumb from '../cart/CartBreadcrumb';
 
 // ✅ Hàm xử lý ảnh – chuẩn hóa đường dẫn ảnh từ server
 const formatImageUrl = (img: unknown): string => {
   if (Array.isArray(img)) img = img[0];
-  if (typeof img !== "string" || !img.trim()) {
+  if (typeof img !== 'string' || !img.trim()) {
     return `${STATIC_BASE_URL}/products/default-product.png`;
   }
-  if (img.startsWith("http")) return img;
-  return img.startsWith("/") ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
+  if (img.startsWith('http')) return img;
+  return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
 };
 
 // ✅ Kiểu dữ liệu sản phẩm
@@ -46,11 +46,11 @@ interface Product {
     rating: string;
     total_sales: number;
     created_at: string;
-    status: "activated" | "pending" | "suspended";
+    status: 'activated' | 'pending' | 'suspended';
     email: string;
     slug: string;
-  };
-    category?: {
+  } | undefined; // Đảm bảo shop có thể là undefined
+  category?: {
     id: number;
     name: string;
     slug: string;
@@ -71,22 +71,22 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [mainImage, setMainImage] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
-  const [selectedSize, setSelectedSize] = useState("");
+  const [mainImage, setMainImage] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
   const [liked, setLiked] = useState(false);
   const [followed, setFollowed] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [popupText, setPopupText] = useState("");
+  const [popupText, setPopupText] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("token") || Cookies.get("authToken");
+        const token = localStorage.getItem('token') || Cookies.get('authToken');
         const productRes = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
 
         if (!productRes.ok) {
-          router.push("/not-found");
+          router.push('/not-found');
           return;
         }
 
@@ -96,8 +96,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         const firstImage = Array.isArray(productData.image) ? productData.image[0] : productData.image;
         setMainImage(formatImageUrl(firstImage));
 
-        setSelectedColor(productData.value1?.split(",")[0] || "");
-        setSelectedSize(productData.value2?.split(",")[0] || "");
+        setSelectedColor(productData.value1?.split(',')[0] || '');
+        setSelectedSize(productData.value2?.split(',')[0] || '');
 
         if (token && productData.shop?.id) {
           const followRes = await fetch(`${API_BASE_URL}/shops/${productData.shop.id}/is-following`, {
@@ -110,7 +110,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           }
         }
       } catch (err) {
-        console.error("❌ Lỗi khi load product & follow:", err);
+        console.error('❌ Lỗi khi load product & follow:', err);
       }
     };
 
@@ -123,13 +123,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     ? product.image.map((img: string) => formatImageUrl(img))
     : [`${STATIC_BASE_URL}/products/default-product.png`];
 
-  const colorOptions = product.value1?.split(",") || [];
-  const sizeOptions = product.value2?.split(",") || [];
+  const colorOptions = product.value1?.split(',') || [];
+  const sizeOptions = product.value2?.split(',') || [];
 
   const handleAddToCart = async () => {
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) {
-      setPopupText("Vui lòng đăng nhập để thêm vào giỏ hàng");
+      setPopupText('Vui lòng đăng nhập để thêm vào giỏ hàng');
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
       return;
@@ -137,10 +137,10 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
     try {
       const res = await fetch(`${API_BASE_URL}/cart`, {
-        method: "POST",
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           product_id: product?.id,
@@ -151,14 +151,14 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       });
 
       if (res.ok) {
-        setPopupText("Đã thêm vào giỏ hàng!");
+        setPopupText('Đã thêm vào giỏ hàng!');
       } else {
         const data = await res.json();
-        setPopupText(data.message || "Thêm vào giỏ hàng thất bại");
+        setPopupText(data.message || 'Thêm vào giỏ hàng thất bại');
       }
     } catch (err) {
-      console.error("❌ Lỗi add to cart:", err);
-      setPopupText("Có lỗi xảy ra");
+      console.error('❌ Lỗi add to cart:', err);
+      setPopupText('Có lỗi xảy ra');
     } finally {
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
@@ -167,10 +167,10 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   const toggleLike = async () => {
     if (!product) return;
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) {
       setShowPopup(true);
-      setPopupText("Vui lòng đăng nhập để yêu thích sản phẩm");
+      setPopupText('Vui lòng đăng nhập để yêu thích sản phẩm');
       setTimeout(() => setShowPopup(false), 2000);
       return;
     }
@@ -181,35 +181,35 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     try {
       if (newLiked) {
         await fetch(`${API_BASE_URL}/wishlist`, {
-          method: "POST",
+          method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ product_id: product.id }),
         });
       } else {
         await fetch(`${API_BASE_URL}/wishlist/${product.id}`, {
-          method: "DELETE",
+          method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` },
         });
       }
     } catch (err) {
-      console.error("❌ Lỗi xử lý yêu thích:", err);
+      console.error('❌ Lỗi xử lý yêu thích:', err);
     } finally {
       setShowPopup(true);
-      setPopupText(newLiked ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích");
+      setPopupText(newLiked ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích');
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
 
   const handleFollow = async () => {
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token || !product?.shop?.id) return;
 
     try {
-      const url = `${API_BASE_URL}/shops/${product.shop.id}/${followed ? "unfollow" : "follow"}`;
-      const method = followed ? "DELETE" : "POST";
+      const url = `${API_BASE_URL}/shops/${product.shop.id}/${followed ? 'unfollow' : 'follow'}`;
+      const method = followed ? 'DELETE' : 'POST';
 
       const res = await fetch(url, {
         method,
@@ -218,27 +218,67 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
       if (res.ok) setFollowed(!followed);
     } catch (err) {
-      console.error("❌ Lỗi follow/unfollow:", err);
+      console.error('❌ Lỗi follow/unfollow:', err);
     }
   };
 
-  
+  const handleBuyNow = async () => {
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    if (!token) {
+      setPopupText('Vui lòng đăng nhập để mua sản phẩm');
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product_id: product?.id,
+          quantity: quantity,
+          color: selectedColor,
+          size: selectedSize,
+        }),
+      });
+
+      if (res.ok) {
+        router.push('/cart');  // Chuyển đến trang giỏ hàng sau khi thêm sản phẩm
+      } else {
+        const data = await res.json();
+        setPopupText(data.message || 'Thêm vào giỏ hàng thất bại');
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 2000);
+      }
+    } catch (err) {
+      console.error('❌ Lỗi khi mua ngay:', err);
+      setPopupText('Có lỗi xảy ra');
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+    }
+  };
+
   return (
     <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
-      <div className="mb-8"><Breadcrumb
-  items={[
-    { label: "Trang chủ", href: "/" },
-    { label: product.category?.parent?.name || "Danh mục", href: `/category/${product.category?.parent?.slug}` },
-    { label: product.category?.name || "Danh mục", href: `/category/${product.category?.slug}` },
-    { label: product.name },
-  ]}
-/>
-</div>
+      <div className="mb-8">
+        <Breadcrumb
+          items={[
+            { label: 'Trang chủ', href: '/' },
+            { label: product.category?.parent?.name || 'Danh mục', href: `/category/${product.category?.parent?.slug}` },
+            { label: product.category?.name || 'Danh mục', href: `/category/${product.category?.slug}` },
+            { label: product.name },
+          ]}
+        />
+      </div>
       <div className="rounded-xl border shadow-sm bg-white p-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
           <div className="md:col-span-6 flex flex-col gap-4">
             <div className="flex justify-center items-center w-full bg-gray-100 rounded-lg p-6 min-h-[220px]">
-              <div className="w-full max-w-[400px] h-[320px] relative">
+              <div className="w-full max-w-[300px] h-[320px] relative">
                 <Image
                   src={mainImage}
                   alt={product.name}
@@ -253,8 +293,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 <div
                   key={idx}
                   onClick={() => setMainImage(img)}
-                  className={`cursor-pointer border-2 rounded w-[80px] h-[80px] ${mainImage === img ? "border-brand" : "border-gray-300"
-                    }`}
+                  className={`cursor-pointer border-2 rounded w-[80px] h-[80px] ${mainImage === img ? 'border-brand' : 'border-gray-300'}`}
                 >
                   <Image
                     src={img}
@@ -270,9 +309,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
           {/* ✅ Thông tin sản phẩm bên phải */}
           <div className="md:col-span-6 space-y-6 ">
-            <h1 className="text-[1.5rem] md:text-[2rem] font-bold text-gray-900">
-              {product.name}
-            </h1>
+            <h1 className="text-[1.5rem] md:text-[2rem] font-bold text-gray-900">{product.name}</h1>
             {/* ✅ rating */}
             <div className="flex items-center gap-3 text-sm -translate-y-4">
               <div className="flex items-center gap-3 text-sm ">
@@ -295,7 +332,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 </div>
               </div>
 
-
               <span className="text-gray-500">(150 Lượt Xem)</span>
               <span className="text-gray-300">|</span>
               <span className="text-emerald-400 font-medium">
@@ -305,14 +341,11 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
             {/* ✅ giá */}
             <div className="flex items-center gap-3 -translate-y-6">
               <span className="text-[1.25rem] md:text-[1.5rem] font-bold text-brand">
-                {Number(product.sale_price || product.price).toLocaleString(
-                  "vi-VN"
-                )}
-                ₫
+                {Number(product.sale_price || product.price).toLocaleString('vi-VN')}₫
               </span>
               {product.sale_price && (
                 <span className="line-through text-gray-400 text-sm ">
-                  {Number(product.price).toLocaleString("vi-VN")}₫
+                  {Number(product.price).toLocaleString('vi-VN')}₫
                 </span>
               )}
             </div>
@@ -334,8 +367,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                       key={color}
                       onClick={() => setSelectedColor(color)}
                       className={`w-4 h-4 rounded-full border transition ${selectedColor === color
-                        ? "border-black scale-105"
-                        : "border-gray-300 hover:border-black"
+                        ? 'border-black scale-105'
+                        : 'border-gray-300 hover:border-black'
                         }`}
                       style={{ backgroundColor: color.toLowerCase() }}
                       title={color}
@@ -352,8 +385,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                       key={size}
                       onClick={() => setSelectedSize(size)}
                       className={`text-xs min-w-[28px] px-2 py-0.5 rounded border text-center font-medium transition ${selectedSize === size
-                        ? "bg-black text-white border-black"
-                        : "bg-white text-black border-gray-300 hover:bg-black hover:text-white"
+                        ? 'bg-black text-white border-black'
+                        : 'bg-white text-black border-gray-300 hover:bg-black hover:text-white'
                         }`}
                     >
                       {size}
@@ -383,7 +416,10 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 </button>
               </div>
 
-              <button className="w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium">
+              <button
+                onClick={handleBuyNow}
+                className="w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium"
+              >
                 Mua Ngay
               </button>
               <button
@@ -395,10 +431,10 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
               <button
                 onClick={toggleLike}
-                className={`p-2 border rounded text-lg transition ${liked ? "text-brand" : "text-gray-400"
+                className={`p-2 border rounded text-lg transition ${liked ? 'text-brand' : 'text-gray-400'
                   }`}
               >
-                {liked ? "❤️" : "🤍"}
+                {liked ? '❤️' : '🤍'}
               </button>
             </div>
 
@@ -428,64 +464,25 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
       {/* ✅ Thông tin cửa hàng */}
       <ShopInfo
-        shop={product.shop}
+        shop={product.shop || undefined} // Kiểm tra nếu không có shop thì truyền undefined
         followed={followed}
         onFollowToggle={handleFollow}
       />
-      {/*tạm*/}
-      <ProductDescriptionAndSpecs
-        breadcrumbs={[
-          { name: "Trang chủ", href: "/" },
-          { name: "Điện thoại", href: "/dien-thoai" },
-          { name: "Apple", href: "/dien-thoai/apple" },
-          { name: "iPhone 15 Pro Max" }, // hiện tại
-        ]}
-        specs={[
-          { label: "Loại sản phẩm", value: "Điện thoại" },
-          { label: "Tình trạng", value: "Mới 100%" },
-          { label: "Bảo hành", value: "12 tháng toàn quốc" },
-          { label: "Sản phẩm có sẵn", value: "Có" },
-          { label: "Thương hiệu", value: "Apple" },
-          { label: "Xuất xứ", value: "Mỹ" },
-          { label: "Dung lượng", value: "256GB" },
-          { label: "Gửi từ", value: "TP.HCM" },
-        ]}
-        descriptionLines={[
-          "iPhone 15 Pro Max mới nhất chính hãng.",
-          "Màn hình 6.7 inch Super Retina XDR.",
-          "Camera 48MP ProRAW, chip A17 Bionic.",
-          "Bảo hành 12 tháng toàn quốc.",
-          "Hỗ trợ đổi trả trong 7 ngày nếu có lỗi.",
-        ]}
-        hashtags={[
-          "iphone15promax",
-          "smartphone",
-          "apple",
-          "dienthoai",
-          "hangchinhhang",
-          "baohanh12thang",
-        ]}
-      />
-
-      {/* ✅ Bình luận sản phẩm */}
-      {/* <ProductComments shopslug={shopslug} productslug={productslug} /> */}
-
-      {/* ✅ Gợi ý sản phẩm khác */}
+      {/* Gợi ý sản phẩm khác */}
       <div className="w-full max-w-screen-xl mx-auto mt-16 px-">
         <BestSelling />
       </div>
-      {/* ✅ Thông báo thêm/xoá yêu thích */}
+      {/* Thông báo thêm/xoá yêu thích */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
           {popupText ||
-            (liked ? "Đã thêm vào yêu thích " : "Đã xóa khỏi yêu thích ")}
+            (liked ? 'Đã thêm vào yêu thích ' : 'Đã xóa khỏi yêu thích ')}
         </div>
       )}
     </div>

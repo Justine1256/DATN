@@ -1,10 +1,9 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import Select from "react-select";
-
 import { API_BASE_URL } from '@/utils/api';
 
 // ✅ Interface định nghĩa tỉnh/huyện/xã và địa chỉ người dùng
@@ -12,13 +11,19 @@ interface Province {
   code: number;
   name: string;
 }
+
 interface District {
   code: number;
   name: string;
 }
+
 interface Ward {
   code: number;
   name: string;
+}
+
+interface AddressComponentProps {
+  userId: number;  // Thêm kiểu cho userId
 }
 
 interface Address {
@@ -35,11 +40,8 @@ interface Address {
   type: "Nhà Riêng" | "Văn Phòng";
 }
 
-export default function AddressComponent() {
-  // ✅ State quản lý người dùng và địa chỉ
-  const [loading, setLoading] = useState(true); // ✅ Thêm dòng này
-
-  const [userId, setUserId] = useState<number | null>(null);
+export default function AddressComponent({ userId }: AddressComponentProps) {
+  const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState<number | null>(null);
@@ -66,6 +68,10 @@ export default function AddressComponent() {
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
+
+  // Add state for userId
+  const [userIdState, setUserIdState] = useState<number | null>(null);
+
   const validatePhone = (phone: string) => {
     const regex = /^(0|\+84)(3[2-9]|5[2689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$/;
     return regex.test(phone);
@@ -132,14 +138,14 @@ export default function AddressComponent() {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
-      setUserId(res.data.id);
+      setUserIdState(res.data.id);  // Cập nhật userId sử dụng setUserIdState
     } catch (err) {
       console.error("User fetch failed", err);
     }
   };
 
   // ✅ Gọi API lấy danh sách địa chỉ của user
-  const fetchAddresses = async (id: string) => {
+  const fetchAddresses = async (id: string) => {  // Chuyển `id` thành string
     const token = Cookies.get("authToken");
     if (!token) return;
 
@@ -147,7 +153,7 @@ export default function AddressComponent() {
       setLoading(true); // ✅ Bắt đầu loading
 
       const res = await axios.get(
-        `${API_BASE_URL}/addressesUser/${id}`,
+        `${API_BASE_URL}/addressesUser/${id}`, // Truyền `id` là string
         {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
@@ -170,7 +176,7 @@ export default function AddressComponent() {
     fetchUserId();
   }, []);
   useEffect(() => {
-    if (userId) fetchAddresses(userId);
+    if (userId) fetchAddresses(userId.toString());  // Chuyển `userId` thành string khi gọi API
   }, [userId]);
 
   // ✅ Chỉnh sửa địa chỉ
@@ -246,7 +252,7 @@ export default function AddressComponent() {
 
       setIsAdding(false);
       setIsEditing(null);
-      fetchAddresses(userId);
+      fetchAddresses(userId.toString());  // Chuyển `userId` thành string khi gọi API
       setFormData({
         full_name: "",
         phone: "",
@@ -272,7 +278,7 @@ export default function AddressComponent() {
 
     try {
       // ✅ Gọi API xoá
-      await axios.delete(`${API_BASE_URL}/addresses/${confirmDeleteId}`, {
+      await axios.delete(`${API_BASE_URL}/addresses/${confirmDeleteId.toString()}`, {  // Chuyển `confirmDeleteId` thành string
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -284,18 +290,23 @@ export default function AddressComponent() {
       // ✅ Nếu chỉ còn 1 địa chỉ, đặt làm mặc định nếu chưa
       if (updated.length === 1 && !updated[0].is_default) {
         const newDefaultId = updated[0].id;
-        await axios.patch(
-          `${API_BASE_URL}/addresses/${newDefaultId}`,
-          {
-            ...updated[0],
-            is_default: true,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+
+        // Kiểm tra newDefaultId có tồn tại trước khi gọi API
+        if (newDefaultId) {
+          await axios.patch(
+            `${API_BASE_URL}/addresses/${newDefaultId.toString()}`,
+            {
+              ...updated[0],
+              is_default: true,
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        }
       }
+      
 
       // ✅ Refresh lại danh sách địa chỉ
-      fetchAddresses(userId);
+      fetchAddresses(userId.toString());  // Chuyển `userId` thành string khi gọi API
     } catch (error) {
       console.error("Lỗi xoá địa chỉ:", error);
       triggerPopup("❌ Xoá thất bại!", "error");

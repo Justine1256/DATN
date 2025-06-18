@@ -12,15 +12,16 @@ interface Shop {
   description: string;
   logo: string;
   phone: string;
-  rating: string;
+  rating: string; // Rating là string nhưng cần xử lý như số
   total_sales: number;
-  created_at: string;
+  created_at: string; // Created at là string, cần chuyển đổi khi sử dụng
   status: 'activated' | 'pending' | 'suspended';
   email: string;
+  slug: string;
 }
 
 interface ShopInfoProps {
-  shop: Shop;
+  shop: Shop | undefined; // Thêm `undefined` vào kiểu dữ liệu
   followed: boolean;
   onFollowToggle: () => void;
 }
@@ -34,11 +35,17 @@ export default function ShopInfo({
   const [showPopup, setShowPopup] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter(); // Khởi tạo router để chuyển trang
-console.log('Shop Info:', shop); // Log thông tin shop để kiểm tra
+
+  // Chờ khi component được tải xong
   useEffect(() => {
     const timeout = setTimeout(() => setIsLoaded(true), 500);
     return () => clearTimeout(timeout);
   }, []);
+
+  // Nếu không có shop, trả về thông báo "Shop không tồn tại"
+  if (!shop) {
+    return <div>Shop không tồn tại</div>;
+  }
 
   const handleFollowClick = () => {
     onFollowToggle();
@@ -65,9 +72,9 @@ console.log('Shop Info:', shop); // Log thông tin shop để kiểm tra
   if (!isLoaded) return <LoadingShopInfo />;
 
   return (
-    <div className="mt-12 border rounded-lg bg-white p-6 relative">
+    <div className="mt-12 border rounded-lg bg-white p-8 relative">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        {/* ✅ Trái: logo + tên + nút */}
+        {/* Trái: logo + tên + nút */}
         <div className="flex gap-4 items-start">
           <div className="relative w-20 h-20">
             <Image
@@ -99,7 +106,7 @@ console.log('Shop Info:', shop); // Log thông tin shop để kiểm tra
             )}
           </div>
 
-          {/* ✅ Tên shop + trạng thái + "Hủy theo dõi" */}
+          {/* Tên shop + trạng thái + "Hủy theo dõi" */}
           <div className="text-black">
             <h3 className="text-xl font-semibold mb-1 flex items-center gap-2">
               {shop.name}
@@ -145,7 +152,7 @@ console.log('Shop Info:', shop); // Log thông tin shop để kiểm tra
           </div>
         </div>
 
-        {/* ✅ Phải: Thông tin chia cột dọc */}
+        {/* Phải: Thông tin chia cột dọc */}
         <div className="flex flex-wrap md:flex-nowrap items-center gap-6 text-sm text-gray-800">
           <div className="flex items-center gap-1">
             <span className="text-gray-500">Đánh Giá:</span>
@@ -185,7 +192,7 @@ console.log('Shop Info:', shop); // Log thông tin shop để kiểm tra
         </div>
       </div>
 
-      {/* ✅ Popup feedback */}
+      {/* Popup feedback */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
           {popupText}

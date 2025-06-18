@@ -95,25 +95,23 @@ export default function CategoryPage() {
         {/* ✅ Dropdown danh mục */}
         <div className="w-full md:w-1/5 ml-2">
           <select
+            value={slug || "all"} // Set value on the select element
             onChange={(e) => {
               const value = e.target.value;
               router.push(value === "all" ? `/category` : `/category/${value}`);
             }}
             className="w-full border border-gray-300 rounded px-4 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#DB4444] transition"
           >
-            <option value="all" selected={!slug}>
+            <option value="all">
               Tất Cả Danh Mục
             </option>
             {categories.map((cat) => (
-              <option
-                key={cat.id}
-                value={cat.slug}
-                selected={cat.slug === slug}
-              >
+              <option key={cat.id} value={cat.slug}>
                 {cat.name}
               </option>
             ))}
           </select>
+
         </div>
 
         {/* ✅ Bộ lọc sắp xếp + dropdown giá */}
