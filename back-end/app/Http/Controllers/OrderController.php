@@ -54,7 +54,7 @@ public function checkout(Request $request)
     $userId = Auth::id();
 
     $validated = $request->validate([
-        'payment_method' => 'required|in:cod,card,wallet,bank,vnpay',
+        'payment_method' => 'required|in:cod,vnpay',
         'voucher_code' => 'nullable|string',
         'address_id' => 'nullable|exists:addresses,id',
         'address_manual' => 'nullable|array',
