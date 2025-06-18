@@ -85,7 +85,7 @@ public function checkout(Request $request)
             $fullAddress = "{$manual['address']}, {$manual['city']} ({$manual['full_name']} - {$manual['phone']})";
         }
 
-        // Tính tổng giá gốc (không giảm giá sale)
+        // Kiểm tra kho và tính giá trị đơn
         $subtotalAll = 0;
         foreach ($carts as $cart) {
             if ($cart->quantity > $cart->product->stock) {
@@ -198,8 +198,8 @@ public function checkout(Request $request)
                 'total_amount' => $shopTotalAmount,
                 'final_amount' => $finalAmount,
                 'payment_method' => $validated['payment_method'],
-                'payment_status' => 'Pending',
-                'order_status' => 'Pending',
+                'payment_status' => ($validated['payment_method'] === 'cod') ? 'Paid' : 'Pending',
+                'order_status' => ($validated['payment_method'] === 'cod') ? 'Processing' : 'Pending',
                 'shipping_status' => 'Pending',
                 'shipping_address' => $fullAddress,
             ]);
@@ -234,17 +234,18 @@ public function checkout(Request $request)
         // Nếu là VNPAY, tạo redirect_url
         $redirectUrl = null;
         if ($validated['payment_method'] === 'vnpay') {
-            // Gọi Service tạo URL VNPAY (ví dụ bạn tự tạo class riêng)
             $redirectUrl = ServicesVnpayService::createPaymentUrl([
                 'user_id' => $userId,
                 'order_ids' => collect($orders)->pluck('id')->toArray(),
                 'amount' => $totalFinalAmount,
-                'return_url' => route('vnpay.return') // URL FE redirect về sau khi thanh toán
+                'return_url' => env('VNP_RETURNURL')
             ]);
         }
 
         return response()->json([
-            'message' => 'Tạo đơn hàng thành công',
+            'message' => ($validated['payment_method'] === 'cod')
+                ? 'Đặt hàng thành công (COD)'
+                : 'Đơn hàng chờ thanh toán VNPAY',
             'order_ids' => collect($orders)->pluck('id'),
             'payment_method' => $validated['payment_method'],
             'redirect_url' => $redirectUrl
@@ -258,6 +259,7 @@ public function checkout(Request $request)
         return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
     }
 }
+
 
 
 
