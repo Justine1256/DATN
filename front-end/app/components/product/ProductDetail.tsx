@@ -274,11 +274,18 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           ]}
         />
       </div>
-      <div className="rounded-xl border shadow-sm bg-white p-10">
+      <div className="rounded-xl border shadow-sm bg-white p-10 border-red-500">
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
-          <div className="md:col-span-6 flex flex-col gap-4">
-            <div className="flex justify-center items-center w-full bg-gray-100 rounded-lg p-6 min-h-[220px]">
-              <div className="w-full max-w-[300px] h-[320px] relative">
+          <div className="md:col-span-6 flex flex-col gap-4 relative">
+            <button
+              onClick={toggleLike}
+              className={`absolute top-2 left-2 p-2  text-lg transition ${liked ? 'text-brand' : 'text-gray-400'}`}
+            >
+              {liked ? '❤️' : '🤍'}
+            </button>
+            <div className="flex justify-center items-center w-full bg-gray-50 rounded-lg p-6 min-h-[220px]">
+              <div className="w-full max-w-[300px] h-[290px] relative">
                 <Image
                   src={mainImage}
                   alt={product.name}
@@ -312,23 +319,28 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
             <h1 className="text-[1.5rem] md:text-[2rem] font-bold text-gray-900">{product.name}</h1>
             {/* ✅ rating */}
             <div className="flex items-center gap-3 text-sm -translate-y-4">
-              <div className="flex items-center gap-3 text-sm ">
+              <div className="flex items-center gap-3 text-sm">
                 <div className="flex items-center gap-2 text-base">
-                  {/* ⭐ Số sao (hiển thị thập phân, đã chia 2 nếu cần) */}
-                  <span className="text-gray-800 flex items-center">
-                    {(parseFloat(product.rating) / 2).toFixed(1)}
-                  </span>
-
-                  {/* ⭐ Icon sao (5 ngôi sao, tính theo rating / 2) */}
-                  <div className="flex items-center">
-                    {Array.from({ length: 5 }).map((_, i) =>
-                      i < Math.round(parseFloat(product.rating) / 2) ? (
-                        <FaStar key={i} className="text-yellow-400" />
-                      ) : (
-                        <FaRegStar key={i} className="text-gray-300" />
-                      )
-                    )}
-                  </div>
+                  {/* Rating or "Chưa đánh giá" */}
+                  {parseFloat(product.rating) > 0 ? (
+                    <>
+                      <span className="text-gray-800 flex items-center">
+                        {(parseFloat(product.rating) / 2).toFixed(1)}
+                      </span>
+                      {/* ⭐ Icon sao (5 ngôi sao, tính theo rating / 2) */}
+                      <div className="flex items-center">
+                        {Array.from({ length: 5 }).map((_, i) =>
+                          i < Math.round(parseFloat(product.rating) / 2) ? (
+                            <FaStar key={i} className="text-yellow-400" />
+                          ) : (
+                            <FaRegStar key={i} className="text-gray-300" />
+                          )
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-red-500 font-semibold">Chưa đánh giá</span>
+                  )}
                 </div>
               </div>
 
@@ -338,6 +350,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 Hàng trong kho: {product.stock || 0} sản phẩm
               </span>
             </div>
+
             {/* ✅ giá */}
             <div className="flex items-center gap-3 -translate-y-6">
               <span className="text-[1.25rem] md:text-[1.5rem] font-bold text-brand">
@@ -350,17 +363,17 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               )}
             </div>
             {/* ✅ mô tả */}
-            <p
+            {/* <p
               className="text-gray-600 text-sm md:text-base truncate max-w-[300px] -translate-y-8"
               title={product.description}
             >
               {product.description}
-            </p>
+            </p> */}
 
             {/* ✅ Options màu và size */}
             <div className="flex flex-col gap-2 -translate-y-10">
               <div className="flex items-center gap-3">
-                <p className="font-medium text-gray-700 text-sm">Màu Sắc:</p>
+                <p className="font-medium text-gray-700  text-lg">Màu Sắc:</p>
                 <div className="flex gap-1">
                   {colorOptions.map((color) => (
                     <button
@@ -378,7 +391,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               </div>
 
               <div className="flex items-center gap-3 ">
-                <p className="font-medium text-gray-700 text-sm">Kích cỡ:</p>
+                <p className="font-medium text-gray-700 text-lg">Kích cỡ:</p>
                 <div className="flex gap-1">
                   {sizeOptions.map((size) => (
                     <button
@@ -429,13 +442,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 Thêm Vào Giỏ Hàng
               </button>
 
-              <button
-                onClick={toggleLike}
-                className={`p-2 border rounded text-lg transition ${liked ? 'text-brand' : 'text-gray-400'
-                  }`}
-              >
-                {liked ? '❤️' : '🤍'}
-              </button>
+           
             </div>
 
             {/* ✅ Chính sách vận chuyển */}
