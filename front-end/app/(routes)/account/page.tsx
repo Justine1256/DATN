@@ -11,7 +11,7 @@ import FollowedShops from '@/app/components/account/FollowedShops';
 import NotificationDropdown from '@/app/components/account/NotificationDropdown';  // Import NotificationDropdown
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/utils/api';
-import OrderSection from '@/app/components/account/Order';
+import OrderSection from '@/app/components/account/OrderSection';
 
 export default function AccountRoute() {
   const [section, setSection] = useState<string>('profile');
