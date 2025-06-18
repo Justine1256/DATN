@@ -247,12 +247,12 @@ export default function ModernFloatingTools() {
               {/* Chat Header */}
               <div className="flex items-center justify-between px-4 h-[70px] border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center gap-3">
-                  <button
+                  {/* <button
                     onClick={() => setActiveChat(false)}
                     className="text-gray-500 hover:text-gray-700 transition-colors"
                   >
                     ←
-                  </button>
+                  </button> */}
                   <Image
                     src="/book.png"
                     alt="chat"
