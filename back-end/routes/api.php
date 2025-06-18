@@ -19,6 +19,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderDetailController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
@@ -78,8 +79,10 @@ Route::get('/vouchers', [VoucherController::class, 'index']);
 
 Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
+Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment']);
     // User
     Route::get('/user', [UserController::class, 'show']);
     Route::put('/user', [UserController::class, 'update']);
