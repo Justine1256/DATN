@@ -1,12 +1,91 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Voucher;
 use Illuminate\Http\Request;
+use App\Models\VoucherUser;
+use Illuminate\Support\Facades\Auth;
 
 class VoucherController extends Controller
 {
-    // Kiểm tra mã voucher
+    // 1. Lấy danh sách tất cả voucher
+    public function index()
+    {
+        $vouchers = Voucher::all();
+        return response()->json($vouchers);
+    }
+
+    // 2. Tạo mới voucher
+    public function store(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|unique:vouchers,code',
+            'discount_value' => 'required|numeric|min:0',
+            'discount_type' => 'required|in:percent,fixed',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'min_order_value' => 'nullable|numeric|min:0',
+            'max_discount_value' => 'nullable|numeric|min:0',
+            'usage_limit' => 'nullable|integer|min:0',
+            'created_by' => 'nullable|exists:users,id',
+        ]);
+
+        $voucher = Voucher::create($request->all());
+        return response()->json(['message' => 'Tạo voucher thành công', 'data' => $voucher], 201);
+    }
+
+    // 3. Lấy chi tiết một voucher theo ID
+    public function show($id)
+    {
+        $voucher = Voucher::find($id);
+
+        if (!$voucher) {
+            return response()->json(['message' => 'Không tìm thấy voucher'], 404);
+        }
+
+        return response()->json($voucher);
+    }
+
+    // 4. Cập nhật voucher
+    public function update(Request $request, $id)
+    {
+        $voucher = Voucher::find($id);
+
+        if (!$voucher) {
+            return response()->json(['message' => 'Không tìm thấy voucher'], 404);
+        }
+
+        $request->validate([
+            'code' => 'sometimes|string|unique:vouchers,code,' . $id,
+            'discount_value' => 'sometimes|numeric|min:0',
+            'discount_type' => 'sometimes|in:percent,fixed',
+            'start_date' => 'sometimes|date',
+            'end_date' => 'sometimes|date|after_or_equal:start_date',
+            'min_order_value' => 'nullable|numeric|min:0',
+            'max_discount_value' => 'nullable|numeric|min:0',
+            'usage_limit' => 'nullable|integer|min:0',
+            'created_by' => 'nullable|exists:users,id',
+        ]);
+
+        $voucher->update($request->all());
+        return response()->json(['message' => 'Cập nhật voucher thành công', 'data' => $voucher]);
+    }
+
+    // 5. Xoá voucher
+    public function destroy($id)
+    {
+        $voucher = Voucher::find($id);
+
+        if (!$voucher) {
+            return response()->json(['message' => 'Không tìm thấy voucher'], 404);
+        }
+
+        $voucher->delete();
+        return response()->json(['message' => 'Xoá voucher thành công']);
+    }
+
+    // 6. Kiểm tra và áp dụng mã giảm giá (đã có)
     public function apply(Request $request)
     {
         $request->validate([
@@ -31,18 +110,64 @@ class VoucherController extends Controller
             return response()->json(['message' => 'Mã giảm giá đã hết lượt sử dụng'], 400);
         }
 
-        // Tính giảm
         $discount = 0;
-        if ($voucher->discount_type === 'percent') {
-            $discount = min($voucher->discount_value / 100 * $request->subtotal, $voucher->max_discount_value ?? $request->subtotal);
-        } else {
-            $discount = min($voucher->discount_value, $request->subtotal);
+        $isFreeShipping = false;
+
+        if ($voucher->is_free_shipping) {
+            // Nếu voucher là freeship, vẫn có thể áp dụng giảm giá kèm nếu có discount_value
+            $isFreeShipping = true;
+        }
+
+        if ($voucher->discount_value > 0) {
+            if ($voucher->discount_type === 'percent') {
+                $discount = min(
+                    $voucher->discount_value / 100 * $request->subtotal,
+                    $voucher->max_discount_value ?? $request->subtotal
+                );
+            } else {
+                $discount = min($voucher->discount_value, $request->subtotal);
+            }
         }
 
         return response()->json([
             'message' => 'Áp dụng mã giảm giá thành công',
             'voucher_id' => $voucher->id,
-            'discount_amount' => $discount
+            'discount_amount' => $discount,
+            'is_free_shipping' => $isFreeShipping
+        ]);
+    }
+    public function saveVoucherForUser(Request $request)
+    {
+        $request->validate([
+            'voucher_id' => 'required|exists:vouchers,id',
+        ]);
+
+        $user = Auth::user();
+
+        // Trường hợp chưa đăng nhập
+        if (!$user) {
+            return response()->json(['message' => 'Bạn cần đăng nhập để lưu voucher'], 401);
+        }
+
+        // Kiểm tra xem user đã lưu voucher chưa
+        $exists = VoucherUser::where('voucher_id', $request->voucher_id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['message' => 'Bạn đã lưu voucher này trước đó'], 409);
+        }
+
+        // Tạo bản ghi mới
+        $voucherUser = VoucherUser::create([
+            'voucher_id' => $request->voucher_id,
+            'user_id' => $user->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lưu voucher thành công',
+            'data' => $voucherUser,
         ]);
     }
 }

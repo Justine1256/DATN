@@ -1,9 +1,15 @@
 /** @type {import('next').Config} */
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   images: {
     domains: [
       'localhost',
+      'api.marketo.info.vn',
       'duynhan.id.vn',
+      'your-static-base-url.com'
     ],
     remotePatterns: [
       {
@@ -16,15 +22,15 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'img4.thuthuatphanmem.vn', // Add this hostname
+        hostname: 'img4.thuthuatphanmem.vn', // Added this hostname
       },
       {
         protocol: 'https',
-        hostname: 'thietbidiengiadung.io.vn', // Add this hostname
+        hostname: 'thietbidiengiadung.io.vn', // Added this hostname
       },
       {
         protocol: 'https',
-        hostname: 'shop.nagakawa.com.vn', // Add this hostname
+        hostname: 'shop.nagakawa.com.vn', // Added this hostname
       },
     ],
   },

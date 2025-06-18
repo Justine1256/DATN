@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 
 const discounts = [
-  { id: 1, label: 'Giảm đến 30% – Đơn hàng tối thiểu 420K', time: '28 Tháng 6 – 02 Tháng 8', left: 0 },
-  { id: 2, label: 'Giảm đến 30% – Đơn hàng tối thiểu 420K', time: '28 Tháng 6 – 02 Tháng 8', left: 0 },
-  { id: 3, label: 'Giảm đến 20% – Đơn hàng tối thiểu 159K', time: '22 Tháng 3 – 26 Tháng 4', left: 56 },
-  { id: 4, label: 'Giảm đến 50% – Đơn hàng tối thiểu 500K', time: '14 Tháng 10 – 18 Tháng 11', left: 435 },
-  { id: 5, label: 'Giảm đến 50% – Đơn hàng tối thiểu 500K', time: '14 Tháng 10 – 18 Tháng 11', left: 435 },
-  { id: 6, label: 'Giảm đến 50% – Đơn hàng tối thiểu 500K', time: '06 Tháng 12 – 10 Tháng 1', left: 34 },
-  { id: 7, label: 'Giảm đến 10% – Đơn hàng tối thiểu 100K', time: '01 Tháng 7 – 31 Tháng 7', left: 12 },
+  { id: 1, code: 'SALE30', label: 'Giảm đến 30% – Đơn hàng tối thiểu 420K', time: '28 Tháng 6 – 02 Tháng 8', left: 0 },
+  { id: 2, code: 'SALE20', label: 'Giảm đến 20% – Đơn hàng tối thiểu 159K', time: '22 Tháng 3 – 26 Tháng 4', left: 56 },
+  { id: 3, code: 'SALE50', label: 'Giảm đến 50% – Đơn hàng tối thiểu 500K', time: '14 Tháng 10 – 18 Tháng 11', left: 435 },
+  { id: 4, code: 'SALE10', label: 'Giảm đến 10% – Đơn hàng tối thiểu 100K', time: '01 Tháng 7 – 31 Tháng 7', left: 12 },
 ];
 
 interface CartItem {
@@ -21,6 +19,7 @@ interface CartItem {
     name: string;
     image: string;
     price: number;
+    sale_price?: number | null;
     option1?: string;
     value1?: string;
     option2?: string;
@@ -33,7 +32,7 @@ interface Props {
 }
 
 export default function CartSummarySection({ cartItems }: Props) {
-  const [selectedDiscount, setSelectedDiscount] = useState<number | null>(null);
+  const [selectedDiscountId, setSelectedDiscountId] = useState<number | null>(null);
   const [showShadow, setShowShadow] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -51,46 +50,43 @@ export default function CartSummarySection({ cartItems }: Props) {
     return () => el.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const subtotal = cartItems.reduce(
-    (acc, item) => acc + item.quantity * Number(item.product?.price || 0),
-    0
-  );
+  const subtotal = cartItems.reduce((acc, item) => acc + item.quantity * Number(item.product?.price || 0), 0);
+
+  const promotionDiscount = cartItems.reduce((acc, item) => {
+    const { price, sale_price } = item.product;
+    if (sale_price && sale_price < price) {
+      return acc + (price - sale_price) * item.quantity;
+    }
+    return acc;
+  }, 0);
+
+  const discountedSubtotal = subtotal - promotionDiscount;
   const shipping = cartItems.length > 0 ? 20000 : 0;
-  const discount = 0; // Chưa áp dụng giảm giá
-  const total = subtotal + shipping - discount;
+  const voucherDiscount = 0;
+  const total = discountedSubtotal + shipping - voucherDiscount;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black min-h-[520px]">
-      {/* Cột trái */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black min-h-[250px]">
+      {/* Voucher Section */}
       <div className="flex flex-col h-full">
         <div className="flex-1 border rounded-md p-4 space-y-3 relative overflow-hidden">
           <div className="flex items-center gap-3">
             <h2 className="font-semibold text-md whitespace-nowrap">Mã giảm giá</h2>
-            <input
-              type="text"
-              placeholder="Mã giảm giá"
-              className="flex-1 border rounded-md px-4 py-2 text-sm"
-            />
+            <input type="text" placeholder="Mã giảm giá" className="flex-1 border rounded-md px-4 py-2 text-sm" disabled />
           </div>
 
-          <div
-            ref={scrollRef}
-            className="space-y-2 overflow-y-auto pr-2 max-h-[390px]"
-          >
+          <div ref={scrollRef} className="space-y-2 overflow-y-auto pr-2 max-h-[300px]">
             {discounts.map((d) => {
-              const borderColor =
-                d.left === 0
-                  ? 'border-blue-300'
-                  : selectedDiscount === d.id
-                    ? 'border-brand'
-                    : 'border-gray-200';
-
-              const textColor =
-                d.left === 0
-                  ? 'text-blue-400'
-                  : d.left > 100
-                    ? 'text-brand'
-                    : 'text-gray-400';
+              const borderColor = d.left === 0
+                ? 'border-blue-300'
+                : selectedDiscountId === d.id
+                ? 'border-brand'
+                : 'border-gray-200';
+              const textColor = d.left === 0
+                ? 'text-blue-400'
+                : d.left > 100
+                ? 'text-brand'
+                : 'text-gray-400';
 
               return (
                 <label
@@ -100,15 +96,13 @@ export default function CartSummarySection({ cartItems }: Props) {
                   <div className="space-y-1">
                     <p className={`text-xs ${textColor}`}>Vận chuyển</p>
                     <p className="text-sm font-medium">{d.label}</p>
-                    <p className="text-xs text-gray-400">
-                      {d.time} &nbsp; Còn lại: {d.left}
-                    </p>
+                    <p className="text-xs text-gray-400">{d.time} &nbsp; Còn lại: {d.left}</p>
                   </div>
                   <input
                     type="radio"
                     name="discount"
-                    checked={selectedDiscount === d.id}
-                    onChange={() => setSelectedDiscount(d.id)}
+                    checked={selectedDiscountId === d.id}
+                    onChange={() => setSelectedDiscountId(d.id)}
                     className="accent-brand mt-1"
                   />
                 </label>
@@ -122,34 +116,44 @@ export default function CartSummarySection({ cartItems }: Props) {
         </div>
       </div>
 
-      {/* Cột phải: Tổng giỏ hàng */}
-      <div className="border rounded-md p-5 h-full flex flex-col justify-between">
+      {/* Cart Summary Section */}
+      <div className="border rounded-md p-5 h-full flex flex-col justify-between text-sm">
         <div>
-          <h2 className="font-semibold text-md mb-4">Tổng giỏ hàng</h2>
-          <div className="text-sm space-y-2 mb-4">
-            <div className="flex justify-between">
-              <span>Thành tiền:</span>
+          <h2 className="text-lg font-semibold mb-2">Tóm tắt đơn hàng</h2>
+          <div className="border-t border-gray-300 pt-4 space-y-1">
+            <div className="flex justify-between pb-2 border-b border-gray-200">
+              <span>Tạm tính (giá gốc):</span>
               <span>{subtotal.toLocaleString()}đ</span>
             </div>
-            <div className="flex justify-between">
-              <span>Vận chuyển:</span>
+
+            <div className="flex justify-between py-2 border-b border-gray-200">
+              <span>Khuyến mãi (giảm giá sản phẩm):</span>
+              <span className="text-green-700">-{promotionDiscount.toLocaleString()}đ</span>
+            </div>
+
+            <div className="flex justify-between py-2 border-b border-gray-200">
+              <span>Giảm giá từ voucher:</span>
+              <span className="text-green-700">-{voucherDiscount.toLocaleString()}đ</span>
+            </div>
+
+            <div className="flex justify-between py-2 border-b border-gray-200">
+              <span>Phí vận chuyển:</span>
               <span>{shipping.toLocaleString()}đ</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-700">Giảm giá:</span>
-              <span className="text-brand">- {discount.toLocaleString()}đ</span>
+
+            <div className="flex justify-between font-semibold text-lg text-brand pt-3">
+              <span>Tổng thanh toán:</span>
+              <span>{total.toLocaleString()}đ</span>
             </div>
           </div>
         </div>
-        <div>
-          <hr className="mb-4" />
-          <div className="flex justify-between font-semibold text-brand text-lg mb-4">
-            <span>Tổng cộng:</span>
-            <span>{total.toLocaleString()}đ</span>
-          </div>
-          <button className="w-full bg-brand hover:opacity-80 text-white font-semibold py-2 rounded">
-            Thanh toán
-          </button>
+
+        <div className="mt-6 flex justify-center">
+          <Link href="/checkout">
+            <button className="w-[170px] h-[56px] bg-brand hover:bg-red-600 text-white font-semibold py-3 rounded">
+              Đặt hàng
+            </button>
+          </Link>
         </div>
       </div>
     </div>

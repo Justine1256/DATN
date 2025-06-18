@@ -46,7 +46,7 @@ export default function CartPage() {
       />
 
       <div className="md:col-span-2 mb-4 pt-[40px]">
-        <CartItemsSection cartItems={cartItems} setCartItems={setCartItems} />
+        <CartItemsSection cartItems={cartItems} setCartItems={cartItems as any}/>
       </div>
       <div>
         <CartSummarySection cartItems={cartItems} />

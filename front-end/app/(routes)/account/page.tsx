@@ -8,9 +8,11 @@ import AccountSidebar from '@/app/components/account/AccountSidebar';
 import AccountPage from '@/app/components/account/AccountPage';
 import ChangePassword from '@/app/components/account/ChangePassword';
 import FollowedShops from '@/app/components/account/FollowedShops';
-import OrderSection from '@/app/components/account/Order';
+import NotificationDropdown from '@/app/components/account/NotificationDropdown';  // Import NotificationDropdown
 import { useRouter } from 'next/navigation';
-import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
+import { API_BASE_URL } from '@/utils/api';
+import OrderSection from '@/app/components/account/OrderSection';
+
 export default function AccountRoute() {
   const [section, setSection] = useState<string>('profile');
   const [user, setUser] = useState<any>(null);
@@ -47,14 +49,15 @@ export default function AccountRoute() {
   // ✅ Thay đổi section và cập nhật URL
   const handleSectionChange = (newSection: string) => {
     setSection(newSection);
-    router.push(`/account?section=${newSection}`, undefined, { shallow: true });
+    router.push(`/account?section=${newSection}`);
   };
 
   if (!hydrated) return null;
 
   return (
     <div className="min-h-[calc(100vh-100px)] flex flex-col bg-white pt-8 pb-4">
-      <div className="w-full max-w-[1170px] mx-auto px-4">
+      <div className="w-full max-w-[1280px] mx-auto px-4">
+        {/* ✅ Welcome User */}
         <div className="flex justify-end items-center mb-2">
           {!loading && user && (
             <p className="text-sm font-medium text-black">
@@ -63,25 +66,31 @@ export default function AccountRoute() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start mt-26">
-          {/* ✅ Sidebar bên trái */}
-          <div className="md:col-span-3">
+        {/* ✅ Grid Layout chuẩn 12 cột */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* ✅ Sidebar trái, dịch sang phải một chút */}
+          <div className="md:col-span-3 ml-20">
             <AccountSidebar
               currentSection={section}
               onChangeSection={handleSectionChange}
-              user={user} // ✅ Truyền user xuống Sidebar
+              user={user}
             />
           </div>
 
-          {/* ✅ Nội dung từng mục bên phải */}
-          <div className="md:col-span-9 pt-2">
-            <div className="w-full max-w-[600px] mx-auto transition-all duration-300">
-              {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
-              {section === 'changepassword' && <ChangePassword />}
-              {section === 'address' && user && <AddressComponent userId={user.id} />}
-              {section === 'followedshops' && <FollowedShops />}
-              {section === 'orders' && <OrderSection />}
-            </div>
+          {/* ✅ Nội dung phải (chiếm 9/12) */}
+          <div className="md:col-span-9 pt-2 transition-all duration-300">
+            {/* Điều kiện hiển thị từng section */}
+            {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
+            {section === 'changepassword' && <ChangePassword />}
+            {section === 'address' && user && (
+              <div className="max-w-[700px] mx-auto w-full">
+                {/* Truyền userId đúng kiểu */}
+                <AddressComponent userId={user.id} />
+              </div>
+            )}
+            {section === 'followedshops' && <FollowedShops />}
+            {section === 'orders' && <OrderSection />}
+            {section === 'NotificationDropdown' && <NotificationDropdown />} {/* Hiển thị thông báo khi chọn "thongbao" */}
           </div>
         </div>
       </div>

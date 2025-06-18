@@ -11,7 +11,7 @@ export default function NewProducts() {
 const router = useRouter();
   // 🔄 Gọi API lấy sản phẩm mới
   useEffect(() => {
-    fetch(`${API_BASE_URL}/newproducts/`)
+    fetch(`${API_BASE_URL}/newproducts`)
       .then((res) => res.json())
       .then((data) => {
         setProducts(Array.isArray(data.products) ? data.products : []);
@@ -31,12 +31,12 @@ const router = useRouter();
         {/* 🔻 Tiêu đề & mô tả */}
         <div className="flex flex-col items-start gap-2 mb-6">
           <div className="flex items-center gap-2">
-            <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-            <p className="text-red-500 font-semibold text-sm translate-y-[1px]">
+            <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
+            <p className="text-brand font-semibold text-sm translate-y-[1px]">
               Trong Tuần
             </p>
           </div>
-          <h2 className="text-3xl font-bold text-black mt-4">Sản phẩm mới </h2>
+          <h2 className="text-3xl font-bold text-black mt-4">Sản phẩm mới</h2>
         </div>
 
         {/* 🛒 Hiển thị sản phẩm hoặc loading */}
@@ -54,7 +54,7 @@ const router = useRouter();
         <div className="mt-10 text-center">
           <button 
             onClick={() => router.push('/category')}
-          className="bg-[#DB4444] hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
+          className="bg-brand hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
             Xem tất cả sản phẩm
           </button>
         </div>

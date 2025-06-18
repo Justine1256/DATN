@@ -21,12 +21,15 @@ class ProductController extends Controller
     // Chi tiết 1 sản phẩm
 public function show($shopslug, $productslug)
 {
-    $product = Product::with('shop') // <-- Load thông tin shop
-        ->where('slug', $productslug)
-        ->whereHas('shop', function($query) use ($shopslug) {
-            $query->where('slug', $shopslug);
-        })
-        ->first();
+    $product = Product::with([
+        'shop',
+        'category.parent' // <-- Load category và category cha
+    ])
+    ->where('slug', $productslug)
+    ->whereHas('shop', function($query) use ($shopslug) {
+        $query->where('slug', $shopslug);
+    })
+    ->first();
 
     if (!$product) {
         return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
@@ -34,6 +37,7 @@ public function show($shopslug, $productslug)
 
     return response()->json($product);
 }
+
 
 
 public function getCategoryAndProductsBySlug($slug)
@@ -58,7 +62,8 @@ public function getCategoryAndProductsBySlug($slug)
     $products = [];
 
     if (!empty($categoryIds)) {
-        $products = Product::whereIn('category_id', $categoryIds)
+        $products = Product::with('shop')
+            ->whereIn('category_id', $categoryIds)
             ->where('status', 'activated')
             ->get();
     }

@@ -7,6 +7,30 @@ use Illuminate\Http\Request;
 
 class VoucherCategoryController extends Controller
 {
+    public function index()
+    {
+        $data = VoucherCategory::with(['voucher', 'category'])->get();
+
+        return response()->json(['data' => $data]);
+    }
+    public function showVouchersByCategory($category_id)
+    {
+        $vouchers = \App\Models\Voucher::whereHas('categories', function ($query) use ($category_id) {
+            $query->where('category_id', $category_id);
+        })->get();
+
+        return response()->json(['data' => $vouchers]);
+    }
+
+    public function showByVoucherId($voucher_id)
+    {
+        $data = VoucherCategory::with('category')
+            ->where('voucher_id', $voucher_id)
+            ->get();
+
+        return response()->json(['data' => $data]);
+    }
+
     public function assignToCategory(Request $request)
     {
         $request->validate([

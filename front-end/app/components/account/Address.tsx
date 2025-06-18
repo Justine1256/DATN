@@ -1,23 +1,29 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import Select from "react-select";
-import { AddressCardLoading } from "../loading/loading";
-import { API_BASE_URL } from '@/utils/api';   
+import { API_BASE_URL } from '@/utils/api';
+
 // ✅ Interface định nghĩa tỉnh/huyện/xã và địa chỉ người dùng
 interface Province {
   code: number;
   name: string;
 }
+
 interface District {
   code: number;
   name: string;
 }
+
 interface Ward {
   code: number;
   name: string;
+}
+
+interface AddressComponentProps {
+  userId: number;  // Thêm kiểu cho userId
 }
 
 interface Address {
@@ -34,11 +40,8 @@ interface Address {
   type: "Nhà Riêng" | "Văn Phòng";
 }
 
-export default function AddressComponent() {
-  // ✅ State quản lý người dùng và địa chỉ
-  const [loading, setLoading] = useState(true); // ✅ Thêm dòng này
-
-  const [userId, setUserId] = useState<number | null>(null);
+export default function AddressComponent({ userId }: AddressComponentProps) {
+  const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState<number | null>(null);
@@ -65,6 +68,10 @@ export default function AddressComponent() {
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
+
+  // Add state for userId
+  const [userIdState, setUserIdState] = useState<number | null>(null);
+
   const validatePhone = (phone: string) => {
     const regex = /^(0|\+84)(3[2-9]|5[2689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$/;
     return regex.test(phone);
@@ -131,28 +138,28 @@ export default function AddressComponent() {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
-      setUserId(res.data.id);
+      setUserIdState(res.data.id);  // Cập nhật userId sử dụng setUserIdState
     } catch (err) {
       console.error("User fetch failed", err);
     }
   };
 
   // ✅ Gọi API lấy danh sách địa chỉ của user
-  const fetchAddresses = async (uid: number) => {
+  const fetchAddresses = async (id: string) => {  // Chuyển `id` thành string
     const token = Cookies.get("authToken");
     if (!token) return;
-  
+
     try {
       setLoading(true); // ✅ Bắt đầu loading
-  
+
       const res = await axios.get(
-        `${API_BASE_URL}/addressesUser/${uid}`,
+        `${API_BASE_URL}/addressesUser/${id}`, // Truyền `id` là string
         {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         }
       );
-  
+
       const sorted = [...res.data].sort(
         (a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0)
       );
@@ -163,14 +170,13 @@ export default function AddressComponent() {
       setLoading(false); // ✅ Kết thúc loading
     }
   };
-  
 
   // ✅ Khởi tạo user ID và load địa chỉ tương ứng
   useEffect(() => {
     fetchUserId();
   }, []);
   useEffect(() => {
-    if (userId) fetchAddresses(userId);
+    if (userId) fetchAddresses(userId.toString());  // Chuyển `userId` thành string khi gọi API
   }, [userId]);
 
   // ✅ Chỉnh sửa địa chỉ
@@ -190,7 +196,7 @@ export default function AddressComponent() {
       document.body.classList.remove("overflow-hidden"); // cleanup khi unmount
     };
   }, [isAdding]);
-  
+
   // ✅ Hàm xử lý thêm hoặc cập nhật địa chỉ
   const handleAddOrUpdateAddress = async () => {
     const token = Cookies.get("authToken");
@@ -246,7 +252,7 @@ export default function AddressComponent() {
 
       setIsAdding(false);
       setIsEditing(null);
-      fetchAddresses(userId);
+      fetchAddresses(userId.toString());  // Chuyển `userId` thành string khi gọi API
       setFormData({
         full_name: "",
         phone: "",
@@ -269,105 +275,183 @@ export default function AddressComponent() {
   const handleDelete = async () => {
     if (!confirmDeleteId || !userId) return;
     const token = Cookies.get("authToken");
+
     try {
-      await axios.delete(
-        `${API_BASE_URL}/addresses/${confirmDeleteId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      // ✅ Gọi API xoá
+      await axios.delete(`${API_BASE_URL}/addresses/${confirmDeleteId.toString()}`, {  // Chuyển `confirmDeleteId` thành string
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // ✅ Nếu xoá thành công, cập nhật UI
       triggerPopup("Xoá địa chỉ thành công!", "success");
 
       const updated = addresses.filter((addr) => addr.id !== confirmDeleteId);
+
+      // ✅ Nếu chỉ còn 1 địa chỉ, đặt làm mặc định nếu chưa
       if (updated.length === 1 && !updated[0].is_default) {
         const newDefaultId = updated[0].id;
-        await axios.patch(
-          `${ API_BASE_URL } /addresses/${newDefaultId}`,
-          {
-            ...updated[0],
-            is_default: true,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      }
 
-      fetchAddresses(userId);
-    } catch {
-      triggerPopup("Xoá thất bại!", "error");
+        // Kiểm tra newDefaultId có tồn tại trước khi gọi API
+        if (newDefaultId) {
+          await axios.patch(
+            `${API_BASE_URL}/addresses/${newDefaultId.toString()}`,
+            {
+              ...updated[0],
+              is_default: true,
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        }
+      }
+      
+
+      // ✅ Refresh lại danh sách địa chỉ
+      fetchAddresses(userId.toString());  // Chuyển `userId` thành string khi gọi API
+    } catch (error) {
+      console.error("Lỗi xoá địa chỉ:", error);
+      triggerPopup("❌ Xoá thất bại!", "error");
     } finally {
-      setConfirmDeleteId(null);
+      setConfirmDeleteId(null); // ✅ Đóng modal xác nhận
     }
   };
 
-  // ✅ JSX render danh sách địa chỉ và form thêm/sửa
   return (
-    <div className="relative">
-      {/* Overlay khi đang thêm địa chỉ */}
-      {isAdding && <div className="fixed inset-0 bg-black bg-opacity-50 z-10" />}
+    <div className="min-h-screen py-16">
+      {/* Overlay khi mở form */}
+      {isAdding && <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" />}
 
-      <div className="w-full max-w-5xl p-4 mx-auto mt-20 bg-white rounded-lg shadow relative z-50">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-h2 font-bold text-red-500">Danh sách địa chỉ</h2>
-          <button
-            onClick={() => {
-              // Reset form data và mở form thêm địa chỉ
-              setFormData({
-                full_name: "",
-                phone: "",
-                address: "",
-                ward: "",
-                district: "",
-                city: "",
-                province: "",
-                note: "",
-                is_default: false,
-                type: "Nhà Riêng",
-              });
-              setIsAdding(true); // Hiển thị form thêm địa chỉ
-              setIsEditing(null); // Không ở chế độ chỉnh sửa
-            }}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            + Thêm địa chỉ
-          </button>
+      {/* Main container */}
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-3  rounded-xl">
+                {/* Map Pin - Use text instead of icon */}
+                <span className="text-white">📍</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-[#db4444]">Quản lý địa chỉ</h1>
+                <p className="text-gray-500 text-sm">Quản lý danh sách địa chỉ giao hàng của bạn</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setFormData({
+                  full_name: "",
+                  phone: "",
+                  address: "",
+                  ward: "",
+                  district: "",
+                  city: "",
+                  province: "",
+                  note: "",
+                  is_default: false,
+                  type: "Nhà Riêng",
+                });
+                setIsAdding(true);
+                setIsEditing(null);
+              }}
+              className="flex items-center space-x-2 bg-gradient-to-r from-[#db4444] to-[#db4444] hover:from-[#db4444] hover:to-[#db4444] text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+            >
+              <span>➕</span>
+              <span>Thêm địa chỉ mới</span>
+            </button>
+          </div>
         </div>
 
-        {/* Loading khi chưa có dữ liệu */}
-        {loading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="w-6 h-6 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : addresses.length === 0 && !isAdding ? (
-          <div className="text-center text-gray-500">Chưa có địa chỉ</div>
-        ) : (
-          <ul className="space-y-4">
-            {addresses.map((addr) => (
-              <li key={addr.id} className="p-4 border rounded-xl bg-white shadow-sm relative flex justify-between items-start">
-                <div className="flex-1 pr-4">
-                  <p className="font-semibold text-black text-[15px] mb-1">
-                    {addr.full_name} - {addr.phone}
-                  </p>
-                  <p className="text-gray-700 text-sm">
-                    {addr.address}, {addr.ward}, {addr.district}, {addr.city}
-                  </p>
-                  <div className="mt-2 flex items-center gap-2 text-sm">
-                    <span className="text-gray-500">Loại:</span>
-                    <span className="text-gray-700">{addr.type}</span>
-                    {addr.is_default && (
-                      <span className="ml-2 px-2 py-[2px] text-xs text-red-500 border border-red-500 rounded-md">
-                        Mặc định
-                      </span>
-                    )}
+        {/* List of Addresses */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              {/* Changed spinner color to db4444 */}
+              <div className="w-12 h-12 border-4 border-[#db4444] border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-500">Đang tải danh sách địa chỉ...</p>
+            </div>
+          ) : addresses.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <span className="text-gray-400">📍</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">Chưa có địa chỉ nào</h3>
+              <p className="text-gray-500 mb-6">Thêm địa chỉ đầu tiên để bắt đầu sử dụng</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                Danh sách địa chỉ ({addresses.length})
+              </h2>
+
+              {addresses.map((addr) => (
+                <div
+                  key={addr.id}
+                  className={`p-6 rounded-xl border-2 transition-all duration-200 hover:shadow-lg ${addr.is_default
+                    ? "border-[#db4444]  "
+                    : "border-gray-200 bg-white hover:border-[#db4444]"
+                    }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <div className="flex items-center space-x-2">
+                          {/* User icon replaced with text */}
+                          <span className="font-semibold text-black">{addr.full_name}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {/* Phone icon replaced with text */}
+                          <span className="text-black">{addr.phone}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2 mb-3">
+                        {/* Map Pin - replaced with text */}
+                        <span className="text-gray-400 mt-0.5">📍</span>
+                        <div className="text-black leading-relaxed">
+                          <p>{addr.address}</p>
+                          <p>{addr.ward}, {addr.district}, {addr.city}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className={`flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium ${addr.type === "Nhà Riêng"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-orange-100 text-orange-700"
+                            }`}
+                        >
+                          {/* Home type icon replaced with text */}
+                          <span>{addr.type}</span>
+                        </div>
+
+                        {addr.is_default && (
+                          <div className="flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium bg-[#db4444] text-white">
+                            <span>✔</span>
+                            <span>Mặc định</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2 ml-4">
+                      <button
+                        onClick={() => handleEdit(addr)}
+                        className="flex items-center space-x-1 px-3 py-2 text-[#db4444] hover:bg-[#db4444]/10 rounded-lg transition-colors duration-200"
+                      >
+                        <span className="text-sm font-medium">Sửa</span>
+                      </button>
+
+                      <button
+                        onClick={() => setConfirmDeleteId(addr.id!)}
+                        className="flex items-center space-x-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                      >
+                        <span className="text-sm font-medium">Xóa</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-col gap-1 text-right min-w-[70px] text-sm mt-1">
-                  <button onClick={() => handleEdit(addr)} className="text-blue-500 hover:underline">Cập nhật</button>
-                  <button onClick={() => setConfirmDeleteId(addr.id!)} className="text-red-500 hover:underline">Xoá</button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Form hiển thị khi đang thêm/sửa */}
@@ -405,8 +489,8 @@ export default function AddressComponent() {
       {showPopup && (
         <div
           className={`fixed top-20 right-5 z-[9999] text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade ${popupType === "success"
-              ? "bg-white text-green-600 border-green-500"
-              : "bg-white text-red-600 border-red-500"
+            ? "bg-white text-green-600 border-green-500"
+            : "bg-white text-red-600 border-red-500"
             }`}
         >
           {popupMessage}
@@ -418,7 +502,8 @@ export default function AddressComponent() {
   // ✅ Hàm hiển thị form nhập/sửa địa chỉ
   function renderForm() {
     return (
-      <div className="fixed inset-0 z-50 flex justify-center items-center overflow-y-auto mt-16">
+      <div className="fixed inset-0 z-50 flex justify-end items-center bg-black bg-opacity-50 px-4">
+
         <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-auto relative shadow-xl text-sm">
           <button
             className="absolute top-3 right-4 text-xl text-gray-600 hover:text-red-600"
@@ -429,7 +514,7 @@ export default function AddressComponent() {
           >
             ×
           </button>
-          <h3 className="text-h2 font-bold text-center text-red-500 mb-4">
+          <h3 className="text-h2 font-bold text-center text-[#db4444] mb-4">
             {isEditing ? "Cập nhật địa chỉ" : "Thêm địa chỉ"}
           </h3>
 
@@ -460,9 +545,8 @@ export default function AddressComponent() {
                   setPhoneError("");
                 }
               }}
-              className={`col-span-6 p-2 border rounded text-black ${
-                phoneError ? "border-red-500" : ""
-              }`}
+              className={`col-span-6 p-2 border rounded text-black ${phoneError ? "border-red-500" : ""
+                }`}
             />
 
             {phoneError && (
@@ -482,24 +566,9 @@ export default function AddressComponent() {
             />
 
             {[
-              {
-                label: "Tỉnh/TP",
-                key: "province",
-                value: formData.province,
-                options: provinces,
-              },
-              {
-                label: "Quận/Huyện",
-                key: "district",
-                value: formData.district,
-                options: districts,
-              },
-              {
-                label: "Phường/Xã",
-                key: "ward",
-                value: formData.ward,
-                options: wards,
-              },
+              { label: "Tỉnh/TP", key: "province", value: formData.province, options: provinces },
+              { label: "Quận/Huyện", key: "district", value: formData.district, options: districts },
+              { label: "Phường/Xã", key: "ward", value: formData.ward, options: wards }
             ].map((item) => (
               <div key={item.key} className="col-span-4">
                 <label className="block mb-1 text-gray-700 font-medium">
@@ -552,11 +621,10 @@ export default function AddressComponent() {
                       type: type as "Nhà Riêng" | "Văn Phòng",
                     })
                   }
-                  className={`px-4 py-1 border rounded mr-3 ${
-                    formData.type === type
-                      ? "bg-red-500 text-white"
-                      : "bg-white text-black border-gray-300"
-                  }`}
+                  className={`px-4 py-1 border rounded mr-3 ${formData.type === type
+                    ? "bg-[#db4444] text-white"
+                    : "bg-white text-black border-gray-300"
+                    }`}
                 >
                   {type}
                 </button>
@@ -571,7 +639,7 @@ export default function AddressComponent() {
                 onChange={(e) =>
                   setFormData({ ...formData, is_default: e.target.checked })
                 }
-                className="accent-red-500"
+                className="accent-[#db4444]"
               />
               <label htmlFor="is_default" className="text-sm text-black">
                 Làm mặc định
@@ -590,7 +658,7 @@ export default function AddressComponent() {
               </button>
               <button
                 onClick={handleAddOrUpdateAddress}
-                className="px-5 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                className="px-5 py-2 bg-[#db4444] text-white rounded hover:bg-[#db4444]/80"
               >
                 Lưu
               </button>

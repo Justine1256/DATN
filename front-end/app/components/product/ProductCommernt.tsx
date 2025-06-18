@@ -72,7 +72,7 @@ export default function ProductComments({
     if (image) formData.append('image', image);
 
     await axios.post(
-      `${ API_BASE_URL } /${shopslug}/product/${productslug}/comment`,
+      `${API_BASE_URL}/${shopslug}/product/${productslug}/comment`,
       formData,
       {
         headers: {
@@ -114,8 +114,8 @@ export default function ProductComments({
         <div className="bg-white border rounded-md shadow-sm p-6 pt-10 space-y-6">
           {/* ✅ Tiêu đề với gạch chỉ mục */}
           <div className="flex items-center gap-2">
-            <div className="w-[10px] h-[22px] bg-[#dc4b47] rounded-tl-sm rounded-bl-sm" />
-            <h2 className="text-xl font-semibold text-[#DC4B47]">Bình luận sản phẩm</h2>
+            <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
+            <h2 className="text-xl font-semibold text-brand">Bình luận sản phẩm</h2>
           </div>
 
           {/* ✅ Form nhập bình luận */}
@@ -128,11 +128,11 @@ export default function ProductComments({
                   onChange={(e) => setContent(e.target.value)}
                   rows={3}
                   placeholder="Nhập bình luận..."
-                  className="w-full border rounded p-3 pr-10 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#DC4B47]"
+                  className="w-full border rounded p-3 pr-10 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand"
                 />
                 <button
                   onClick={handleSubmit}
-                  className="absolute bottom-3 right-3 text-[#DC4B47] hover:text-[#a82f2c]"
+                  className="absolute bottom-3 right-3 text-brand hover:text-[#a82f2c]"
                   title="Gửi bình luận"
                 >
                   <FiSend size={18} />
@@ -199,7 +199,7 @@ export default function ProductComments({
               className={`px-3 py-1 rounded border ${
                 page === 1
                   ? 'text-black font-bold border-gray-400'
-                  : 'border-gray-300 hover:border-[#DC4B47] hover:text-[#DC4B47]'
+                  : 'border-gray-300 hover:border-brand hover:text-brand'
               }`}
             >
               Trước
@@ -212,7 +212,7 @@ export default function ProductComments({
                 className={`px-3 py-1 rounded border transition ${
                   p === page
                     ? 'border-black text-black font-bold'
-                    : 'border-gray-300 text-gray-700 hover:border-[#DC4B47] hover:text-[#DC4B47]'
+                    : 'border-gray-300 text-gray-700 hover:border-brand hover:text-brand'
                 }`}
               >
                 {p}
@@ -225,7 +225,7 @@ export default function ProductComments({
               className={`px-3 py-1 rounded border ${
                 page === totalPages
                   ? 'text-black font-bold border-gray-400'
-                  : 'border-gray-300 hover:border-[#DC4B47] hover:text-[#DC4B47]'
+                  : 'border-gray-300 hover:border-brand hover:text-brand'
               }`}
             >
               Sau

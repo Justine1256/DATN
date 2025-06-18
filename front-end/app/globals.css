@@ -7,19 +7,26 @@
 ================================ */
 :root {
   --background: #ffffff;
+  /* Màu nền chính */
   --foreground: #0a0a0a;
+  /* Màu chữ chính */
   --color-background: var(--background);
+  /* Biến tiện ích cho màu nền */
   --color-foreground: var(--foreground);
+  /* Biến tiện ích cho màu chữ */
   --font-sans: 'Roboto', Arial, Helvetica, sans-serif;
-  /* Sử dụng font Roboto */
+  /* Font sans-serif mặc định là Roboto */
   --font-mono: 'Courier New', Courier, monospace;
+  /* Font monospace mặc định */
 }
 
 /* Định nghĩa chế độ tối */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
+    /* Màu nền trong chế độ tối */
     --foreground: #ededed;
+    /* Màu chữ trong chế độ tối */
   }
 }
 
@@ -29,16 +36,26 @@
 
 html,
 body {
-  min-height: 100%;
-  scroll-behavior: smooth;
+  background-color: #fde8e8;
+  /* Màu nền mặc định cho html và body */
+  padding: 0;
+  /* Bỏ padding mặc định */
+  margin: 0;
+  /* Bỏ margin mặc định */
+  overflow-x: hidden;
+  /* Ẩn thanh cuộn ngang */
 }
+
 
 body {
   background: var(--background);
+  /* Áp dụng màu nền từ biến hệ thống */
   color: var(--foreground);
+  /* Áp dụng màu chữ từ biến hệ thống */
   font-family: 'Roboto', Arial, Helvetica, sans-serif;
-  /* Áp dụng font Roboto */
+  /* Áp dụng font Roboto cho toàn bộ body */
   overflow-x: hidden;
+  /* Ẩn thanh cuộn ngang */
 }
 
 /* ================================
@@ -47,20 +64,26 @@ body {
 
 ::-webkit-scrollbar {
   width: 8px;
+  /* Chiều rộng của thanh cuộn */
 }
 
 ::-webkit-scrollbar-track {
   background: #2e2e2e;
+  /* Màu nền của rãnh thanh cuộn */
   border-radius: 10px;
+  /* Bo góc rãnh thanh cuộn */
 }
 
 ::-webkit-scrollbar-thumb {
   background: #b5b5b5;
+  /* Màu của núm kéo thanh cuộn */
   border-radius: 10px;
+  /* Bo góc núm kéo */
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #999999;
+  /* Màu của núm kéo khi hover */
 }
 
 /* ================================
@@ -70,25 +93,32 @@ body {
 @keyframes slideInFade {
   0% {
     transform: translateX(100%);
+    /* Bắt đầu từ ngoài màn hình bên phải */
     opacity: 0;
+    /* Trong suốt */
   }
 
   30% {
     transform: translateX(0);
+    /* Di chuyển vào vị trí cuối cùng */
     opacity: 1;
+    /* Hiển thị hoàn toàn */
   }
 
   80% {
     opacity: 1;
+    /* Giữ nguyên hiển thị */
   }
 
   100% {
     opacity: 0;
+    /* Mờ dần và biến mất */
   }
 }
 
 .animate-slideInFade {
   animation: slideInFade 3s ease-in-out forwards;
+  /* Áp dụng animation slideInFade trong 3 giây, với hiệu ứng ease-in-out và giữ trạng thái cuối cùng */
 }
 
 /* ================================
@@ -97,16 +127,19 @@ body {
 
 #nprogress .bar {
   background: #db4444 !important;
+  /* Màu của thanh loading NProgress */
   height: 3px;
+  /* Chiều cao của thanh loading */
 }
 
 #nprogress .peg {
   box-shadow: 0 0 10px #db4444, 0 0 5px #db4444;
+  /* Hiệu ứng đổ bóng cho thanh loading */
 }
 
 #nprogress .spinner {
   display: none !important;
-  /* Ẩn spinner xanh tròn */
+  /* Ẩn spinner xanh tròn của NProgress */
 }
 
 /* ================================
@@ -116,22 +149,29 @@ body {
 @keyframes rotateToCheck {
   0% {
     transform: rotate(0deg);
+    /* Bắt đầu xoay từ 0 độ */
     opacity: 1;
+    /* Hiển thị hoàn toàn */
   }
 
   50% {
     transform: rotate(180deg);
+    /* Xoay đến 180 độ */
     opacity: 1;
+    /* Hiển thị hoàn toàn */
   }
 
   100% {
     transform: rotate(360deg);
+    /* Xoay đến 360 độ (hoàn thành một vòng) */
     opacity: 0;
+    /* Mờ dần và biến mất */
   }
 }
 
 .animate-rotate-to-check {
   animation: rotateToCheck 0.5s linear forwards;
+  /* Áp dụng animation rotateToCheck trong 0.5 giây, với tốc độ tuyến tính và giữ trạng thái cuối cùng */
 }
 
 /* ================================
@@ -140,21 +180,53 @@ body {
 
 .link-underline {
   position: relative;
+  /* Đặt vị trí tương đối cho hiệu ứng gạch chân */
 }
 
 .link-underline::after {
   content: "";
+  /* Tạo nội dung giả */
   position: absolute;
+  /* Đặt vị trí tuyệt đối */
   left: 0;
+  /* Bắt đầu từ bên trái */
   bottom: -1px;
+  /* Cách đáy 1px */
   width: 100%;
+  /* Chiều rộng bằng 100% của phần tử cha */
   height: 2px;
+  /* Chiều cao của gạch chân */
   background: white;
+  /* Màu của gạch chân */
   transform: scaleX(0);
+  /* Ban đầu gạch chân bị ẩn (scale ngang về 0) */
   transform-origin: left;
+  /* Điểm gốc của transform là bên trái */
   transition: transform 0.3s ease-out;
+  /* Hiệu ứng chuyển động mượt mà khi transform */
 }
 
 .link-underline:hover::after {
   transform: scaleX(1);
+  /* Khi hover, gạch chân hiển thị hoàn toàn (scale ngang về 1) */
+}
+
+/* ================================
+   Hiệu ứng trượt phát sáng (Glow Slide)
+================================= */
+@keyframes glow-slide {
+  0% {
+    left: -75%;
+    /* Bắt đầu từ ngoài màn hình bên trái */
+  }
+
+  100% {
+    left: 100%;
+    /* Kết thúc ở ngoài màn hình bên phải */
+  }
+}
+
+.animate-glow-slide {
+  animation: glow-slide 2s linear infinite;
+  /* Áp dụng animation glow-slide trong 2 giây, với tốc độ tuyến tính và lặp vô hạn */
 }

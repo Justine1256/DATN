@@ -1,11 +1,12 @@
 "use client";
 
+import ActionButtons from "@/app/components/categories/create/ActionButtons";
+import CategoryInfoForm from "@/app/components/categories/create/Form";
+import CateImageDrop from "@/app/components/categories/create/ImageDrop";
+import CategoryPreviewCard from "@/app/components/categories/create/PreviewCard";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import CategoryPreviewCard from "@/app/components/Categories/create/PreviewCard";
-import CateImageDrop from "@/app/components/Categories/create/ImageDrop";
-import CategoryInfoForm from "@/app/components/Categories/create/Form";
-import ActionButtons from "@/app/components/Categories/create/ActionButtons";
+
 
 // ✅ Dữ liệu giả category
 const mockCategories = [

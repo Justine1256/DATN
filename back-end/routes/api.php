@@ -9,6 +9,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\BannerController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\FollowController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderDetailController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
@@ -26,14 +28,19 @@ use App\Http\Controllers\ReviewController;
 
 
 // test api
-Route::get('/userall', [UserController::class, 'index']);
+// Route::get('/userall', [UserController::class, 'index']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::get('/banner', [BannerController::class, 'index']);
+Route::post('/banner', [BannerController::class, 'store']);
+Route::put('/banner/{id}', [BannerController::class, 'update']);
+Route::delete('/banner/{id}', [BannerController::class, 'destroy']);
+
 Route::get('/images', [ImageController::class, 'index']);
 Route::get('/image/{path}', [ImageController::class, 'show'])->where('path', '.*');
-Route::post('/upload-image',[ImageController::class, 'store']);
+Route::post('/upload-image', [ImageController::class, 'store']);
 
 Route::get('/category', [CategoryController::class, 'index']);
 Route::get('/category/{id}', [CategoryController::class, 'show']);
@@ -64,10 +71,18 @@ Route::post('/notification', [NotificationController::class, 'store']);
 Route::get('/notification/{id}', [NotificationController::class, 'show']);
 Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 
+Route::get('/vouchers', [VoucherController::class, 'index']);
+Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::class, 'showVouchersByCategory']);
+
+
+Route::get('/vouchers', [VoucherController::class, 'index']);
+
 Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
+Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment']);
     // User
     Route::get('/user', [UserController::class, 'show']);
     Route::put('/user', [UserController::class, 'update']);
@@ -93,10 +108,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/addresses/{id}', [AddressController::class, 'update']);
     Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);
 
+    Route::get('/orderall', [OrderController::class, 'index']);
     Route::post('/dathang', [OrderController::class, 'checkout']);
-    Route::get('/showdh', [OrderController::class, 'show']);
-    Route::post('/cancel', [OrderController::class, 'cancel']);
-    Route::post('/ordership/{id}', [OrderController::class, 'updateShippingStatus']);
+    Route::get('/showdh/{id}', [OrderController::class, 'show']);
+    Route::patch('/cancel/{id}', [OrderController::class, 'cancel']);
+    Route::patch('/ordership/{id}', [OrderController::class, 'updateShippingStatus']);
+    Route::post('/reorder/{orderId}', [OrderController::class, 'reorder']);
 
     Route::get('/order-details', [OrderDetailController::class, 'index']);
     Route::post('/order-details', [OrderDetailController::class, 'store']);
@@ -110,8 +127,25 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Mã giảm giá
     Route::post('/voucher', [VoucherController::class, 'apply']);
+    Route::post('/voucherseve', [VoucherController::class, 'saveVoucherForUser']);
+    Route::post('/vouchers/unsave', [VoucherUserController::class, 'unsaveVoucher']);
+    Route::get('/my-vouchers', [VoucherUserController::class, 'showMySavedVouchers']);
+    Route::post('/vouchers', [VoucherController::class, 'store']);
+    Route::get('/vouchers/{id}', [VoucherController::class, 'show']);
+    Route::put('/vouchers/{id}', [VoucherController::class, 'update']);
+    Route::delete('/vouchers/{id}', [VoucherController::class, 'destroy']);
+
     Route::post('/voucher-users', [VoucherUserController::class, 'assignToUser']);
+    Route::get('/voucher-users', [VoucherUserController::class, 'index']);
+    Route::get('/voucher-users/by-voucher/{voucher_id}', [VoucherUserController::class, 'showByVoucherId']);
+    Route::get('/voucher-users/by-user/{user_id}', [VoucherUserController::class, 'showByUserId']);
+    Route::post('voucher-users/rank', [VoucherUserController::class, 'assignToRank']);
+
     Route::post('/voucher-categories', [VoucherCategoryController::class, 'assignToCategory']);
+    Route::get('/voucher-categories', [VoucherCategoryController::class, 'index']);
+    Route::get('/voucher-categories/{voucher_id}', [VoucherCategoryController::class, 'showByVoucherId']);
+
+
 
     // bình luận
     Route::post('/{shopslug}/product/{productslug}/comment', [CommentController::class, 'addCommentIntoProduct']);
