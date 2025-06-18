@@ -280,10 +280,11 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           <div className="md:col-span-6 flex flex-col gap-4 relative">
             <button
               onClick={toggleLike}
-              className={`absolute top-2 left-2 p-2  text-lg transition ${liked ? 'text-brand' : 'text-gray-400'}`}
+              className={`absolute top-2 left-2 p-2 text-2xl font-bold transition ${liked ? 'text-brand' : 'text-gray-400'}`}
             >
               {liked ? '❤️' : '🤍'}
             </button>
+
             <div className="flex justify-center items-center w-full bg-gray-50 rounded-lg p-6 min-h-[220px]">
               <div className="w-full max-w-[300px] h-[290px] relative">
                 <Image
