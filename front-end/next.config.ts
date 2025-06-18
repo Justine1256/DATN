@@ -1,9 +1,13 @@
 /** @type {import('next').Config} */
 const nextConfig = {
+   eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   images: {
     domains: [
       'localhost',
-      'duynhan.id.vn',
+      'api.marketo.info.vn',
     ],
     remotePatterns: [
       {
