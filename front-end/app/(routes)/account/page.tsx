@@ -49,7 +49,7 @@ export default function AccountRoute() {
   // ✅ Thay đổi section và cập nhật URL
   const handleSectionChange = (newSection: string) => {
     setSection(newSection);
-    router.push(`/account?section=${newSection}`, undefined, { shallow: true });
+    router.push(`/account?section=${newSection}`);
   };
 
   if (!hydrated) return null;
