@@ -52,7 +52,7 @@ class User extends Authenticatable
     }
     public function getAvatarAttribute($value)
     {
-        return $value ?? 'users/default-avatar.jpg';
+        return $value ?? 'avatars/default-avatar.jpg';
     }
     public function shop()
 {
