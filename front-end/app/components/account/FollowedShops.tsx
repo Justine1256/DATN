@@ -143,7 +143,7 @@ export default function FollowedShopsSection() {
                                                                 ? shop.logo
                                                                 : shop.logo
                                                                     ? `${STATIC_BASE_URL}/${shop.logo}`
-                                                                    : "/default-avatar.png"
+                                                                    : "/default-avatar.jpg"
                                                         }
                                                         alt={shop.name}
                                                         width={48} // Đặt chiều rộng của hình ảnh nhỏ hơn

@@ -156,7 +156,7 @@ export default function SignupForm() {
         className="w-full mb-2 border flex items-center justify-center py-2 rounded text-black hover:bg-gray-100 text-sm"
         onClick={() => alert('Google signup coming soon!')}
       >
-        <Image src="/google-logo.png" alt="Google" className="w-5 h-5 mr-2" />
+        <img src="/google-logo.png" alt="Google" className="w-5 h-5 mr-2" />
         Sign up with Google
       </button>
 

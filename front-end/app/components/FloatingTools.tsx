@@ -149,7 +149,7 @@ export default function ModernFloatingTools() {
     return (
       <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
         <Image
-          src={'/default-avatar.png'}
+          src={'/default-avatar.jpg'}
           alt={user.name}
           width={32}
           height={32}
