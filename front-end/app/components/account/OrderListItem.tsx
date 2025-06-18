@@ -22,7 +22,7 @@ export default function OrderListItem({
             setAddToCartSuccess(true);
             setTimeout(() => {
                 setAddToCartSuccess(false);
-                window.location.href = "/checkout";
+                window.location.href = "/cart";
             }, 1500);
         } else {
             alert("Đơn hàng này không thể đặt lại.");

@@ -134,7 +134,7 @@ export default function OrderSection() {
         }
       );
 
-      router.push(`/checkout`);
+      router.push(`/cart`);
     } catch (error) {
       console.error("❌ Lỗi khi thêm vào giỏ hàng:", error);
     }
