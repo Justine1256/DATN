@@ -14,7 +14,7 @@ export default function ServiceBanner() {
     {
       icon: <BiHeadphone className="text-xl text-white" />,
       title: 'DỊCH VỤ KHÁCH HÀNG 24/7',
-      desc: 'Hỗ trợ khách hàng thân thiện 24/7',
+      desc: 'Hỗ trợ khách hàng 24/7',
     },
     {
       icon: <MdOutlineVerifiedUser className="text-xl text-white" />,
