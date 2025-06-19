@@ -227,29 +227,29 @@ public function newProducts(Request $request)
 }
 
     // Lấy danh sách sản phẩm của shop
-public function showShopProducts(Request $request)
+public function showShopProducts(Request $request, $slug)
 {
-    $user = $request->user();
+    $shop = \App\Models\Shop::where('slug', $slug)->first();
 
-    if (!$user || !$user->shop) {
-        return response()->json(['error' => 'User chưa có shop.'], 403);
+    if (!$shop) {
+        return response()->json(['error' => 'Shop không tồn tại.'], 404);
     }
-
-    $shopId = $user->shop->id;
 
     $perPage = $request->query('per_page', 5);
 
-    $products = Product::where('shop_id', $shopId)
+    $products = \App\Models\Product::where('shop_id', $shop->id)
         ->where('status', 'activated')
         ->with('category')
         ->orderBy('created_at', 'desc')
-        ->paginate($perPage); // <-- paginate thay vì get
+        ->paginate($perPage);
 
     return response()->json([
-        'shop_id' => $shopId,
-        'products' => $products
+        'shop_id'   => $shop->id,
+        'shop_name' => $shop->name,
+        'products'  => $products
     ]);
 }
+
         // Thêm sản phẩm mới bởi shop
 public function addProductByShop(Request $request)
 {
