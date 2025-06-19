@@ -5,8 +5,8 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/utils/api';
 import Image from 'next/image';
+
 export default function SignupForm() {
-  // ✅ Khởi tạo state
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -16,14 +16,19 @@ export default function SignupForm() {
   const otpRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // ✅ Tự động focus vào input OTP khi hiện modal
   useEffect(() => {
     if (showOtpModal && otpRef.current) otpRef.current.focus();
   }, [showOtpModal]);
 
-  // ✅ Kiểm tra định dạng email hợp lệ
   const isValidEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const isValidPhone = (phone: string) =>
+    /^(03|05|07|08|09)[0-9]{8}$/.test(phone);
+  
+
+  const isValidPassword = (password: string) =>
+    password.length >= 6;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -31,7 +36,6 @@ export default function SignupForm() {
     setMessage('');
   };
 
-  // ✅ Gửi form đăng ký
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const { name, email, phone, password } = formData;
@@ -43,6 +47,16 @@ export default function SignupForm() {
 
     if (!isValidEmail(email)) {
       setError('Email không hợp lệ.');
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      setError('Số điện thoại không hợp lệ (9–11 chữ số).');
+      return;
+    }
+
+    if (!isValidPassword(password)) {
+      setError('Mật khẩu phải có ít nhất 6 ký tự.');
       return;
     }
 
@@ -62,7 +76,6 @@ export default function SignupForm() {
     }
   };
 
-  // ✅ Xác minh OTP
   const verifyOtp = async () => {
     if (!otpCode.trim()) {
       setError('Vui lòng nhập mã OTP.');
@@ -89,18 +102,15 @@ export default function SignupForm() {
 
   return (
     <div className="w-[370px] max-w-md mx-auto text-black relative">
-      {/* ✅ Tiêu đề form */}
       <h2 className="text-[1.5rem] font-semibold mb-1">Create an account</h2>
       <p className="text-sm text-gray-700 mb-6">Enter your details below</p>
 
-      {/* ✅ Thông báo lỗi hoặc thành công */}
       {(message || error) && (
         <p className={`mb-4 text-sm ${error ? 'text-brand' : 'text-green-600'}`}>
           {error || message}
         </p>
       )}
 
-      {/* ✅ Form đăng ký */}
       <form onSubmit={handleSubmit} className="space-y-6">
         <input
           type="text"
@@ -110,27 +120,22 @@ export default function SignupForm() {
           className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm"
         />
         <input
-          type="email"
+          type="text"
           name="email"
           placeholder="Email"
           value={formData.email}
           onChange={handleChange}
-          onBlur={(e) => {
-            const email = e.target.value;
-            const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-            setError(isValid ? '' : 'Email không hợp lệ.');
-          }}
           className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm"
         />
         <input
-          type="tel"
+          type="text"
           name="phone"
           placeholder="Phone"
           onChange={handleChange}
           className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm"
         />
         <input
-          type="password"
+          type="text"
           name="password"
           placeholder="Password"
           onChange={handleChange}
@@ -144,14 +149,12 @@ export default function SignupForm() {
         </button>
       </form>
 
-      {/* ✅ Separator: hoặc đăng ký bằng Google */}
       <div className="my-6 flex items-center">
         <div className="flex-grow border-t" />
         <span className="mx-2 text-black text-sm">or</span>
         <div className="flex-grow border-t" />
       </div>
 
-      {/* ✅ Nút Google signup */}
       <button
         className="w-full mb-2 border flex items-center justify-center py-2 rounded text-black hover:bg-gray-100 text-sm"
         onClick={() => alert('Google signup coming soon!')}
@@ -160,7 +163,6 @@ export default function SignupForm() {
         Sign up with Google
       </button>
 
-      {/* ✅ Link chuyển sang login */}
       <p className="text-center mt-6 text-sm">
         Already have an account?{' '}
         <a href="/login" className="underline hover:text-blue-600">
@@ -168,7 +170,6 @@ export default function SignupForm() {
         </a>
       </p>
 
-      {/* ✅ Modal nhập OTP */}
       {showOtpModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg w-96 relative">
@@ -203,7 +204,6 @@ export default function SignupForm() {
         </div>
       )}
 
-      {/* ✅ Popup đăng ký thành công */}
       {showSuccessPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white rounded-lg p-6 w-80 flex flex-col items-center">

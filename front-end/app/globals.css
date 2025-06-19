@@ -230,3 +230,15 @@ body {
   animation: glow-slide 2s linear infinite;
   /* Áp dụng animation glow-slide trong 2 giây, với tốc độ tuyến tính và lặp vô hạn */
 }
+
+.no-scrollbar {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE & Edge */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari */
+}

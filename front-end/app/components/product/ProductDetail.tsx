@@ -3,14 +3,18 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import BestSelling from '../home/BestSelling';
+import BestSellingSlider from '../home/RelatedProduct';
 import Cookies from 'js-cookie';
 import ShopInfo from './ShopInfo';
 import LoadingProductDetail from '../loading/loading';
 import ProductDescriptionAndSpecs from './ProductDescriptionAndSpecs';
+import ShopProductSlider from '../home/ShopProduct';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Breadcrumb from '../cart/CartBreadcrumb';
+import { AiFillHeart } from 'react-icons/ai';
+import { FiHeart } from 'react-icons/fi';
+
 
 // ✅ Hàm xử lý ảnh – chuẩn hóa đường dẫn ảnh từ server
 const formatImageUrl = (img: unknown): string => {
@@ -280,10 +284,17 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           <div className="md:col-span-6 flex flex-col gap-4 relative">
             <button
               onClick={toggleLike}
-              className={`absolute top-2 left-2 p-2 text-2xl font-bold transition ${liked ? 'text-brand' : 'text-gray-400'}`}
+              className="absolute top-2 left-2 p-2 text-[22px] z-20 transition-colors duration-200 select-none"
             >
-              {liked ? '❤️' : '🤍'}
+              {liked ? (
+                <AiFillHeart className="text-brand transition-colors duration-200" />
+              ) : (
+                <FiHeart className="text-gray-400 transition-colors duration-200" />
+              )}
             </button>
+
+
+
 
             <div className="flex justify-center items-center w-full bg-gray-50 rounded-lg p-6 min-h-[220px]">
               <div className="w-full max-w-[300px] h-[290px] relative">
@@ -482,9 +493,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         followed={followed}
         onFollowToggle={handleFollow}
       />
-      {/* Gợi ý sản phẩm khác */}
+      {/* Gợi ý sản phẩm shop */}
       <div className="w-full max-w-screen-xl mx-auto mt-16 px-">
-        <BestSelling />
+        <ShopProductSlider />
+      </div>
+      {/* Gợi ý sản phẩm khác */}
+      <div className="w-full max-w-screen-xl mx-auto mt-6 px-">
+        <BestSellingSlider />
       </div>
       {/* Thông báo thêm/xoá yêu thích */}
       {showPopup && (
