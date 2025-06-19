@@ -7,7 +7,7 @@ import BestSellingSlider from '../home/RelatedProduct';
 import Cookies from 'js-cookie';
 import ShopInfo from './ShopInfo';
 import LoadingProductDetail from '../loading/loading';
-import ProductDescriptionAndSpecs from './ProductDescriptionAndSpecs';
+
 import ShopProductSlider from '../home/ShopProduct';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
@@ -95,6 +95,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         }
 
         const productData = await productRes.json();
+        console.log('📦 Product Data từ API:', productData);
+
         setProduct(productData);
 
         const firstImage = Array.isArray(productData.image) ? productData.image[0] : productData.image;
@@ -497,6 +499,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       <div className="w-full max-w-screen-xl mx-auto mt-16 px-">
         <ShopProductSlider />
       </div>
+      
       {/* Gợi ý sản phẩm khác */}
       <div className="w-full max-w-screen-xl mx-auto mt-6 px-">
         <BestSellingSlider />
