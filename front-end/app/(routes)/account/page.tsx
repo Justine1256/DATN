@@ -8,13 +8,14 @@ import AccountSidebar from '@/app/components/account/AccountSidebar';
 import AccountPage from '@/app/components/account/AccountPage';
 import ChangePassword from '@/app/components/account/ChangePassword';
 import FollowedShops from '@/app/components/account/FollowedShops';
-import NotificationDropdown from '@/app/components/account/NotificationDropdown';  // Import NotificationDropdown
+import NotificationDropdown from '@/app/components/account/NotificationDropdown';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/utils/api';
 import OrderSection from '@/app/components/account/OrderSection';
+import AccountProfileView from '@/app/components/account/AccountProfileView';
 
 export default function AccountRoute() {
-  const [section, setSection] = useState<string>('profile');
+  const [section, setSection] = useState<string>('profileView'); // Set default section to profileView
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
@@ -23,7 +24,10 @@ export default function AccountRoute() {
   // ✅ Lấy thông tin người dùng từ API
   const fetchUser = async () => {
     const token = Cookies.get('authToken');
-    if (!token) return setLoading(false);
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await axios.get(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -52,20 +56,16 @@ export default function AccountRoute() {
     router.push(`/account?section=${newSection}`);
   };
 
-  if (!hydrated) return null;
+  if (!hydrated || loading) return <div>Loading...</div>; // Show loading spinner or skeleton
+
+  if (!user) {
+    router.push('/login'); // Redirect to login if user is not authenticated
+    return null;
+  }
 
   return (
-    <div className="min-h-[calc(100vh-100px)] flex flex-col bg-white pt-8 pb-4">
+    <div className="min-h-[calc(100vh-100px)] flex flex-col bg-white pt-16 pb-4">
       <div className="w-full max-w-[1280px] mx-auto px-4">
-        {/* ✅ Welcome User */}
-        <div className="flex justify-end items-center mb-2">
-          {!loading && user && (
-            <p className="text-sm font-medium text-black">
-              Welcome! <span className="text-[#DB4444]">{user.name}</span>
-            </p>
-          )}
-        </div>
-
         {/* ✅ Grid Layout chuẩn 12 cột */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* ✅ Sidebar trái, dịch sang phải một chút */}
@@ -80,17 +80,17 @@ export default function AccountRoute() {
           {/* ✅ Nội dung phải (chiếm 9/12) */}
           <div className="md:col-span-9 pt-2 transition-all duration-300">
             {/* Điều kiện hiển thị từng section */}
+            {section === 'profileView' && <AccountProfileView />}
             {section === 'profile' && <AccountPage onProfileUpdated={fetchUser} />}
             {section === 'changepassword' && <ChangePassword />}
             {section === 'address' && user && (
               <div className="max-w-[700px] mx-auto w-full">
-                {/* Truyền userId đúng kiểu */}
                 <AddressComponent userId={user.id} />
               </div>
             )}
             {section === 'followedshops' && <FollowedShops />}
             {section === 'orders' && <OrderSection />}
-            {section === 'NotificationDropdown' && <NotificationDropdown />} {/* Hiển thị thông báo khi chọn "thongbao" */}
+            {section === 'NotificationDropdown' && <NotificationDropdown />}
           </div>
         </div>
       </div>

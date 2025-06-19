@@ -115,7 +115,7 @@ export default function VoucherList() {
     };
 
     return (
-        <div className="py-12 px-4 max-w-[1170px] mx-auto">
+        <div className="py-4 px-4 max-w-[1170px] mx-auto ">
             {loading && (
                 <div className="flex justify-center items-center py-20">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#db4444]"></div>

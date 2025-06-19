@@ -17,7 +17,7 @@ export interface Product {
   slug: string;
   price: number;
   oldPrice: number;
-  rating: number;
+  rating: number; // Rating will be a number between 0 and 5
   discount: number;
   option1?: string;
   value1?: string;
@@ -177,13 +177,10 @@ export default function ProductCard({
   };
 
   // Chuyển tới trang chi tiết sản phẩm
-const handleViewDetail = () => {
-  const shopSlug = product.shop_slug || (product as any)?.shop?.slug;
-  router.push(`/shop/${shopSlug}/product/${product.slug}`);
-};
-
-
-
+  const handleViewDetail = () => {
+    const shopSlug = product.shop_slug || (product as any)?.shop?.slug;
+    router.push(`/shop/${shopSlug}/product/${product.slug}`);
+  };
 
   return (
     <div
@@ -247,13 +244,19 @@ const handleViewDetail = () => {
           )}
         </div>
 
+        {/* Dynamic Star Rating */}
         <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
+          {/* Map the rating to stars dynamically */}
           {Array(5)
             .fill(0)
             .map((_, i) => (
-              <AiFillStar key={i} className="w-4 h-4" />
+              <AiFillStar
+                key={i}
+                className={`w-4 h-4 ${i < Math.round(product.rating) ? 'text-yellow-500' : 'text-gray-300'}`} // Fill stars based on the rating
+              />
             ))}
-          <span className="text-gray-600 text-[10px]">(88)</span>
+          {/* Display the rating count from product.rating */}
+          <span className="text-gray-600 text-[10px]">({product.rating})</span>
         </div>
       </div>
 

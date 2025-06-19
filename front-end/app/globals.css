@@ -313,3 +313,14 @@ body {
 a {
   text-decoration: none;
 }
+.hashtag {
+  text-decoration: underline;
+  /* Gạch chân các hashtag */
+  color: red;
+  /* Đặt màu cho hashtag */
+}
+
+.hashtag:hover {
+  color: darkred;
+  /* Đổi màu khi hover */
+}

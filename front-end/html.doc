@@ -1,0 +1,64 @@
+<div class="section">
+    <h2>CHI TIẾT SẢN PHẨM</h2>
+    <table class="info-table">
+        <tr>
+            <th>Danh Mục</th>
+            <td>
+                <a href="/">Shop</a> &gt;
+                <a href="/Điện-Thoại-Phụ-Kiện">Điện Thoại &amp; Phụ Kiện</a> &gt;
+                <a href="/Điện-thoại">Điện thoại</a> &gt;
+                <a href="/Apple">Apple</a>
+            </td>
+        </tr>
+        <tr>
+            <th>Kho</th>
+            <td>76</td>
+        </tr>
+        <tr>
+            <th>Thương hiệu</th>
+            <td>Apple</td>
+        </tr>
+        <tr>
+            <th>Gửi từ</th>
+            <td>TP. Hồ Chí Minh</td>
+        </tr>
+    </table>
+</div>
+
+<div class="section">
+    <h2>MÔ TẢ SẢN PHẨM</h2>
+    <div class="description">
+        <p><strong>#iPhone14ProMax</strong> là chiếc smartphone cao cấp từ Apple với thiết kế sang trọng và hiệu năng mạnh mẽ.</p>
+        <p><strong>Màn hình:</strong> OLED 6.1" Super Retina XDR</p>
+        <p><strong>Hệ điều hành:</strong> iOS 15</p>
+        <p><strong>Camera sau:</strong> 2 camera 12 MP</p>
+        <p><strong>Camera trước:</strong> 12 MP</p>
+        <p><strong>Chip:</strong> Apple A15 Bionic</p>
+        <p><strong>RAM:</strong> 4 GB</p>
+        <p><strong>Bộ nhớ trong:</strong> 128 GB</p>
+        <p><strong>SIM:</strong> 1 Nano SIM &amp; 1 eSIM (hỗ trợ 5G)</p>
+        <p><strong>Pin, Sạc:</strong> 20 W</p>
+
+        <br>
+        <p><strong>Bộ sản phẩm bao gồm:</strong> Thân máy, sách hướng dẫn, cáp sạc.</p>
+        <br>
+        <p><strong>#BảoHành</strong>: 12 tháng kể từ ngày kích hoạt sản phẩm.</p>
+        <p>Kích hoạt bảo hành tại: <a href="https://checkcoverage.apple.com/vn/en/">https://checkcoverage.apple.com/vn/en/</a></p>
+        <p><strong>Hướng dẫn kiểm tra địa điểm bảo hành gần nhất:</strong></p>
+        <ul>
+            <li>Bước 1: Truy cập <a href="https://getsupport.apple.com/?caller=grl&amp;locale=en_VN">https://getsupport.apple.com/?caller=grl&amp;locale=en_VN</a></li>
+            <li>Bước 2: Chọn sản phẩm.</li>
+            <li>Bước 3: Đăng nhập Apple ID.</li>
+        </ul>
+
+        <p><strong>#ChinhSachApple</strong> áp dụng chung theo các liên kết:</p>
+        <ul>
+            <li><a href="https://www.apple.com/legal/warranty/products/warranty-rest-of-apac-vietnamese.html">Chính sách chung</a></li>
+            <li><a href="https://www.apple.com/legal/warranty/products/accessory-warranty-vietnam.html">Chính sách phụ kiện</a></li>
+            <li><a href="https://getsupport.apple.com/repair-locations?locale=vi_VN">Trung tâm bảo hành tại Việt Nam</a></li>
+        </ul>
+
+        <p>Để đảm bảo quyền lợi, quý khách vui lòng quay video khi mở hộp để xử lý khiếu nại dễ dàng hơn.</p>
+        <p><strong>#AppleChinhHang</strong> <a href="#Smartphone" class="text-red-500 hover:text-red-700">#Smartphone</a> <a href="#DienThoai" class="text-red-500 hover:text-red-700">#DienThoai</a></p>
+    </div>
+</div>
