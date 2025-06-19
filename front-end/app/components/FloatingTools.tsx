@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Bot, MessageCircle, X, User, ImageIcon } from 'lucide-react'; // ImageIcon for the upload button
+import { MessageCircle, X, ImageIcon } from 'lucide-react'; // ImageIcon for the upload button
 import Image from 'next/image';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -34,7 +34,6 @@ export default function ModernFloatingTools() {
   const [images, setImages] = useState<File[]>([]); // To store selected images
   const [imagePreviews, setImagePreviews] = useState<string[]>([]); // To store preview URLs of selected images
   const [loading, setLoading] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(3); // Mock unread count
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -175,30 +174,15 @@ export default function ModernFloatingTools() {
     <>
       {/* Floating Button Bar */}
       <div className="fixed right-20 bottom-6 z-[9999] flex flex-col items-center">
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-lg">
-          {/* Trợ lý AI Button */}
-          <button
-            onClick={() => {
-              setShowList(false);
-              setActiveChat(false);
-              // Handle AI Assistant logic here
-            }}
-            className="flex flex-col items-center justify-center w-16 h-16 bg-[#db4444] hover:bg-[#c93333] text-white transition-colors relative group"
-          >
-            <Bot size={18} />
-            <span className="text-xs mt-1 font-medium">Trợ lý</span>
-          </button>
-
-          {/* Chat Button */}
+        <div className="bg-white  ">
+          {/* Chat Button with icon only and no border */}
           <button
             onClick={() => {
               setShowList(!showList);
-              setActiveChat(false);
             }}
-            className="flex flex-col items-center justify-center w-16 h-16 bg-[#db4444] hover:bg-[#c93333] text-white transition-colors relative"
+            className="flex items-center justify-center w-16 h-16 bg-[#db4444] hover:bg-[#c93333] text-white transition-colors rounded-full shadow-md focus:outline-none"
           >
-            <MessageCircle size={18} />
-            <span className="text-xs mt-1 font-medium">Tin mới</span>
+            <MessageCircle size={24} /> {/* Increased icon size for better visibility */}
           </button>
         </div>
       </div>
@@ -216,31 +200,14 @@ export default function ModernFloatingTools() {
                 </div>
                 <span className="font-semibold text-gray-800">Nhà sách Nam Việt</span>
               </div>
-              {!activeChat && (
-                <button
-                  onClick={() => {
-                    setShowList(false);
-                    setActiveChat(false);
-                  }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold transition-colors"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-
-            {/* Search */}
-            <div className="p-4 border-b border-gray-100">
-              <input
-                type="text"
-                placeholder="Tìm theo người dùng..."
-                className="w-full px-3 py-3 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
-              />
-            </div>
-
-            {/* Suggestions Header */}
-            <div className="px-4 py-3 text-sm font-semibold text-gray-600 bg-gray-50">
-              Gợi ý
+              <button
+                onClick={() => {
+                  setShowList(false);
+                }}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold transition-colors"
+              >
+                ×
+              </button>
             </div>
 
             {/* Contact Item */}
@@ -257,7 +224,6 @@ export default function ModernFloatingTools() {
                     height={48}
                     className="rounded-lg"
                   />
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-gray-900 truncate text-sm">
@@ -299,7 +265,6 @@ export default function ModernFloatingTools() {
                 <button
                   onClick={() => {
                     setShowList(false);
-                    setActiveChat(false);
                   }}
                   className="text-gray-400 hover:text-gray-600 text-2xl font-bold transition-colors"
                 >
@@ -320,34 +285,28 @@ export default function ModernFloatingTools() {
                     <p className="text-sm">Chưa có tin nhắn</p>
                   </div>
                 ) : (
-                  messages.map((msg) => {
-                    const isReceiver = msg.sender_id === RECEIVER_ID;
-                    return (
+                  messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex items-start gap-2 ${msg.sender_id === RECEIVER_ID ? 'flex-row' : 'flex-row-reverse'}`}
+                    >
+                      {renderAvatar(msg)}
                       <div
-                        key={msg.id}
-                        className={`flex items-start gap-2 ${isReceiver ? 'flex-row' : 'flex-row-reverse'
+                        className={`px-4 py-2 rounded-2xl max-w-[75%] ${msg.sender_id === RECEIVER_ID
+                          ? 'bg-white border border-gray-200 rounded-bl-md shadow-sm'
+                          : 'bg-[#db4444] text-white rounded-br-md'
                           }`}
                       >
-                        {renderAvatar(msg)}
-                        <div
-                          className={`px-4 py-2 rounded-2xl max-w-[75%] ${isReceiver
-                            ? 'bg-white border border-gray-200 rounded-bl-md shadow-sm'
-                            : 'bg-[#db4444] text-white rounded-br-md'
-                            }`}
-                        >
-                          <div className={`font-semibold text-xs mb-1 ${isReceiver ? 'text-gray-600' : 'text-white/80'
-                            }`}>
-                            {renderName(msg)}
-                          </div>
-                          <div className="text-sm leading-relaxed">{msg.message}</div>
-                          <div className={`text-xs mt-1 ${isReceiver ? 'text-gray-400' : 'text-white/60'
-                            }`}>
-                            {formatTime(msg.created_at)}
-                          </div>
+                        <div className={`font-semibold text-xs mb-1 ${msg.sender_id === RECEIVER_ID ? 'text-gray-600' : 'text-white/80'}`}>
+                          {renderName(msg)}
+                        </div>
+                        <div className="text-sm leading-relaxed">{msg.message}</div>
+                        <div className={`text-xs mt-1 ${msg.sender_id === RECEIVER_ID ? 'text-gray-400' : 'text-white/60'}`}>
+                          {formatTime(msg.created_at)}
                         </div>
                       </div>
-                    );
-                  })
+                    </div>
+                  ))
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -405,8 +364,8 @@ export default function ModernFloatingTools() {
                 <button
                   onClick={sendMessage}
                   disabled={!input.trim() && images.length === 0 || loading} // Disable if no input or images
-                  className={`${loading ? 'bg-gray-300' : 'bg-[#db4444] hover:bg-[#c93333]'
-                    } disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all`}
+                  className={`${loading ? 'bg-gray-300' : 'bg-[#db4444] hover:bg-[#c93333]'}
+                    disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all`}
                 >
                   Gửi
                 </button>
