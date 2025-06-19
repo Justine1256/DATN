@@ -24,7 +24,10 @@ export default function AccountRoute() {
   // ✅ Lấy thông tin người dùng từ API
   const fetchUser = async () => {
     const token = Cookies.get('authToken');
-    if (!token) return setLoading(false);
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await axios.get(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -53,7 +56,12 @@ export default function AccountRoute() {
     router.push(`/account?section=${newSection}`);
   };
 
-  if (!hydrated) return null;
+  if (!hydrated || loading) return <div>Loading...</div>; // Show loading spinner or skeleton
+
+  if (!user) {
+    router.push('/login'); // Redirect to login if user is not authenticated
+    return null;
+  }
 
   return (
     <div className="min-h-[calc(100vh-100px)] flex flex-col bg-white pt-16 pb-4">

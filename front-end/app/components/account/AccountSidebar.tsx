@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit, FaBell } from 'react-icons/fa'; // Import FaBell cho thông báo
+import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit, FaBell } from 'react-icons/fa';
 import { STATIC_BASE_URL, API_BASE_URL } from '@/utils/api';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 import Image from 'next/image';
-import NotificationDropdown from './NotificationDropdown'; // Import NotificationDropdown
+import NotificationDropdown from './NotificationDropdown';
 
 interface UserProps {
   name: string;
@@ -45,13 +45,15 @@ export default function AccountSidebar({
     }
   }, [currentSection]);
 
+  // getActiveClass now returns a default color for "Tài khoản của tôi" 
+  // and applies red only for "Quản Lý Hồ Sơ" or active section.
   const getActiveClass = (section: string) =>
     currentSection === section ? 'text-[#DB4444] font-medium' : 'text-[#6c757d]';
 
   const handleAccountClick = () => {
     setIsAccountOpen(!isAccountOpen);
     if (currentSection !== 'profileView') {
-      onChangeSection('profileView'); // Set section to profileView when clicking on the profile section
+      onChangeSection('profileView');
     }
   };
 
@@ -128,8 +130,8 @@ export default function AccountSidebar({
               src={avatarUrl}
               alt="Avatar"
               id="avatarPreview"
-              width={56} // Đặt chiều rộng của hình ảnh
-              height={56} // Đặt chiều cao của hình ảnh
+              width={56}
+              height={56}
               className="w-full h-full object-cover rounded-full border border-gray-300"
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).onerror = null;
@@ -158,7 +160,7 @@ export default function AccountSidebar({
             <span className="text-xl font-semibold text-black block">{user.name}</span>
             <div
               className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer mt-1"
-              onClick={() => onChangeSection('profileView')} // Click takes you to profileView
+              onClick={() => onChangeSection('profileView')}
             >
               <FaEdit className="w-3 h-3" />
               <span>Chỉnh sửa hồ sơ</span>
@@ -172,10 +174,7 @@ export default function AccountSidebar({
         <li>
           <button
             onClick={handleAccountClick}
-            className={clsx(
-              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
-              getActiveClass('profile')
-            )}
+            className={clsx('flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]', currentSection !== 'profile' ? getActiveClass('profile') : 'text-[#6c757d]')}
           >
             <FaUserCircle className="w-6 h-6 text-[#DB4444]" />
             <span className="text-xl font-bold">Tài khoản của tôi</span>
@@ -185,22 +184,15 @@ export default function AccountSidebar({
               <li>
                 <button
                   onClick={() => onChangeSection('profileView')}
-                  className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
-                    getActiveClass('profileView')
-                  )}
+                  className={clsx('block text-left w-full hover:text-[#DB4444]', getActiveClass('profileView'))}
                 >
                   Hồ Sơ Của Tôi
                 </button>
               </li>
-
               <li>
                 <button
                   onClick={() => onChangeSection('profile')}
-                  className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
-                    getActiveClass('profile')
-                  )}
+                  className={clsx('block text-left w-full hover:text-[#DB4444]', getActiveClass('profile'))}
                 >
                   Quản Lý Hồ Sơ
                 </button>
@@ -208,10 +200,7 @@ export default function AccountSidebar({
               <li>
                 <button
                   onClick={() => onChangeSection('changepassword')}
-                  className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
-                    getActiveClass('changepassword')
-                  )}
+                  className={clsx('block text-left w-full hover:text-[#DB4444]', getActiveClass('changepassword'))}
                 >
                   Đổi Mật Khẩu
                 </button>
@@ -219,10 +208,7 @@ export default function AccountSidebar({
               <li>
                 <button
                   onClick={() => onChangeSection('address')}
-                  className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
-                    getActiveClass('address')
-                  )}
+                  className={clsx('block text-left w-full hover:text-[#DB4444]', getActiveClass('address'))}
                 >
                   Địa Chỉ
                 </button>
@@ -230,10 +216,7 @@ export default function AccountSidebar({
               <li>
                 <button
                   onClick={() => onChangeSection('followedshops')}
-                  className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
-                    getActiveClass('followedshops')
-                  )}
+                  className={clsx('block text-left w-full hover:text-[#DB4444]', getActiveClass('followedshops'))}
                 >
                   Shop Đã Theo Dõi
                 </button>
@@ -245,10 +228,7 @@ export default function AccountSidebar({
         <li>
           <button
             onClick={() => onChangeSection('orders')}
-            className={clsx(
-              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
-              getActiveClass('orders')
-            )}
+            className={clsx('flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]', getActiveClass('orders'))}
           >
             <FaBoxOpen className="w-6 h-6 text-[#28A745]" />
             <span className="text-xl font-bold">Đơn hàng</span>
@@ -258,12 +238,9 @@ export default function AccountSidebar({
         <li>
           <button
             onClick={() => onChangeSection('NotificationDropdown')}
-            className={clsx(
-              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
-              getActiveClass('NotificationDropdown')
-            )}
+            className={clsx('flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]', getActiveClass('NotificationDropdown'))}
           >
-            <FaBell className="w-6 h-6 text-[#007BFF]" /> {/* Thêm biểu tượng chuông */}
+            <FaBell className="w-6 h-6 text-[#007BFF]" />
             <span className="text-xl font-bold">Thông Báo</span>
           </button>
         </li>
@@ -271,10 +248,7 @@ export default function AccountSidebar({
         <li>
           <button
             onClick={() => onChangeSection('vouchers')}
-            className={clsx(
-              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
-              getActiveClass('vouchers')
-            )}
+            className={clsx('flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]', getActiveClass('vouchers'))}
           >
             <FaTicketAlt className="w-6 h-6 text-[#007BFF]" />
             <span className="text-xl font-bold">Mã giảm giá</span>
