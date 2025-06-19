@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -126,29 +126,23 @@ export default function FollowedShopsSection() {
                             {paginatedShops.map((shop) => (
                                 <div
                                     key={shop.id}
-                                    className="group relative bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl hover:border-[#DB4444]/20 transition-all duration-300 transform hover:-translate-y-1"
+                                    className="relative bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300"
                                 >
                                     {/* Card Header */}
                                     <div className="p-6 pb-4">
                                         <div
                                             onClick={() => router.push(`/shop/${shop.slug}`)}
-                                            className="cursor-pointer flex items-start gap-4 group-hover:transform group-hover:scale-[1.02] transition-transform duration-200"
+                                            className="cursor-pointer flex items-start gap-4"
                                         >
                                             {/* Avatar với border gradient */}
                                             <div className="relative">
-                                                <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-gray-200 group-hover:border-[#DB4444]/30 transition-colors duration-300 bg-gradient-to-br from-gray-50 to-gray-100">
+                                                <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100">
                                                     <Image
-                                                        src={
-                                                            shop.logo?.startsWith("http")
-                                                                ? shop.logo
-                                                                : shop.logo
-                                                                    ? `${STATIC_BASE_URL}/${shop.logo}`
-                                                                    : "/default-avatar.jpg"
-                                                        }
+                                                        src={shop.logo ? `${STATIC_BASE_URL}/${shop.logo}` : "/default-avatar.jpg"}
                                                         alt={shop.name}
                                                         width={48} // Đặt chiều rộng của hình ảnh nhỏ hơn
                                                         height={48} // Đặt chiều cao của hình ảnh nhỏ hơn
-                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                                        className="w-full h-full object-cover"
                                                     />
                                                 </div>
                                                 {/* Verified Badge */}

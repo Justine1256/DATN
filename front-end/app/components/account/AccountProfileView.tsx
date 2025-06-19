@@ -48,7 +48,7 @@ export default function AccountProfileView() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white rounded-lg shadow-lg p-6 mt-20">
         <div className="flex items-center justify-center">
           <div className="w-6 h-6 border-2 border-[#DB4444] border-t-transparent rounded-full animate-spin"></div>
           <span className="ml-3 text-gray-600">Đang tải thông tin...</span>
@@ -72,7 +72,7 @@ export default function AccountProfileView() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-4xl mx-auto">
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-4xl mx-auto mt-20">
       {/* Header */}
       <div className="bg-gradient-to-r from-[#DB4444] to-[#E85A5A] px-6 py-4">
         <div className="flex items-center gap-3">
@@ -83,13 +83,13 @@ export default function AccountProfileView() {
 
       {/* Content */}
       <div className="p-6">
-        {/* Top Section: Avatar + Basic Info */}
+        {/* Avatar & Basic Info */}
         <div className="flex items-center gap-6 mb-6">
           {/* Avatar */}
           <div className="flex-shrink-0">
-            <img 
-              src={avatarUrl} 
-              alt="avatar" 
+            <img
+              src={avatarUrl}
+              alt="avatar"
               className="w-16 h-16 rounded-full border-2 border-gray-200 object-cover"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;

@@ -15,7 +15,7 @@ import OrderSection from '@/app/components/account/OrderSection';
 import AccountProfileView from '@/app/components/account/AccountProfileView';
 
 export default function AccountRoute() {
-  const [section, setSection] = useState<string>('profile');
+  const [section, setSection] = useState<string>('profileView'); // Set default section to profileView
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);

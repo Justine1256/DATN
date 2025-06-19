@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit, FaBell } from 'react-icons/fa'; // Import FaBell cho thông báo
@@ -6,7 +7,7 @@ import { STATIC_BASE_URL, API_BASE_URL } from '@/utils/api';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 import Image from 'next/image';
-import NotificationDropdown from './NotificationDropdown';// Import NotificationDropdown
+import NotificationDropdown from './NotificationDropdown'; // Import NotificationDropdown
 
 interface UserProps {
   name: string;
@@ -49,8 +50,8 @@ export default function AccountSidebar({
 
   const handleAccountClick = () => {
     setIsAccountOpen(!isAccountOpen);
-    if (currentSection !== 'profile') {
-      onChangeSection('profile');
+    if (currentSection !== 'profileView') {
+      onChangeSection('profileView'); // Set section to profileView when clicking on the profile section
     }
   };
 
@@ -157,7 +158,7 @@ export default function AccountSidebar({
             <span className="text-xl font-semibold text-black block">{user.name}</span>
             <div
               className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer mt-1"
-              onClick={() => onChangeSection('profile')}
+              onClick={() => onChangeSection('profileView')} // Click takes you to profileView
             >
               <FaEdit className="w-3 h-3" />
               <span>Chỉnh sửa hồ sơ</span>
@@ -201,7 +202,7 @@ export default function AccountSidebar({
                     getActiveClass('profile')
                   )}
                 >
-                  Hồ Sơ
+                  Quản Lý Hồ Sơ
                 </button>
               </li>
               <li>
@@ -223,7 +224,7 @@ export default function AccountSidebar({
                     getActiveClass('address')
                   )}
                 >
-                  Địa chỉ
+                  Địa Chỉ
                 </button>
               </li>
               <li>
@@ -234,7 +235,7 @@ export default function AccountSidebar({
                     getActiveClass('followedshops')
                   )}
                 >
-                  Shop Theo Dõi
+                  Shop Đã Theo Dõi
                 </button>
               </li>
             </ul>
