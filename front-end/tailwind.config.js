@@ -8,13 +8,12 @@ module.exports = {
         "bg-[#DB4444]",
         "hover:bg-[#fff5f5]",
         "hover:text-[#DB4444]",
-        // Status colors
-        'bg-yellow-200', 'text-yellow-800',
-        'bg-blue-200', 'text-blue-800',
-        'bg-green-200', 'text-green-800',
-        'bg-red-200', 'text-red-800',
-        'bg-gray-200', 'text-gray-800',
-        'bg-purple-200', 'text-purple-800'
+        "bg-yellow-200", "text-yellow-800",
+        "bg-blue-200", "text-blue-800",
+        "bg-green-200", "text-green-800",
+        "bg-red-200", "text-red-800",
+        "bg-gray-200", "text-gray-800",
+        "bg-purple-200", "text-purple-800",
     ],
     theme: {
         container: {
@@ -30,7 +29,7 @@ module.exports = {
         extend: {
             colors: {
                 brand: "#DB4444",
-                customGray: "#f0f0f0", // Example of another custom color
+                customGray: "#f0f0f0",
             },
             fontFamily: {
                 sans: ["Montserrat", "sans-serif"],
@@ -39,7 +38,7 @@ module.exports = {
                 "loading-bar": "loading 2s ease-in-out infinite",
                 fadeIn: "fadeIn 0.3s ease-out",
                 bounce: "bounce 0.5s ease-in-out",
-                scaleIn: "scaleIn 0.3s ease-out", // ✅ thêm animation scaleIn
+                scaleIn: "scaleIn 0.3s ease-out",
                 "spin-slow": "spin 1s linear infinite",
             },
             keyframes: {
@@ -52,7 +51,7 @@ module.exports = {
                     "0%": { opacity: 0, transform: "scale(0.95)" },
                     "100%": { opacity: 1, transform: "scale(1)" },
                 },
-                scaleIn: { // ✅ định nghĩa keyframe scaleIn
+                scaleIn: {
                     "0%": { opacity: 0, transform: "scale(0.8)" },
                     "100%": { opacity: 1, transform: "scale(1)" },
                 },
@@ -66,5 +65,6 @@ module.exports = {
             },
         },
     },
+    plugins: [require('@tailwindcss/typography')], // ✅ Đặt ở đây
 };
   

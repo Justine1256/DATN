@@ -242,3 +242,85 @@ body {
   display: none;
   /* Chrome, Safari */
 }
+.prose p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.prose p strong {
+  min-width: 120px;
+  font-weight: 600;
+  color: #111;
+}
+
+.prose a {
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.prose a:hover {
+  color: #DB4444;
+  /* chính là text-brand */
+}
+.product-description p {
+  margin-bottom: 0.5rem;
+  line-height: 1.75;
+}
+
+.product-description p strong {
+  font-weight: 600;
+  color: #111;
+  display: inline;
+  /* ✅ Bắt buộc inline */
+  margin-right: 0.25rem;
+  /* ✅ Cách ra một chút */
+}
+
+.product-description p br {
+  display: none;
+  /* ✅ Nếu backend có <br> dư, loại bỏ */
+}
+
+.product-description a {
+  text-decoration: underline;
+  transition: color 0.2s ease-in-out;
+}
+
+.product-description a:hover {
+  color: #DB4444;
+}
+.product-description p {
+  white-space: normal;
+}
+
+.product-description p * {
+  vertical-align: baseline;
+}
+.text-red-500 {
+  color: #EF4444;
+}
+
+.text-red-700 {
+  color: #B91C1C;
+}
+
+.hover\:text-red-700:hover {
+  color: #B91C1C;
+}
+
+a {
+  text-decoration: none;
+}
+.hashtag {
+  text-decoration: underline;
+  /* Gạch chân các hashtag */
+  color: red;
+  /* Đặt màu cho hashtag */
+}
+
+.hashtag:hover {
+  color: darkred;
+  /* Đổi màu khi hover */
+}

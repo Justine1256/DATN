@@ -36,7 +36,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         {/* ✅ Nút nổi cố định cuối cùng */}
-        <FloatingTools />
+        <div className="fixed bottom-6 right-6 z-50">
+          {/* Adjust the z-index and positioning to ensure it's always visible */}
+          <FloatingTools />
+        </div>
       </body>
     </html>
   );

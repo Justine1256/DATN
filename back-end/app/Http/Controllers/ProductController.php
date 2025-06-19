@@ -59,7 +59,7 @@ public function getCategoryAndProductsBySlug($slug)
 
     $categoryIds = array_map('intval', $categoryIds);
 
-    $products = [];
+    $products = collect();
 
     if (!empty($categoryIds)) {
         $products = Product::with('shop')
@@ -68,12 +68,19 @@ public function getCategoryAndProductsBySlug($slug)
             ->get();
     }
 
-    // Trả về cả category và products
+    // Lấy danh sách shop duy nhất từ các sản phẩm
+    $shopIds = $products->pluck('shop_id')->unique()->toArray();
+
+    $shops = \App\Models\Shop::whereIn('id', $shopIds)->get();
+
+    // Trả về cả category, products, và shops
     return response()->json([
         'category' => $category,
-        'products' => $products
+        'products' => $products,
+        'shops' => $shops
     ]);
 }
+
 
 
 // Hàm đệ quy lấy tất cả danh mục con
