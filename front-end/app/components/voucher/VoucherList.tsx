@@ -7,12 +7,13 @@ import { API_BASE_URL } from "@/utils/api";
 import axios from 'axios';
 
 export default function VoucherList() {
-    const [vouchers, setVouchers] = useState<VoucherShip[]>([]); // Lưu trữ voucher
-    const [loading, setLoading] = useState(true); // Trạng thái loading
-    const [showPopup, setShowPopup] = useState(false); // Trạng thái hiển thị popup
-    const [popupMessage, setPopupMessage] = useState(''); // Nội dung của popup
+    const [vouchers, setVouchers] = useState<VoucherShip[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showPopup, setShowPopup] = useState(false);
+    const [popupMessage, setPopupMessage] = useState('');
+    const [popupType, setPopupType] = useState<'success' | 'error'>('success');
 
-    const token = Cookies.get('authToken'); // Lấy token từ cookie
+    const token = Cookies.get('authToken');
 
     useEffect(() => {
         if (!token) {
@@ -23,7 +24,6 @@ export default function VoucherList() {
         fetchVouchers();
     }, [token]);
 
-    // Hàm tải voucher từ API
     const fetchVouchers = async () => {
         try {
             const response = await axios.get(`${API_BASE_URL}/vouchers`, {
@@ -32,8 +32,6 @@ export default function VoucherList() {
                     Accept: 'application/json',
                 },
             });
-
-            console.log('Dữ liệu trả về:', response.data);
 
             const formatted: VoucherShip[] = response.data.map((v: any) => ({
                 id: v.id,
@@ -47,10 +45,10 @@ export default function VoucherList() {
                 condition: `Đơn từ ${Number(v.min_order_value).toLocaleString('vi-VN')}đ`,
                 expiry: v.end_date?.split('T')[0],
                 imageUrl: '/ship.jpg',
-                isSaved: v.is_saved || false, // Kiểm tra từ DB xem voucher đã được lưu hay chưa
+                isSaved: v.is_saved || false,
             }));
 
-            setVouchers(formatted); // Lưu dữ liệu vào state vouchers
+            setVouchers(formatted);
         } catch (err) {
             console.error('❌ Lỗi khi lấy voucher:', err);
         } finally {
@@ -58,12 +56,11 @@ export default function VoucherList() {
         }
     };
 
-    // Hàm lưu voucher vào giỏ hàng
     const handleSave = async (voucherId: number) => {
-        // Kiểm tra xem voucher đã được lưu chưa từ state
         const existingVoucher = vouchers.find(v => v.id === voucherId);
         if (existingVoucher?.isSaved) {
             setPopupMessage("Voucher này đã có trong giỏ hàng!");
+            setPopupType('error');
             setShowPopup(true);
             setTimeout(() => setShowPopup(false), 3000);
             return;
@@ -83,34 +80,33 @@ export default function VoucherList() {
             );
 
             if (response.data.success) {
-                // Cập nhật state ngay lập tức khi lưu thành công
                 setVouchers(prev => prev.map(v =>
                     v.id === voucherId ? { ...v, isSaved: true } : v
                 ));
 
                 setPopupMessage("Voucher đã được lưu vào giỏ hàng!");
+                setPopupType('success');
                 setShowPopup(true);
                 setTimeout(() => setShowPopup(false), 3000);
 
-                // Vẫn fetch lại để đồng bộ với server (không bắt buộc)
-                fetchVouchers();
+                // fetchVouchers(); // không cần thiết nếu đã cập nhật local state
             } else {
                 setPopupMessage("Lỗi khi lưu voucher, vui lòng thử lại.");
+                setPopupType('error');
                 setShowPopup(true);
                 setTimeout(() => setShowPopup(false), 3000);
             }
         } catch (error: any) {
             console.error('❌ Lỗi khi lưu voucher:', error);
-
-            // Xử lý lỗi 409 - voucher đã tồn tại trong giỏ hàng
             if (error.response?.status === 409) {
                 setPopupMessage("Voucher này đã có trong giỏ hàng!");
-                // Cập nhật state để đánh dấu voucher đã được lưu
+                setPopupType('error');
                 setVouchers(prev => prev.map(v =>
                     v.id === voucherId ? { ...v, isSaved: true } : v
                 ));
             } else {
                 setPopupMessage("Đã xảy ra lỗi khi lưu voucher.");
+                setPopupType('error');
             }
 
             setShowPopup(true);
@@ -120,7 +116,6 @@ export default function VoucherList() {
 
     return (
         <div className="py-12 px-4 max-w-[1170px] mx-auto">
-            {/* Nếu đang tải */}
             {loading && (
                 <div className="flex justify-center items-center py-20">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#db4444]"></div>
@@ -128,14 +123,13 @@ export default function VoucherList() {
                 </div>
             )}
 
-            {/* Hiển thị voucher nếu có */}
             {!loading && vouchers.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {vouchers.map((voucher) => (
                         <div key={voucher.id} className="animate-in fade-in slide-in-from-bottom duration-500">
                             <VoucherShipCard
-                                voucher={voucher}
-                                onSave={() => handleSave(voucher.id)} // Gọi handleSave khi nhấn nút lưu
+                                voucher={vouchers.find(v => v.id === voucher.id)!}
+                                onSave={() => handleSave(voucher.id)}
                             />
                         </div>
                     ))}
@@ -152,18 +146,17 @@ export default function VoucherList() {
                 </div>
             ) : null}
 
-            {/* Hiển thị Popup thông báo khi lưu voucher */}
             {showPopup && (
-                <div className="fixed top-20 right-5 z-[9999] bg-white text-[#DB4444] text-sm px-4 py-3 rounded-lg shadow-lg border-l-4 border-[#DB4444] animate-slideInFade">
+                <div className={`fixed top-20 right-5 z-[9999] bg-white text-green-600 text-sm px-4 py-3 rounded-lg shadow-lg border-l-4 border-green-600 animate-slideInFade
+                    ${popupType === 'success' ? 'text-green-600 border-green-600' : 'text-[#DB4444] border-[#DB4444]'}`}>
                     <div className="flex items-center">
-                        <svg className="w-5 h-5 mr-2 text-[#DB4444]" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className={`w-5 h-5 mr-2 ${popupType === 'success' ? 'text-green-600' : 'text-[#DB4444]'}`} fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         {popupMessage}
                     </div>
                 </div>
-            )
-}
+            )}
         </div>
     );
 }

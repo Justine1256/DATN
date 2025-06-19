@@ -12,12 +12,12 @@ export default function Page() {
 
             <div className="relative flex flex-col items-center min-h-screen w-full px-4 py-10">
                 {/* Banner */}
-                <div className="w-full max-w-[1170px] h-[400px] md:h-[500px] lg:h-[700px] overflow-hidden rounded-2xl shadow-lg mb-16">
+                <div className="w-full max-w-[1170px] h-[344px] md:h-[236px] lg:h-[344px] overflow-hidden rounded-2xl shadow-lg mb-16">
                     <Image
-                        src="/shipfree.png"
+                        src="/voucher-banner.jpg"
                         alt="Banner Hot Coupon"
                         width={1170} // Set the width of the image
-                        height={700} // Set the height of the image
+                        height={344} // Set the height of the image
                         className="w-full h-full object-cover"
                     />
 
