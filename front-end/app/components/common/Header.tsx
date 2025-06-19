@@ -170,7 +170,7 @@ const Header = () => {
           {/* 🅰️ Logo */}
           <div className="col-span-2">
             <Link href="/">
-              <Image src={logoImage} alt="Logo" width={140} height={80} className="rounded-full cursor-pointer" priority />
+              <Image src={logoImage} alt="Logo" width={140} className="rounded-full cursor-pointer" priority />
             </Link>
           </div>
 

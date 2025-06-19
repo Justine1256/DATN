@@ -46,13 +46,13 @@ export default function VoucherShipCard({
         <div className="relative flex justify-center items-center w-full max-w-[720px] h-[150px] rounded-2xl overflow-hidden bg-white border border-gray-200/50 hover:-translate-y-1 transition-all duration-300">
             {/* Logo Section */}
             <div className="relative flex items-center justify-center w-[130px] h-full">
-                <div className="w-[100px] h-[100px] rounded-xl overflow-hidden border-2 border-gray-200/50 flex items-center justify-center bg-white transition duration-300">
+                <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden border-2 border-gray-200/50 flex items-center justify-center bg-white transition duration-300">
                     <Image
                         src={imageUrl || `${STATIC_BASE_URL}/path/to/your/image.jpg`}
                         alt="Voucher Logo"
                         width={100}
                         height={100}
-                        className="w-full h-full object-contain p-2"
+                        className="w-full h-full object-contain p-2 rounded-2xl"
                     />
                 </div>
             </div>
