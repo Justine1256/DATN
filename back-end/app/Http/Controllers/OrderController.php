@@ -371,7 +371,7 @@ public function checkout(Request $request)
 
         return response()->json([
             'message'       => 'Đã thêm sản phẩm vào giỏ hàng và ẩn đơn cũ',
-            'redirect_url'  => '/checkout'
+            'redirect_url'  => '/cart'
         ]);
     }
 }
