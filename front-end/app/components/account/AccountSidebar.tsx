@@ -183,6 +183,18 @@ export default function AccountSidebar({
             <ul className="pl-6 space-y-2 pt-2">
               <li>
                 <button
+                  onClick={() => onChangeSection('profileView')}
+                  className={clsx(
+                    'block text-left w-full hover:text-[#DB4444]',
+                    getActiveClass('profileView')
+                  )}
+                >
+                  Hồ Sơ Của Tôi
+                </button>
+              </li>
+
+              <li>
+                <button
                   onClick={() => onChangeSection('profile')}
                   className={clsx(
                     'block text-left w-full hover:text-[#DB4444]',
@@ -244,7 +256,7 @@ export default function AccountSidebar({
 
         <li>
           <button
-            onClick={() => onChangeSection('NotificationDropdown')}  
+            onClick={() => onChangeSection('NotificationDropdown')}
             className={clsx(
               'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
               getActiveClass('NotificationDropdown')
