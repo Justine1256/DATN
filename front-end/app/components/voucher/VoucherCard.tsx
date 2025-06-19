@@ -97,18 +97,17 @@ export default function VoucherShipCard({
                             <span className="text-sm font-medium">Đã lưu vào giỏ hàng</span>
                         </div>
                     ) : (
-                        <button
-                            onClick={() => onSave?.(id)}
-                            className="group/btn relative inline-flex items-center space-x-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 active:scale-95"
-                        >
-                            <svg className="w-4 h-4 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            <span>Lưu voucher</span>
-
-                            {/* Button Glow (nhẹ, không bóng) */}
-                            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-red-400 to-red-500 opacity-0 group-hover/btn:opacity-20 transition-opacity duration-200" />
-                        </button>
+                            <button
+                                onClick={() => onSave?.(id)}
+                                className="group/btn relative inline-flex items-center space-x-2 bg-[#DB4444] hover:bg-[#E85555] text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 active:scale-95"
+                            >
+                                <svg className="w-4 h-4 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                <span>Lưu voucher</span>
+                            </button>
+                    
+                    
                     )}
                 </div>
             </div>
