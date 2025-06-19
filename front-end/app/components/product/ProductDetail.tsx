@@ -7,7 +7,7 @@ import BestSellingSlider from '../home/RelatedProduct';
 import Cookies from 'js-cookie';
 import ShopInfo from './ShopInfo';
 import LoadingProductDetail from '../loading/loading';
-
+import ProductDescription from '../product/ProductDescription';
 import ShopProductSlider from '../home/ShopProduct';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
@@ -52,6 +52,7 @@ interface Product {
     created_at: string;
     status: 'activated' | 'pending' | 'suspended';
     email: string;
+    address?: string;
     slug: string;
   } | undefined; // Đảm bảo shop có thể là undefined
   category?: {
@@ -495,10 +496,30 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         followed={followed}
         onFollowToggle={handleFollow}
       />
+
+      <ProductDescription
+        html={product.description}
+        
+      />
+
+
+
+
+
+
+
+
       {/* Gợi ý sản phẩm shop */}
       <div className="w-full max-w-screen-xl mx-auto mt-16 px-">
         <ShopProductSlider />
       </div>
+     
+    
+    
+
+
+
+
       
       {/* Gợi ý sản phẩm khác */}
       <div className="w-full max-w-screen-xl mx-auto mt-6 px-">
