@@ -122,7 +122,7 @@ export default function OrderSection() {
   };
 
   // Đặt lại đơn hàng và thêm vào giỏ hàng
-  const handleReorder = async (order: Order) => { // Thêm kiểu Order cho tham số
+  const handleReorder = async (order: Order) => { 
     if (!token) return;
 
     try {
@@ -134,7 +134,7 @@ export default function OrderSection() {
         }
       );
 
-      router.push(`/cart`);
+    router.push(response.data.redirect_url);
     } catch (error) {
       console.error("❌ Lỗi khi thêm vào giỏ hàng:", error);
     }
