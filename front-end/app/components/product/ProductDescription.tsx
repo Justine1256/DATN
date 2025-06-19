@@ -11,7 +11,24 @@ export default function ProductDescription({ html, specs }: ProductDescriptionPr
     const shouldRenderHTML = html && html.trim().length > 0;
 
     // Hàm để chuyển đổi hashtag thành thẻ a có thể click được
-  
+    const renderHashtags = (text: string) => {
+        const regex = /#\w+/g; // Tìm tất cả các hashtag bắt đầu với #
+        return text.split(' ').map((word, idx) => {
+            if (word.match(regex)) {
+                return (
+                    <a
+                        key={idx}
+                        href={`#${word}`}
+                        className="text-red-500 hover:text-red-700 mx-1 cursor-pointer underline" // Thêm class underline cho gạch chân
+                    >
+                        {word}
+                    </a>
+                );
+            }
+            return `${word} `;
+        });
+    };
+    
 
     return (
         <div className="w-full max-w-screen-xl mx-auto px-4 mt-20">
