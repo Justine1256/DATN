@@ -80,7 +80,7 @@ Route::get('/vouchers', [VoucherController::class, 'index']);
 Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
 Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
-
+Route::get('/shop/{slug}/products', [ProductController::class, 'showShopProducts']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment']);
     // User
@@ -185,7 +185,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // shop management
     // quản lý sản phẩm  của shop
-    Route::get('/shop/{slug}/products', [ProductController::class, 'showShopProducts']);
+
     Route::post('/shop/products', [ProductController::class, 'addProductByShop']);
     Route::patch('/shop/products/{id}', [ProductController::class, 'update']);
     Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
