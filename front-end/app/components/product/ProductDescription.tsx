@@ -11,28 +11,29 @@ export default function ProductDescription({ html, specs }: ProductDescriptionPr
     const shouldRenderHTML = html && html.trim().length > 0;
 
     // Hàm để chuyển đổi hashtag thành thẻ a có thể click được
-  
+
 
     return (
         <div className="w-full max-w-screen-xl mx-auto px-4 mt-20">
-            <h2 className="text-2xl font-medium text-gray-900 mb-4 pb-2 flex items-center">
+            <div className="mb-4 pb-2 flex items-center">
                 {/* Thêm hình vuông màu đỏ */}
                 <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm mr-2" />
-                Thông tin sản phẩm
-            </h2>
+                <p className="font-medium text-brand">Chi tiết sản phẩm </p>
+            </div>
+
             {/* ✅ Bảng chi tiết sản phẩm */}
-            <div className="bg-white p-4 rounded-md mb-4">
+            <div className="">
                 {specs && specs.length > 0 && (
                     <div className="space-y-2">
-                       
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Chi tiết sản phẩm</h3>
+
+                        <h3 className="text-lg font-semibold mb-2">Chi tiết sản phẩm</h3>
                         {specs.map((item, idx) => (
                             <div
                                 key={idx}
                                 className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-4 py-3 rounded-md"
                             >
-                                <span className="min-w-[120px] font-medium text-gray-700">{item.label}:</span>
-                                <span className="text-gray-900">{item.value}</span>
+                                <span className="min-w-[120px] font-medium">{item.label}:</span>
+                                <span className="">{item.value}</span>
                             </div>
                         ))}
                     </div>
@@ -40,9 +41,9 @@ export default function ProductDescription({ html, specs }: ProductDescriptionPr
 
                 {/* ✅ Mô tả sản phẩm */}
                 {shouldRenderHTML && (
-                    <div className="mt-4">
+                    <div>
                         <article
-                            className="prose prose-sm md:prose-base max-w-none text-gray-800 bg-white leading-relaxed text-sm font-medium"
+                            className=" leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: html }}
                         />
                     </div>
