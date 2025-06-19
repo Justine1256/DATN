@@ -16,39 +16,36 @@ export default function HomePage() {
       <section className="max-w-screen-xl mx-auto px-4 pt-16">
         <LandingSlider />
       </section>
-
-      {/* ⚡ Flash Sale (có đếm ngược + sản phẩm giảm giá) */}
-      <section className="max-w-screen-xl mx-auto px-4 pt-12">
-        <FlashSale />
-      </section>
-
-      {/* 📦 Danh mục sản phẩm dạng lưới */}
-      <section className="max-w-screen-xl mx-auto px-4 pt-19">
-        <CategoryGrid />
-      </section>
-
-      {/* 🔥 Sản phẩm bán chạy */}
-      <section className="max-w-screen-xl mx-auto px-4 pt-10">
-        <BestSelling />
-      </section>
-
-      {/* 🕒 Banner màu đen với đếm ngược khuyến mãi */}
-      {/* <section className="max-w-screen-xl mx-auto px-4 pt-10">
-        <BlackBannerWithCountdown />
-      </section> */}
-
       {/* 🆕 Sản phẩm mới đăng */}
-      <section className="max-w-screen-xl mx-auto px-4 pt-10">
+      <section className="max-w-screen-xl mx-auto px-4">
         <NewProducts />
       </section>
+      {/* 🔥 Sản phẩm bán chạy */}
+      <section className="max-w-screen-xl mx-auto px-4">
+        <BestSelling />
+      </section>
+    
+
+      {/* 📦 Danh mục sản phẩm dạng lưới */}
+      <section className="max-w-screen-xl mx-auto px-4">
+        <CategoryGrid />
+      </section>
+      {/* ⚡ Flash Sale (có đếm ngược + sản phẩm giảm giá) */}
+      <section className="max-w-screen-xl mx-auto px-4 ">
+        <FlashSale />
+      </section>
+  
+     
+
+      
 
       {/* ✨ Hàng mới về dạng lưới (có thể dạng ảnh lớn) */}
-      <section className="max-w-screen-xl mx-auto px-4 pt-10">
+      <section className="max-w-screen-xl mx-auto px-4 ">
         <NewArrivalGrid />
       </section>
 
       {/* ✅ Banner dịch vụ cuối trang (giao hàng, hỗ trợ...) */}
-      <section className="max-w-screen-xl mx-auto px-4 pt-10">
+      <section className="max-w-screen-xl mx-auto px-4">
         <ServiceBanner />
       </section>
     </main>

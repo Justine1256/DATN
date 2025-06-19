@@ -33,7 +33,16 @@ const Header = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
+  const categoryRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/category`)
+      .then((res) => res.json())
+      .then(setCategories)
+      .catch(console.error);
+  }, []);
+  
   // Fetch notifications from the API
   useEffect(() => {
     const token = Cookies.get("authToken"); // Lấy token để xác thực
@@ -167,16 +176,46 @@ const Header = () => {
 
           {/* 📋 Menu chính */}
           <nav className="hidden md:flex items-center space-x-6 col-span-6 justify-center">
-            {navLinks.map((link) => (
-              <button
-                key={link.href}
-                onClick={() => router.push(link.href)}
-                className="relative group text-black text-sm md:text-base transition duration-300 hover:opacity-90"
-              >
-                {link.label}
-                <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
-              </button>
-            ))}
+            {navLinks.map((link) =>
+              link.label === "Danh Mục" ? (
+                <div key={link.href} ref={categoryRef} className="relative group">
+                  {/* Nút chính Danh Mục - không đổi màu khi hover, chỉ gạch chân đen */}
+                  <button className="relative text-black font-normal text-sm md:text-base transition duration-300">
+                    {link.label}
+                    <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
+                  </button>
+
+                  {/* Dropdown danh mục con - sổ ra chính giữa nút */}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-52 bg-white border border-gray-200 shadow-lg rounded-md z-50 
+        opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                    <ul className="divide-y divide-gray-100">
+                      {categories.map((cat) => (
+                        <li key={cat.id}>
+                          <Link
+                            href={`/category/${cat.slug}`}
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-brand/10 hover:text-brand transition-all rounded-md duration-200"
+                          >
+                            {cat.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  key={link.href}
+                  onClick={() => router.push(link.href)}
+                  className="relative group text-black font-normal text-sm md:text-base transition duration-300 hover:opacity-90"
+                >
+                  {link.label}
+                  <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
+                </button>
+              )
+            )}
+
+
+
 
             {!user && (
               <div className="relative group cursor-pointer text-black text-sm md:text-base transition duration-300 hover:opacity-90">
