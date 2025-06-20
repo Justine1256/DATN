@@ -77,7 +77,7 @@ export default function OrderListItem({
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                         <div className="flex flex-col">
                             <span className="text-gray-500 text-xs font-medium">Ngày đặt</span>
                             <span className="font-semibold text-black">
@@ -178,4 +178,6 @@ export default function OrderListItem({
             )}
         </div>
     );
+    
+    
 }
