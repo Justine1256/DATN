@@ -162,7 +162,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
 
 
   return (
-    <div className="w-full flex justify-center text-[15px] text-gray-800 mt-2">
+    <div className="w-full flex justify-center text-[15px] text-gray-800 ">
       <div className="w-full max-w-[1880px] mx-auto">
         <div className="w-full max-w-[1200px] mx-auto pt-16">
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-md mx-auto overflow-hidden">

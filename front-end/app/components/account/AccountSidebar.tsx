@@ -26,7 +26,7 @@ interface UserProps {
   username: string;
   profilePicture?: string;
   avatar?: string;
-  status:string;
+  status: string;
 }
 
 interface AccountSidebarProps {
@@ -59,24 +59,11 @@ export default function AccountSidebar({
     }
   }, [currentSection]);
 
-  // Effect to hide popup automatically after a few seconds
-  useEffect(() => {
-    if (popup.visible) {
-      const timer = setTimeout(() => {
-        setPopup((prev) => ({ ...prev, visible: false }));
-      }, 3000); // Popup disappears after 3 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [popup.visible]);
-
   const getActiveClass = (section: string) =>
     currentSection === section ? 'text-[#DB4444] bg-[#DB4444]/5' : 'text-gray-600 hover:text-[#DB4444] hover:bg-gray-50';
 
   const handleAccountClick = () => {
     setIsAccountOpen(!isAccountOpen);
-    if (currentSection !== 'profileView') {
-      onChangeSection('profileView');
-    }
   };
 
   const avatarUrl =
@@ -188,6 +175,7 @@ export default function AccountSidebar({
                       user.status === 'locked' ? 'bg-red-500' :
                         user.status === 'hidden' ? 'bg-gray-500' :
                           'bg-blue-500'}`}
+
                   title={user.status === 'activated' ? 'Đang hoạt động' :
                     user.status === 'deactivated' ? 'Đã hủy kích hoạt' :
                       user.status === 'locked' ? 'Đã khóa' :
@@ -232,7 +220,7 @@ export default function AccountSidebar({
             {isAccountOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </button>
 
-          {/* 🔽 Submenu khi mở */}
+          {/* 🔽 Submenu when opened */}
           {isAccountOpen && (
             <div className="border-t border-gray-100 bg-gray-50/50">
               <div className="p-2 space-y-1">
@@ -247,7 +235,6 @@ export default function AccountSidebar({
                   <Eye className="w-4 h-4" />
                   <span>Hồ Sơ Của Tôi</span>
                 </button>
-
                 <button
                   type="button"
                   onClick={() => onChangeSection('profile')}
@@ -259,7 +246,6 @@ export default function AccountSidebar({
                   <Settings className="w-4 h-4" />
                   <span>Quản Lý Hồ Sơ</span>
                 </button>
-
                 <button
                   type="button"
                   onClick={() => onChangeSection('changepassword')}
@@ -271,7 +257,6 @@ export default function AccountSidebar({
                   <Lock className="w-4 h-4" />
                   <span>Đổi Mật Khẩu</span>
                 </button>
-
                 <button
                   type="button"
                   onClick={() => onChangeSection('address')}
@@ -283,7 +268,6 @@ export default function AccountSidebar({
                   <MapPin className="w-4 h-4" />
                   <span>Địa Chỉ</span>
                 </button>
-
                 <button
                   type="button"
                   onClick={() => onChangeSection('followedshops')}
@@ -360,7 +344,8 @@ export default function AccountSidebar({
           </button>
         </div>
       </nav>
-      {/* ✅ Popup đổi ảnh */}
+
+      {/* ✅ Popup */}
       {popup.visible && (
         <div
           className={`fixed top-20 right-5 z-[9999] text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade ${popup.type === 'success'

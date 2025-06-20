@@ -72,7 +72,7 @@ export default function AccountProfileView() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 1);
   };
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-2xl mx-auto mt-20">
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-2xl mx-auto mt-10">
 
       {/* Header */}
       <div className="bg-gradient-to-r from-[#DB4444] to-[#E85A5A] px-6 py-4">

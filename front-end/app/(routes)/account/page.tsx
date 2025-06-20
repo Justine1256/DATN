@@ -57,7 +57,7 @@ export default function AccountRoute() {
     router.push(`/account?section=${newSection}`);
   };
 
-  if (!hydrated || loading) return <div>Loading...</div>;
+  if (!hydrated || loading) return ;
   if (!user) {
     router.push('/login');
     return null;
