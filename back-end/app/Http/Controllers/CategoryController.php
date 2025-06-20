@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -148,6 +149,43 @@ private function getAllChildCategoryIds(Category $category)
         'categories' => $categories
     ]);
 }
+public function showShopCategoriesByUser($slug)
+{
+    // Lấy shop theo slug
+    $shop = Shop::where('slug', $slug)->first();
+
+    if (!$shop) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Không tìm thấy shop',
+        ], 404);
+    }
+
+    $shopId = $shop->id;
+
+    // Lấy categories có ít nhất 1 sản phẩm
+    $categories = Category::where('shop_id', $shopId)
+        ->where('status', 'activated')
+        ->whereHas('products', function ($query) {
+            $query->where('status', 'activated');
+        })
+        ->withCount(['products' => function ($query) {
+            $query->where('status', 'activated');
+        }])
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return response()->json([
+        'status' => true,
+        'shop' => [
+            'id' => $shop->id,
+            'name' => $shop->name,
+            'slug' => $shop->slug,
+        ],
+        'categories' => $categories,
+    ]);
+}
+
 // Thêm danh mục của shop
 public function addCategoryByShop(Request $request)
 {

@@ -12,13 +12,13 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 class ProductController extends Controller
 {
-    // Danh sách sản phẩm
-    public function index()
-    {
-        return response()->json(Product::all());
-    }
+// Danh sách sản phẩm
+public function index()
+{
+    return response()->json(Product::all());
+}
 
-    // Chi tiết 1 sản phẩm
+// Chi tiết 1 sản phẩm
 public function show($shopslug, $productslug)
 {
     $product = Product::with([
@@ -37,7 +37,6 @@ public function show($shopslug, $productslug)
 
     return response()->json($product);
 }
-
 
 
 public function getCategoryAndProductsBySlug($slug)
@@ -97,12 +96,7 @@ private function getAllChildCategoryIds(Category $category)
 }
 
 
-
-
-
-    // Tạo mới sản phẩm
-
-
+// Tạo mới sản phẩm
 public function store(Request $request)
 {
     $validated = $request->validate([
@@ -147,18 +141,19 @@ public function store(Request $request)
     ], 201);
 }
 
-    // Xóa sản phẩm
-    public function delete($id)
-    {
-        $product = Product::find($id);
-        if (!$product) {
-            return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
-        }
-
-        $product->delete();
-        return response()->json(['message' => 'Đã xóa sản phẩm']);
+// Xóa sản phẩm
+public function delete($id)
+{
+    $product = Product::find($id);
+    if (!$product) {
+        return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
     }
-    // Lấy danh sách sản phẩm của shop
+
+    $product->delete();
+    return response()->json(['message' => 'Đã xóa sản phẩm']);
+}
+
+// Lấy danh sách sản phẩm của shop
 public function showShopProducts(Request $request, $slug)
 {
     $shop = \App\Models\Shop::where('slug', $slug)->first();
@@ -182,7 +177,7 @@ public function showShopProducts(Request $request, $slug)
     ]);
 }
 
-    // Lấy danh sách sản phẩm bán chạy
+// Lấy danh sách sản phẩm bán chạy
 public function bestSellingProducts(Request $request)
 {
     $limit = $request->input('limit', 8);
@@ -206,7 +201,7 @@ public function bestSellingProducts(Request $request)
 }
 
 
-    // Lấy danh sách sản phẩm giảm giá nhiều nhất
+// Lấy danh sách sản phẩm giảm giá nhiều nhất
 public function topDiscountedProducts(Request $request)
 {
     $limit = $request->input('limit', 8);
@@ -234,7 +229,7 @@ public function topDiscountedProducts(Request $request)
     ]);
 }
 
-    // Lấy danh sách sản phẩm mới nhất
+// Lấy danh sách sản phẩm mới nhất
 public function newProducts(Request $request)
 {
     $limit = $request->input('limit', 8);
@@ -257,7 +252,7 @@ public function newProducts(Request $request)
     ]);
 }
 
-
+// Lấy danh sách sản phẩm theo shop của shop đã đăng nhập
 public function getProductByShop(Request $request)
 {
     $user = $request->user();
@@ -277,8 +272,7 @@ public function getProductByShop(Request $request)
     ]);
 }
 
-
-        // Thêm sản phẩm mới bởi shop
+// Thêm sản phẩm mới bởi shop
 public function addProductByShop(Request $request)
 {
     $validator = Validator::make($request->all(), [
