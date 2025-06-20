@@ -86,7 +86,7 @@ const NotificationDropdown: React.FC = () => {
     };
 
     return (
-        <div className="w-full max-w-[1280px] mx-auto py-8 px-4 mt-10">
+        <div className="w-full max-w-[1280px] mx-auto py-8 px-4 ">
             {/* Phần hiển thị tiêu đề và số lượng thông báo */}
             <div className="mb-6">
                 <div className="flex items-center gap-3 mb-2">

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { LoadingShopInfo } from '../loading/loading';
-import { useRouter } from 'next/navigation'; // Thêm useRouter để chuyển hướng trang
+import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/utils/api';
 
 interface Shop {
@@ -12,16 +12,16 @@ interface Shop {
   description: string;
   logo: string;
   phone: string;
-  rating: string; // Rating là string nhưng cần xử lý như số
+  rating: string;
   total_sales: number;
-  created_at: string; // Created at là string, cần chuyển đổi khi sử dụng
+  created_at: string;
   status: 'activated' | 'pending' | 'suspended';
   email: string;
   slug: string;
 }
 
 interface ShopInfoProps {
-  shop: Shop | undefined; // Thêm `undefined` vào kiểu dữ liệu
+  shop: Shop | undefined;
   followed: boolean;
   onFollowToggle: () => void;
 }
@@ -34,18 +34,14 @@ export default function ShopInfo({
   const [popupText, setPopupText] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const router = useRouter(); // Khởi tạo router để chuyển trang
+  const router = useRouter();
 
-  // Chờ khi component được tải xong
   useEffect(() => {
     const timeout = setTimeout(() => setIsLoaded(true), 500);
     return () => clearTimeout(timeout);
   }, []);
 
-  // Nếu không có shop, trả về thông báo "Shop không tồn tại"
-  if (!shop) {
-    return <div>Shop không tồn tại</div>;
-  }
+  if (!shop) return <div>Shop không tồn tại</div>;
 
   const handleFollowClick = () => {
     onFollowToggle();
@@ -62,20 +58,14 @@ export default function ShopInfo({
   };
 
   const handleNavigateToOrders = () => {
-    router.push('/orders'); // Chuyển hướng đến trang "Orders"
+    router.push('/orders');
   };
-
-  const handleNavigateToVouchers = () => {
-    router.push('/vouchers'); // Chuyển hướng đến trang "Vouchers"
-  };
-
-  if (!isLoaded) return <LoadingShopInfo />;
 
   return (
-    <div className="mt-12 border rounded-lg bg-white p-8 relative">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    <div className="mt-12 border rounded-lg bg-white p-4 sm:p-6 md:p-8 relative">
+      <div className="flex flex-col md:flex-row md:justify-between gap-6">
         {/* Trái: logo + tên + nút */}
-        <div className="flex gap-4 items-start">
+        <div className="flex gap-4 flex-shrink-0">
           <div className="relative w-20 h-20">
             <Image
               src={`${API_BASE_URL}/image/${shop.logo}`}
@@ -84,31 +74,28 @@ export default function ShopInfo({
               height={60}
               className="rounded-full object-cover"
             />
-            {!followed && (
-              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center justify-center">
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
+              {!followed ? (
                 <button
                   onClick={handleFollowClick}
-                  className="bg-[#DC4B47] text-white text-[18px] font-semibold w-8 h-8 rounded-full flex items-center justify-center shadow-md hover:bg-[#FF5733] transition-all transform hover:scale-110"
+                  className="bg-[#DC4B47] text-white text-[18px] font-semibold w-8 h-8 rounded-full flex items-center justify-center shadow-md hover:bg-[#FF5733] transition-all hover:scale-110"
                 >
                   +
                 </button>
-              </div>
-            )}
-            {followed && (
-              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center justify-center">
+              ) : (
                 <button
                   onClick={handleFollowClick}
-                  className="bg-[#DC4B47] text-white text-[18px] font-semibold w-8 h-8 rounded-full flex items-center justify-center shadow-md animate-rotate-to-check opacity-100"
+                  className="bg-[#DC4B47] text-white text-[18px] font-semibold w-8 h-8 rounded-full flex items-center justify-center shadow-md animate-rotate-to-check"
                 >
                   <span className="text-[14px]">✔</span>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Tên shop + trạng thái + "Hủy theo dõi" */}
-          <div className="text-black">
-            <h3 className="text-xl font-semibold mb-1 flex items-center gap-2">
+          {/* Tên shop + trạng thái + hủy theo dõi */}
+          <div className="text-black max-w-[200px] sm:max-w-none">
+            <h3 className="text-xl font-semibold mb-1 flex items-center gap-2 flex-wrap">
               {shop.name}
               {followed && (
                 <button
@@ -132,7 +119,7 @@ export default function ShopInfo({
               {shop.status === 'suspended' && 'Tạm khóa'}
             </p>
 
-            <div className="flex gap-2 mt-2">
+            <div className="flex flex-wrap gap-2 mt-2">
               <button className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M2 3v18l4-4h14V3H2zm2 2h14v10H6l-2 2V5z" />
@@ -152,34 +139,29 @@ export default function ShopInfo({
           </div>
         </div>
 
-        {/* Phải: Thông tin chia cột dọc */}
-        <div className="flex flex-wrap md:flex-nowrap items-center gap-6 text-sm text-gray-800">
-          <div className="flex items-center gap-1">
+        {/* Phải: Thông tin gọn gàng, có ngắt dòng trên mobile */}
+        <div className="flex flex-wrap gap-y-2 gap-x-6 mt-6 md:mt-0 text-sm text-gray-800">
+          <div className="flex items-center gap-1 min-w-[130px]">
             <span className="text-gray-500">Đánh Giá:</span>
-            <span className="text-red-500 font-semibold">
-              {Number(shop.rating).toFixed(1)}
-            </span>
+            <span className="text-red-500 font-semibold">{Number(shop.rating).toFixed(1)}</span>
             <span className="text-yellow-400 text-base">★</span>
           </div>
-          <div className="w-px h-5 bg-gray-300" />
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 min-w-[130px]">
             <span className="text-gray-500">Sản Phẩm:</span>
             <span className="text-red-500 font-semibold">{shop.total_sales}</span>
           </div>
-          <div className="w-px h-5 bg-gray-300" />
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 min-w-[130px]">
             <span className="text-gray-500">Phản Hồi:</span>
             <span className="text-red-500 font-semibold">Trong vài giờ</span>
           </div>
-          <div className="w-px h-5 bg-gray-300" />
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 min-w-[130px]">
             <span className="text-gray-500">Tham Gia:</span>
             <span className="text-red-500 font-semibold">
               {(() => {
                 const createdAt = new Date(shop.created_at);
                 const now = new Date();
-                const diffMs = now.getTime() - createdAt.getTime();
-                const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                const diff = now.getTime() - createdAt.getTime();
+                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
                 const months = Math.floor(days / 30);
                 const years = Math.floor(days / 365);
                 if (days <= 1) return '1 ngày';
@@ -192,7 +174,6 @@ export default function ShopInfo({
         </div>
       </div>
 
-      {/* Popup feedback */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
           {popupText}

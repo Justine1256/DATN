@@ -141,23 +141,27 @@ export default function OrderSection() {
   };
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto mt-10 px-4">
+    <div className="w-full max-w-[1400px] mx-auto  px-4">
       <div className="bg-white p-6 rounded-xl shadow-lg min-h-[500px]">
         <h2 className="text-xl font-semibold text-[#db4444] mb-4 text-center">
           Đơn mua của tôi
         </h2>
 
+        {/* Order filter tabs */}
         <OrderFilterTabs activeTab={activeTab} onFilterChange={filterOrders} />
 
+        {/* Loading state */}
         {loading ? (
           <p className="text-center text-gray-500">Đang tải đơn hàng...</p>
         ) : filteredOrders.length === 0 ? (
+          // Empty state when no orders match the filter
           <div className="flex flex-col items-center justify-center h-[400px] bg-gray-50 rounded-md">
             <p className="text-lg text-gray-500">Không có đơn hàng phù hợp.</p>
           </div>
         ) : (
+          // Display filtered orders
           <div className="space-y-4">
-            {filteredOrders.map((order: Order) => ( // Thêm kiểu Order cho order
+            {filteredOrders.map((order: Order) => ( // Added type `Order` for better typing
               <div key={order.id}>
                 <OrderListItem
                   key={order.id}
@@ -171,7 +175,7 @@ export default function OrderSection() {
         )}
       </div>
 
-      {/* Modal chi tiết đơn hàng */}
+      {/* Modal for order details */}
       {popupVisible && selectedOrder && (
         <OrderDetailModal
           order={selectedOrder}
@@ -182,7 +186,7 @@ export default function OrderSection() {
         />
       )}
 
-      {/* Popup xác nhận hủy đơn hàng */}
+      {/* Popup for confirming order cancellation */}
       {showConfirmCancelPopup && (
         <ConfirmCancelModal
           isVisible={showConfirmCancelPopup}
@@ -193,4 +197,5 @@ export default function OrderSection() {
       )}
     </div>
   );
+  
 }
