@@ -367,8 +367,9 @@ const Header = () => {
                         <div className="ml-3 flex-1">
                           <div className="text-sm font-medium line-clamp-1">{item.product.name}</div>
                           <div className="text-sm text-red-500">
-                            {price.toLocaleString()}đ
+                            {Number(price).toLocaleString('vi-VN')}đ
                           </div>
+
                         </div>
                       </li>
                     );
