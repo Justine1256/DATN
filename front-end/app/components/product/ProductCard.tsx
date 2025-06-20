@@ -167,6 +167,8 @@ export default function ProductCard({
       }
 
       setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
+      window.dispatchEvent(new Event('cartUpdated'));
+
     } catch (err: any) {
       console.error("❌ Lỗi khi thêm vào giỏ hàng:", err);
       setPopupMessage(err.message || "Đã xảy ra lỗi khi thêm sản phẩm");
