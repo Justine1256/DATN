@@ -127,26 +127,26 @@ export default function CartItemsSection({
   const formatPrice = (value?: number | null) =>
     (value ?? 0).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-  if (loading) return <p className="text-center py-10">Đang tải giỏ hàng...</p>;
-
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] text-black font-semibold text-sm bg-white p-4 shadow">
-        <div className="text-left">Sản phẩm</div>
-        <div className="text-left">Biến thể</div>
-        <div className="text-center">Giá</div>
-        <div className="text-center">Số lượng</div>
-        <div className="text-right">Tổng cộng</div>
-      </div>
+  <div className="space-y-4">
+    {/* Header */}
+    <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] text-black font-semibold text-sm bg-white p-4 shadow">
+      <div className="text-left">Sản phẩm</div>
+      <div className="text-left">Biến thể</div>
+      <div className="text-center">Giá</div>
+      <div className="text-center">Số lượng</div>
+      <div className="text-right">Tổng cộng</div>
+    </div>
 
-      {/* Items */}
-{cartItems.length === 0 ? (
-  <div className="p-10 text-center border rounded-md bg-white text-gray-500 text-lg shadow">
-    🛒 Giỏ hàng của bạn đang trống
-  </div>
-) : (
-  cartItems.map((item) => {
+    {/* Items */}
+    {loading ? (
+      <p className="text-center py-10">Đang tải giỏ hàng...</p>
+    ) : cartItems.length === 0 ? (
+      <div className="p-10 text-center border rounded-md bg-white text-gray-500 text-lg shadow">
+        🛒 Giỏ hàng của bạn đang trống
+      </div>
+    ) : (
+      cartItems.map((item) => {
     const priceToUse = item.product.sale_price ?? item.product.price;
     const firstImage = item.product.image?.[0] || 'placeholder.jpg';
 
