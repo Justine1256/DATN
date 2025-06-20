@@ -316,7 +316,7 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
   };
 
   return (
-    <div className="min-h-screen py-16">
+    <div className="min-h-screen py-16 ">
       {/* Overlay khi mở form */}
       {isAdding && <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" />}
 

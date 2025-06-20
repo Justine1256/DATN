@@ -88,7 +88,8 @@ export default function FollowedShopsSection() {
     };
 
     return (
-        <div className="w-full max-w-[1400px] mx-auto px-6 mt-24">
+        <div className="flex justify-end w-full ">
+        <div className="w-full max-w-[1000px]  px-2 mt-24">
             {/* Header Section */}
             <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
@@ -295,6 +296,7 @@ export default function FollowedShopsSection() {
                     </div>
                 )}
             </section>
+        </div>
         </div>
     );
 }
