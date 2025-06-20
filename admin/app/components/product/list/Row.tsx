@@ -12,9 +12,10 @@ type ProductRowProps = {
 };
 
 const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
-  const imageSrc = `${STATIC_BASE_URL}/${product.image?.[0]}`
-    ? `${STATIC_BASE_URL}/${product.image[0]}`
-    : `${STATIC_BASE_URL}/default-image.jpg`;
+const imageSrc = product.image?.[0]
+  ? `${STATIC_BASE_URL}/${product.image[0]}`
+  : `${STATIC_BASE_URL}/default-image.jpg`;
+
 
   let parentCategoryName = "Không rõ";
   let subcategoryName = "Không rõ";
