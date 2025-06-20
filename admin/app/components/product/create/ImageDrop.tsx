@@ -6,6 +6,7 @@ import "swiper/css";
 import "swiper/css/navigation";
 import { Navigation } from "swiper/modules";
 import Image from "next/image";
+import { API_BASE_URL } from "@/utils/api";
 
 type ImageItem = {
   id: string;
@@ -26,7 +27,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch("http://127.0.0.1:8000/api/upload-image", {
+    const res = await fetch(`${API_BASE_URL}/upload-image`, {
       method: "POST",
       body: formData,
     });

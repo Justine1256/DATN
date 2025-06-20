@@ -87,7 +87,7 @@ export default function Sidebar() {
     <aside className="fixed top-0 left-0 h-screen w-64 bg-white border-r shadow-sm overflow-y-auto z-40 px-5 py-4">
       {/* Logo */}
       <div className="w-full flex justify-center mb-6">
-        <Image src="/logo.png" alt="Logo" className="w-[140px] h-[50px]" />
+        <img src="/logo.png"  alt="Logo" className="w-[140px] h-[50px]" />
       </div>
 
       <p className="text-[11px] font-bold text-[#DC4B47] uppercase mb-3 tracking-wider border-l-4 border-[#DC4B47] pl-2">
