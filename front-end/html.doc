@@ -1,64 +1,94 @@
-<div class="section">
-    <h2>CHI TIẾT SẢN PHẨM</h2>
-    <table class="info-table">
-        <tr>
-            <th>Danh Mục</th>
-            <td>
-                <a href="/">Shop</a> &gt;
-                <a href="/Điện-Thoại-Phụ-Kiện">Điện Thoại &amp; Phụ Kiện</a> &gt;
-                <a href="/Điện-thoại">Điện thoại</a> &gt;
-                <a href="/Apple">Apple</a>
-            </td>
-        </tr>
-        <tr>
-            <th>Kho</th>
-            <td>76</td>
-        </tr>
-        <tr>
-            <th>Thương hiệu</th>
-            <td>Apple</td>
-        </tr>
-        <tr>
-            <th>Gửi từ</th>
-            <td>TP. Hồ Chí Minh</td>
-        </tr>
-    </table>
+<div class="section flex flex-col gap-4 mb-10">
+  <h2 class="text-3xl font-bold text-black m-0">Chi Tiết Sản Phẩm</h2>
+  <table class="info-table w-full">
+    <tbody>
+      <tr class="border-b border-gray-200">
+        <th class="text-left w-40 py-2">Danh Mục</th>
+        <td>
+          <a href="/">Shop</a> >
+          <a href="/Điện-Thoại-Phụ-Kiện">Điện Thoại &amp; Phụ Kiện</a> >
+          <a href="/Điện-thoại">Điện thoại</a> >
+          <a href="/Apple">Apple</a>
+        </td>
+      </tr>
+      <tr class="border-b border-gray-200">
+        <th class="text-left py-2">Kho</th>
+        <td>76</td>
+      </tr>
+      <tr class="border-b border-gray-200">
+        <th class="text-left py-2">Thương hiệu</th>
+        <td>Apple</td>
+      </tr>
+      <tr class="border-b border-gray-200">
+        <th class="text-left py-2">Gửi từ</th>
+        <td>TP. Hồ Chí Minh</td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 
-<div class="section">
-    <h2>MÔ TẢ SẢN PHẨM</h2>
-    <div class="description">
-        <p><strong>#iPhone14ProMax</strong> là chiếc smartphone cao cấp từ Apple với thiết kế sang trọng và hiệu năng mạnh mẽ.</p>
-        <p><strong>Màn hình:</strong> OLED 6.1" Super Retina XDR</p>
-        <p><strong>Hệ điều hành:</strong> iOS 15</p>
-        <p><strong>Camera sau:</strong> 2 camera 12 MP</p>
-        <p><strong>Camera trước:</strong> 12 MP</p>
-        <p><strong>Chip:</strong> Apple A15 Bionic</p>
-        <p><strong>RAM:</strong> 4 GB</p>
-        <p><strong>Bộ nhớ trong:</strong> 128 GB</p>
-        <p><strong>SIM:</strong> 1 Nano SIM &amp; 1 eSIM (hỗ trợ 5G)</p>
-        <p><strong>Pin, Sạc:</strong> 20 W</p>
+<div class="section flex flex-col gap-4">
+  <h2 class="text-3xl font-bold text-black mt-6">MÔ TẢ SẢN PHẨM</h2>
+  <div class="description">
+    <ul class="list-outside grid gap-2">
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>Iphone14ProMax</strong> <span>là chiếc smartphone cao cấp từ Apple với thiết kế sang trọng và hiệu năng mạnh mẽ.</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>Màn hình</strong> <span>OLED 6.1" Super Retina XDR</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>Hệ điều hành</strong> <span>iOS 15</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>Camera sau</strong> <span>2 camera sau 12MP</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>Camera trước</strong> <span>12 MP</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>Chip</strong> <span>Apple A15 Bionic</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>RAM</strong> <span>4 GB</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>Bộ nhớ trong</strong> <span>128 GB</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>SIM</strong> <span>1 Nano SIM & 1 eSIM (hỗ trợ 5G)</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>Pin, Sạc</strong> <span>20 W</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>Bộ sản phẩm bao gồm</strong> <span>Thân máy, sách hướng dẫn, cáp sạc.</span></li>
+      <li class="grid grid-cols-[180px_1fr] gap-2"><strong>Bảo hành</strong> <span>12 tháng kể từ ngày kích hoạt sản phẩm.</span></li>
+    </ul>
 
-        <br>
-        <p><strong>Bộ sản phẩm bao gồm:</strong> Thân máy, sách hướng dẫn, cáp sạc.</p>
-        <br>
-        <p><strong>#BảoHành</strong>: 12 tháng kể từ ngày kích hoạt sản phẩm.</p>
-        <p>Kích hoạt bảo hành tại: <a href="https://checkcoverage.apple.com/vn/en/">https://checkcoverage.apple.com/vn/en/</a></p>
-        <p><strong>Hướng dẫn kiểm tra địa điểm bảo hành gần nhất:</strong></p>
-        <ul>
-            <li>Bước 1: Truy cập <a href="https://getsupport.apple.com/?caller=grl&amp;locale=en_VN">https://getsupport.apple.com/?caller=grl&amp;locale=en_VN</a></li>
-            <li>Bước 2: Chọn sản phẩm.</li>
-            <li>Bước 3: Đăng nhập Apple ID.</li>
-        </ul>
+    <div class="mt-6 text-sm leading-relaxed">
+      <p><strong>Kích hoạt bảo hành tại:</strong><br />
+        <a href="https://checkcoverage.apple.com/vn/en/" class="text-black hover:text-[#db4444]">
+          https://checkcoverage.apple.com/vn/en/
+        </a>
+      </p>
 
-        <p><strong>#ChinhSachApple</strong> áp dụng chung theo các liên kết:</p>
-        <ul>
-            <li><a href="https://www.apple.com/legal/warranty/products/warranty-rest-of-apac-vietnamese.html">Chính sách chung</a></li>
-            <li><a href="https://www.apple.com/legal/warranty/products/accessory-warranty-vietnam.html">Chính sách phụ kiện</a></li>
-            <li><a href="https://getsupport.apple.com/repair-locations?locale=vi_VN">Trung tâm bảo hành tại Việt Nam</a></li>
-        </ul>
+      <p class="mt-4 font-semibold">Hướng dẫn kiểm tra địa điểm bảo hành gần nhất:</p>
+      <div class="space-y-2">
+        <div class="flex flex-wrap gap-2 items-center">
+          <a>Bước 1: Truy cập</a>
+          <a href="https://getsupport.apple.com/?caller=grl&locale=en_VN"
+             class="text-black hover:text-[#db4444] break-all">
+            https://getsupport.apple.com/?caller=grl&locale=en_VN
+          </a>
+        </div>
+        <div><strong>Bước 2:</strong> Chọn sản phẩm.</div>
+        <div><strong>Bước 3:</strong> Đăng nhập Apple ID.</div>
+      </div>
 
-        <p>Để đảm bảo quyền lợi, quý khách vui lòng quay video khi mở hộp để xử lý khiếu nại dễ dàng hơn.</p>
-        <p><strong>#AppleChinhHang</strong> <a href="#Smartphone" class="text-red-500 hover:text-red-700">#Smartphone</a> <a href="#DienThoai" class="text-red-500 hover:text-red-700">#DienThoai</a></p>
+      <p class="mt-4"><strong>#ChinhSachApple</strong> áp dụng chung theo các liên kết:</p>
+     <ul class="list-disc list-inside space-y-1">
+  <li>
+    <a href="https://www.apple.com/legal/warranty/products/warranty-rest-of-apac-vietnamese.html"
+       class="text-black hover:text-[#db4444]">Chính sách chung</a>
+  </li>
+  <li>
+    <a href="https://www.apple.com/legal/warranty/products/accessory-warranty-vietnam.html"
+       class="text-black hover:text-[#db4444]">Chính sách phụ kiện</a>
+  </li>
+  <li>
+    <a href="https://getsupport.apple.com/repair-locations?locale=vi_VN"
+       class="text-black hover:text-[#db4444]">Bảo hành tại Việt Nam</a>
+  </li>
+</ul>
+
+
+      <p class="mt-4">Để đảm bảo quyền lợi, quý khách vui lòng quay video khi mở hộp để xử lý khiếu nại dễ dàng hơn.</p>
+
+      <p class="mt-4 space-x-2">
+        <a href="#AppleChinhHang" class="text-[#db4444] hover:text-red-700">#AppleChinhHang</a>
+        <a href="#Smartphone" class="text-[#db4444] hover:text-red-700">#Smartphone</a>
+        <a href="#DienThoai" class="text-[#db4444] hover:text-red-700">#DienThoai</a>
+      </p>
     </div>
+  </div>
 </div>

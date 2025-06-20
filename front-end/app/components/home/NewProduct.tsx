@@ -36,29 +36,32 @@ const router = useRouter();
               Trong Tuần
             </p>
           </div>
-          <h2 className="text-3xl font-bold text-black mt-4">Sản phẩm mới</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-black mt-4">Sản phẩm mới</h2>
         </div>
 
         {/* 🛒 Hiển thị sản phẩm hoặc loading */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 mt-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
           {loading
             ? Array(8)
-                .fill(0)
-                .map((_, i) => <ProductCard key={i} />) // ✅ Gọi card chưa có product => hiển thị khung loading
+              .fill(0)
+              .map((_, i) => <ProductCard key={i} />)
             : products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              <ProductCard key={product.id} product={product} />
+            ))}
         </div>
 
-        {/* 🔻 Nút xem tất cả */}
-        <div className="mt-10 text-center">
-          <button 
-            onClick={() => router.push('/category')}
-          className="bg-brand hover:bg-[#e57373] text-white font-medium py-3 px-10 rounded transition-colors duration-300">
+        {/* 🔻 Nút xem tất cả sản phẩm */}
+        <div className="mt-10 flex justify-center">
+          <button
+            onClick={() => router.push("/category")}
+            className="bg-brand hover:bg-[#e57373] text-white text-sm sm:text-base font-medium py-2.5 px-6 sm:px-10 rounded transition duration-300"
+          >
             Xem tất cả sản phẩm
           </button>
         </div>
       </div>
     </section>
   );
+  
+  
 }

@@ -535,3 +535,5 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     </div>
   );
 }
+
+
