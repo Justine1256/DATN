@@ -127,95 +127,102 @@ export default function CartItemsSection({
   const formatPrice = (value?: number | null) =>
     (value ?? 0).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-  if (loading) return <p className="text-center py-10">Đang tải giỏ hàng...</p>;
-
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] text-black font-semibold text-sm bg-white p-4 shadow">
-        <div className="text-left">Sản phẩm</div>
-        <div className="text-left">Biến thể</div>
-        <div className="text-center">Giá</div>
-        <div className="text-center">Số lượng</div>
-        <div className="text-right">Tổng cộng</div>
+  <div className="space-y-4">
+    {/* Header */}
+    <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] text-black font-semibold text-sm bg-white p-4 shadow">
+      <div className="text-left">Sản phẩm</div>
+      <div className="text-left">Biến thể</div>
+      <div className="text-center">Giá</div>
+      <div className="text-center">Số lượng</div>
+      <div className="text-right">Tổng cộng</div>
+    </div>
+
+    {/* Items */}
+    {loading ? (
+      <p className="text-center py-10">Đang tải giỏ hàng...</p>
+    ) : cartItems.length === 0 ? (
+      <div className="p-10 text-center border rounded-md bg-white text-gray-500 text-lg shadow">
+        🛒 Giỏ hàng của bạn đang trống
       </div>
+    ) : (
+      cartItems.map((item) => {
+    const priceToUse = item.product.sale_price ?? item.product.price;
+    const firstImage = item.product.image?.[0] || 'placeholder.jpg';
 
-      {/* Items */}
-      {cartItems.map((item) => {
-        const priceToUse = item.product.sale_price ?? item.product.price;
-        const firstImage = item.product.image?.[0] || 'placeholder.jpg';
-
-        return (
-          <div
-            key={item.id}
-            className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] items-center bg-white p-4 shadow relative"
+    return (
+      <div
+        key={item.id}
+        className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] items-center bg-white p-4 shadow relative"
+      >
+        {/* Product */}
+        <div className="flex items-center gap-4 relative text-left">
+          <button
+            onClick={() => handleRemove(item.id)}
+            className="absolute -top-2 -left-2 bg-white border border-brand text-brand rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
+            title="Xoá sản phẩm"
           >
-            {/* Product */}
-            <div className="flex items-center gap-4 relative text-left">
-              <button
-                onClick={() => handleRemove(item.id)}
-                className="absolute -top-2 -left-2 bg-white border border-brand text-brand rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
-                title="Xoá sản phẩm"
-              >
-                ✕
-              </button>
+            ✕
+          </button>
 
-              <div className="w-16 h-16 relative shrink-0">
-                <Image
-                  src={`${STATIC_BASE_URL}/${firstImage}`}
-                  alt={item.product.name}
-                  fill
-                  className="object-contain"
-                />
-              </div>
+          <div className="w-16 h-16 relative shrink-0">
+            <Image
+              src={`${STATIC_BASE_URL}/${firstImage}`}
+              alt={item.product.name}
+              fill
+              className="object-contain"
+            />
+          </div>
 
-              <span className="text-sm font-medium text-black">
-                {item.product.name}
+          <span className="text-sm font-medium text-black">
+            {item.product.name}
+          </span>
+        </div>
+
+        {/* Variant */}
+        <div>{renderVariant(item)}</div>
+
+        {/* Price */}
+        <div className="text-center text-sm text-black">
+          {item.product.sale_price ? (
+            <div>
+              <span className="text-red-500 font-semibold">
+                {formatPrice(item.product.sale_price)} đ
+              </span>
+              <br />
+              <span className="line-through text-gray-400 text-xs">
+                {formatPrice(item.product.price)} đ
               </span>
             </div>
+          ) : (
+            <span className="font-semibold">
+              {formatPrice(item.product.price)} đ
+            </span>
+          )}
+        </div>
 
-            {/* Variant */}
-            <div>{renderVariant(item)}</div>
+        {/* Quantity */}
+        <div className="text-center">
+          <input
+            type="number"
+            min={1}
+            value={item.quantity}
+            onChange={(e) =>
+              handleQuantityChange(item.id, parseInt(e.target.value || '1'))
+            }
+            className="w-20 px-3 py-2 border rounded-md text-center text-black"
+          />
+        </div>
 
-            {/* Price */}
-            <div className="text-center text-sm text-black">
-              {item.product.sale_price ? (
-                <div>
-                  <span className="text-red-500 font-semibold">
-                    {formatPrice(item.product.sale_price)} đ
-                  </span>
-                  <br />
-                  <span className="line-through text-gray-400 text-xs">
-                    {formatPrice(item.product.price)} đ
-                  </span>
-                </div>
-              ) : (
-                <span className="font-semibold">
-                  {formatPrice(item.product.price)} đ
-                </span>
-              )}
-            </div>
+        {/* Subtotal */}
+        <div className="text-right text-sm font-semibold text-red-500">
+          {formatPrice(priceToUse * item.quantity)} đ
+        </div>
+      </div>
+    );
+  })
+)}
 
-            {/* Quantity */}
-            <div className="text-center">
-              <input
-                type="number"
-                min={1}
-                value={item.quantity}
-                onChange={(e) =>
-                  handleQuantityChange(item.id, parseInt(e.target.value || '1'))
-                }
-                className="w-20 px-3 py-2 border rounded-md text-center text-black"
-              />
-            </div>
-
-            {/* Subtotal */}
-            <div className="text-right text-sm font-semibold text-red-500">
-              {formatPrice(priceToUse * item.quantity)} đ
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
