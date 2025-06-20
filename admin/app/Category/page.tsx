@@ -1,31 +1,33 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import CategoryListHeader from "../components/Categories/list/Header";
-import CategoryRow from "../components/Categories/list/Row";
-import Pagination from "../components/Categories/list/Pagination";
+
 import Cookies from "js-cookie";
 import { CategoryRowSkeleton } from "../components/loading/loading";
 import Swal from "sweetalert2";
+import { API_BASE_URL } from "@/utils/api";
+import CategoryListHeader from "../components/categories/list/Header";
+import Pagination from "../components/categories/list/Pagination";
+import CategoryRow from "../components/categories/list/Row";
 
 
 type LocalCategory = {
-  id: number;
+  id: string;
   name: string;
-  image: string[] | null;
+  image: string | null;
   priceRange?: string;
   slug?: string;
   description?: string;
   status?: string;
-  parent_id?: number | null;
+  parent_id?: string | null;
   parent?: { name: string } | null;
 };
 
 
 type Product = {
-  id: number;
+  id: string;
   name: string;
-  category_id: number;
+  category_id: string;
 };
 
 export default function CategoryListPage() {
@@ -42,7 +44,7 @@ export default function CategoryListPage() {
       const token = Cookies.get("authToken");
       if (!token) return;
 
-      const res = await fetch("http://127.0.0.1:8000/api/shop/categories", {
+      const res = await fetch(`${API_BASE_URL}/shop/categories`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -63,10 +65,10 @@ export default function CategoryListPage() {
       const token = Cookies.get("authToken");
       if (!token) return;
 
-      const res = await fetch("http://127.0.0.1:8000/api/shop/products", {
+      const res = await fetch(`${API_BASE_URL}/shop/products`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
+      console.log("🧪 DEBUG FETCH SẢN PHẨM:", res);
       if (!res.ok) throw new Error("Lỗi khi lấy sản phẩm");
 
       const data = await res.json();
@@ -77,13 +79,13 @@ export default function CategoryListPage() {
   }, []);
 
   // ✅ Đếm số sản phẩm thuộc mỗi danh mục
-  const getProductCountForCategory = (categoryId: number) => {
+  const getProductCountForCategory = (categoryId: string) => {
     if (!Array.isArray(products)) return 0;
     return products.filter((p) => p.category_id === categoryId).length;
   };
 
   // ✅ Hàm xoá danh mục
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     const result = await Swal.fire({
       title: "Bạn chắc chắn muốn xoá?",
       text: "Thao tác này không thể hoàn tác!",
@@ -102,7 +104,7 @@ export default function CategoryListPage() {
           console.log("🧪 DEBUG XOÁ:", {
             id,
             token,
-            deleteUrl: `http://127.0.0.1:8000/api/shop/categories/${id}`,
+            deleteUrl: `${API_BASE_URL}/shop/categories/${id}`,
           });
 
           if (!token) {
@@ -110,8 +112,8 @@ export default function CategoryListPage() {
             return false;
           }
 
-          const res = await fetch(`http://127.0.0.1:8000/api/shop/categories/${id}`, {
-            method: "DELETE", 
+          const res = await fetch(`${API_BASE_URL}/shop/categories/${id}`, {
+            method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
           });
 
@@ -178,7 +180,6 @@ export default function CategoryListPage() {
                   key={category.id}
                   category={category}
                   onDelete={handleDelete}
-                  productCount={getProductCountForCategory(category.id)}
                 />
               ))}
         </tbody>

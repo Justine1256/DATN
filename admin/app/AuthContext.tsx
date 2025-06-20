@@ -55,8 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     function redirectToLogin() {
-      Cookies.remove("authToken");
-      window.location.href = "/login";
+      window.location.href = "http://localhost:3000/login";
     }
   }, []);
 

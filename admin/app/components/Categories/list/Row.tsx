@@ -5,22 +5,22 @@ import { FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
 
 // ✅ Kiểu dữ liệu Category đầy đủ và đúng chuẩn
 type Category = {
-  id: number;
+  id: string;
   name: string;
   image: string | null;
   priceRange?: string;
   slug?: string;
   description?: string;
   status?: string;
-  parent_id?: number | null;
+  parent_id?: string | null;
   parent?: { name: string } | null;
-  productCount?: number;
+  productCount?: string;
 };
 
 // ✅ Props cho mỗi hàng danh mục
 type CategoryRowProps = {
   category: Category;
-  onDelete: (id: number) => void; // ✅ Đúng kiểu: nhận id là number
+  onDelete: (id: string) => void; // ✅ Đúng kiểu: nhận id là string
 };
 
 const CategoryRow = ({ category, onDelete }: CategoryRowProps) => {
@@ -74,7 +74,7 @@ const CategoryRow = ({ category, onDelete }: CategoryRowProps) => {
           </Link>
 
           <button
-            onClick={() => onDelete(category.id)} // ✅ Đúng kiểu: truyền số
+            onClick={() => onDelete(String(category.id))}
             className="bg-red-100 text-red-600 p-2 rounded hover:bg-red-200"
           >
             <FiTrash2 />
