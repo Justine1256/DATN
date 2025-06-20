@@ -38,12 +38,14 @@ const NotificationDropdown: React.FC = () => {
     useEffect(() => {
         const token = Cookies.get("authToken");
 
+        // Nếu không có token (người dùng chưa đăng nhập), không làm gì cả
         if (!token) {
             setErrorMessage("Bạn cần đăng nhập để xem thông báo.");
-            setLoading(false);
-            return;
+            setLoading(false); // Dừng loading
+            return; // Không gọi API
         }
 
+        // Nếu có token, gọi API lấy thông báo
         axios
             .get(`${API_BASE_URL}/notification`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -88,25 +90,23 @@ const NotificationDropdown: React.FC = () => {
     return (
         <div className="w-full max-w-[1280px] mx-auto py-8 px-4 ">
             {/* Phần hiển thị tiêu đề và số lượng thông báo */}
-            <div className="mb-6">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-[#DB4444] rounded-lg flex items-center justify-center">
-                        <Bell className="w-5 h-5 text-white" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-gray-900">Thông Báo</h1>
-                    {notifications.filter((note) => note.is_read === 0).length > 0 && (
-                        <span className="bg-[#DB4444] text-white text-xs px-2 py-1 rounded-full font-medium">
-                            {notifications.filter((note) => note.is_read === 0).length}
-                        </span>
-                    )}
-                </div>
-
-            </div>
-
-            {/* Hiển thị thông báo lỗi nếu có */}
-            {errorMessage && (
+            {errorMessage ? (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                     <p className="text-red-700 text-sm">{errorMessage}</p>
+                </div>
+            ) : (
+                <div className="mb-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 bg-[#DB4444] rounded-lg flex items-center justify-center">
+                            <Bell className="w-5 h-5 text-white" />
+                        </div>
+                        <h1 className="text-2xl font-bold text-gray-900">Thông Báo</h1>
+                        {notifications.filter((note) => note.is_read === 0).length > 0 && (
+                            <span className="bg-[#DB4444] text-white text-xs px-2 py-1 rounded-full font-medium">
+                                {notifications.filter((note) => note.is_read === 0).length}
+                            </span>
+                        )}
+                    </div>
                 </div>
             )}
 
