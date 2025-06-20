@@ -47,6 +47,7 @@ Route::get('/category/{id}', [CategoryController::class, 'show']);
 Route::post('/category', [CategoryController::class, 'store']);
 Route::patch('/category/{id}', [CategoryController::class, 'update']);
 Route::delete('/category/{id}', [CategoryController::class, 'delete']);
+Route::get('/shop/{slug}/categories', [CategoryController::class, 'showShopCategoriesByUser']);
 
 Route::get('/product', [ProductController::class, 'index']);
 Route::get('/{shopslug}/product/{productslug}', [ProductController::class, 'show']);
