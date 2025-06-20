@@ -12,7 +12,7 @@ type ProductRowProps = {
 };
 
 const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
-  const imageSrc = product.image?.[0]
+  const imageSrc = `${STATIC_BASE_URL}/${product.image?.[0]}`
     ? `${STATIC_BASE_URL}/${product.image[0]}`
     : `${STATIC_BASE_URL}/default-image.jpg`;
 

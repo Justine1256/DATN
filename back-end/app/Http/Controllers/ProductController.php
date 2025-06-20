@@ -269,7 +269,7 @@ public function getProductByShop(Request $request)
     $products = Product::with('category') // nếu muốn có cả category
         ->where('shop_id', $user->shop->id)
         ->latest()
-        ->paginate(10);
+        ->paginate(6);
 
     return response()->json([
         'status' => true,
