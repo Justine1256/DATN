@@ -205,9 +205,9 @@ const Header = () => {
 
       {/* 🔲 Thanh điều hướng chính */}
       <div className="py-0 px-2">
-        <div className="grid grid-cols-12 items-center py-4 px-6 md:px-16 max-w-[1280px] mx-auto w-full">
+        <div className="grid grid-cols-12 items-center py-4 px-4 md:px-16 max-w-[1280px] mx-auto w-full">
           {/* 🅰️ Logo */}
-          <div className="col-span-2">
+          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
             <Link href="/">
               <Image src={logoImage} alt="Logo" width={140} className="rounded-full cursor-pointer" priority />
             </Link>
@@ -218,15 +218,11 @@ const Header = () => {
             {navLinks.map((link) =>
               link.label === "Danh Mục" ? (
                 <div key={link.href} ref={categoryRef} className="relative group">
-                  {/* Nút chính Danh Mục - không đổi màu khi hover, chỉ gạch chân đen */}
                   <button className="relative text-black font-normal text-sm md:text-base transition duration-300">
                     {link.label}
                     <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
                   </button>
-
-                  {/* Dropdown danh mục con - sổ ra chính giữa nút */}
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-52 bg-white border border-gray-200 shadow-lg rounded-md z-50 
-        opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-52 bg-white border border-gray-200 shadow-lg rounded-md z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
                     <ul className="divide-y divide-gray-100">
                       {categories.map((cat) => (
                         <li key={cat.id}>
@@ -252,23 +248,17 @@ const Header = () => {
                 </button>
               )
             )}
-
-
-
-
             {!user && (
               <div className="relative group cursor-pointer text-black text-sm md:text-base transition duration-300 hover:opacity-90">
-                <Link href="/login" className="block">
-                  Đăng Nhập
-                </Link>
+                <Link href="/login" className="block">Đăng Nhập</Link>
                 <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
               </div>
             )}
           </nav>
 
-          {/* 🔍 Tìm kiếm + Yêu thích + Giỏ hàng + Avatar */}
-          <div className="col-span-4 flex items-center justify-end space-x-4">
-            {/* 🔍 Ô tìm kiếm */}
+          {/* Mobile menu: ẩn menu bên phải */}
+          <div className="col-span-6 sm:col-span-9 lg:col-span-4 flex items-center justify-end space-x-4">
+            {/* 🔍 Tìm kiếm */}
             <div className="relative w-[200px]">
               <input
                 type="text"
@@ -278,16 +268,17 @@ const Header = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit(e)}
               />
-              <AiOutlineSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-black cursor-pointer h-5 w-5" onClick={handleSearchSubmit} />
+              <AiOutlineSearch
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-black cursor-pointer h-5 w-5"
+                onClick={handleSearchSubmit}
+              />
             </div>
+
 
             {/* 🔔 Thông báo */}
             <div className="relative group">
-              <div className="relative group w-5 h-5 flex items-center justify-center cursor-pointer scale-[0.9]">
-                {/* Biểu tượng chuông thông báo */}
+              <div className="relative w-5 h-5 flex items-center justify-center cursor-pointer scale-[0.9]">
                 <FaRegBell className="text-black group-hover:text-[#DB4444] w-5 h-5 transition duration-200" />
-
-                {/* Số lượng thông báo chưa đọc */}
                 {unreadNotificationCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
                     {unreadNotificationCount}
@@ -295,15 +286,14 @@ const Header = () => {
                 )}
               </div>
 
-              {/* Popup danh sách thông báo */}
               <div className="absolute top-full mt-2 right-0 w-[320px] bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
                 <div className="px-4 py-2 border-b text-base font-semibold text-black">Thông báo mới nhận</div>
                 <ul className="divide-y divide-gray-100">
                   {notifications.slice(0, 5).map((note) => (
                     <li
                       key={note.id}
-                      className={`flex gap-3 p-3 hover:bg-gray-100 transition cursor-pointer ${note.is_read === 0 ? "" : ""}`} // Bỏ nền đỏ
-                      onClick={() => handleNotificationClick(note.id, note.link)} // Gọi hàm khi click vào thông báo
+                      className="flex gap-3 p-3 hover:bg-gray-100 transition cursor-pointer"
+                      onClick={() => handleNotificationClick(note.id, note.link)}
                     >
                       <div className="w-[56px] h-[56px] flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
                         <Image
@@ -312,22 +302,20 @@ const Header = () => {
                           width={56}
                           height={56}
                           className="object-cover w-full h-full"
-                          onError={(e) => {
-                            e.currentTarget.src = `${STATIC_BASE_URL}/products/default-product.png`;
-                          }}
                         />
                       </div>
-                      <div className="flex-1 flex flex-col">
-                        <div className="flex items-start justify-between">
-                          <h4 className={`text-sm font-semibold ${note.is_read === 0 ? "text-black" : "text-gray-700"}`}>
-                            {note.title}
-                          </h4>
-                          {note.is_read === 0 && (
-                            <div className="w-2 h-2 bg-[#DB4444] rounded-full mt-1 ml-2"></div>
-                          )}
-                        </div>
+                      <div className="flex-1">
+                        <h4 className={`text-sm font-semibold ${note.is_read === 0 ? "text-black" : "text-gray-700"}`}>{note.title}</h4>
                         <p className="text-xs text-gray-600 line-clamp-2">{note.content}</p>
-                        <p className="text-xs text-gray-400 mt-1">{new Date(note.created_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(note.created_at).toLocaleString('vi-VN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                          })}
+                        </p>
                       </div>
                     </li>
                   ))}
@@ -342,7 +330,6 @@ const Header = () => {
                 </div>
               </div>
             </div>
-
 
             {/* ❤️ Wishlist */}
             <Link href="/wishlist">
@@ -399,18 +386,15 @@ const Header = () => {
               </div>
             </div>
 
-            {/* 👤 Avatar người dùng */}
+            {/* 👤 Avatar + dropdown */}
             {user && (
               <div className="relative" ref={dropdownRef}>
                 <Image
                   src={user.avatar ? `${STATIC_BASE_URL}/${user.avatar}?t=${Date.now()}` : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`}
-                  onError={(e) => {
-                    e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
-                  }}
                   alt="Avatar"
-                  className="h-8 w-8 rounded-full object-cover cursor-pointer"
                   width={32}
                   height={32}
+                  className="h-8 w-8 rounded-full object-cover cursor-pointer"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                 />
                 {dropdownOpen && (
@@ -439,10 +423,12 @@ const Header = () => {
         </div>
       </div>
 
-      {/* 🧱 Line kẻ dưới header */}
+      {/* 🧱 Line dưới header */}
       <div className="bg-gray-200 h-[1px] w-full" />
     </header>
   );
+  
+  
 };
 
 export default Header;

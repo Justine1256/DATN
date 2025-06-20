@@ -1,70 +1,81 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface ProductDescriptionProps {
     html?: string;
-    specs?: { label: string; value: string | React.ReactNode }[];
 }
 
-export default function ProductDescription({ html, specs }: ProductDescriptionProps) {
-    const shouldRenderHTML = html && html.trim().length > 0;
+export default function ProductDescription({ html }: ProductDescriptionProps) {
+    // ✅ Xử lý chèn dấu > vào giữa các thẻ <a> trong dòng Danh Mục
+    const processedHtml = useMemo(() => {
+        if (!html) return '';
+        const container = document.createElement('div');
+        container.innerHTML = html;
 
-    // Hàm để chuyển đổi hashtag thành thẻ a có thể click được
-    const renderHashtags = (text: string) => {
-        const regex = /#\w+/g; // Tìm tất cả các hashtag bắt đầu với #
-        return text.split(' ').map((word, idx) => {
-            if (word.match(regex)) {
-                return (
-                    <a
-                        key={idx}
-                        href={`#${word}`}
-                        className="text-red-500 hover:text-red-700 mx-1 cursor-pointer underline" // Thêm class underline cho gạch chân
-                    >
-                        {word}
-                    </a>
-                );
+        const rows = container.querySelectorAll('tr');
+        rows.forEach((tr) => {
+            const th = tr.querySelector('th')?.textContent?.trim();
+            if (th === 'Danh Mục') {
+                const td = tr.querySelector('td');
+                if (td) {
+                    const links = Array.from(td.querySelectorAll('a'));
+                    td.innerHTML = '';
+                    links.forEach((link, idx) => {
+                        td.appendChild(link);
+                        if (idx < links.length - 1) {
+                            td.appendChild(document.createTextNode(' > '));
+                        }
+                    });
+                }
             }
-            return `${word} `;
         });
-    };
-    
+
+        return container.innerHTML;
+    }, [html]);
 
     return (
         <div className="w-full max-w-screen-xl mx-auto px-4 mt-20">
-            <h2 className="text-2xl font-medium text-gray-900 mb-4 pb-2 flex items-center">
-                {/* Thêm hình vuông màu đỏ */}
-                <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm mr-2" />
-                Thông tin sản phẩm
-            </h2>
-            {/* ✅ Bảng chi tiết sản phẩm */}
-            <div className="bg-white p-4 rounded-md mb-4">
-                {specs && specs.length > 0 && (
-                    <div className="space-y-2">
-                       
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Chi tiết sản phẩm</h3>
-                        {specs.map((item, idx) => (
-                            <div
-                                key={idx}
-                                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-4 py-3 rounded-md"
-                            >
-                                <span className="min-w-[120px] font-medium text-gray-700">{item.label}:</span>
-                                <span className="text-gray-900">{item.value}</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* ✅ Mô tả sản phẩm */}
-                {shouldRenderHTML && (
-                    <div className="mt-4">
-                        <article
-                            className="prose prose-sm md:prose-base max-w-none text-gray-800 bg-white leading-relaxed text-sm font-medium"
-                            dangerouslySetInnerHTML={{ __html: html }}
-                        />
-                    </div>
-                )}
+            {/* ✅ Thêm khoảng cách trên tiêu đề */}
+            <div className="mt-10 mb-4 pb-2 flex items-center">
+                <div className="w-[10px] h-[22px] bg-[#db4444] rounded-tl-sm rounded-bl-sm mr-2" />
+                <p className="font-medium text-[#db4444] text-base">Thông tin sản phẩm</p>
             </div>
+
+            <article
+                className="
+    leading-relaxed text-[15px] text-black
+
+    [&_a[href^='http']]:text-black 
+    [&_a[href^='http']:hover]:text-[#db4444]
+
+    [&_a[href^='/']]:text-[#db4444]
+    [&_a[href^='/']:hover]:text-[#db4444]
+
+    [&_a[href^='#']]:text-[#db4444]
+    [&_a[href^='#']:hover]:text-[#b91c1c]
+
+    [&_table]:w-full 
+    [&_table]:text-sm
+    [&_th]:text-left 
+    [&_th]:align-top
+    [&_td]:align-top 
+    [&_td]:py-2
+
+    [&_ul]:pl-0
+    [&_ul>li]:grid
+    [&_ul>li]:grid-cols-[200px_minmax(0,1fr)] 
+    [&_ul>li]:items-start
+    [&_ul>li]:gap-2
+    [&_ul>li]:mb-1
+
+    [&_ul>li>strong]:font-semibold
+    [&_ul>li>strong]:text-black
+  "
+                dangerouslySetInnerHTML={{ __html: processedHtml }}
+            />
+
         </div>
     );
+    
 }

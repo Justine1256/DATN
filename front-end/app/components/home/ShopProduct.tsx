@@ -100,14 +100,23 @@ export default function ShopProductSlider() {
 
                     <div
                         ref={sliderRef}
-                        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar cursor-grab select-none"
+                        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar cursor-grab select-none justify-start"
                         onMouseDown={handleMouseDown}
                         onMouseUp={handleMouseUp}
                         onMouseLeave={handleMouseLeave}
                         onMouseMove={handleMouseMove}
                     >
                         {(loading ? Array(8).fill(0) : products).map((product, index) => (
-                            <div key={index} className="min-w-[calc(25%-12px)] px-2 box-border">
+                            <div
+                                key={index}
+                                className="
+                      px-2 box-border
+                      min-w-[100%] 
+                      sm:min-w-[calc(50%-8px)] 
+                      md:min-w-[calc(25%-12px)]
+                      flex-shrink-0
+                    "
+                            >
                                 <ProductCard product={!loading ? product : undefined} />
                             </div>
                         ))}
@@ -123,4 +132,6 @@ export default function ShopProductSlider() {
             </div>
         </section>
     );
+      
+      
 }

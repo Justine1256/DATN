@@ -65,6 +65,6 @@ module.exports = {
             },
         },
     },
-    plugins: [require('@tailwindcss/typography')], // ✅ Đặt ở đây
+    plugins: [require('@tailwindcss/typography')],
 };
   

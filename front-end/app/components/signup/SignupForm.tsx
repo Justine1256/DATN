@@ -25,7 +25,6 @@ export default function SignupForm() {
 
   const isValidPhone = (phone: string) =>
     /^(03|05|07|08|09)[0-9]{8}$/.test(phone);
-  
 
   const isValidPassword = (password: string) =>
     password.length >= 6;
@@ -51,7 +50,7 @@ export default function SignupForm() {
     }
 
     if (!isValidPhone(phone)) {
-      setError('Số điện thoại không hợp lệ (9–11 chữ số).');
+      setError('Số điện thoại không hợp lệ (10 chữ số).');
       return;
     }
 
@@ -112,39 +111,11 @@ export default function SignupForm() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <input
-          type="text"
-          name="name"
-          placeholder="Name"
-          onChange={handleChange}
-          className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm"
-        />
-        <input
-          type="text"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm"
-        />
-        <input
-          type="text"
-          name="phone"
-          placeholder="Phone"
-          onChange={handleChange}
-          className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm"
-        />
-        <input
-          type="text"
-          name="password"
-          placeholder="Password"
-          onChange={handleChange}
-          className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm"
-        />
-        <button
-          type="submit"
-          className="w-full bg-brand hover:opacity-75 text-white py-2 rounded text-sm font-medium"
-        >
+        <input type="text" name="name" placeholder="Name" onChange={handleChange} className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm" />
+        <input type="text" name="email" placeholder="Email" value={formData.email} onChange={handleChange} className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm" />
+        <input type="text" name="phone" placeholder="Phone" onChange={handleChange} className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm" />
+        <input type="text" name="password" placeholder="Password" onChange={handleChange} className="w-full border-b p-2 placeholder-gray-400 focus:outline-none text-sm" />
+        <button type="submit" className="w-full bg-brand hover:opacity-75 text-white py-2 rounded text-sm font-medium">
           Create Account
         </button>
       </form>
@@ -165,9 +136,7 @@ export default function SignupForm() {
 
       <p className="text-center mt-6 text-sm">
         Already have an account?{' '}
-        <a href="/login" className="underline hover:text-blue-600">
-          Log in
-        </a>
+        <a href="/login" className="underline hover:text-blue-600">Log in</a>
       </p>
 
       {showOtpModal && (
@@ -194,10 +163,7 @@ export default function SignupForm() {
               className="w-full border p-2 mb-4 text-sm"
               placeholder="OTP"
             />
-            <button
-              onClick={verifyOtp}
-              className="w-full bg-brand text-white py-2 rounded hover:opacity-75 text-sm font-medium"
-            >
+            <button onClick={verifyOtp} className="w-full bg-brand text-white py-2 rounded hover:opacity-75 text-sm font-medium">
               Xác minh
             </button>
           </div>
@@ -206,21 +172,31 @@ export default function SignupForm() {
 
       {showSuccessPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg p-6 w-80 flex flex-col items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-16 w-16 text-green-600 mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
+          <div className="bg-white rounded-lg p-6 w-80 flex flex-col items-center animate-popup-in">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-green-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
             <p className="text-green-700 text-base font-semibold">Đăng ký thành công!</p>
           </div>
         </div>
       )}
+
+      {/* ✅ Hiệu ứng popup mượt hơn */}
+      <style jsx>{`
+        @keyframes popup-in {
+          0% {
+            transform: scale(0.95);
+            opacity: 0;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        .animate-popup-in {
+          animation: popup-in 0.3s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }

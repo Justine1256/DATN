@@ -25,15 +25,15 @@ export default function OrderFilterTabs({ activeTab, onFilterChange }: OrderFilt
                 <button
                     key={tab.key}
                     onClick={() => onFilterChange(tab.key)}
-                    className={`px-4 py-2 rounded-lg transition-all duration-300 ease-in-out ${
-                        activeTab === tab.key
-                            ? "bg-[#db4444] text-white"
+                    className={`px-4 py-2 rounded-lg transition-all duration-300 ease-in-out transform ${activeTab === tab.key
+                            ? "bg-[#db4444] text-white scale-105"
                             : "bg-gray-200 text-black"
-                    } hover:bg-[#db4444] hover:text-white hover:scale-105`}
+                        } hover:bg-[#db4444] hover:text-white hover:scale-105`}
                 >
                     {tab.label}
                 </button>
             ))}
         </div>
     );
+    
 }

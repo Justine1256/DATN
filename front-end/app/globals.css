@@ -8,7 +8,7 @@
 :root {
   --background: #ffffff;
   /* Màu nền chính */
-  --foreground: #0a0a0a;
+  --foreground: rgb(31 41 55 / var(--tw-text-opacity, 1));
   /* Màu chữ chính */
   --color-background: var(--background);
   /* Biến tiện ích cho màu nền */
@@ -23,9 +23,9 @@
 /* Định nghĩa chế độ tối */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    /* --background: #0a0a0a; */
     /* Màu nền trong chế độ tối */
-    --foreground: #ededed;
+    /* --foreground: #ededed; */
     /* Màu chữ trong chế độ tối */
   }
 }

@@ -2,17 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { FaUserCircle, FaBoxOpen, FaTicketAlt, FaEdit, FaBell } from 'react-icons/fa'; // Import FaBell cho thông báo
+import {
+  User,
+  Package,
+  Bell,
+  Tag,
+  Edit3,
+  ChevronDown,
+  ChevronRight,
+  Settings,
+  Lock,
+  MapPin,
+  Heart,
+  Eye,
+} from 'lucide-react';
 import { STATIC_BASE_URL, API_BASE_URL } from '@/utils/api';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 import Image from 'next/image';
-import NotificationDropdown from './NotificationDropdown'; // Import NotificationDropdown
 
 interface UserProps {
   name: string;
+  username: string;
   profilePicture?: string;
   avatar?: string;
+  status: string;
 }
 
 interface AccountSidebarProps {
@@ -30,12 +44,12 @@ export default function AccountSidebar({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [popup, setPopup] = useState<{
     message: string;
+    type: 'success' | 'error';
     visible: boolean;
-    type: 'confirm' | 'success';
   }>({
     message: '',
+    type: 'success',
     visible: false,
-    type: 'confirm',
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -46,13 +60,10 @@ export default function AccountSidebar({
   }, [currentSection]);
 
   const getActiveClass = (section: string) =>
-    currentSection === section ? 'text-[#DB4444] font-medium' : 'text-[#6c757d]';
+    currentSection === section ? 'text-[#DB4444] bg-[#DB4444]/5' : 'text-gray-600 hover:text-[#DB4444] hover:bg-gray-50';
 
   const handleAccountClick = () => {
     setIsAccountOpen(!isAccountOpen);
-    if (currentSection !== 'profileView') {
-      onChangeSection('profileView'); // Set section to profileView when clicking on the profile section
-    }
   };
 
   const avatarUrl =
@@ -61,33 +72,11 @@ export default function AccountSidebar({
       ? `${STATIC_BASE_URL}/${user.avatar}`
       : user?.profilePicture || `${STATIC_BASE_URL}/avatars/default-avatar.jpg`);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 1024 * 1024) {
-      alert('Ảnh vượt quá 1MB!');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreviewImage(reader.result as string);
-      setPopup({
-        message: 'Bạn có muốn thay ảnh đại diện không?',
-        visible: true,
-        type: 'confirm',
-      });
-    };
-    reader.readAsDataURL(file);
-    setSelectedFile(file);
-  };
-
-  const handleUploadAvatar = async () => {
-    if (!selectedFile) return;
-
+  // ✅ Hàm upload ảnh
+  const handleUploadAvatar = async (file: File) => {
     const token = Cookies.get('authToken');
     const formData = new FormData();
-    formData.append('avatar', selectedFile);
+    formData.append('avatar', file);
 
     try {
       await axios.post(`${API_BASE_URL}/user/avatar`, formData, {
@@ -103,228 +92,268 @@ export default function AccountSidebar({
         type: 'success',
       });
       setSelectedFile(null);
-    } catch (err) {
-      alert('Lỗi khi tải ảnh lên!');
+    } catch (error) {
+      console.error('Error uploading avatar:', error); // Log the error for debugging
+      setPopup({
+        message: 'Thay đổi ảnh đại diện thất bại!',
+        visible: true,
+        type: 'error',
+      });
     }
   };
 
-  const handlePopupConfirm = () => {
-    if (popup.type === 'confirm') {
-      setPopup({ ...popup, visible: false });
-      handleUploadAvatar();
-    } else {
-      setPopup({ ...popup, visible: false });
+  // ✅ Hàm kiểm tra và xử lý thay ảnh
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) {
+      setPopup({
+        message: 'Ảnh vượt quá 1MB!',
+        visible: true,
+        type: 'error',
+      });
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreviewImage(reader.result as string);
+      setSelectedFile(file);
+      handleUploadAvatar(file); // Gọi hàm upload ảnh ngay sau khi chọn ảnh
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
-    <div className="w-[290px] pr-6 pt-20">
-      {/* ✅ Thông tin người dùng */}
+    <div className="w-[253px] ">
+      {/* 🔹 Thông tin người dùng + ảnh đại diện */}
       {user && (
-        <div className="flex items-center space-x-3 mb-6">
-          {/* ✅ Avatar + chỉnh sửa */}
-          <div className="relative w-14 h-14 group">
-            <Image
-              src={avatarUrl}
-              alt="Avatar"
-              id="avatarPreview"
-              width={56} // Đặt chiều rộng của hình ảnh
-              height={56} // Đặt chiều cao của hình ảnh
-              className="w-full h-full object-cover rounded-full border border-gray-300"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).onerror = null;
-                e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
-              }}
-            />
+        <div className="bg-white rounded-2xl p-6 mb-6 border border-gray-100 ">
+          <div className="flex items-center space-x-4">
+            {/* Ảnh đại diện */}
+            <div className="relative group">
+              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-100">
+                <Image
+                  src={avatarUrl}
+                  alt="Avatar"
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).onerror = null;
+                    e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
+                  }}
+                />
+              </div>
 
-            <label
-              htmlFor="avatarUpload"
-              className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow cursor-pointer group-hover:opacity-100 opacity-0 transition"
-              title="Chọn ảnh đại diện"
-            >
-              <FaEdit className="text-[#DB4444] w-4 h-4" />
-            </label>
-            <input
-              id="avatarUpload"
-              type="file"
-              accept="image/png, image/jpeg"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </div>
-
-          {/* ✅ Tên người dùng */}
-          <div>
-            <span className="text-xl font-semibold text-black block">{user.name}</span>
-            <div
-              className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer mt-1"
-              onClick={() => onChangeSection('profileView')} // Click takes you to profileView
-            >
-              <FaEdit className="w-3 h-3" />
-              <span>Chỉnh sửa hồ sơ</span>
+              {/* Nút chọn ảnh */}
+              <label
+                htmlFor="avatarUpload"
+                className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#DB4444] rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
+                title="Chọn ảnh đại diện"
+              >
+                <Edit3 className="w-4 h-4 text-white" />
+              </label>
+              <input
+                id="avatarUpload"
+                type="file"
+                accept="image/png, image/jpeg"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
+
+            {/* Tên người dùng + xem hồ sơ */}
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">{user.name}</h3>
+
+              {/* Circular Status Indicator with Text */}
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${user.status === 'activated' ? 'bg-green-500' :
+                    user.status === 'deactivated' ? 'bg-yellow-500' :
+                      user.status === 'locked' ? 'bg-red-500' :
+                        user.status === 'hidden' ? 'bg-gray-500' :
+                          'bg-blue-500'}`}
+
+                  title={user.status === 'activated' ? 'Đang hoạt động' :
+                    user.status === 'deactivated' ? 'Đã hủy kích hoạt' :
+                      user.status === 'locked' ? 'Đã khóa' :
+                        user.status === 'hidden' ? 'Ẩn' : 'Trạng thái khác'}
+                ></div>
+
+                {/* Status Text */}
+                <span className="text-sm text-gray-600">
+                  {user.status === 'activated' ? 'Đang hoạt động' :
+                    user.status === 'deactivated' ? 'Đã hủy kích hoạt' :
+                      user.status === 'locked' ? 'Đã khóa' :
+                        user.status === 'hidden' ? 'Ẩn' : 'Trạng thái khác'}
+                </span>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
 
-      {/* ✅ Danh sách menu */}
-      <ul className="space-y-4 text-lg">
-        <li>
+      {/* 🔹 Menu chính */}
+      <nav className="space-y-2">
+        {/* ▶️ Tài khoản của tôi - có submenu */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <button
+            type="button"
             onClick={handleAccountClick}
             className={clsx(
-              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
-              getActiveClass('profile')
+              'w-full flex items-center justify-between p-4 transition-colors',
+              isAccountOpen ? 'bg-[#DB4444]/5 text-[#DB4444]' : 'text-gray-700 hover:bg-gray-50'
             )}
           >
-            <FaUserCircle className="w-6 h-6 text-[#DB4444]" />
-            <span className="text-xl font-bold">Tài khoản của tôi</span>
+            <div className="flex items-center gap-3">
+              <div className={clsx(
+                'w-10 h-10 rounded-xl flex items-center justify-center',
+                isAccountOpen ? 'bg-[#DB4444] text-white' : 'bg-gray-100 text-gray-600'
+              )}>
+                <User className="w-5 h-5" />
+              </div>
+              <span className="font-medium">Tài khoản của tôi</span>
+            </div>
+            {isAccountOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </button>
+
+          {/* 🔽 Submenu when opened */}
           {isAccountOpen && (
-            <ul className="pl-6 space-y-2 pt-2">
-              <li>
+            <div className="border-t border-gray-100 bg-gray-50/50">
+              <div className="p-2 space-y-1">
                 <button
+                  type="button"
                   onClick={() => onChangeSection('profileView')}
                   className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors',
                     getActiveClass('profileView')
                   )}
                 >
-                  Hồ Sơ Của Tôi
+                  <Eye className="w-4 h-4" />
+                  <span>Hồ Sơ Của Tôi</span>
                 </button>
-              </li>
-
-              <li>
                 <button
+                  type="button"
                   onClick={() => onChangeSection('profile')}
                   className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors',
                     getActiveClass('profile')
                   )}
                 >
-                  Quản Lý Hồ Sơ
+                  <Settings className="w-4 h-4" />
+                  <span>Quản Lý Hồ Sơ</span>
                 </button>
-              </li>
-              <li>
                 <button
+                  type="button"
                   onClick={() => onChangeSection('changepassword')}
                   className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors',
                     getActiveClass('changepassword')
                   )}
                 >
-                  Đổi Mật Khẩu
+                  <Lock className="w-4 h-4" />
+                  <span>Đổi Mật Khẩu</span>
                 </button>
-              </li>
-              <li>
                 <button
+                  type="button"
                   onClick={() => onChangeSection('address')}
                   className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors',
                     getActiveClass('address')
                   )}
                 >
-                  Địa Chỉ
+                  <MapPin className="w-4 h-4" />
+                  <span>Địa Chỉ</span>
                 </button>
-              </li>
-              <li>
                 <button
+                  type="button"
                   onClick={() => onChangeSection('followedshops')}
                   className={clsx(
-                    'block text-left w-full hover:text-[#DB4444]',
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors',
                     getActiveClass('followedshops')
                   )}
                 >
-                  Shop Đã Theo Dõi
+                  <Heart className="w-4 h-4" />
+                  <span>Shop Đã Theo Dõi</span>
                 </button>
-              </li>
-            </ul>
+              </div>
+            </div>
           )}
-        </li>
+        </div>
 
-        <li>
+        {/* ▶️ Đơn hàng */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <button
+            type="button"
             onClick={() => onChangeSection('orders')}
             className={clsx(
-              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
+              'w-full flex items-center gap-3 p-4 text-left transition-colors',
               getActiveClass('orders')
             )}
           >
-            <FaBoxOpen className="w-6 h-6 text-[#28A745]" />
-            <span className="text-xl font-bold">Đơn hàng</span>
+            <div className={clsx(
+              'w-10 h-10 rounded-xl flex items-center justify-center',
+              currentSection === 'orders' ? 'bg-[#DB4444] text-white' : 'bg-gray-100 text-gray-600'
+            )}>
+              <Package className="w-5 h-5" />
+            </div>
+            <span className="font-medium">Đơn hàng</span>
           </button>
-        </li>
+        </div>
 
-        <li>
+        {/* ▶️ Thông báo */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <button
+            type="button"
             onClick={() => onChangeSection('NotificationDropdown')}
             className={clsx(
-              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
+              'w-full flex items-center gap-3 p-4 text-left transition-colors',
               getActiveClass('NotificationDropdown')
             )}
           >
-            <FaBell className="w-6 h-6 text-[#007BFF]" /> {/* Thêm biểu tượng chuông */}
-            <span className="text-xl font-bold">Thông Báo</span>
+            <div className={clsx(
+              'w-10 h-10 rounded-xl flex items-center justify-center',
+              currentSection === 'NotificationDropdown' ? 'bg-[#DB4444] text-white' : 'bg-gray-100 text-gray-600'
+            )}>
+              <Bell className="w-5 h-5" />
+            </div>
+            <span className="font-medium">Thông Báo</span>
           </button>
-        </li>
+        </div>
 
-        <li>
+        {/* ▶️ Mã giảm giá */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <button
+            type="button"
             onClick={() => onChangeSection('vouchers')}
             className={clsx(
-              'flex items-center space-x-3 block text-left w-full hover:text-[#DB4444]',
+              'w-full flex items-center gap-3 p-4 text-left transition-colors',
               getActiveClass('vouchers')
             )}
           >
-            <FaTicketAlt className="w-6 h-6 text-[#007BFF]" />
-            <span className="text-xl font-bold">Mã giảm giá</span>
-          </button>
-        </li>
-      </ul>
-
-      {/* ✅ Popup xác nhận hoặc thông báo */}
-      {popup.visible && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white text-center p-6 rounded-xl shadow-xl w-[320px] animate-fadeIn">
-            {/* Dấu tick khi thành công */}
-            {popup.type === 'success' && (
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center animate-bounce">
-                  ✓
-                </div>
-              </div>
-            )}
-
-            <p className="text-base text-black">{popup.message}</p>
-
-            <div className="mt-4 flex justify-center gap-3">
-              {popup.type === 'confirm' && (
-                <>
-                  <button
-                    onClick={() => setPopup({ ...popup, visible: false })}
-                    className="px-4 py-1.5 text-sm rounded border border-black hover:bg-gray-100 text-black"
-                  >
-                    Hủy
-                  </button>
-
-                  <button
-                    onClick={handlePopupConfirm}
-                    className="px-4 py-1.5 text-sm rounded bg-[#DB4444] text-white hover:opacity-90"
-                  >
-                    Xác nhận
-                  </button>
-                </>
-              )}
-              {popup.type === 'success' && (
-                <button
-                  onClick={handlePopupConfirm}
-                  className="px-4 py-1.5 text-sm rounded bg-green-600 text-white hover:opacity-90"
-                >
-                  Đóng
-                </button>
-              )}
+            <div className={clsx(
+              'w-10 h-10 rounded-xl flex items-center justify-center',
+              currentSection === 'vouchers' ? 'bg-[#DB4444] text-white' : 'bg-gray-100 text-gray-600'
+            )}>
+              <Tag className="w-5 h-5" />
             </div>
-          </div>
+            <span className="font-medium">Mã giảm giá</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* ✅ Popup */}
+      {popup.visible && (
+        <div
+          className={`fixed top-20 right-5 z-[9999] text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade ${popup.type === 'success'
+            ? 'bg-white text-green-600 border-green-500'
+            : 'bg-white text-red-600 border-red-500'
+            }`}
+        >
+          {popup.message}
         </div>
       )}
     </div>

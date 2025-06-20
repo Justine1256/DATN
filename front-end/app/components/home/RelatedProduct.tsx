@@ -89,7 +89,7 @@ export default function BestSellingSlider() {
                     </div>
                 </div>
 
-                {/* Slider mượt với scroll */}
+                {/* Slider */}
                 <div className="relative">
                     {/* Nút trái */}
                     <button
@@ -108,10 +108,17 @@ export default function BestSellingSlider() {
                         onMouseLeave={handleMouseLeave}
                         onMouseMove={handleMouseMove}
                     >
-
-
                         {(loading ? Array(8).fill(0) : products).map((product, index) => (
-                            <div key={index} className="min-w-[calc(25%-12px)] px-2 box-border">
+                            <div
+                                key={index}
+                                className="
+                      px-2 box-border flex-shrink-0 
+                      min-w-[calc(100%-8px)] 
+                      sm:min-w-[calc(50%-12px)] 
+                      md:min-w-[calc(33.3333%-12px)] 
+                      lg:min-w-[calc(25%-12px)]
+                    "
+                            >
                                 <ProductCard product={!loading ? product : undefined} />
                             </div>
                         ))}
@@ -127,5 +134,4 @@ export default function BestSellingSlider() {
                 </div>
             </div>
         </section>
-    );
-}
+    );}
