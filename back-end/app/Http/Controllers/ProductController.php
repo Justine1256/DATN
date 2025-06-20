@@ -258,7 +258,7 @@ public function newProducts(Request $request)
 }
 
 
-public function getProductsByShop(Request $request)
+public function getProductByShop(Request $request)
 {
     $user = $request->user();
 
