@@ -158,6 +158,30 @@ public function store(Request $request)
         $product->delete();
         return response()->json(['message' => 'Đã xóa sản phẩm']);
     }
+    // Lấy danh sách sản phẩm của shop
+public function showShopProducts(Request $request, $slug)
+{
+    $shop = \App\Models\Shop::where('slug', $slug)->first();
+
+    if (!$shop) {
+        return response()->json(['error' => 'Shop không tồn tại.'], 404);
+    }
+
+    $perPage = $request->query('per_page', 5);
+
+    $products = \App\Models\Product::where('shop_id', $shop->id)
+        ->where('status', 'activated')
+        ->with('category')
+        ->orderBy('created_at', 'desc')
+        ->paginate($perPage);
+
+    return response()->json([
+        'shop_id'   => $shop->id,
+        'shop_name' => $shop->name,
+        'products'  => $products
+    ]);
+}
+
     // Lấy danh sách sản phẩm bán chạy
 public function bestSellingProducts(Request $request)
 {
@@ -233,27 +257,22 @@ public function newProducts(Request $request)
     ]);
 }
 
-    // Lấy danh sách sản phẩm của shop
-public function showShopProducts(Request $request, $slug)
-{
-    $shop = \App\Models\Shop::where('slug', $slug)->first();
 
-    if (!$shop) {
-        return response()->json(['error' => 'Shop không tồn tại.'], 404);
+public function getProductByShop(Request $request)
+{
+    $user = $request->user();
+
+    if (!$user || !$user->shop) {
+        return response()->json(['status' => false, 'message' => 'Người dùng chưa có shop.'], 403);
     }
 
-    $perPage = $request->query('per_page', 5);
-
-    $products = \App\Models\Product::where('shop_id', $shop->id)
-        ->where('status', 'activated')
-        ->with('category')
+    $products = Product::where('shop_id', $user->shop->id)
         ->orderBy('created_at', 'desc')
-        ->paginate($perPage);
+        ->get();
 
     return response()->json([
-        'shop_id'   => $shop->id,
-        'shop_name' => $shop->name,
-        'products'  => $products
+        'status' => true,
+        'data' => $products,
     ]);
 }
 
