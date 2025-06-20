@@ -88,61 +88,57 @@ export default function FollowedShopsSection() {
     };
 
     return (
-        <div className="flex justify-end w-full ">
-        <div className="w-full max-w-[1000px]  px-2 mt-24">
-            {/* Header Section */}
-            <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-1 h-8 bg-gradient-to-b from-[#DB4444] to-[#ff6b6b] rounded-full"></div>
-                    <h2 className="text-2xl font-bold bg-gradient-to-r from-[#DB4444] to-[#ff6b6b] bg-clip-text text-transparent">
-                        Danh sách shop theo dõi
-                    </h2>
-                </div>
-                <p className="text-gray-600 ml-4">
-                    Quản lý và theo dõi các shop yêu thích của bạn
-                </p>
-            </div>
-
-            <section className="p-8 bg-white rounded-2xl shadow-lg border border-gray-100 backdrop-blur-sm">
-                {loading ? (
-                    <FollowedShopLoading />
-                ) : shops.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16">
-                        <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-6">
-                            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                        </div>
-                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                            Chưa có shop nào
-                        </h3>
-                        <p className="text-gray-500 text-center max-w-md">
-                            Bạn chưa theo dõi shop nào. Hãy khám phá và theo dõi những shop yêu thích để cập nhật sản phẩm mới nhất!
-                        </p>
+        <div className="flex justify-center w-full">
+            <div className="w-full max-w-[1200px] px-2 mt-24">
+                {/* Header Section */}
+                <div className="mb-8">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-1 h-8 bg-gradient-to-b from-[#DB4444] to-[#ff6b6b] rounded-full"></div>
+                        <h2 className="text-2xl font-bold bg-gradient-to-r from-[#DB4444] to-[#ff6b6b] bg-clip-text text-transparent">
+                            Danh sách shop theo dõi
+                        </h2>
                     </div>
-                ) : (
-                    <>
-                        {/* Shop Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-                            {paginatedShops.map((shop) => (
-                                <div
-                                    key={shop.id}
-                                    className="relative bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300"
-                                >
-                                    {/* Card Header */}
-                                    <div className="p-6 pb-4">
-                                        <div
-                                            onClick={() => router.push(`/shop/${shop.slug}`)}
-                                            className="cursor-pointer flex items-start gap-4"
-                                        >
-                                            {/* Avatar với border gradient */}
+                    <p className="text-gray-600 ml-4">
+                        Quản lý và theo dõi các shop yêu thích của bạn
+                    </p>
+                </div>
+
+                <section className="p-8 bg-white rounded-2xl shadow-lg border border-gray-100 backdrop-blur-sm">
+                    {loading ? (
+                        <FollowedShopLoading />
+                    ) : shops.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16">
+                            <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-6">
+                                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                                Chưa có shop nào
+                            </h3>
+                            <p className="text-gray-500 text-center max-w-md">
+                                Bạn chưa theo dõi shop nào. Hãy khám phá và theo dõi những shop yêu thích để cập nhật sản phẩm mới nhất!
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Shop Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+                                {paginatedShops.map((shop) => (
+                                    <div
+                                        key={shop.id}
+                                        className="relative bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 transform"
+                                    >
+                                        {/* Card Header */}
+                                        <div className="p-6 pb-4 flex items-start gap-4">
+                                            {/* Avatar with gradient border */}
                                             <div className="relative">
                                                 <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100">
                                                     <Image
                                                         src={shop.logo ? `${STATIC_BASE_URL}/${shop.logo}` : "/default-avatar.jpg"}
                                                         alt={shop.name}
-                                                        width={48} // Đặt chiều rộng của hình ảnh nhỏ hơn
-                                                        height={48} // Đặt chiều cao của hình ảnh nhỏ hơn
+                                                        width={48}
+                                                        height={48}
                                                         className="w-full h-full object-cover"
                                                     />
                                                 </div>
@@ -157,10 +153,11 @@ export default function FollowedShopsSection() {
                                             </div>
 
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="text-lg font-bold text-gray-900 truncate mb-1 group-hover:text-[#DB4444] transition-colors duration-200">
+                                                <h3 className="text-lg font-semibold text-gray-900 truncate mb-1 group-hover:text-[#DB4444] transition-colors duration-200">
                                                     {shop.name}
                                                 </h3>
 
+                                                {/* Status Badge */}
                                                 {/* Status Badge */}
                                                 <div className="flex items-center gap-2 mb-3">
                                                     <span
@@ -170,6 +167,12 @@ export default function FollowedShopsSection() {
                                                                 ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
                                                                 : "bg-gray-100 text-gray-600 border border-gray-200"
                                                             }`}
+                                                        style={{
+                                                            maxWidth: "120px", // Ensure the badge doesn't stretch too wide
+                                                            overflow: "hidden",
+                                                            textOverflow: "ellipsis", // Prevent text overflow
+                                                            whiteSpace: "nowrap", // Ensure text stays on one line
+                                                        }}
                                                     >
                                                         <div
                                                             className={`w-1.5 h-1.5 rounded-full mr-2 ${shop.status === "activated"
@@ -187,6 +190,7 @@ export default function FollowedShopsSection() {
                                                     </span>
                                                 </div>
 
+
                                                 {/* Rating */}
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex items-center gap-1">
@@ -201,102 +205,101 @@ export default function FollowedShopsSection() {
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Card Footer */}
+                                        <div className="px-6 pb-6">
+                                            <button
+                                                onClick={() => handleUnfollow(shop.id)}
+                                                disabled={unfollowing === shop.id}
+                                                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border-2 border-[#DB4444] text-[#DB4444] font-medium transition-all duration-200 hover:bg-[#DB4444] hover:text-white hover:shadow-lg hover:shadow-[#DB4444]/25 disabled:opacity-50 disabled:cursor-not-allowed group"
+                                            >
+                                                {unfollowing === shop.id ? (
+                                                    <>
+                                                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        <span>Đang hủy...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                        <span>Hủy theo dõi</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+
+                                        {/* Hover Effect Overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-[#DB4444]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                                     </div>
-
-                                    {/* Card Footer */}
-                                    <div className="px-6 pb-6">
-                                        <button
-                                            onClick={() => handleUnfollow(shop.id)}
-                                            disabled={unfollowing === shop.id}
-                                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border-2 border-[#DB4444] text-[#DB4444] font-medium transition-all duration-200 hover:bg-[#DB4444] hover:text-white hover:shadow-lg hover:shadow-[#DB4444]/25 disabled:opacity-50 disabled:cursor-not-allowed group"
-                                        >
-                                            {unfollowing === shop.id ? (
-                                                <>
-                                                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    <span>Đang hủy...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                    <span>Hủy theo dõi</span>
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-
-
-                                    {/* Hover Effect Overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-r from-[#DB4444]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div className="flex justify-center items-center gap-2">
-                                <button
-                                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                                    disabled={currentPage === 1}
-                                    className="p-2 rounded-xl border border-gray-300 text-gray-600 hover:border-[#DB4444] hover:text-[#DB4444] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                </button>
-
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${page === currentPage
-                                            ? "bg-[#DB4444] text-white shadow-lg shadow-[#DB4444]/25"
-                                            : "bg-white text-gray-700 border border-gray-300 hover:border-[#DB4444] hover:text-[#DB4444]"
-                                            }`}
-                                    >
-                                        {page}
-                                    </button>
                                 ))}
-
-                                <button
-                                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="p-2 rounded-xl border border-gray-300 text-gray-600 hover:border-[#DB4444] hover:text-[#DB4444] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
                             </div>
-                        )}
-                    </>
-                )}
 
-                {/* Success Popup */}
-                {showPopup && (
-                    <div className="fixed top-8 right-8 z-[9999] max-w-sm">
-                        <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 transform animate-slideInFade">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center items-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                        disabled={currentPage === 1}
+                                        className="p-2 rounded-xl border border-gray-300 text-gray-600 hover:border-[#DB4444] hover:text-[#DB4444] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </button>
+
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${page === currentPage
+                                                ? "bg-[#DB4444] text-white shadow-lg shadow-[#DB4444]/25"
+                                                : "bg-white text-gray-700 border border-gray-300 hover:border-[#DB4444] hover:text-[#DB4444]"}`
+                                            }
+                                        >
+                                            {page}
+                                        </button>
+                                    ))}
+
+                                    <button
+                                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="p-2 rounded-xl border border-gray-300 text-gray-600 hover:border-[#DB4444] hover:text-[#DB4444] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
                                 </div>
-                                <div>
-                                    <p className="font-medium text-gray-900">{popupText}</p>
-                                    <p className="text-sm text-gray-500">Thao tác thành công</p>
+                            )}
+                        </>
+                    )}
+
+                    {/* Success Popup */}
+                    {showPopup && (
+                        <div className="fixed top-8 right-8 z-[9999] max-w-sm">
+                            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 transform animate-slideInFade">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                        <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-gray-900">{popupText}</p>
+                                        <p className="text-sm text-gray-500">Thao tác thành công</p>
+                                    </div>
                                 </div>
+                                <div className="absolute top-0 left-0 h-1 bg-gradient-to-r from-[#DB4444] to-[#ff6b6b] rounded-t-2xl animate-[shrink_3s_linear]"></div>
                             </div>
-                            <div className="absolute top-0 left-0 h-1 bg-gradient-to-r from-[#DB4444] to-[#ff6b6b] rounded-t-2xl animate-[shrink_3s_linear]"></div>
                         </div>
-                    </div>
-                )}
-            </section>
-        </div>
+                    )}
+                </section>
+            </div>
         </div>
     );
+    
 }
