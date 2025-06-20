@@ -75,6 +75,7 @@ export default function CartItemsSection({
       setCartItems(updated);
       propsSetCartItems(updated);
       localStorage.setItem('cartItems', JSON.stringify(updated));
+      window.dispatchEvent(new Event("cartUpdated"));
     } catch (error) {
       console.error('Lỗi xoá sản phẩm khỏi giỏ:', error);
     }

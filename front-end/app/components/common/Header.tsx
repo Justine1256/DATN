@@ -11,6 +11,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 
+
 // Định nghĩa kiểu dữ liệu thông báo
 interface Notification {
   id: number;
@@ -35,6 +36,7 @@ const Header = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
   const categoryRef = useRef<HTMLDivElement>(null);
+  const [cartItems, setCartItems] = useState<any[]>([]);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/category`)
@@ -42,7 +44,7 @@ const Header = () => {
       .then(setCategories)
       .catch(console.error);
   }, []);
-  
+
   // Fetch notifications from the API
   useEffect(() => {
     const token = Cookies.get("authToken"); // Lấy token để xác thực
@@ -97,7 +99,44 @@ const Header = () => {
         setUser(null);
       });
   }, []);
+  useEffect(() => {
+  const token = Cookies.get("authToken");
+  if (!token) return;
 
+  const fetchCart = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/cart`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCartItems(res.data);
+    } catch (err) {
+      console.error("Không thể lấy giỏ hàng", err);
+    }
+  };
+
+  fetchCart();
+
+  window.addEventListener("cartUpdated", fetchCart);
+
+  return () => window.removeEventListener("cartUpdated", fetchCart);
+}, []);
+
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => setIsSticky(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   // Định nghĩa các liên kết điều hướng
   const navLinks = [
     { href: "/", label: "Trang chủ" },
@@ -298,9 +337,55 @@ const Header = () => {
             </Link>
 
             {/* 🛒 Giỏ hàng */}
-            <Link href="/cart">
-              <AiOutlineShoppingCart className="h-5 w-5 text-black hover:text-red-500 transition" />
-            </Link>
+            <div className="relative group" onClick={() => router.push("/cart")}>
+              <div className="relative w-5 h-5 cursor-pointer">
+                <AiOutlineShoppingCart className="w-5 h-5 text-black hover:text-red-500 transition" />
+                {cartItems.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                    {cartItems.length}
+                  </span>
+                )}
+              </div>
+              <div className="absolute top-full right-0 mt-2 w-[360px] bg-white border border-gray-200 shadow-xl rounded-lg opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
+                <div className="p-3 border-b text-base font-semibold">Sản Phẩm Mới Thêm</div>
+                <ul className="max-h-[300px] overflow-y-auto divide-y divide-gray-100">
+                  {cartItems.slice(0, 5).map((item: any) => {
+                    const price = item.product.sale_price ?? item.product.price;
+                    const image = item.product.image?.[0] ?? "default.jpg";
+
+                    return (
+                      <li key={item.id} className="flex items-center p-3 hover:bg-gray-100 transition">
+                        <div className="w-[48px] h-[48px] flex-shrink-0 overflow-hidden rounded border">
+                          <Image
+                            src={`${STATIC_BASE_URL}/${image}`}
+                            alt={item.product.name}
+                            width={48}
+                            height={48}
+                            className="object-cover w-full h-full"
+                          />
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <div className="text-sm font-medium line-clamp-1">{item.product.name}</div>
+                          <div className="text-sm text-red-500">
+                            {Number(price).toLocaleString('vi-VN')}đ
+                          </div>
+
+                        </div>
+                      </li>
+                    );
+                  })}
+                  {cartItems.length === 0 && (
+                    <li className="p-3 text-center text-gray-500">Giỏ hàng trống.</li>
+                  )}
+                </ul>
+                <div className="p-3 border-t flex justify-between items-center">
+                  <span className="text-sm text-gray-700">{cartItems.length} sản phẩm</span>
+                  <Link href="/cart" className="bg-red-500 text-white px-4 py-1.5 rounded text-sm hover:bg-red-600 transition">
+                    Xem Giỏ Hàng
+                  </Link>
+                </div>
+              </div>
+            </div>
 
             {/* 👤 Avatar + dropdown */}
             {user && (
