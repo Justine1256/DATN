@@ -156,10 +156,15 @@ const Header = () => {
 
   // Xử lý đăng xuất người dùng
   const handleLogout = () => {
-    Cookies.remove("authToken");
-    setUser(null);
-    router.push("/");
+    Cookies.remove("authToken");  // Xóa token khỏi cookie
+    setUser(null);  // Cập nhật lại trạng thái người dùng
+    setDropdownOpen(false);  // Đóng dropdown
+    setUnreadNotificationCount(0);  // Reset số lượng thông báo chưa đọc về 0
+    setCartItems([]);  // Reset giỏ hàng về mảng rỗng (hoặc có thể reset về số lượng 0 tùy thuộc vào logic của bạn)
+    router.replace("/");  // Dùng replace để reload lại mà không bị giật
   };
+  
+  
 
   // Xử lý khi nhấp vào thông báo trong dropdown
   const handleNotificationClick = (id: number, link: string) => {
@@ -180,11 +185,8 @@ const Header = () => {
       axios.put(
         `${API_BASE_URL}/notification/${id}`,
         { is_read: 1 },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
-        .catch((err) => console.error("Lỗi khi cập nhật trạng thái thông báo", err));
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).catch((err) => console.error("Lỗi khi cập nhật trạng thái thông báo", err));
     }
 
     // Điều hướng đến liên kết của thông báo
@@ -192,6 +194,7 @@ const Header = () => {
       router.push(link);
     }
   };
+  
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-[100] ${isSticky ? "shadow-md" : ""} bg-white transition-all duration-300`}>
@@ -257,7 +260,7 @@ const Header = () => {
           </nav>
 
           {/* Mobile menu: ẩn menu bên phải */}
-          <div className="col-span-6 sm:col-span-9 lg:col-span-4 flex items-center justify-end space-x-4">
+          <div className="col-span-6 sm:col-span-9 lg:col-span-4 flex items-center justify-end space-x-4 ml-[2px]">
             {/* 🔍 Tìm kiếm */}
             <div className="relative w-[200px]">
               <input
@@ -273,7 +276,6 @@ const Header = () => {
                 onClick={handleSearchSubmit}
               />
             </div>
-
 
             {/* 🔔 Thông báo */}
             <div className="relative group">
@@ -369,7 +371,6 @@ const Header = () => {
                           <div className="text-sm text-red-500">
                             {Number(price).toLocaleString('vi-VN')}đ
                           </div>
-
                         </div>
                       </li>
                     );
@@ -421,6 +422,7 @@ const Header = () => {
               </div>
             )}
           </div>
+
         </div>
       </div>
 
