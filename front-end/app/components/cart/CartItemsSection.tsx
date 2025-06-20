@@ -4,34 +4,18 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
-
-interface CartItem {
-  id: number;
-  quantity: number;
-  price: number;
-  product: {
-    id: number;
-    name: string;
-    image: string[]; // ✅ CHỈNH image thành mảng
-    price: number;
-    sale_price?: number | null;
-    option1?: string;
-    value1?: string;
-    option2?: string;
-    value2?: string;
-  };
-}
+import { CartItem } from './hooks/CartItem';
 
 interface Props {
-  cartItems: CartItem[]; // State cartItems
-  setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>; // Function để cập nhật state cartItems
+  cartItems: CartItem[];
+  setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }
 
 export default function CartItemsSection({
   cartItems: propsCartItems,
   setCartItems: propsSetCartItems,
 }: Props) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]); // Local state
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCartItems = async () => {
@@ -50,7 +34,7 @@ export default function CartItemsSection({
 
       const data = await res.json();
       setCartItems(data);
-      propsSetCartItems(data); // Make sure this is set properly
+      propsSetCartItems(data);
       localStorage.setItem('cartItems', JSON.stringify(data));
     } catch (error) {
       console.warn('API thất bại, fallback localStorage');
@@ -59,7 +43,7 @@ export default function CartItemsSection({
         try {
           const data = JSON.parse(stored);
           setCartItems(data);
-          propsSetCartItems(data); // Ensure this is set properly
+          propsSetCartItems(data);
         } catch (err) {
           console.error('Lỗi đọc localStorage:', err);
         }
@@ -86,9 +70,10 @@ export default function CartItemsSection({
         },
       });
 
+      // Cập nhật state sau khi xóa
       const updated = cartItems.filter((item) => item.id !== id);
       setCartItems(updated);
-      propsSetCartItems(updated); // Update the cart items in the parent
+      propsSetCartItems(updated);
       localStorage.setItem('cartItems', JSON.stringify(updated));
       window.dispatchEvent(new Event("cartUpdated"));
     } catch (error) {
@@ -119,7 +104,7 @@ export default function CartItemsSection({
         item.id === id ? { ...item, quantity } : item
       );
       setCartItems(updated);
-      propsSetCartItems(updated); // Update the cart items in the parent
+      propsSetCartItems(updated);
       localStorage.setItem('cartItems', JSON.stringify(updated));
     } catch (error) {
       console.error('Lỗi cập nhật số lượng:', error);
@@ -138,6 +123,9 @@ export default function CartItemsSection({
       <p className="text-xs text-gray-400 italic">Không có</p>
     );
   };
+
+  const formatPrice = (value?: number | null) =>
+    (value ?? 0).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   if (loading) return <p className="text-center py-10">Đang tải giỏ hàng...</p>;
 
@@ -194,16 +182,16 @@ export default function CartItemsSection({
               {item.product.sale_price ? (
                 <div>
                   <span className="text-red-500 font-semibold">
-                    {item.product.sale_price.toLocaleString()}đ
+                    {formatPrice(item.product.sale_price)} đ
                   </span>
                   <br />
                   <span className="line-through text-gray-400 text-xs">
-                    {item.product.price.toLocaleString()}đ
+                    {formatPrice(item.product.price)} đ
                   </span>
                 </div>
               ) : (
                 <span className="font-semibold">
-                  {item.product.price.toLocaleString()}đ
+                  {formatPrice(item.product.price)} đ
                 </span>
               )}
             </div>
@@ -223,7 +211,7 @@ export default function CartItemsSection({
 
             {/* Subtotal */}
             <div className="text-right text-sm font-semibold text-red-500">
-              {(priceToUse * item.quantity).toLocaleString()}đ
+              {formatPrice(priceToUse * item.quantity)} đ
             </div>
           </div>
         );
