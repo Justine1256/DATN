@@ -258,23 +258,25 @@ public function newProducts(Request $request)
 }
 
 
-public function getProductByShop(Request $request)
+public function getProductsByShop(Request $request)
 {
     $user = $request->user();
 
     if (!$user || !$user->shop) {
-        return response()->json(['status' => false, 'message' => 'Người dùng chưa có shop.'], 403);
+        return response()->json(['status' => false, 'message' => 'Shop không tồn tại.'], 403);
     }
 
-    $products = Product::where('shop_id', $user->shop->id)
-        ->orderBy('created_at', 'desc')
-        ->get();
+    $products = Product::with('category') // nếu muốn có cả category
+        ->where('shop_id', $user->shop->id)
+        ->latest()
+        ->paginate(10);
 
     return response()->json([
         'status' => true,
-        'data' => $products,
+        'products' => $products
     ]);
 }
+
 
         // Thêm sản phẩm mới bởi shop
 public function addProductByShop(Request $request)

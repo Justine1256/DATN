@@ -53,9 +53,12 @@ export default function ProductListPage() {
     try {
       setLoading(true);
       const token = Cookies.get("authToken");
-      const res = await fetch(`${API_BASE_URL}/shop/products?page=${page}`, {
+      const res = await fetch(`${API_BASE_URL}/shop/products`, {
         headers: { Authorization: `Bearer ${token}` },
+        
       });
+
+      console.log(res);
 
       if (!res.ok) throw new Error("Lỗi fetch sản phẩm");
 
