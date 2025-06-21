@@ -3,10 +3,10 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
-import CategoryPreviewCard from "@/app/components/categories/edit/PreviewCard";
-import CateImageDrop from "@/app/components/categories/edit/ImageDrop";
-import CategoryInfoForm from "@/app/components/categories/edit/Form";
-import ActionButtons from "@/app/components/categories/edit/ActionButtons";
+import CategoryPreviewCard from "@/app/components/category/edit/PreviewCard";
+import CateImageDrop from "@/app/components/category/edit/ImageDrop";
+import CategoryInfoForm from "@/app/components/category/edit/Form";
+import ActionButtons from "@/app/components/category/edit/ActionButtons";
 
 // ✅ Dữ liệu giả category (mock)
 const mockCategories = [
