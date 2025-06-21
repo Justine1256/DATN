@@ -8,6 +8,7 @@ import LandingSlider from "@/app/components/home/LandingSlider";
 import { LoadingSkeleton } from "@/app/components/loading/loading";
 import { API_BASE_URL } from '@/utils/api';
 import CategoryGrid from "@/app/components/home/CategoryGrid";
+import PriceFilter from "@/app/components/categorry/CategoryFilter"; // Import the new PriceFilter component
 
 interface Category {
   id: number;
@@ -79,8 +80,7 @@ export default function CategoryPage() {
     <div className="max-w-[1170px] mx-auto px-4 pt-6 pb-10 text-black">
       <LandingSlider />
       <div className="mt-8 mb-4">
-        <CategoryGrid activeSlug={slug} noScroll /> 
-
+        <CategoryGrid activeSlug={slug} noScroll />
       </div>
 
       {/* ✅ Bộ lọc danh mục và sắp xếp */}
@@ -117,65 +117,14 @@ export default function CategoryPage() {
           ))}
 
           {/* Lọc nâng cao theo giá */}
-          <div className="relative">
-            <button
-              onClick={() => setShowPriceFilter(!showPriceFilter)}
-              className="border px-3 py-1 mr-2 rounded text-sm text-black hover:border-[#DB4444] transition"
-            >
-              Giá ▾
-            </button>
-
-            {showPriceFilter && (
-              <div className="absolute right-0 mt-2 w-72 bg-white border rounded shadow z-50 p-4">
-                {["asc", "desc", "discount"].map((key) => (
-                  <label key={key} className="flex items-center gap-2 text-sm mb-2">
-                    <input
-                      type="checkbox"
-                      checked={sortOptions[key as keyof typeof sortOptions]}
-                      onChange={() => toggleOption(key as keyof typeof sortOptions)}
-                    />
-                    {key === "asc" && "Giá: thấp đến cao"}
-                    {key === "desc" && "Giá: cao đến thấp"}
-                    {key === "discount" && "Giảm giá nhiều nhất"}
-                  </label>
-                ))}
-
-                <div className="mb-1 text-sm font-medium">Khoảng giá (₫):</div>
-                <div className="flex justify-between text-xs text-gray-600 mb-2">
-                  <span>{priceRange[0].toLocaleString()}₫</span>
-                  <span>{priceRange[1].toLocaleString()}₫</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={50000000}
-                  step={100000}
-                  value={priceRange[0]}
-                  onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
-                  className="w-full mb-2 accent-[#DB4444]"
-                />
-                <input
-                  type="range"
-                  min={0}
-                  max={50000000}
-                  step={100000}
-                  value={priceRange[1]}
-                  onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                  className="w-full accent-[#DB4444]"
-                />
-
-                <button
-                  className="mt-4 w-full bg-[#DB4444] text-white text-sm py-2 rounded hover:opacity-90 transition"
-                  onClick={() => {
-                    setShowPriceFilter(false);
-                    console.log("Lọc với:", sortOptions, priceRange);
-                  }}
-                >
-                  Lọc
-                </button>
-              </div>
-            )}
-          </div>
+          <PriceFilter
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            sortOptions={sortOptions}
+            toggleOption={toggleOption}
+            showPriceFilter={showPriceFilter}
+            setShowPriceFilter={setShowPriceFilter}
+          />
         </div>
       </div>
 
@@ -186,8 +135,7 @@ export default function CategoryPage() {
         <p className="text-gray-500">Không có sản phẩm nào.</p>
       ) : (
         <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 min-h-[650px] justify-start items-start auto-rows-auto">
-
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 min-h-[650px] justify-start items-start auto-rows-auto">
             {(loading ? Array(itemsPerPage).fill(null) : paginatedProducts).map((product, idx) => (
               <div key={idx}>
                 {loading ? (
@@ -223,8 +171,8 @@ export default function CategoryPage() {
               key={page}
               onClick={() => handlePageChange(page)}
               className={`px-3 py-1 border rounded ${currentPage === page
-                  ? "bg-[#DB4444] text-white"
-                  : "hover:bg-[#DB4444] hover:text-white"
+                ? "bg-[#DB4444] text-white"
+                : "hover:bg-[#DB4444] hover:text-white"
                 } transition`}
             >
               {page}
@@ -243,5 +191,3 @@ export default function CategoryPage() {
     </div>
   );
 }
-
-
