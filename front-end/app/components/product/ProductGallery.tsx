@@ -118,7 +118,8 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
             {/* Main Image Container */}
             <div className="relative group">
                 <div
-                    className="w-full h-[424px] flex items-center justify-center rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden relative border-2 border-gray-200 cursor-zoom-in hover:border-gray-300 transition-all duration-300 shadow-lg"
+                    className="w-full h-[424px] flex items-center justify-center rounded-2xl bg-white overflow-hidden relative border-2 border-gray-200 cursor-zoom-in hover:border-gray-300 transition-all duration-300 shadow-lg"
+
                     ref={mainImageRef}
                     onClick={() => setShowPreview(true)}
                 >
