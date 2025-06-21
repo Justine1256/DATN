@@ -1,7 +1,8 @@
+// components/ProductDetail.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react'; // Đã thêm useRef
+import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import BestSellingSlider from '../home/RelatedProduct';
 import Cookies from 'js-cookie';
@@ -14,10 +15,11 @@ import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Breadcrumb from '../cart/CartBreadcrumb';
 import { AiFillHeart } from 'react-icons/ai';
 import { FiHeart } from 'react-icons/fi';
+import ProductGallery from './ProductGallery'; // Import component ProductGallery mới
 
-
-// ✅ Hàm xử lý ảnh – chuẩn hóa đường dẫn ảnh từ server
-const formatImageUrl = (img: string | string[]): string => { // Kiểu dữ liệu chính xác hơn cho img
+// Hàm formatImageUrl có thể để ở đây hoặc chuyển sang file tiện ích chung
+// (Nếu ProductGallery cũng dùng, nên cân nhắc tạo một file util chung)
+const formatImageUrl = (img: string | string[]): string => {
   if (Array.isArray(img)) img = img[0];
   if (typeof img !== 'string' || !img.trim()) {
     return `${STATIC_BASE_URL}/products/default-product.png`;
@@ -26,8 +28,7 @@ const formatImageUrl = (img: string | string[]): string => { // Kiểu dữ li�
   return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
 };
 
-
-// ✅ Kiểu dữ liệu sản phẩm
+// Kiểu dữ liệu sản phẩm (giữ nguyên)
 interface Product {
   id: number;
   name: string;
@@ -85,18 +86,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState('');
 
-  const thumbnailRef = useRef<HTMLDivElement>(null);
-
-  // Đã loại bỏ các định nghĩa trùng lặp của handleScrollLeft và handleScrollRight
-  const handleScrollLeft = () => {
-    thumbnailRef.current?.scrollBy({ left: -100, behavior: 'smooth' });
-  };
-
-  const handleScrollRight = () => {
-    thumbnailRef.current?.scrollBy({ left: 100, behavior: 'smooth' });
-  };
-
-  // Đã loại bỏ hàm isValidCssColor không sử dụng
+  // Không cần thumbnailRef và các hàm handleScrollLeft/Right ở đây nữa
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,12 +99,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           return;
         }
 
-        const productData: Product = await productRes.json(); // Khai báo rõ ràng kiểu cho productData
+        const productData: Product = await productRes.json();
         console.log('📦 Product Data từ API:', productData);
 
         setProduct(productData);
 
-        // Đảm bảo mainImage được thiết lập bằng cách sử dụng formatImageUrl từ ảnh đầu tiên trong mảng
+        // Đảm bảo mainImage được thiết lập từ ảnh đầu tiên trong mảng
         const firstImage = Array.isArray(productData.image) && productData.image.length > 0 ? productData.image[0] : '';
         setMainImage(formatImageUrl(firstImage));
 
@@ -159,7 +149,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     };
 
     fetchData();
-  }, [shopslug, productslug, router, selectedColor, selectedSize]); // Đã thêm selectedColor, selectedSize vào mảng dependencies
+  }, [shopslug, productslug, router, selectedColor, selectedSize]);
 
   if (!product) return <LoadingProductDetail />;
 
@@ -172,7 +162,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   } catch (e) {
     colorOptions = (product.value1 || '').split(',').map((c) => c.trim());
   }
-  
+
   let sizeOptions: string[] = [];
   try {
     const parsed = JSON.parse(product.value2 || '[]');
@@ -182,8 +172,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   } catch (e) {
     sizeOptions = (product.value2 || '').split(',').map((s) => s.trim());
   }
-
-
 
   const handleAddToCart = async () => {
     const token = Cookies.get("authToken") || localStorage.getItem("token");
@@ -219,7 +207,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       setPopupText("Đã thêm vào giỏ hàng!");
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
-    } catch (error: any) { // Gán kiểu 'any' cho error để truy cập message
+    } catch (error: any) {
       console.error("Lỗi thêm vào giỏ hàng:", error);
       setPopupText(`Lỗi khi thêm vào giỏ hàng: ${error.message}`);
       setShowPopup(true);
@@ -238,7 +226,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     }
 
     const newLiked = !liked;
-    setLiked(newLiked); // Cập nhật UI ngay lập tức
+    setLiked(newLiked);
 
     try {
       if (newLiked) {
@@ -258,12 +246,11 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       }
     } catch (err) {
       console.error('❌ Lỗi xử lý yêu thích:', err);
-      setLiked(!newLiked); // Hoàn tác nếu có lỗi
+      setLiked(!newLiked);
       setPopupText('Có lỗi xảy ra khi cập nhật yêu thích.');
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
     } finally {
-      // Hiển thị popup dựa trên trạng thái cuối cùng sau khi có thể hoàn tác
       setShowPopup(true);
       setPopupText(newLiked ? 'Đã thêm vào mục yêu thích!' : 'Đã xóa khỏi mục yêu thích!');
       setTimeout(() => setShowPopup(false), 2000);
@@ -326,13 +313,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         body: JSON.stringify({
           product_id: product?.id,
           quantity: quantity,
-          option1: selectedColor, // Nhất quán với handleAddToCart
-          option2: selectedSize,   // Nhất quán với handleAddToCart
+          option1: selectedColor,
+          option2: selectedSize,
         }),
       });
 
       if (res.ok) {
-        router.push('/cart');  // Chuyển đến trang giỏ hàng sau khi thêm sản phẩm
+        router.push('/cart');
       } else {
         const data = await res.json();
         setPopupText(data.message || 'Thêm vào giỏ hàng thất bại');
@@ -360,9 +347,10 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         />
       </div>
       <div className="rounded-xl border shadow-sm bg-white p-10 borde">
-
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
+          {/* Thay thế phần hiển thị ảnh bằng ProductGallery component */}
           <div className="md:col-span-6 flex flex-col gap-4 relative">
+            {/* Nút yêu thích vẫn ở đây nếu bạn muốn nó nằm trên cùng của ProductDetail */}
             <button
               onClick={toggleLike}
               className="absolute top-2 left-2 p-2 text-[22px] z-20 transition-colors duration-200 select-none"
@@ -373,70 +361,16 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 <FiHeart className="text-gray-400 transition-colors duration-200" />
               )}
             </button>
-
-
-            <div className="flex justify-center items-center w-full bg-gray-50 rounded-lg p-6 min-h-[220px]">
-              <div className="w-full max-w-[300px] h-[290px] relative">
-                <Image
-                  src={mainImage}
-                  alt={product.name}
-                  fill
-                  className="object-contain rounded-lg"
-                  key={mainImage}
-                />
-              </div>
-            </div>
-            <div className="relative mt-4">
-              {/* Nút trái */}
-              {/* <button
-                onClick={handleScrollLeft}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white border rounded-full shadow p-1 hover:bg-gray-100"
-              >
-                &lt;
-              </button> */}
-
-              {/* Danh sách ảnh nhỏ */}
-              <div
-                className="flex gap-3  px-7"
-                ref={thumbnailRef}
-              >
-                {product?.image?.map((img, idx) => {
-                  const formattedImg = formatImageUrl(img);
-                  const isSelected = formattedImg === mainImage;
-
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => setMainImage(formattedImg)}
-                      className={`w-[80px] h-[80px] flex items-center justify-center border-2 rounded bg-white p-1 transition-transform duration-200
-          ${isSelected ? 'border-red-500 scale-105' : 'border-gray-300'}
-        `}
-                    >
-                      <img
-                        src={formattedImg}
-                        alt={`Thumb ${idx}`}
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-
-              {/* Nút phải */}
-              {/* <button
-                onClick={handleScrollRight}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white border rounded-full shadow p-1 hover:bg-gray-100"
-              >
-                &gt;
-              </button> */}
-            </div>
-
+            <ProductGallery
+              images={product.image}
+              mainImage={mainImage}
+              setMainImage={setMainImage}
+            />
           </div>
 
-          {/* ✅ Thông tin sản phẩm bên phải */}
+          {/* ✅ Thông tin sản phẩm bên phải (giữ nguyên) */}
           <div className="md:col-span-6 space-y-6 ">
-            <h1 className="text-[1.5rem] md:text-[2rem] font-bold text-gray-900">{product.name}</h1>
+            <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{product.name}</h1>
             {/* ✅ rating */}
             <div className="flex items-center gap-3 text-sm -translate-y-4">
               <div className="flex items-center gap-3 text-sm">
@@ -483,7 +417,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               )}
             </div>
 
-
             {/* ✅ Options màu và size */}
             <div className="flex flex-col gap-4 -translate-y-10">
               {/* Màu sắc */}
@@ -491,13 +424,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 <p className="font-medium text-gray-700 text-lg">Màu Sắc:</p>
                 <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
                   {colorOptions.map((color) => {
-                    const isSelected = selectedColor === color;
                     return (
                       <button
                         key={color}
                         onClick={() => setSelectedColor(color)}
                         className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px]
-                        ${selectedColor === color
+                                ${selectedColor === color
                             ? 'border-red-600 text-black bg-white'
                             : 'border-gray-300 text-black bg-white hover:border-red-500'}`}
                       >
@@ -514,8 +446,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                         )}
                         {color}
                       </button>
-                    
-
                     );
                   })}
                 </div>
@@ -530,7 +460,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                       key={size}
                       onClick={() => setSelectedSize(size)}
                       className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px]
-                   ${selectedSize === size
+                              ${selectedSize === size
                           ? 'border-red-600 text-black bg-white'
                           : 'border-gray-300 text-black bg-white hover:border-red-500'}`}
                     >
@@ -547,15 +477,10 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                       )}
                       {size}
                     </button>
-               
-                  
-                  
                   ))}
                 </div>
               </div>
             </div>
-
-
 
             {/* ✅ Số lượng và hành động */}
             <div className="flex items-center gap-3 mt-4 -translate-y-10">
@@ -589,8 +514,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               >
                 Thêm Vào Giỏ Hàng
               </button>
-
-
             </div>
 
             {/* ✅ Chính sách vận chuyển */}
@@ -625,27 +548,24 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
       {/* ✅ Thông tin cửa hàng */}
       <ShopInfo
-        shop={product.shop || undefined} // Kiểm tra nếu không có shop thì truyền undefined
+        shop={product.shop || undefined}
         followed={followed}
         onFollowToggle={handleFollow}
       />
 
       <ProductDescription
         html={product.description}
-
       />
 
-      ---
-
       {/* Gợi ý sản phẩm shop */}
-      <div className="w-full max-w-screen-xl mx-auto mt-16"> {/* Đã loại bỏ class px- không hợp lệ */}
+      <div className="w-full max-w-screen-xl mx-auto mt-16">
         <ShopProductSlider />
       </div>
 
       ---
 
       {/* Gợi ý sản phẩm khác */}
-      <div className="w-full max-w-screen-xl mx-auto mt-6"> {/* Đã loại bỏ class px- không hợp lệ */}
+      <div className="w-full max-w-screen-xl mx-auto mt-6">
         <BestSellingSlider />
       </div>
       {/* Thông báo thêm/xoá yêu thích */}
