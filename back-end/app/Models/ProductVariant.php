@@ -18,15 +18,15 @@ class ProductVariant extends Model
         'option2',
         'value2',
         'price',
+        'sale_price',
         'stock',
         'image',
     ];
 
     protected $casts = [
-        'image' => 'array', // vì trường image lưu JSON array
+        'image' => 'array',
     ];
 
-    // Quan hệ: Variant thuộc về 1 Product
     public function product()
     {
         return $this->belongsTo(Product::class);
