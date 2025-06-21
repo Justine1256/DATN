@@ -42,7 +42,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const productRes = await fetch(`https://api.marketo.info.vn/api/thoi-trang-sanh-dieu/product/${productslug}`);
+        const productRes = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
 
         if (!productRes.ok) {
           router.push('/not-found');
