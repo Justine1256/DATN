@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -22,6 +22,7 @@ export interface Product {
   value1?: string;
   sale_price?: number;
   shop_slug: string;
+  variants: any[];
 }
 
 const formatImageUrl = (img: unknown): string => {
@@ -54,6 +55,7 @@ export default function ProductCard({
   const [liked, setLiked] = useState(isInWishlist);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
 
   useEffect(() => {
     setLiked(isInWishlist);
@@ -61,10 +63,13 @@ export default function ProductCard({
 
   if (!product) return <LoadingSkeleton />;
 
-  const hasDiscount = !!(product.sale_price && product.sale_price > 0);
-  const discountPercentage = hasDiscount
-    ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
-    : 0;
+  // Logic for checking the price
+  const getPrice = () => {
+    if (selectedVariant) {
+      return Number(selectedVariant.sale_price || selectedVariant.price).toLocaleString('vi-VN');
+    }
+    return Number(product.sale_price || product.price).toLocaleString('vi-VN');
+  };
 
   const mainImage = formatImageUrl(product.image?.[0]);
 
@@ -105,10 +110,7 @@ export default function ProductCard({
       } else {
         const res = await fetch(`${API_BASE_URL}/wishlist/${product.id}`, {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!res.ok) throw new Error("Không thể xóa khỏi wishlist!");
@@ -182,9 +184,9 @@ export default function ProductCard({
         </div>
       )}
 
-      {hasDiscount && discountPercentage > 0 && (
+      {product.sale_price && (
         <div className="absolute top-2 left-2 bg-brand text-white text-[10px] px-2 py-0.5 rounded">
-          -{discountPercentage}%
+          -{Math.round(((product.price - product.sale_price) / product.price) * 100)}%
         </div>
       )}
 
@@ -216,12 +218,9 @@ export default function ProductCard({
 
         <div className="flex gap-2 mt-1 items-center">
           <span className="text-brand font-bold text-base">
-            {new Intl.NumberFormat("vi-VN").format(
-              hasDiscount ? product.sale_price! : product.price
-            )}
-            đ
+            {getPrice()}₫
           </span>
-          {hasDiscount && (
+          {product.sale_price && (
             <span className="text-gray-400 line-through text-xs">
               {new Intl.NumberFormat("vi-VN").format(product.price)}đ
             </span>
