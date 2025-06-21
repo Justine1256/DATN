@@ -120,12 +120,14 @@ public function store(Request $request)
         'image'       => 'nullable|array',
         'image.*'     => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
 
+        // Các option cố định
+        'option1'     => 'required|string|max:255',
+        'option2'     => 'required|string|max:255',
+
         // Variants
         'variants'                => 'required|array|min:1',
-        'variants.*.option1'      => 'nullable|string|max:255',
-        'variants.*.value1'       => 'nullable|string|max:255',
-        'variants.*.option2'      => 'nullable|string|max:255',
-        'variants.*.value2'       => 'nullable|string|max:255',
+        'variants.*.value1'       => 'required|string|max:255',
+        'variants.*.value2'       => 'required|string|max:255',
         'variants.*.price'        => 'required|numeric|min:0',
         'variants.*.sale_price'   => 'nullable|numeric|min:0|lte:variants.*.price',
         'variants.*.stock'        => 'required|integer|min:0',
@@ -136,6 +138,8 @@ public function store(Request $request)
 
     ], [
         'variants.required'            => 'Phải có ít nhất 1 biến thể (variant).',
+        'variants.*.value1.required'   => 'Giá trị value1 không được để trống.',
+        'variants.*.value2.required'   => 'Giá trị value2 không được để trống.',
         'variants.*.price.required'    => 'Giá của variant không được để trống.',
         'variants.*.stock.required'    => 'Tồn kho của variant không được để trống.',
         'variants.*.sale_price.lte'    => 'Giá khuyến mãi (sale_price) phải nhỏ hơn hoặc bằng giá gốc (price).',
@@ -178,6 +182,8 @@ public function store(Request $request)
         'stock'       => 0,
         'sold'        => 0,
         'image'       => json_encode($imagePaths),
+        'option1'     => $request->option1, // <- cố định
+        'option2'     => $request->option2, // <- cố định
         'status'      => 'activated',
     ]);
 
@@ -197,10 +203,10 @@ public function store(Request $request)
 
         $variant = ProductVariant::create([
             'product_id'  => $product->id,
-            'option1'     => $variantData['option1'] ?? null,
-            'value1'      => $variantData['value1'] ?? null,
-            'option2'     => $variantData['option2'] ?? null,
-            'value2'      => $variantData['value2'] ?? null,
+            'option1'     => $request->option1, // <- cố định
+            'value1'      => $variantData['value1'],
+            'option2'     => $request->option2, // <- cố định
+            'value2'      => $variantData['value2'],
             'price'       => $variantData['price'],
             'sale_price'  => $variantData['sale_price'] ?? null,
             'stock'       => $variantData['stock'],
@@ -229,7 +235,6 @@ public function store(Request $request)
         ]
     ], 201);
 }
-
 
 
     // Xóa sản phẩm
