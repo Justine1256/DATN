@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -70,7 +71,7 @@ public function getCategoryAndProductsBySlug($slug)
     // Lấy danh sách shop duy nhất từ các sản phẩm
     $shopIds = $products->pluck('shop_id')->unique()->toArray();
 
-    $shops = \App\Models\Shop::whereIn('id', $shopIds)->get();
+    $shops =  Shop::whereIn('id', $shopIds)->get();
 
     // Trả về cả category, products, và shops
     return response()->json([
@@ -156,7 +157,7 @@ public function delete($id)
 // Lấy danh sách sản phẩm của shop
 public function showShopProducts(Request $request, $slug)
 {
-    $shop = \App\Models\Shop::where('slug', $slug)->first();
+    $shop =  Shop::where('slug', $slug)->first();
 
     if (!$shop) {
         return response()->json(['error' => 'Shop không tồn tại.'], 404);
@@ -164,7 +165,7 @@ public function showShopProducts(Request $request, $slug)
 
     $perPage = $request->query('per_page', 5);
 
-    $products = \App\Models\Product::where('shop_id', $shop->id)
+    $products =  Product::where('shop_id', $shop->id)
         ->where('status', 'activated')
         ->with('category')
         ->orderBy('created_at', 'desc')
@@ -279,19 +280,21 @@ public function addProductByShop(Request $request)
         'category_id' => 'required|exists:categories,id',
         'name' => 'required|string|max:255',
         'description' => 'nullable|string',
-        'price' => 'required|numeric|min:0',
-        'sale_price' => 'nullable|numeric|min:0|lte:price',
-        'stock' => 'nullable|integer|min:0',
         'image' => 'nullable|array',
         'image.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        'option1' => 'nullable|string|max:255',
-        'value1' => 'nullable|string|max:255',
-        'option2' => 'nullable|string|max:255',
-        'value2' => 'nullable|string|max:255',
+        'variants' => 'required|array|min:1',
+        'variants.*.option1' => 'nullable|string|max:255',
+        'variants.*.value1' => 'nullable|string|max:255',
+        'variants.*.option2' => 'nullable|string|max:255',
+        'variants.*.value2' => 'nullable|string|max:255',
+        'variants.*.price' => 'required|numeric|min:0',
+        'variants.*.stock' => 'required|integer|min:0',
+        'variants.*.image' => 'nullable|array',
+        'variants.*.image.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
     ], [
-        'sale_price.lte' => 'Giá khuyến mãi phải nhỏ hơn hoặc bằng giá gốc.',
-        'image.*.image' => 'Mỗi tệp phải là hình ảnh hợp lệ.',
-        'image.*.max' => 'Kích thước ảnh không vượt quá 2MB.',
+        'variants.required' => 'Phải có ít nhất 1 variant.',
+        'variants.*.price.required' => 'Giá variant không được để trống.',
+        'variants.*.stock.required' => 'Tồn kho variant không được để trống.',
     ]);
 
     if ($validator->fails()) {
@@ -302,53 +305,91 @@ public function addProductByShop(Request $request)
     if (!$user || !$user->shop) {
         return response()->json(['status' => false, 'message' => 'Người dùng chưa có shop.'], 403);
     }
+
     $slug = Str::slug($request->name);
 
-    $exists = \App\Models\Product::where('shop_id', $user->shop->id)
-    ->where('slug', $slug)
-    ->exists();
+    $exists =  Product::where('shop_id', $user->shop->id)
+        ->where('slug', $slug)
+        ->exists();
 
     if ($exists) {
-    return response()->json([
-        'status' => false,
-        'message' => 'Tên sản phẩm đã tồn tại trong cửa hàng. Vui lòng chọn tên khác.'
-    ], 422);
-}
+        return response()->json([
+            'status' => false,
+            'message' => 'Tên sản phẩm đã tồn tại trong cửa hàng. Vui lòng chọn tên khác.'
+        ], 422);
+    }
 
-        $imagePaths = [];
-        if ($request->hasFile('image')) {
+    // Upload ảnh cover
+    $imagePaths = [];
+    if ($request->hasFile('image')) {
         foreach ($request->file('image') as $image) {
             $path = $image->store('products', 'public');
             $imagePaths[] = $path;
         }
-        }
+    }
 
-        $product = \App\Models\Product::create([
+    // Tạo sản phẩm
+    $product =  Product::create([
         'shop_id' => $user->shop->id,
         'category_id' => $request->category_id,
         'name' => $request->name,
         'slug' => $slug,
         'description' => $request->description,
-        'price' => $request->price,
-        'sale_price' => $request->sale_price,
-        'stock' => $request->stock ?? 0,
-        'image' => json_encode($imagePaths), // Lưu JSON
-        'option1' => $request->option1,
-        'value1' => $request->value1,
-        'option2' => $request->option2,
-        'value2' => $request->value2,
+        'price' => 0, // Sẽ update lại từ variants bên dưới
+        'sale_price' => 0,
+        'stock' => 0,
+        'image' => json_encode($imagePaths),
         'status' => 'activated',
     ]);
+
+    $totalStock = 0;
+    $minPrice = null;
+
+    // Thêm variants
+    foreach ($request->variants as $variantData) {
+
+        // Upload ảnh variant (nếu có)
+        $variantImagePaths = [];
+        if (isset($variantData['image'])) {
+            foreach ($variantData['image'] as $file) {
+                $path = $file->store('product_variants', 'public');
+                $variantImagePaths[] = $path;
+            }
+        }
+
+        $variant =  ProductVariant::create([
+            'product_id' => $product->id,
+            'option1' => $variantData['option1'] ?? null,
+            'value1' => $variantData['value1'] ?? null,
+            'option2' => $variantData['option2'] ?? null,
+            'value2' => $variantData['value2'] ?? null,
+            'price' => $variantData['price'],
+            'stock' => $variantData['stock'],
+            'image' => json_encode($variantImagePaths),
+        ]);
+
+        // Cập nhật tồn kho tổng và giá min
+        $totalStock += $variant->stock;
+        if (is_null($minPrice) || $variant->price < $minPrice) {
+            $minPrice = $variant->price;
+        }
+    }
+
+    // Cập nhật lại product price & stock
+    $product->price = $minPrice ?? 0;
+    $product->stock = $totalStock;
+    $product->save();
 
     return response()->json([
         'status' => true,
         'message' => 'Sản phẩm đã được thêm thành công.',
         'data' => [
             ...$product->toArray(),
-            'image' => $imagePaths, // Trả mảng ảnh cho FE
+            'image' => $imagePaths,
         ]
     ], 201);
 }
+
         // Cập nhật sản phẩm bởi shop
 public function update(Request $request, $id)
 {
