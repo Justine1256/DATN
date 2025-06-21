@@ -229,8 +229,10 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
                                     className="max-w-full max-h-full object-contain rounded-lg pointer-events-none"
                                     onError={(e) => (e.currentTarget.src = '/placeholder.png')}
                                     draggable={false}
+                                    style={{ userSelect: "none" }}  // Ngăn việc chọn ảnh
                                 />
                             </div>
+
                         );
                     })}
                 </div>
