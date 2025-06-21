@@ -15,7 +15,8 @@ import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Breadcrumb from '../cart/CartBreadcrumb';
 import { AiFillHeart } from 'react-icons/ai';
 import { FiHeart } from 'react-icons/fi';
-import ProductGallery from './ProductGallery'; // Import component ProductGallery mới
+import ProductGallery from './ProductGallery'; 
+import { Product,ProductDetailProps } from './hooks/Product'
 
 // Hàm formatImageUrl có thể để ở đây hoặc chuyển sang file tiện ích chung
 // (Nếu ProductGallery cũng dùng, nên cân nhắc tạo một file util chung)
@@ -28,51 +29,7 @@ const formatImageUrl = (img: string | string[]): string => {
   return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
 };
 
-// Kiểu dữ liệu sản phẩm (giữ nguyên)
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  sale_price?: number;
-  description: string;
-  image: string[];
-  option1?: string;
-  value1?: string;
-  option2?: string;
-  value2?: string;
-  stock?: number;
-  rating: string;
-  shop_slug: string;
-  shop?: {
-    id: number;
-    name: string;
-    description: string;
-    logo: string;
-    phone: string;
-    rating: string;
-    total_sales: number;
-    created_at: string;
-    status: 'activated' | 'pending' | 'suspended';
-    email: string;
-    address?: string;
-    slug: string;
-  } | undefined;
-  category?: {
-    id: number;
-    name: string;
-    slug: string;
-    parent?: {
-      id: number;
-      name: string;
-      slug: string;
-    };
-  };
-}
 
-interface ProductDetailProps {
-  shopslug: string;
-  productslug: string;
-}
 
 export default function ProductDetail({ shopslug, productslug }: ProductDetailProps) {
   const router = useRouter();
@@ -86,7 +43,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState('');
 
-  // Không cần thumbnailRef và các hàm handleScrollLeft/Right ở đây nữa
+
 
   useEffect(() => {
     const fetchData = async () => {
