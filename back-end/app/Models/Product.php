@@ -21,10 +21,6 @@ class Product extends Model
     'stock',
     'sold',
     'image',
-    'option1',
-    'value1',
-    'option2',
-    'value2',
     'status',
 ];
 protected $casts = [
@@ -83,5 +79,9 @@ protected $casts = [
     {
         return $this->hasMany(Wishlist::class);
     }
+    public function variants()
+{
+    return $this->hasMany(ProductVariant::class, 'product_id');
+}
 
 }
