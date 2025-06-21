@@ -11,76 +11,137 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
-        $names = [
-            'Áo Thun Nam Basic',
-            'Quần Jean Rách',
-            'Giày Sneaker Trắng',
-            'Áo Sơ Mi Công Sở',
-            'Váy Nữ Dáng Dài',
-            'Áo Khoác Hoodie',
-            'Quần Jogger Thể Thao',
-            'Balo Laptop Chống Nước',
-            'Túi Xách Nữ Thời Trang',
-            'Mũ Lưỡi Trai',
-            'Kính Mát Nam',
-            'Đồng Hồ Cặp Đôi',
-            'Áo Len Cổ Lọ',
-            'Giày Cao Gót 7cm',
-            'Áo Polo Nam Cao Cấp',
+        $products = [
+            [
+                'name' => 'Điện thoại iPhone 15 Pro Max',
+                'category_id' => 2,
+                'price' => 35000000,
+                'sale_price' => 33000000,
+                'images' => [
+                    'products/iphone15-1.jpg',
+                    'products/iphone15-2.jpg',
+                ],
+                'variants' => [
+                    [
+                        'option1' => 'Dung lượng',
+                        'value1' => '256GB',
+                        'option2' => 'Màu sắc',
+                        'value2' => 'Titan Xám',
+                        'price' => 33000000,
+                        'stock' => 10,
+                        'image' => [
+                            'products/variants/iphone15-256-titan.jpg',
+                        ],
+                    ],
+                    [
+                        'option1' => 'Dung lượng',
+                        'value1' => '512GB',
+                        'option2' => 'Màu sắc',
+                        'value2' => 'Titan Xanh',
+                        'price' => 36000000,
+                        'stock' => 5,
+                        'image' => [
+                            'products/variants/iphone15-512-xanh.jpg',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'Laptop Dell XPS 13',
+                'category_id' => 3,
+                'price' => 42000000,
+                'sale_price' => 40000000,
+                'images' => [
+                    'products/dellxps-1.jpg',
+                    'products/dellxps-2.jpg',
+                ],
+                'variants' => [
+                    [
+                        'option1' => 'RAM',
+                        'value1' => '16GB',
+                        'option2' => 'SSD',
+                        'value2' => '512GB',
+                        'price' => 40000000,
+                        'stock' => 8,
+                        'image' => [
+                            'products/variants/dellxps-16-512.jpg',
+                        ],
+                    ],
+                    [
+                        'option1' => 'RAM',
+                        'value1' => '32GB',
+                        'option2' => 'SSD',
+                        'value2' => '1TB',
+                        'price' => 45000000,
+                        'stock' => 4,
+                        'image' => [
+                            'products/variants/dellxps-32-1tb.jpg',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'Tai nghe Sony WH-1000XM5',
+                'category_id' => 4,
+                'price' => 9990000,
+                'sale_price' => 8990000,
+                'images' => [
+                    'products/sony1000xm5-1.jpg',
+                    'products/sony1000xm5-2.jpg',
+                ],
+                'variants' => [
+                    [
+                        'option1' => 'Màu sắc',
+                        'value1' => 'Đen',
+                        'option2' => null,
+                        'value2' => null,
+                        'price' => 8990000,
+                        'stock' => 20,
+                        'image' => [
+                            'products/variants/sony1000xm5-black.jpg',
+                        ],
+                    ],
+                    [
+                        'option1' => 'Màu sắc',
+                        'value1' => 'Trắng',
+                        'option2' => null,
+                        'value2' => null,
+                        'price' => 8990000,
+                        'stock' => 15,
+                        'image' => [
+                            'products/variants/sony1000xm5-white.jpg',
+                        ],
+                    ],
+                ],
+            ],
+            // Bạn có thể tự thêm tiếp sản phẩm 4 → 15 theo ý bạn
         ];
 
-        foreach ($names as $index => $name) {
-            $price = rand(200000, 500000);
-            $sale_price = $price - rand(20000, 50000);
+        foreach ($products as $item) {
+
+            $slug = Str::slug($item['name']); // Không thêm -1 -2
 
             $product = Product::create([
                 'shop_id' => 1,
-                'category_id' => 1,
-                'name' => $name,
-                'slug' => Str::slug($name) . '-' . ($index + 1),
-                'description' => "Đây là mô tả cho sản phẩm $name.",
-                'price' => $price,
-                'sale_price' => $sale_price,
-                'stock' => 100,
+                'category_id' => $item['category_id'],
+                'name' => $item['name'],
+                'slug' => $slug,
+                'description' => "Mô tả sản phẩm {$item['name']}",
+                'price' => $item['price'],
+                'sale_price' => $item['sale_price'],
+                'stock' => 0, // sẽ cập nhật sau khi thêm variants
                 'sold' => rand(0, 20),
-                'image' => json_encode([
-                    "products/" . Str::slug($name) . "-1.jpg",
-                    "products/" . Str::slug($name) . "-2.jpg",
-                ]),
-                'option1' => 'Size',
-                'value1' => 'M',
-                'option2' => 'Color',
-                'value2' => 'Đen',
+                'image' => json_encode($item['images']),
+                'option1' => null,
+                'value1' => null,
+                'option2' => null,
+                'value2' => null,
                 'status' => 'activated',
             ]);
 
-            // Tạo 2 variant cho mỗi sản phẩm
-            $variants = [
-                [
-                    'option1' => 'Size',
-                    'value1' => 'M',
-                    'option2' => 'Color',
-                    'value2' => 'Đen',
-                    'price' => $sale_price,
-                    'stock' => 10,
-                    'image' => json_encode([
-                        "products/variants/" . Str::slug($name) . "-m-black.jpg"
-                    ]),
-                ],
-                [
-                    'option1' => 'Size',
-                    'value1' => 'L',
-                    'option2' => 'Color',
-                    'value2' => 'Trắng',
-                    'price' => $sale_price + 10000,
-                    'stock' => 15,
-                    'image' => json_encode([
-                        "products/variants/" . Str::slug($name) . "-l-white.jpg"
-                    ]),
-                ],
-            ];
+            $totalStock = 0;
 
-            foreach ($variants as $variant) {
+            foreach ($item['variants'] as $variant) {
                 ProductVariant::create([
                     'product_id' => $product->id,
                     'option1' => $variant['option1'],
@@ -89,9 +150,15 @@ class ProductSeeder extends Seeder
                     'value2' => $variant['value2'],
                     'price' => $variant['price'],
                     'stock' => $variant['stock'],
-                    'image' => $variant['image'],
+                    'image' => json_encode($variant['image']),
                 ]);
+
+                $totalStock += $variant['stock'];
             }
+
+            // Cập nhật stock tổng
+            $product->stock = $totalStock;
+            $product->save();
         }
     }
 }
