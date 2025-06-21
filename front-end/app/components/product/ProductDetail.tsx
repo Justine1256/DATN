@@ -82,55 +82,97 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   };
 
   // Hàm xử lý thêm vào giỏ hàng
-  const handleAddToCart = async () => {
-    const token = Cookies.get("authToken") || localStorage.getItem("token");
-    if (!token) {
-      setPopupText("Vui lòng đăng nhập để mua hàng");
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-      return;
-    }
+  const handleBuyNow = async () => {
+    const token = localStorage.getItem("token") || Cookies.get("authToken");
 
-    if (!selectedVariant) {
-      setPopupText("Vui lòng chọn màu sắc và kích cỡ sản phẩm");
+    if (!token) {
+      setPopupText("Vui lòng đăng nhập để mua sản phẩm");
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
       return;
     }
 
     try {
+      const body = {
+        product_id: product?.id,
+        quantity,
+        option1: selectedColor || '', // Nếu không có màu sắc, truyền giá trị rỗng
+        option2: selectedSize || '', // Nếu không có kích thước, truyền giá trị rỗng
+        variant_id: selectedVariant?.id || '', // Nếu không có variant, truyền giá trị rỗng
+      };
+
+      // Gửi yêu cầu thêm vào giỏ hàng
       const res = await fetch(`${API_BASE_URL}/cart`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          product_id: product.id,
-          quantity,
-          option1: selectedColor,
-          option2: selectedSize,
-          variant_id: selectedVariant.id, // Pass the selected variant ID
-        }),
+        body: JSON.stringify(body),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Thêm sản phẩm thất bại');
+      if (res.ok) {
+        router.push("/cart"); // Chuyển hướng sang giỏ hàng
+      } else {
+        const data = await res.json();
+        setPopupText(data.message || "Thêm vào giỏ hàng thất bại");
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 2000);
       }
-
-      window.dispatchEvent(new Event("cartUpdated"));
-
-      setPopupText("Đã thêm vào giỏ hàng!");
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-    } catch (error: any) {
-      console.error("Lỗi thêm vào giỏ hàng:", error);
-      setPopupText(`Lỗi khi thêm vào giỏ hàng: ${error.message}`);
+    } catch (err) {
+      console.error("❌ Lỗi khi mua ngay:", err);
+      setPopupText("Có lỗi xảy ra");
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
+
+  // Sửa lại hàm thêm vào giỏ hàng
+  const handleAddToCart = async () => {
+    const token = localStorage.getItem("token") || Cookies.get("authToken");
+
+    if (!token) {
+      setPopupText("Vui lòng đăng nhập để thêm vào giỏ hàng");
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+      return;
+    }
+
+    try {
+      const body = {
+        product_id: product?.id,
+        quantity,
+        option1: selectedColor || '', // Nếu không có màu sắc, truyền giá trị rỗng
+        option2: selectedSize || '', // Nếu không có kích thước, truyền giá trị rỗng
+        variant_id: selectedVariant?.id || '', // Nếu không có variant, truyền giá trị rỗng
+      };
+
+      // Gửi yêu cầu thêm vào giỏ hàng
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Thêm vào giỏ hàng thất bại");
+      }
+
+      setPopupText(`Đã thêm "${product?.name}" vào giỏ hàng!`);
+      window.dispatchEvent(new Event("cartUpdated"));
+    } catch (err: any) {
+      console.error("❌ Lỗi khi thêm vào giỏ hàng:", err);
+      setPopupText(err.message || "Đã xảy ra lỗi khi thêm sản phẩm");
+    } finally {
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+    }
+  };
+  
 
   // Hàm lấy giá gốc nếu có sale_price
   const getOriginalPrice = () => {
@@ -140,47 +182,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     return Number(product?.price || 0).toLocaleString('vi-VN');
   };
 
-  // Hàm xử lý mua ngay
-  const handleBuyNow = async () => {
-    const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token) {
-      setPopupText('Vui lòng đăng nhập để mua sản phẩm');
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/cart`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          product_id: product?.id,
-          quantity: quantity,
-          option1: selectedColor,
-          option2: selectedSize,
-          variant_id: selectedVariant.id, // Pass the selected variant ID
-        }),
-      });
-
-      if (res.ok) {
-        router.push('/cart');
-      } else {
-        const data = await res.json();
-        setPopupText(data.message || 'Thêm vào giỏ hàng thất bại');
-        setShowPopup(true);
-        setTimeout(() => setShowPopup(false), 2000);
-      }
-    } catch (err) {
-      console.error('❌ Lỗi khi mua ngay:', err);
-      setPopupText('Có lỗi xảy ra');
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-    }
-  };
+  
+  
 
   // Hàm xử lý toggle like (thêm vào hoặc bỏ khỏi mục yêu thích)
   const toggleLike = async () => {
@@ -344,74 +347,119 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
             {/* Màu sắc và Kích cỡ - Đưa gần dưới giá */}
             {/* Màu sắc */}
-            {(product.variants && product.variants.length > 0) && (
-              <div className="flex flex-col gap-2 mb-4 mt-4">
-                <p className="font-medium text-gray-700 text-lg">Màu Sắc:</p>
-                <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
-                  {product?.variants?.map((variant) => (
-                    <button
-                      key={variant.value2}
-                      onClick={() => {
-                        setSelectedColor(variant.value2);
-                        setSelectedVariant(variant); // Cập nhật variant đã chọn
-                      }}
-                      className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px]
-          ${selectedColor === variant.value2
-                          ? 'border-red-600 text-black bg-white'
-                          : 'border-gray-300 text-black bg-white hover:border-red-500'}`}
-                    >
-                      {selectedColor === variant.value2 && (
-                        <div
-                          className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
-                          style={{
-                            borderBottomLeftRadius: '7px',
-                            borderTopRightRadius: '7px',
+            {product?.variants && product?.variants.length > 0 && (
+              <div>
+                {/* Màu sắc */}
+                {product?.variants[0]?.option2 && (
+                  <div className="flex flex-col gap-2 mb-4 mt-4">
+                    <p className="font-medium text-gray-700 text-lg">{product.variants[0].option2}</p>
+                    <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
+                      {product?.variants?.map((variant, index) => (
+                        <button
+                          key={variant.value2 || `variant-${index}`}  // Dùng index làm key dự phòng nếu value2 là null hoặc undefined
+                          onClick={() => {
+                            setSelectedColor(variant.value2 || ''); // Chọn màu sắc
+                            setSelectedVariant(variant); // Lưu variant đã chọn
                           }}
+                          className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px]
+                  ${selectedColor === variant.value2
+                              ? 'border-red-600 text-black bg-white'
+                              : 'border-gray-300 text-black bg-white hover:border-red-500'}`}
                         >
-                          <span className="text-white text-[9px] font-bold leading-none">✓</span>
-                        </div>
-                      )}
-                      {variant.value2}
-                    </button>
-                  ))}
-                </div>
+                          {selectedColor === variant.value2 && (
+                            <div
+                              className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
+                              style={{
+                                borderBottomLeftRadius: '7px',
+                                borderTopRightRadius: '7px',
+                              }}
+                            >
+                              <span className="text-white text-[9px] font-bold leading-none">✓</span>
+                            </div>
+                          )}
+                          {variant.value2 || 'Chưa có màu sắc'} {/* Dự phòng nếu value2 là null hoặc undefined */}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Kích cỡ */}
+                {product?.variants[0]?.option1 && (
+                  <div className="flex flex-col gap-2 mb-4 mt-4">
+                    <p className="font-medium text-gray-700 text-lg">{product.variants[0].option1}</p>
+                    <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
+                      {product?.variants?.map((variant, index) => (
+                        <button
+                          key={variant.value1 || `variant-${index}`}  // Dùng index làm key dự phòng nếu value1 là null hoặc undefined
+                          onClick={() => {
+                            setSelectedSize(variant.value1 || ''); // Chọn kích cỡ
+                            setSelectedVariant(variant); // Lưu variant đã chọn
+                          }}
+                          className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px]
+                  ${selectedSize === variant.value1
+                              ? 'border-red-600 text-black bg-white'
+                              : 'border-gray-300 text-black bg-white hover:border-red-500'}`}
+                        >
+                          {selectedSize === variant.value1 && (
+                            <div
+                              className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
+                              style={{
+                                borderBottomLeftRadius: '7px',
+                                borderTopRightRadius: '7px',
+                              }}
+                            >
+                              <span className="text-white text-[9px] font-bold leading-none">✓</span>
+                            </div>
+                          )}
+                          {variant.value1 || 'Chưa có kích cỡ'} {/* Dự phòng nếu value1 là null hoặc undefined */}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Kích thước */}
-            {(product.variants && product.variants.length > 0) && (
-              <div className="flex flex-col gap-2 mb-4 mt-4">
-                <p className="font-medium text-gray-700 text-lg">Kích cỡ:</p>
-                <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
-                  {product?.variants?.map((variant) => (
-                    <button
-                      key={variant.value1}
-                      onClick={() => {
-                        setSelectedSize(variant.value1);
-                        setSelectedVariant(variant); // Cập nhật variant đã chọn
-                      }}
-                      className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px]
-          ${selectedSize === variant.value1
-                          ? 'border-red-600 text-black bg-white'
-                          : 'border-gray-300 text-black bg-white hover:border-red-500'}`}
-                    >
-                      {selectedSize === variant.value1 && (
-                        <div
-                          className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
-                          style={{
-                            borderBottomLeftRadius: '7px',
-                            borderTopRightRadius: '7px',
-                          }}
+            {/* Nếu không có variants, lấy trực tiếp từ product */}
+            {!product?.variants || product?.variants.length === 0 && (
+              <div>
+                {/* Màu sắc */}
+                {product?.option2 && (
+                  <div className="flex flex-col gap-2 mb-4 mt-4">
+                    <p className="font-medium text-gray-700 text-lg">{product.option2}</p>
+                    <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
+                      {product?.value2 && (
+                        <button
+                          onClick={() => setSelectedColor(product.value2 || '')}  // Dự phòng nếu value2 là undefined
+                          className="px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] border-gray-300 text-black bg-white hover:border-red-500"
                         >
-                          <span className="text-white text-[9px] font-bold leading-none">✓</span>
-                        </div>
+                          {product.value2 || 'Chưa có màu sắc'} {/* Dự phòng nếu value2 là null hoặc undefined */}
+                        </button>
                       )}
-                      {variant.value1}
-                    </button>
-                  ))}
-                </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Kích cỡ */}
+                {product?.option1 && (
+                  <div className="flex flex-col gap-2 mb-4 mt-4">
+                    <p className="font-medium text-gray-700 text-lg">{product.option1}</p>
+                    <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
+                      {product?.value1 && (
+                        <button
+                          onClick={() => setSelectedSize(product.value1 || '')}  // Dự phòng nếu value1 là undefined
+                          className="px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] border-gray-300 text-black bg-white hover:border-red-500"
+                        >
+                          {product.value1 || 'Chưa có kích cỡ'} {/* Dự phòng nếu value1 là null hoặc undefined */}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
 
 
             {/* Số lượng và hành động */}

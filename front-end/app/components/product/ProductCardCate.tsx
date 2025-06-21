@@ -1,4 +1,3 @@
-// ProductCardCate.tsx
 "use client";
 
 import { useState, useEffect } from "react"; // <-- Add this import
@@ -171,7 +170,7 @@ export default function ProductCardCate({
   return (
     <div
       onClick={handleViewDetail}
-      className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
+      className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-between mx-auto overflow-hidden transition cursor-pointer"
     >
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
@@ -206,8 +205,8 @@ export default function ProductCardCate({
         />
       </div>
 
-      <div className="flex flex-col mt-4 w-full px-1 pb-14">
-        <h4 className="text-base font-semibold text-black leading-tight line-clamp-2 capitalize pointer-events-none">
+      <div className="flex flex-col mt-4 w-full px-1 pb-14 flex-grow">
+        <h4 className="text-base font-semibold whitespace-nowrap overflow-hidden text-ellipsis text-black leading-tight line-clamp-2 capitalize pointer-events-none">
           {product.name}
         </h4>
 
@@ -232,8 +231,8 @@ export default function ProductCardCate({
               <AiFillStar
                 key={i}
                 className={`w-4 h-4 ${i < Math.round(product.rating)
-                    ? "text-yellow-500"
-                    : "text-gray-300"
+                  ? "text-yellow-500"
+                  : "text-gray-300"
                   }`}
               />
             ))}
