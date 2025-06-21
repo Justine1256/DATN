@@ -172,8 +172,8 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
                     <Image
                         src={mainImage}
                         alt="Xem trước ảnh"
-                        width={1000}
-                        height={1000}
+                        width={500}
+                        height={500}
                         className="max-w-[90%] max-h-[90%] object-contain rounded-2xl shadow-2xl"
                     />
 
