@@ -24,7 +24,8 @@ public function show($shopslug, $productslug)
 {
     $product = Product::with([
         'shop',
-        'category.parent' // <-- Load category và category cha
+        'category.parent',    // Load category + parent
+        'variants'            // Load danh sách các variant của sp
     ])
     ->where('slug', $productslug)
     ->whereHas('shop', function($query) use ($shopslug) {
@@ -36,8 +37,20 @@ public function show($shopslug, $productslug)
         return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
     }
 
-    return response()->json($product);
+    // Chuyển json ảnh cover thành array để FE dễ dùng
+    $product->image = json_decode($product->image, true);
+
+    // Nếu trong variants có image dạng json cũng decode luôn
+    foreach ($product->variants as $variant) {
+        $variant->image = json_decode($variant->image, true);
+    }
+
+    return response()->json([
+        'status' => true,
+        'data' => $product
+    ]);
 }
+
 
 
 public function getCategoryAndProductsBySlug($slug)
