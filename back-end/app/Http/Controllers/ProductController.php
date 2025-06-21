@@ -38,9 +38,6 @@ class ProductController extends Controller
             return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
         }
 
-        // Chuyển json ảnh cover thành array để FE dễ dùng
-        $product->image = json_decode($product->image, true);
-
         // Nếu trong variants có image dạng json cũng decode luôn
         foreach ($product->variants as $variant) {
             $variant->image = json_decode($variant->image, true);
