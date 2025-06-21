@@ -8,7 +8,7 @@
 :root {
   --background: #ffffff;
   /* Màu nền chính */
-  --foreground: #0a0a0a;
+  --foreground: rgb(31 41 55 / var(--tw-text-opacity, 1));
   /* Màu chữ chính */
   --color-background: var(--background);
   /* Biến tiện ích cho màu nền */
@@ -23,9 +23,9 @@
 /* Định nghĩa chế độ tối */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    /* --background: #0a0a0a; */
     /* Màu nền trong chế độ tối */
-    --foreground: #ededed;
+    /* --foreground: #ededed; */
     /* Màu chữ trong chế độ tối */
   }
 }
@@ -230,3 +230,184 @@ body {
   animation: glow-slide 2s linear infinite;
   /* Áp dụng animation glow-slide trong 2 giây, với tốc độ tuyến tính và lặp vô hạn */
 }
+
+.no-scrollbar {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE & Edge */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari */
+}
+.prose p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.prose p strong {
+  min-width: 120px;
+  font-weight: 600;
+  color: #111;
+}
+
+.prose a {
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.prose a:hover {
+  color: #DB4444;
+  /* chính là text-brand */
+}
+.product-description p {
+  margin-bottom: 0.5rem;
+  line-height: 1.75;
+}
+
+.product-description p strong {
+  font-weight: 600;
+  color: #111;
+  display: inline;
+  /* ✅ Bắt buộc inline */
+  margin-right: 0.25rem;
+  /* ✅ Cách ra một chút */
+}
+
+.product-description p br {
+  display: none;
+  /* ✅ Nếu backend có <br> dư, loại bỏ */
+}
+
+.product-description a {
+  text-decoration: underline;
+  transition: color 0.2s ease-in-out;
+}
+
+.product-description a:hover {
+  color: #DB4444;
+}
+.product-description p {
+  white-space: normal;
+}
+
+.product-description p * {
+  vertical-align: baseline;
+}
+.text-red-500 {
+  color: #EF4444;
+}
+
+.text-red-700 {
+  color: #B91C1C;
+}
+
+.hover\:text-red-700:hover {
+  color: #B91C1C;
+}
+
+a {
+  text-decoration: none;
+}
+.hashtag {
+  text-decoration: underline;
+  /* Gạch chân các hashtag */
+  color: red;
+  /* Đặt màu cho hashtag */
+}
+
+.hashtag:hover {
+  color: darkred;
+  /* Đổi màu khi hover */
+}
+
+ .animate-slide-left {
+  animation: slideLeft 0.3s ease;
+ }
+ .animate-slide-right {
+   animation: slideRight 0.3s ease;
+ }
+ @keyframes slideLeft {
+   from { transform: translateX(30px); opacity: 0.3; }
+   to { transform: translateX(0); opacity: 1; }
+ }
+ @keyframes slideRight {
+  from { transform: translateX(-30px); opacity: 0.3; }
+   to { transform: translateX(0); opacity: 1; }
+}.animate-fade-in {
+    animation: fadeIn 0.25s ease-out;
+   }
+   @keyframes fadeIn {
+     from { opacity: 0; }
+     to { opacity: 1; }
+   }
+     /* Add these styles to your global CSS or Tailwind CSS file */
+  
+     .animate-slide-left {
+       animation: slideLeft 0.3s ease-out;
+     }
+  
+     .animate-slide-right {
+       animation: slideRight 0.3s ease-out;
+     }
+  
+     @keyframes slideLeft {
+       from {
+         transform: translateX(30px);
+         opacity: 0.3;
+       }
+  
+       to {
+         transform: translateX(0);
+         opacity: 1;
+       }
+     }
+  
+     @keyframes slideRight {
+       from {
+         transform: translateX(-30px);
+         opacity: 0.3;
+       }
+  
+       to {
+         transform: translateX(0);
+         opacity: 1;
+       }
+     }
+  
+     .animate-fade-in {
+       animation: fadeIn 0.25s ease-out;
+     }
+  
+     @keyframes fadeIn {
+       from {
+         opacity: 0;
+       }
+  
+       to {
+         opacity: 1;
+       }
+     }
+  
+     /* Hide scrollbar but keep functionality */
+     .no-scrollbar {
+       -ms-overflow-style: none;
+       scrollbar-width: none;
+     }
+  
+     .no-scrollbar::-webkit-scrollbar {
+       display: none;
+     }
+  
+     /* Smooth scroll snapping for thumbnails */
+     .thumbnail-container {
+       scroll-snap-type: x mandatory;
+     }
+  
+     .thumbnail-item {
+       scroll-snap-align: start;
+     }

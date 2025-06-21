@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import { CartItem } from './hooks/CartItem';
 
 const discounts = [
   { id: 1, code: 'SALE30', label: 'Giảm đến 30% – Đơn hàng tối thiểu 420K', time: '28 Tháng 6 – 02 Tháng 8', left: 0 },
@@ -10,22 +11,6 @@ const discounts = [
   { id: 4, code: 'SALE10', label: 'Giảm đến 10% – Đơn hàng tối thiểu 100K', time: '01 Tháng 7 – 31 Tháng 7', left: 12 },
 ];
 
-interface CartItem {
-  id: number;
-  quantity: number;
-  price: number;
-  product: {
-    id: number;
-    name: string;
-    image: string;
-    price: number;
-    sale_price?: number | null;
-    option1?: string;
-    value1?: string;
-    option2?: string;
-    value2?: string;
-  };
-}
 
 interface Props {
   cartItems: CartItem[];
@@ -50,19 +35,24 @@ export default function CartSummarySection({ cartItems }: Props) {
     return () => el.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const subtotal = cartItems.reduce((acc, item) => acc + item.quantity * Number(item.product?.price || 0), 0);
+  // 🚀 Dùng useMemo: tự tính khi cartItems thay đổi
+  const subtotal = useMemo(() => {
+    return cartItems.reduce((acc, item) => acc + item.quantity * Number(item.product?.price || 0), 0);
+  }, [cartItems]);
 
-  const promotionDiscount = cartItems.reduce((acc, item) => {
-    const { price, sale_price } = item.product;
-    if (sale_price && sale_price < price) {
-      return acc + (price - sale_price) * item.quantity;
-    }
-    return acc;
-  }, 0);
+  const promotionDiscount = useMemo(() => {
+    return cartItems.reduce((acc, item) => {
+      const { price, sale_price } = item.product;
+      if (sale_price && sale_price < price) {
+        return acc + (price - sale_price) * item.quantity;
+      }
+      return acc;
+    }, 0);
+  }, [cartItems]);
 
   const discountedSubtotal = subtotal - promotionDiscount;
   const shipping = cartItems.length > 0 ? 20000 : 0;
-  const voucherDiscount = 0;
+  const voucherDiscount = 0; // có thể set theo selectedDiscountId sau
   const total = discountedSubtotal + shipping - voucherDiscount;
 
   return (

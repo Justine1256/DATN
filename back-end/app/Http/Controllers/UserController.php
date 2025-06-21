@@ -219,6 +219,7 @@ public function updateAvatar(Request $request)
     return response()->json([
         'message' => 'Cập nhật ảnh đại diện thành công!',
         'avatar_url' => asset('storage/' . $path),
+        'profilePicture' => $user->avatar,
         'user' => $user
     ]);
 }

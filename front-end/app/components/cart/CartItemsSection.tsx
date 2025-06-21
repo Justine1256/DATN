@@ -4,34 +4,18 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
-
-interface CartItem {
-  id: number;
-  quantity: number;
-  price: number;
-  product: {
-    id: number;
-    name: string;
-    image: string[]; // ✅ CHỈNH image thành mảng
-    price: number;
-    sale_price?: number | null;
-    option1?: string;
-    value1?: string;
-    option2?: string;
-    value2?: string;
-  };
-}
+import { CartItem } from './hooks/CartItem';
 
 interface Props {
-  cartItems: CartItem[]; // State cartItems
-  setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>; // Function để cập nhật state cartItems
+  cartItems: CartItem[];
+  setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }
 
 export default function CartItemsSection({
   cartItems: propsCartItems,
   setCartItems: propsSetCartItems,
 }: Props) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]); // Local state
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCartItems = async () => {
@@ -50,7 +34,7 @@ export default function CartItemsSection({
 
       const data = await res.json();
       setCartItems(data);
-      propsSetCartItems(data); // Make sure this is set properly
+      propsSetCartItems(data);
       localStorage.setItem('cartItems', JSON.stringify(data));
     } catch (error) {
       console.warn('API thất bại, fallback localStorage');
@@ -59,7 +43,7 @@ export default function CartItemsSection({
         try {
           const data = JSON.parse(stored);
           setCartItems(data);
-          propsSetCartItems(data); // Ensure this is set properly
+          propsSetCartItems(data);
         } catch (err) {
           console.error('Lỗi đọc localStorage:', err);
         }
@@ -88,8 +72,9 @@ export default function CartItemsSection({
 
       const updated = cartItems.filter((item) => item.id !== id);
       setCartItems(updated);
-      propsSetCartItems(updated); // Update the cart items in the parent
+      propsSetCartItems(updated);
       localStorage.setItem('cartItems', JSON.stringify(updated));
+      window.dispatchEvent(new Event('cartUpdated'));
     } catch (error) {
       console.error('Lỗi xoá sản phẩm khỏi giỏ:', error);
     }
@@ -118,18 +103,30 @@ export default function CartItemsSection({
         item.id === id ? { ...item, quantity } : item
       );
       setCartItems(updated);
-      propsSetCartItems(updated); // Update the cart items in the parent
+      propsSetCartItems(updated);
       localStorage.setItem('cartItems', JSON.stringify(updated));
     } catch (error) {
       console.error('Lỗi cập nhật số lượng:', error);
     }
   };
 
+  const getPriceToUse = (item: CartItem) => {
+    return (
+      item.variant?.sale_price ??
+      item.variant?.price ??
+      item.product.sale_price ??
+      item.product.price ??
+      0
+    );
+  };
+
   const renderVariant = (item: CartItem) => {
     const variants: string[] = [];
 
-    if (item.product.option1 && item.product.value1) variants.push(item.product.value1);
-    if (item.product.option2 && item.product.value2) variants.push(item.product.value2);
+    if (item.variant?.option1 && item.variant?.value1)
+      variants.push(`${item.variant.option1}: ${item.variant.value1}`);
+    if (item.variant?.option2 && item.variant?.value2)
+      variants.push(`${item.variant.option2}: ${item.variant.value2}`);
 
     return variants.length > 0 ? (
       <p className="text-xs text-gray-400">{variants.join(', ')}</p>
@@ -138,11 +135,14 @@ export default function CartItemsSection({
     );
   };
 
-  if (loading) return <p className="text-center py-10">Đang tải giỏ hàng...</p>;
+  const formatPrice = (value?: number | null) =>
+    (value ?? 0).toLocaleString('vi-VN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] text-black font-semibold text-sm bg-white p-4 shadow">
         <div className="text-left">Sản phẩm</div>
         <div className="text-left">Biến thể</div>
@@ -151,82 +151,90 @@ export default function CartItemsSection({
         <div className="text-right">Tổng cộng</div>
       </div>
 
-      {/* Items */}
-      {cartItems.map((item) => {
-        const priceToUse = item.product.sale_price ?? item.product.price;
-        const firstImage = item.product.image?.[0] || 'placeholder.jpg';
+      {loading ? (
+        <p className="text-center py-10">Đang tải giỏ hàng...</p>
+      ) : cartItems.length === 0 ? (
+        <div className="p-10 text-center border rounded-md bg-white text-gray-500 text-lg shadow">
+          🛒 Giỏ hàng của bạn đang trống
+        </div>
+      ) : (
+        cartItems.map((item) => {
+          const priceToUse = getPriceToUse(item);
+          const firstImage = item.product.image?.[0] || 'placeholder.jpg';
 
-        return (
-          <div
-            key={item.id}
-            className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] items-center bg-white p-4 shadow relative"
-          >
-            {/* Product */}
-            <div className="flex items-center gap-4 relative text-left">
-              <button
-                onClick={() => handleRemove(item.id)}
-                className="absolute -top-2 -left-2 bg-white border border-brand text-brand rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
-                title="Xoá sản phẩm"
-              >
-                ✕
-              </button>
+          return (
+            <div
+              key={item.id}
+              className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] items-center bg-white p-4 shadow relative"
+            >
+              <div className="flex items-center gap-4 relative text-left">
+                <button
+                  onClick={() => handleRemove(item.id)}
+                  className="absolute -top-2 -left-2 bg-white border border-brand text-brand rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
+                  title="Xoá sản phẩm"
+                >
+                  ✕
+                </button>
 
-              <div className="w-16 h-16 relative shrink-0">
-                <Image
-                  src={`${STATIC_BASE_URL}/${firstImage}`}
-                  alt={item.product.name}
-                  fill
-                  className="object-contain"
+                <div className="w-16 h-16 relative shrink-0">
+                  <Image
+                    src={`${STATIC_BASE_URL}/${firstImage}`}
+                    alt={item.product.name}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+
+                <span className="text-sm font-medium text-black">
+                  {item.product.name}
+                </span>
+              </div>
+
+              <div>{renderVariant(item)}</div>
+
+              <div className="text-center text-sm text-black">
+                {item.variant?.sale_price || item.product?.sale_price ? (
+                  <div>
+                    <span className="text-red-500 font-semibold">
+                      {formatPrice(priceToUse)} đ
+                    </span>
+                    <br />
+                    <span className="line-through text-gray-400 text-xs">
+                      {formatPrice(
+                        item.variant?.price ?? item.product?.price
+                      )}{' '}
+                      đ
+                    </span>
+                  </div>
+                ) : (
+                  <span className="font-semibold">
+                    {formatPrice(priceToUse)} đ
+                  </span>
+                )}
+              </div>
+
+              <div className="text-center">
+                <input
+                  type="number"
+                  min={1}
+                  value={item.quantity}
+                  onChange={(e) =>
+                    handleQuantityChange(
+                      item.id,
+                      parseInt(e.target.value || '1')
+                    )
+                  }
+                  className="w-20 px-3 py-2 border rounded-md text-center text-black"
                 />
               </div>
 
-              <span className="text-sm font-medium text-black">
-                {item.product.name}
-              </span>
+              <div className="text-right text-sm font-semibold text-red-500">
+                {formatPrice(priceToUse * item.quantity)} đ
+              </div>
             </div>
-
-            {/* Variant */}
-            <div>{renderVariant(item)}</div>
-
-            {/* Price */}
-            <div className="text-center text-sm text-black">
-              {item.product.sale_price ? (
-                <div>
-                  <span className="text-red-500 font-semibold">
-                    {item.product.sale_price.toLocaleString()}đ
-                  </span>
-                  <br />
-                  <span className="line-through text-gray-400 text-xs">
-                    {item.product.price.toLocaleString()}đ
-                  </span>
-                </div>
-              ) : (
-                <span className="font-semibold">
-                  {item.product.price.toLocaleString()}đ
-                </span>
-              )}
-            </div>
-
-            {/* Quantity */}
-            <div className="text-center">
-              <input
-                type="number"
-                min={1}
-                value={item.quantity}
-                onChange={(e) =>
-                  handleQuantityChange(item.id, parseInt(e.target.value || '1'))
-                }
-                className="w-20 px-3 py-2 border rounded-md text-center text-black"
-              />
-            </div>
-
-            {/* Subtotal */}
-            <div className="text-right text-sm font-semibold text-red-500">
-              {(priceToUse * item.quantity).toLocaleString()}đ
-            </div>
-          </div>
-        );
-      })}
+          );
+        })
+      )}
     </div>
   );
 }

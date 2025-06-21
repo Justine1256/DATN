@@ -2,11 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import ProductCard, { Product } from "@/app/components/product/ProductCard";
+import ProductCard from "@/app/components/product/ProductCardCate";
 import LandingSlider from "@/app/components/home/LandingSlider";
-import { LoadingSkeleton } from "@/app/components/loading/loading";
-import { API_BASE_URL } from '@/utils/api';         
-// ✅ Kiểu dữ liệu cho danh mục
+import { API_BASE_URL } from "@/utils/api";
+import CategoryGrid from "@/app/components/home/CategoryGrid";
+
+interface Product {
+  id: number;
+  name: string;
+  image: string[];
+  slug: string;
+  price: number;
+  oldPrice: number;
+  rating: number;
+  discount: number;
+  option1?: string;
+  value1?: string;
+  sale_price?: number;
+  shop_slug: string;
+  shop?: {
+    slug: string;
+  };
+  createdAt?: number;
+}
+
 interface Category {
   id: number;
   name: string;
@@ -17,36 +36,20 @@ export default function CategoryPage() {
   const { slug } = useParams() as { slug?: string };
   const router = useRouter();
 
-  // ✅ Danh sách sản phẩm, danh mục, trạng thái
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
-  const totalPages = Math.ceil(products.length / itemsPerPage);
-  const paginatedProducts = products.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
-  // ✅ Bộ lọc giá nâng cao
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000000]);
-  const [sortOptions, setSortOptions] = useState({
-    asc: false,
-    desc: false,
-    discount: false,
-  });
-  const [showPriceFilter, setShowPriceFilter] = useState(false);
+  const [currentPriceRangeValue, setCurrentPriceRangeValue] = useState<number>(50000000);
+  const [filterPriceMax, setFilterPriceMax] = useState<number>(50000000);
 
-  // ✅ Toggle checkbox bộ lọc
-  const toggleOption = (key: keyof typeof sortOptions) => {
-    setSortOptions((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
+  const [selectedPriceFilter, setSelectedPriceFilter] = useState<string | null>(null);
 
-  // ✅ Lấy danh sách danh mục
   useEffect(() => {
     fetch(`${API_BASE_URL}/category`)
       .then((res) => res.json())
@@ -54,16 +57,12 @@ export default function CategoryPage() {
       .catch(console.error);
   }, []);
 
-  // ✅ Khi thay đổi danh mục → load sản phẩm & scroll đầu trang
   useEffect(() => {
     setLoading(true);
     setError(null);
     setProducts([]);
-    window.scrollTo({ top: 0, behavior: "smooth" });
 
-    const url = slug
-      ? `${API_BASE_URL}/category/${slug}/products`
-      : `${API_BASE_URL}/product`;
+    const url = slug ? `${API_BASE_URL}/category/${slug}/products` : `${API_BASE_URL}/product`;
 
     fetch(url)
       .then((res) => {
@@ -71,14 +70,39 @@ export default function CategoryPage() {
         return res.json();
       })
       .then((data) => {
-        const items = slug ? data.products : data;
+        let items: Product[] = slug ? data.products : data;
         if (!Array.isArray(items)) throw new Error("Data format invalid");
+
+        items = items.filter((product: Product) =>
+          (product.price || 0) >= 0 && (product.price || 0) <= filterPriceMax
+        );
+
+        if (selectedPriceFilter === "asc") {
+          items.sort((a: Product, b: Product) => (a.price || 0) - (b.price || 0));
+        } else if (selectedPriceFilter === "desc") {
+          items.sort((a: Product, b: Product) => (b.price || 0) - (a.price || 0));
+        } else if (selectedPriceFilter === "discount") {
+          items.sort((a: Product, b: Product) => (b.discount || 0) - (a.discount || 0));
+        } else {
+          if (selectedSort === "Mới Nhất") {
+            items.sort((a: Product, b: Product) => (b.createdAt || 0) - (a.createdAt || 0));
+          } else if (selectedSort === "Bán Chạy") {
+            // Logic for sorting by "Best Selling"
+          }
+        }
+
         setProducts(items);
         setCurrentPage(1);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, selectedSort, filterPriceMax, selectedPriceFilter]);
+
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const paginatedProducts = products.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -86,183 +110,194 @@ export default function CategoryPage() {
     }
   };
 
+  const handleCategorySelect = (categorySlug: string | null) => {
+    if (categorySlug) {
+      router.push(`/category/${categorySlug}`);
+    } else {
+      router.push(`/category`);
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
+  };
+
+  const handleApplyFilters = () => {
+    setFilterPriceMax(currentPriceRangeValue);
+  };
+
+  const handleResetFilters = () => {
+    setSelectedSort("Phổ Biến");
+    setSelectedPriceFilter(null);
+    setCurrentPriceRangeValue(50000000);
+    setFilterPriceMax(50000000);
+  };
+
   return (
     <div className="max-w-[1170px] mx-auto px-4 pt-6 pb-10 text-black">
       <LandingSlider />
+      <CategoryGrid />
 
-      {/* ✅ Bộ lọc danh mục và sắp xếp */}
-      <div className="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        {/* ✅ Dropdown danh mục */}
-        <div className="w-full md:w-1/5 ml-2">
-          <select
-            value={slug || "all"} // Set value on the select element
-            onChange={(e) => {
-              const value = e.target.value;
-              router.push(value === "all" ? `/category` : `/category/${value}`);
-            }}
-            className="w-full border border-gray-300 rounded px-4 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#DB4444] transition"
-          >
-            <option value="all">
-              Tất Cả Danh Mục
-            </option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.slug}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-
-        </div>
-
-        {/* ✅ Bộ lọc sắp xếp + dropdown giá */}
-        <div className="flex flex-wrap gap-2 items-center justify-end text-black relative">
-          <span className="text-sm">Sắp xếp theo</span>
-
-          {/* ✅ Nút lọc cơ bản */}
-          {["Phổ Biến", "Mới Nhất", "Bán Chạy"].map((label, index) => (
-            <button
-              key={index}
-              className="px-3 py-1 rounded border text-sm transition-colors duration-200 hover:bg-[#DB4444] hover:text-white"
-            >
-              {label}
-            </button>
-          ))}
-
-          {/* ✅ Dropdown "Giá" nâng cao */}
-          <div className="relative">
-            <button
-              onClick={() => setShowPriceFilter(!showPriceFilter)}
-              className="border px-3 py-1 mr-2 rounded text-sm text-black hover:border-[#DB4444] transition"
-            >
-              Giá ▾
-            </button>
-
-            {showPriceFilter && (
-              <div className="absolute right-0 mt-2 w-72 bg-white border rounded shadow z-50 p-4">
-                <label className="flex items-center gap-2 text-sm mb-2">
-                  <input
-                    type="checkbox"
-                    checked={sortOptions.asc}
-                    onChange={() => toggleOption("asc")}
-                  />
-                  Giá: thấp đến cao
-                </label>
-                <label className="flex items-center gap-2 text-sm mb-2">
-                  <input
-                    type="checkbox"
-                    checked={sortOptions.desc}
-                    onChange={() => toggleOption("desc")}
-                  />
-                  Giá: cao đến thấp
-                </label>
-                <label className="flex items-center gap-2 text-sm mb-4">
-                  <input
-                    type="checkbox"
-                    checked={sortOptions.discount}
-                    onChange={() => toggleOption("discount")}
-                  />
-                  Giảm giá nhiều nhất
-                </label>
-
-                {/* ✅ Slider khoảng giá */}
-                <div className="mb-1 text-sm font-medium">Khoảng giá (₫):</div>
-                <div className="flex justify-between text-xs text-gray-600 mb-2">
-                  <span>{priceRange[0].toLocaleString()}₫</span>
-                  <span>{priceRange[1].toLocaleString()}₫</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={50000000}
-                  step={100000}
-                  value={priceRange[0]}
-                  onChange={(e) =>
-                    setPriceRange([parseInt(e.target.value), priceRange[1]])
-                  }
-                  className="w-full mb-2 accent-[#DB4444]"
-                />
-                <input
-                  type="range"
-                  min={0}
-                  max={50000000}
-                  step={100000}
-                  value={priceRange[1]}
-                  onChange={(e) =>
-                    setPriceRange([priceRange[0], parseInt(e.target.value)])
-                  }
-                  className="w-full accent-[#DB4444]"
-                />
-
-                {/* ✅ Nút "Lọc" */}
+      <div className="mt-8 flex flex-col lg:flex-row gap-6">
+        <div className="w-full lg:w-1/4 flex flex-col gap-8">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Danh mục</h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleCategorySelect(null)}
+                className={`w-full text-left px-4 py-2 rounded transition-colors
+                  ${!slug ? "text-[#DB4444] font-semibold" : "text-black hover:text-[#DB4444]"}`}
+              >
+                Tất Cả Sản Phẩm
+              </button>
+              {categories.map((cat) => (
                 <button
-                  className="mt-4 w-full bg-[#DB4444] text-white text-sm py-2 rounded hover:opacity-90 transition"
-                  onClick={() => {
-                    setShowPriceFilter(false);
-                    // TODO: Gọi API hoặc lọc dữ liệu ở đây
-                    console.log("Lọc với:", sortOptions, priceRange);
-                  }}
+                  key={cat.id}
+                  onClick={() => handleCategorySelect(cat.slug)}
+                  className={`w-full text-left px-4 py-2 rounded transition-colors
+                    ${cat.slug === slug ? "text-[#DB4444] font-semibold" : "text-black hover:text-[#DB4444]"}`}
                 >
-                  Lọc
+                  {cat.name}
                 </button>
-              </div>
-            )}
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-4">
+            <h3 className="text-lg font-semibold mb-3">Bộ lọc & Sắp xếp</h3>
+
+            <div className="space-y-2 mb-6">
+              <h4 className="text-base font-medium mb-1">Sắp xếp</h4>
+              {["Phổ Biến", "Mới Nhất", "Bán Chạy"].map((label) => (
+                <label key={label} className="flex items-center space-x-2 text-black cursor-pointer w-full px-4 py-2 rounded transition-colors hover:text-[#DB4444]">
+                  <input
+                    type="radio"
+                    name="sortOption"
+                    className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
+                    checked={selectedSort === label}
+                    onChange={() => {
+                      setSelectedSort(label);
+                      setSelectedPriceFilter(null);
+                    }}
+                  />
+                  <span className={`${selectedSort === label && !selectedPriceFilter ? "text-[#DB4444] font-semibold" : ""}`}>
+                    {label}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-base font-medium mb-1">Giá</h4>
+              <label className="flex items-center space-x-2 text-black cursor-pointer">
+                <input
+                  type="radio"
+                  name="priceFilterOptions"
+                  className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
+                  checked={selectedPriceFilter === "asc"}
+                  onChange={() => {
+                    setSelectedPriceFilter("asc");
+                    setSelectedSort("Phổ Biến");
+                  }}
+                />
+                <span>Giá: thấp đến cao</span>
+              </label>
+              <label className="flex items-center space-x-2 text-black cursor-pointer">
+                <input
+                  type="radio"
+                  name="priceFilterOptions"
+                  className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
+                  checked={selectedPriceFilter === "desc"}
+                  onChange={() => {
+                    setSelectedPriceFilter("desc");
+                    setSelectedSort("Phổ Biến");
+                  }}
+                />
+                <span>Giá: cao đến thấp</span>
+              </label>
+              <label className="flex items-center space-x-2 text-black cursor-pointer">
+                <input
+                  type="radio"
+                  name="priceFilterOptions"
+                  className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
+                  checked={selectedPriceFilter === "discount"}
+                  onChange={() => {
+                    setSelectedPriceFilter("discount");
+                    setSelectedSort("Phổ Biến");
+                  }}
+                />
+                <span>Giảm giá nhiều nhất</span>
+              </label>
+
+              <button
+                onClick={handleApplyFilters}
+                className="w-full py-2 bg-[#DB4444] text-white rounded-lg hover:bg-red-600 transition-colors mt-4"
+              >
+                Lọc
+              </button>
+              <button
+                onClick={handleResetFilters}
+                className="w-full py-2 border border-gray-300 text-black rounded-lg hover:bg-gray-100 transition-colors mt-2"
+              >
+                Đặt lại
+              </button>
+            </div>
           </div>
         </div>
+
+        <div className="flex-1">
+          {error ? (
+            <p className="text-red-500">{error}</p>
+          ) : products.length === 0 && !loading ? (
+            <p className="text-gray-500">Không có sản phẩm nào.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[650px] justify-start items-start auto-rows-auto">
+              {paginatedProducts.map((product, idx) => (
+                <div key={idx}>
+                  {loading ? (
+                    <div className="h-[250px] bg-gray-100 rounded animate-pulse" />
+                  ) : (
+                    <ProductCard product={product!} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6 gap-2 flex-wrap">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-[#DB4444] hover:text-white transition"
+                disabled={currentPage === 1}
+              >
+                Trước
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-3 py-1 border rounded ${currentPage === page
+                    ? "bg-[#DB4444] text-white"
+                    : "hover:bg-[#DB4444] hover:text-white"
+                    } transition`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-[#DB4444] hover:text-white transition"
+                disabled={currentPage === totalPages}
+              >
+                Sau
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-
-      {/* ✅ Danh sách sản phẩm */}
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, idx) => (
-            <LoadingSkeleton key={idx} />
-          ))}
-        </div>
-      ) : error ? (
-        <p className="text-red-500">{error}</p>
-      ) : products.length === 0 ? (
-        <p className="text-gray-500">Không có sản phẩm nào.</p>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 min-h-[650px] justify-start place-items-start">
-          {paginatedProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      )}
-
-      {/* ✅ Phân trang */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-6 gap-2 flex-wrap">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-[#DB4444] hover:text-white transition"
-            disabled={currentPage === 1}
-          >
-            Trước
-          </button>
-
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              onClick={() => handlePageChange(page)}
-              className={`px-3 py-1 border rounded ${
-                currentPage === page
-                  ? "bg-[#DB4444] text-white"
-                  : "hover:bg-[#DB4444] hover:text-white"
-              } transition`}
-            >
-              {page}
-            </button>
-          ))}
-
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-[#DB4444] hover:text-white transition"
-            disabled={currentPage === totalPages}
-          >
-            Sau
-          </button>
-        </div>
-      )}
     </div>
   );
 }

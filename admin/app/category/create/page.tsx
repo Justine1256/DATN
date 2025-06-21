@@ -1,14 +1,14 @@
 "use client";
 
+import ActionButtons from "@/app/components/category/create/ActionButtons";
+import CategoryInfoForm from "@/app/components/category/create/Form";
+import CateImageDrop from "@/app/components/category/create/ImageDrop";
+import CategoryPreviewCard from "@/app/components/category/create/PreviewCard";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
-import CategoryPreviewCard from "@/app/components/Categories/edit/PreviewCard";
-import CateImageDrop from "@/app/components/Categories/edit/ImageDrop";
-import CategoryInfoForm from "@/app/components/Categories/edit/Form";
-import ActionButtons from "@/app/components/Categories/edit/ActionButtons";
 
-// ✅ Dữ liệu giả category (mock)
+// ✅ Dữ liệu giả category
 const mockCategories = [
   {
     id: "FS16276",
@@ -24,8 +24,8 @@ const mockCategories = [
   },
 ];
 
-export default function EditCategoryPage() {
-  const { id } = useParams() as { id: string };
+export default function EditCategoryMockPage() {
+  const id = useParams()?.id as string;
   const data = mockCategories.find((c) => c.id === id);
 
   const [formData, setFormData] = useState({
@@ -47,11 +47,10 @@ export default function EditCategoryPage() {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-xl font-bold text-gray-800 mb-4">
-        Edit Category - ID: {formData.id}
+        Category Edit (ID: {formData.id})
       </h1>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Preview Card */}
         <CategoryPreviewCard
           image={formData.image}
           title={formData.title}
@@ -60,17 +59,10 @@ export default function EditCategoryPage() {
           id={formData.id}
         />
 
-        {/* Form Area */}
         <div className="xl:col-span-2 space-y-6">
-          <CateImageDrop
-            image={formData.image}
-            setImage={(url) => handleSetData("image", url)}
-          />
+          <CateImageDrop image={formData.image} setImage={(url) => handleSetData("image", url)} />
 
-          <CategoryInfoForm
-            data={formData}
-            setData={handleSetData}
-          />
+          <CategoryInfoForm data={formData} setData={handleSetData} />
 
           <ActionButtons />
         </div>

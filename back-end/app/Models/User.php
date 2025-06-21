@@ -26,6 +26,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'verify_token',
+        'avatar',
     ];
 
     /**
@@ -52,7 +53,7 @@ class User extends Authenticatable
     }
     public function getAvatarAttribute($value)
     {
-        return $value ?? 'uploads/users/default-avatar.png';
+        return $value ?? 'avatars/default-avatar.jpg';
     }
     public function shop()
 {

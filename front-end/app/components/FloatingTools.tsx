@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Bot, MessageCircle, X, User, ImageIcon } from 'lucide-react'; // ImageIcon for the upload button
+import { MessageCircle, X, ImageIcon, Send, Smile, Plus } from 'lucide-react';
 import Image from 'next/image';
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { API_BASE_URL } from '@/utils/api';
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 
 interface User {
   id: number;
@@ -31,12 +31,17 @@ export default function ModernFloatingTools() {
   const [activeChat, setActiveChat] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [images, setImages] = useState<File[]>([]); // To store selected images
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]); // To store preview URLs of selected images
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(3); // Mock unread count
+  const [mounted, setMounted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Fix hydration issue
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -46,13 +51,22 @@ export default function ModernFloatingTools() {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    if (activeChat && mounted) {
+      fetchMessages();
+    }
+  }, [activeChat, mounted]);
+
   const fetchMessages = async () => {
-    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    if (!mounted) return;
+
+    const token = (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || Cookies.get('authToken');
     if (!token) {
       console.warn('Người dùng chưa đăng nhập!');
       return;
     }
 
+    setLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/messages`, {
         params: { user_id: RECEIVER_ID },
@@ -73,22 +87,22 @@ export default function ModernFloatingTools() {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() && images.length === 0) return; // Do not send if there's no input or images
+    if (!input.trim() && images.length === 0) return;
 
-    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    const token = (typeof window !== 'undefined' ? localStorage.getItem('token') : null) || Cookies.get('authToken');
     if (!token) {
       console.warn('Không tìm thấy token, người dùng chưa đăng nhập!');
       return;
     }
 
-    setLoading(true); // Set loading state to true when sending message
+    setLoading(true);
 
     const formData = new FormData();
     formData.append('receiver_id', RECEIVER_ID.toString());
     formData.append('message', input);
 
     images.forEach((image) => {
-      formData.append('images[]', image); // Append each image selected
+      formData.append('images[]', image);
     });
 
     try {
@@ -105,12 +119,12 @@ export default function ModernFloatingTools() {
       );
       setMessages((prev) => [...prev, res.data]);
       setInput('');
-      setImages([]); // Clear images after sending
-      setImagePreviews([]); // Clear image previews after sending
+      setImages([]);
+      setImagePreviews([]);
     } catch (error) {
       console.error('Lỗi khi gửi tin nhắn:', error);
     } finally {
-      setLoading(false); // Reset loading state after sending
+      setLoading(false);
     }
   };
 
@@ -139,6 +153,7 @@ export default function ModernFloatingTools() {
     setImages(updatedImages);
 
     const updatedPreviews = [...imagePreviews];
+    URL.revokeObjectURL(updatedPreviews[index]);
     updatedPreviews.splice(index, 1);
     setImagePreviews(updatedPreviews);
   };
@@ -146,15 +161,23 @@ export default function ModernFloatingTools() {
   const renderAvatar = (msg: Message) => {
     const isReceiver = msg.sender_id === RECEIVER_ID;
     const user = isReceiver ? msg.sender : msg.receiver;
+
     return (
-      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
         <Image
-          src={'/default-avatar.png'}
+          src={user.avatar ? `${STATIC_BASE_URL}${user.avatar}` : '/default-avatar.jpg'} // Ensure correct path
           alt={user.name}
           width={32}
           height={32}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none'; // Hide the image if it fails to load
+          }}
         />
+        <span className="text-white text-xs font-bold">
+          {user.name.charAt(0).toUpperCase()}
+        </span>
       </div>
     );
   };
@@ -165,56 +188,51 @@ export default function ModernFloatingTools() {
   };
 
   const formatTime = (dateString: string) => {
+    if (!mounted) return '';
     return new Date(dateString).toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit'
     });
   };
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <>
-      {/* Floating Button Bar */}
-      <div className="fixed right-20 bottom-6 z-[9999] flex flex-col items-center">
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-lg">
-          {/* Trợ lý AI Button */}
-          <button
-            onClick={() => {
-              setShowList(false);
-              setActiveChat(false);
-              // Handle AI Assistant logic here
-            }}
-            className="flex flex-col items-center justify-center w-16 h-16 bg-[#db4444] hover:bg-[#c93333] text-white transition-colors relative group"
-          >
-            <Bot size={18} />
-            <span className="text-xs mt-1 font-medium">Trợ lý</span>
-          </button>
-
-          {/* Chat Button */}
+      {/* Floating Button */}
+      <div className="fixed right-6 bottom-6 z-[9999] flex flex-col items-center">
+        <div className="relative">
           <button
             onClick={() => {
               setShowList(!showList);
               setActiveChat(false);
             }}
-            className="flex flex-col items-center justify-center w-16 h-16 bg-[#db4444] hover:bg-[#c93333] text-white transition-colors relative"
+            className="group flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[#db4444] to-[#e85555] hover:from-[#c93333] hover:to-[#ff6b6b] text-white transition-all duration-300 rounded-full focus:outline-none focus:ring-4 focus:ring-[#db4444]/30"
+
           >
-            <MessageCircle size={18} />
-            <span className="text-xs mt-1 font-medium">Tin mới</span>
+            <MessageCircle size={24} />
           </button>
         </div>
       </div>
 
       {/* Chat Popup */}
       {showList && (
-        <div className="fixed bottom-6 right-[150px] z-[9998] flex shadow-xl rounded-xl overflow-hidden bg-white">
+        <div className="fixed bottom-6 right-[100px] z-[9998] flex shadow-2xl rounded-2xl overflow-hidden bg-white border border-gray-100 backdrop-blur-sm">
           {/* Left: Contact List */}
-          <div className="bg-white border-r border-gray-200 flex flex-col text-black w-[320px] h-[580px]">
+          <div className="bg-gradient-to-b from-gray-50 to-white border-r border-gray-200 flex flex-col text-black w-[340px] h-[600px]">
             {/* Header */}
-            <div className="w-full px-4 h-[70px] border-b border-gray-200 flex items-center justify-between bg-gray-50">
+            <div className="w-full px-6 h-[80px] border-b border-gray-200 flex items-center justify-between bg-[#db4444]">
+
               <div className="flex items-center gap-3">
-                <div className="bg-green-100 text-green-700 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm">
+                <div className="bg-white/20 backdrop-blur-sm text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
                   SH
                 </div>
-                <span className="font-semibold text-gray-800">Nhà sách Nam Việt</span>
+                <div>
+                  <span className="font-bold text-white text-lg">Nhà sách Nam Việt</span>
+                  <div className="text-white/80 text-sm">Luôn sẵn sàng hỗ trợ bạn</div>
+                </div>
               </div>
               {!activeChat && (
                 <button
@@ -222,7 +240,7 @@ export default function ModernFloatingTools() {
                     setShowList(false);
                     setActiveChat(false);
                   }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold transition-colors"
+                  className="text-white/80 hover:text-white text-2xl font-bold transition-colors w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center"
                 >
                   ×
                 </button>
@@ -231,45 +249,53 @@ export default function ModernFloatingTools() {
 
             {/* Search */}
             <div className="p-4 border-b border-gray-100">
-              <input
-                type="text"
-                placeholder="Tìm theo người dùng..."
-                className="w-full px-3 py-3 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm cuộc trò chuyện..."
+                  className="w-full px-4 py-3 pl-10 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
+                />
+                <svg className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
             </div>
 
-            {/* Suggestions Header */}
-            <div className="px-4 py-3 text-sm font-semibold text-gray-600 bg-gray-50">
-              Gợi ý
-            </div>
-
+           
             {/* Contact Item */}
             <div className="flex-1 overflow-y-auto">
               <div
-                className="flex gap-3 px-4 py-4 items-center hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100"
+                className="flex gap-4 px-6 py-4 items-center hover:bg-gradient-to-r hover:from-[#db4444]/5 hover:to-[#ff6b6b]/5 cursor-pointer transition-all duration-300 border-b border-gray-50 group"
                 onClick={() => setActiveChat(true)}
               >
                 <div className="relative">
-                  <Image
-                    src="/book.png"
-                    alt="book"
-                    width={48}
-                    height={48}
-                    className="rounded-lg"
-                  />
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                  <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center shadow-lg">
+                    <Image
+                      src="/book.png"
+                      alt="book"
+                      width={56}
+                      height={56}
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-3 border-white rounded-full shadow-sm"></div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-900 truncate text-sm">
-                    Sách Giao Tiếp
+                  <div className="font-bold text-gray-900 truncate text-base">
+                    Tư vấn sách
                   </div>
-                  <div className="text-gray-500 text-xs truncate mt-1">
-                    Nhà sách Nam Việt
+                  <div className="text-gray-500 text-sm truncate mt-1">
+                    Chúng tôi sẵn sàng tư vấn cho bạn
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    Hoạt động • Phản hồi ngay
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <button className="text-[#db4444] border border-[#db4444] text-xs px-3 py-1 rounded-full hover:bg-[#db4444] hover:text-white transition-all font-medium">
-                    Chat
+                <div className="flex flex-col items-end gap-2">
+                 
+                  <button className="text-[#db4444] border-2 border-[#db4444] text-sm px-4 py-1.5 rounded-full hover:bg-[#db4444] hover:text-white transition-all font-semibold group-hover:scale-105">
+                    Chat ngay
                   </button>
                 </div>
               </div>
@@ -278,21 +304,25 @@ export default function ModernFloatingTools() {
 
           {/* Right: Chat Box */}
           {activeChat && (
-            <div className="w-[420px] bg-white flex flex-col text-black h-[580px]">
+            <div className="w-[460px] bg-white flex flex-col text-black h-[600px]">
               {/* Chat Header */}
-              <div className="flex items-center justify-between px-4 h-[70px] border-b border-gray-200 bg-gray-50">
-                <div className="flex items-center gap-3">
-                  <Image
-                    src="/book.png"
-                    alt="chat"
-                    width={40}
-                    height={40}
-                    className="rounded-lg"
-                  />
+              <div className="flex items-center justify-between px-6 h-[80px] border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg">
+                    <Image
+                      src="/book.png"
+                      alt="chat"
+                      width={48}
+                      height={48}
+                      className="object-cover"
+                    />
+                  </div>
+
                   <div>
-                    <div className="font-semibold text-gray-800 text-sm">Nhà sách Nam Việt</div>
-                    <div className="text-xs text-gray-500">
-                      Giá chỉ từ 395.000 đ
+                    <div className="font-bold text-gray-800 text-lg">Tư vấn sách</div>
+                    <div className="text-sm text-green-600 font-medium flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      Đang hoạt động
                     </div>
                   </div>
                 </div>
@@ -301,23 +331,28 @@ export default function ModernFloatingTools() {
                     setShowList(false);
                     setActiveChat(false);
                   }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold transition-colors"
+                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold transition-colors w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center"
                 >
                   ×
                 </button>
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-gray-50/30 to-white">
                 {loading ? (
-                  <div className="text-center text-gray-500 py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#db4444] mx-auto mb-2"></div>
-                    <p className="text-sm">Đang tải...</p>
+                  <div className="text-center text-gray-500 py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#db4444] mx-auto mb-4"></div>
+                    <p className="text-sm font-medium">Đang tải tin nhắn...</p>
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="text-center text-gray-400 py-8">
-                    <MessageCircle className="mx-auto mb-2" size={32} />
-                    <p className="text-sm">Chưa có tin nhắn</p>
+                  <div className="text-center text-gray-400 py-12">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium">Bắt đầu cuộc trò chuyện</p>
+                    <p className="text-xs text-gray-400 mt-1">Chúng tôi sẵn sàng hỗ trợ bạn</p>
                   </div>
                 ) : (
                   messages.map((msg) => {
@@ -325,14 +360,13 @@ export default function ModernFloatingTools() {
                     return (
                       <div
                         key={msg.id}
-                        className={`flex items-start gap-2 ${isReceiver ? 'flex-row' : 'flex-row-reverse'
-                          }`}
+                        className={`flex items-start gap-3 ${isReceiver ? 'flex-row' : 'flex-row-reverse'}`}
                       >
                         {renderAvatar(msg)}
                         <div
-                          className={`px-4 py-2 rounded-2xl max-w-[75%] ${isReceiver
-                            ? 'bg-white border border-gray-200 rounded-bl-md shadow-sm'
-                            : 'bg-[#db4444] text-white rounded-br-md'
+                          className={`px-4 py-3 rounded-2xl max-w-[75%] shadow-sm ${isReceiver
+                            ? 'bg-white border border-gray-200 rounded-bl-md'
+                            : 'bg-gradient-to-r from-[#db4444] to-[#ff6b6b] text-white rounded-br-md'
                             }`}
                         >
                           <div className={`font-semibold text-xs mb-1 ${isReceiver ? 'text-gray-600' : 'text-white/80'
@@ -340,7 +374,7 @@ export default function ModernFloatingTools() {
                             {renderName(msg)}
                           </div>
                           <div className="text-sm leading-relaxed">{msg.message}</div>
-                          <div className={`text-xs mt-1 ${isReceiver ? 'text-gray-400' : 'text-white/60'
+                          <div className={`text-xs mt-1.5 ${isReceiver ? 'text-gray-400' : 'text-white/60'
                             }`}>
                             {formatTime(msg.created_at)}
                           </div>
@@ -352,64 +386,85 @@ export default function ModernFloatingTools() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input */}
-              <div className="border-t border-gray-200 p-4 bg-white flex items-center gap-2">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Nhập nội dung chat..."
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] resize-none transition-all"
-                  rows={1}
-                  style={{ minHeight: '40px', maxHeight: '80px' }}
-                />
-
-                {/* Image Upload Button */}
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-[#db4444] hover:text-[#c93333] transition-colors"
-                >
-                  <ImageIcon size={20} />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleImageChange}
-                />
-
-                {/* Display selected images inside input */}
-                <div className="flex gap-2 mt-2">
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative w-16 h-16 bg-gray-100 rounded-md overflow-hidden">
-                      <Image
-                        src={preview}
-                        alt={`Preview ${index}`}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => handleRemoveImage(index)}
-                        className="absolute top-0 right-0 bg-white rounded-full p-1 text-gray-600 hover:bg-gray-200"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div className="px-6 py-3 border-t border-gray-100 bg-gray-50">
+                  <div className="flex gap-2 flex-wrap">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative w-16 h-16 bg-white rounded-lg overflow-hidden shadow-md">
+                        <Image
+                          src={preview}
+                          alt={`Preview ${index}`}
+                          width={64}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              )}
 
-                {/* Send Button */}
-                <button
-                  onClick={sendMessage}
-                  disabled={!input.trim() && images.length === 0 || loading} // Disable if no input or images
-                  className={`${loading ? 'bg-gray-300' : 'bg-[#db4444] hover:bg-[#c93333]'
-                    } disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-all`}
-                >
-                  Gửi
-                </button>
+              {/* Input */}
+              <div className="border-t border-gray-200 p-4 bg-white">
+                <div className="flex items-end gap-3">
+                  <div className="flex-1 relative">
+                    <textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Nhập tin nhắn của bạn..."
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-12 text-sm outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] resize-none transition-all bg-gray-50 focus:bg-white"
+                      rows={1}
+                      style={{ minHeight: '48px', maxHeight: '96px' }}
+                    />
+                    <button
+                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                     
+                    </button>
+                  </div>
+
+                  {/* Upload Button */}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center justify-center w-12 h-12 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors"
+                  >
+                    <Plus size={20} />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+
+                  {/* Send Button */}
+                  <button
+                    onClick={sendMessage}
+                    disabled={(!input.trim() && images.length === 0) || loading}
+                    className={`flex items-center justify-center w-12 h-12 rounded-xl font-medium transition-all transform hover:scale-105 ${loading
+                      ? 'bg-gray-300 cursor-not-allowed'
+                      : (input.trim() || images.length > 0)
+                        ? 'bg-gradient-to-r from-[#db4444] to-[#ff6b6b] hover:from-[#c93333] hover:to-[#e85555] text-white shadow-lg'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    ) : (
+                      <Send size={18} />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}

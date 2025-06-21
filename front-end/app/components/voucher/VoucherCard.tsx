@@ -1,9 +1,8 @@
+// VoucherShipCard.tsx
 'use client';
 
 import React from "react";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
-import axios from "axios";
-import Cookies from "js-cookie";
 import Image from "next/image";
 
 export interface VoucherShip {
@@ -44,16 +43,16 @@ export default function VoucherShipCard({
             : 'Miễn phí vận chuyển');
 
     return (
-        <div className="relative flex justify-center items-center w-full max-w-[720px] h-[150px] rounded-2xl overflow-hidden bg-white shadow-lg border border-gray-200/50 hover:shadow-xl hover:shadow-red-100/50 transition-all duration-300 hover:-translate-y-1">
+        <div className="relative flex justify-center items-center w-full max-w-[720px] h-[150px] rounded-2xl overflow-hidden bg-white border border-gray-200/50 hover:-translate-y-1 transition-all duration-300">
             {/* Logo Section */}
             <div className="relative flex items-center justify-center w-[130px] h-full">
-                <div className="w-[100px] h-[100px] rounded-xl overflow-hidden border-2 border-gray-200/50 flex items-center justify-center bg-white shadow-sm group-hover:shadow-md transition-shadow duration-300">
+                <div className="w-[100px] h-[100px] rounded-2xl overflow-hidden border-2 border-gray-200/50 flex items-center justify-center bg-white transition duration-300">
                     <Image
                         src={imageUrl || `${STATIC_BASE_URL}/path/to/your/image.jpg`}
                         alt="Voucher Logo"
                         width={100}
                         height={100}
-                        className="w-full h-full object-contain p-2"
+                        className="w-full h-full object-contain p-2 rounded-2xl"
                     />
                 </div>
             </div>
@@ -61,19 +60,16 @@ export default function VoucherShipCard({
             {/* Content Section */}
             <div className="relative flex-1 px-5 py-4 flex flex-col justify-between z-10">
                 <div>
-                    {/* Discount Amount */}
                     <div className="flex items-center space-x-4">
-                        <h3 className="text-lg font-bold text-gray-800 group-hover:text-red-600 transition-colors duration-200">
+                        <h3 className="text-lg font-bold text-gray-800 transition-colors duration-200">
                             {formattedDiscount}
                         </h3>
                     </div>
 
-                    {/* Condition */}
                     <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
                         {condition}
                     </p>
 
-                    {/* Code */}
                     {code && (
                         <div className="flex items-center space-x-2">
                             <span className="text-xs text-gray-500">Mã:</span>
@@ -93,7 +89,6 @@ export default function VoucherShipCard({
                         <span>HSD: {expiry}</span>
                     </div>
 
-                    {/* Save Button */}
                     {isSaved ? (
                         <div className="flex items-center space-x-1 text-green-600">
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -102,24 +97,20 @@ export default function VoucherShipCard({
                             <span className="text-sm font-medium">Đã lưu vào giỏ hàng</span>
                         </div>
                     ) : (
-                        <button
-                            onClick={() => onSave?.(id)}
-                            className="group/btn relative inline-flex items-center space-x-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-red-500/25 active:scale-95"
-                        >
-                            <svg className="w-4 h-4 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            <span>Lưu voucher</span>
-
-                            {/* Button Glow */}
-                            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-red-400 to-red-500 opacity-0 group-hover/btn:opacity-20 transition-opacity duration-200" />
-                        </button>
+                            <button
+                                onClick={() => onSave?.(id)}
+                                className="group/btn relative inline-flex items-center space-x-2 bg-[#DB4444] hover:bg-[#E85555] text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 active:scale-95"
+                            >
+                                <svg className="w-4 h-4 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                <span>Lưu voucher</span>
+                            </button>
+                    
+                    
                     )}
                 </div>
             </div>
-
-            {/* Shine Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-500" />
         </div>
     );
 }

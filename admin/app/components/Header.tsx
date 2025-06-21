@@ -6,6 +6,7 @@ import { FiUser, FiLogOut, FiSearch } from "react-icons/fi";
 import { FaBell, FaCog } from "react-icons/fa";
 import Cookies from "js-cookie";
 import axios from "axios";
+import { API_BASE_URL } from "@/utils/api";
 
 export default function AdminHeader() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function AdminHeader() {
     const token = Cookies.get("authToken");
     if (token) {
       axios
-        .get("http://localhost:8000/api/user", {
+        .get(`${API_BASE_URL}/user`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => setUser(res.data))
