@@ -1,7 +1,8 @@
+// components/ProductDetail.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import BestSellingSlider from '../home/RelatedProduct';
 import Cookies from 'js-cookie';
@@ -14,10 +15,11 @@ import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Breadcrumb from '../cart/CartBreadcrumb';
 import { AiFillHeart } from 'react-icons/ai';
 import { FiHeart } from 'react-icons/fi';
+import ProductGallery from './ProductGallery'; // Import component ProductGallery mới
 
-
-// ✅ Hàm xử lý ảnh – chuẩn hóa đường dẫn ảnh từ server
-const formatImageUrl = (img: unknown): string => {
+// Hàm formatImageUrl có thể để ở đây hoặc chuyển sang file tiện ích chung
+// (Nếu ProductGallery cũng dùng, nên cân nhắc tạo một file util chung)
+const formatImageUrl = (img: string | string[]): string => {
   if (Array.isArray(img)) img = img[0];
   if (typeof img !== 'string' || !img.trim()) {
     return `${STATIC_BASE_URL}/products/default-product.png`;
@@ -26,14 +28,14 @@ const formatImageUrl = (img: unknown): string => {
   return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
 };
 
-// ✅ Kiểu dữ liệu sản phẩm
+// Kiểu dữ liệu sản phẩm (giữ nguyên)
 interface Product {
   id: number;
   name: string;
   price: number;
   sale_price?: number;
   description: string;
-  image: string[]; // ✅ sửa từ string → string[]
+  image: string[];
   option1?: string;
   value1?: string;
   option2?: string;
@@ -54,7 +56,7 @@ interface Product {
     email: string;
     address?: string;
     slug: string;
-  } | undefined; // Đảm bảo shop có thể là undefined
+  } | undefined;
   category?: {
     id: number;
     name: string;
@@ -84,6 +86,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState('');
 
+  // Không cần thumbnailRef và các hàm handleScrollLeft/Right ở đây nữa
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -95,48 +99,84 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           return;
         }
 
-        const productData = await productRes.json();
+        const productData: Product = await productRes.json();
         console.log('📦 Product Data từ API:', productData);
 
         setProduct(productData);
 
-        const firstImage = Array.isArray(productData.image) ? productData.image[0] : productData.image;
+        // Đảm bảo mainImage được thiết lập từ ảnh đầu tiên trong mảng
+        const firstImage = Array.isArray(productData.image) && productData.image.length > 0 ? productData.image[0] : '';
         setMainImage(formatImageUrl(firstImage));
 
-        setSelectedColor(productData.value1?.split(',')[0] || '');
-        setSelectedSize(productData.value2?.split(',')[0] || '');
+        // Thiết lập màu/kích thước đã chọn ban đầu nếu có và chưa được thiết lập
+        if (!selectedColor && productData.value1) {
+          const colors = productData.value1.split(',').map(c => c.trim());
+          if (colors.length > 0) setSelectedColor(colors[0]);
+        }
+        if (!selectedSize && productData.value2) {
+          const sizes = productData.value2.split(',').map(s => s.trim());
+          if (sizes.length > 0) setSelectedSize(sizes[0]);
+        }
 
-        if (token && productData.shop?.id) {
-          const followRes = await fetch(`${API_BASE_URL}/shops/${productData.shop.id}/is-following`, {
+        if (token) {
+          // Lấy trạng thái yêu thích
+          const wishlistRes = await fetch(`${API_BASE_URL}/wishlist/check/${productData.id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
+          if (wishlistRes.ok) {
+            const wishlistData = await wishlistRes.json();
+            setLiked(wishlistData.is_liked);
+          } else {
+            console.warn('Không thể lấy trạng thái yêu thích:', wishlistRes.statusText);
+          }
 
-          if (followRes.ok) {
-            const followData = await followRes.json();
-            setFollowed(followData.followed);
+          // Lấy trạng thái theo dõi cửa hàng
+          if (productData.shop?.id) {
+            const followRes = await fetch(`${API_BASE_URL}/shops/${productData.shop.id}/is-following`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (followRes.ok) {
+              const followData = await followRes.json();
+              setFollowed(followData.followed);
+            } else {
+              console.warn('Không thể lấy trạng thái theo dõi:', followRes.statusText);
+            }
           }
         }
       } catch (err) {
-        console.error('❌ Lỗi khi load product & follow:', err);
+        console.error('❌ Lỗi khi tải sản phẩm & trạng thái theo dõi:', err);
       }
     };
 
     fetchData();
-  }, [shopslug, productslug, router]);
+  }, [shopslug, productslug, router, selectedColor, selectedSize]);
 
   if (!product) return <LoadingProductDetail />;
 
-  const thumbnails = Array.isArray(product.image) && product.image.length > 0
-    ? product.image.map((img: string) => formatImageUrl(img))
-    : [`${STATIC_BASE_URL}/products/default-product.png`];
+  let colorOptions: string[] = [];
+  try {
+    const parsed = JSON.parse(product.value1 || '[]');
+    if (Array.isArray(parsed)) {
+      colorOptions = parsed.map((c) => c.trim());
+    }
+  } catch (e) {
+    colorOptions = (product.value1 || '').split(',').map((c) => c.trim());
+  }
 
-  const colorOptions = product.value1?.split(',') || [];
-  const sizeOptions = product.value2?.split(',') || [];
+  let sizeOptions: string[] = [];
+  try {
+    const parsed = JSON.parse(product.value2 || '[]');
+    if (Array.isArray(parsed)) {
+      sizeOptions = parsed.map((s) => s.trim());
+    }
+  } catch (e) {
+    sizeOptions = (product.value2 || '').split(',').map((s) => s.trim());
+  }
 
   const handleAddToCart = async () => {
-    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    const token = Cookies.get("authToken") || localStorage.getItem("token");
     if (!token) {
-      setPopupText('Vui lòng đăng nhập để thêm vào giỏ hàng');
+      setPopupText("Vui lòng đăng nhập để mua hàng");
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
       return;
@@ -144,29 +184,32 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
     try {
       const res = await fetch(`${API_BASE_URL}/cart`, {
-        method: 'POST',
+        method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          product_id: product?.id,
-          quantity: quantity,
-          color: selectedColor,
-          size: selectedSize,
+          product_id: product.id,
+          quantity,
+          option1: selectedColor,
+          option2: selectedSize,
         }),
       });
 
-      if (res.ok) {
-        setPopupText('Đã thêm vào giỏ hàng!');
-      } else {
-        const data = await res.json();
-        setPopupText(data.message || 'Thêm vào giỏ hàng thất bại');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Thêm sản phẩm thất bại');
       }
-    } catch (err) {
-      console.error('❌ Lỗi add to cart:', err);
-      setPopupText('Có lỗi xảy ra');
-    } finally {
+
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      setPopupText("Đã thêm vào giỏ hàng!");
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+    } catch (error: any) {
+      console.error("Lỗi thêm vào giỏ hàng:", error);
+      setPopupText(`Lỗi khi thêm vào giỏ hàng: ${error.message}`);
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
     }
@@ -203,16 +246,25 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       }
     } catch (err) {
       console.error('❌ Lỗi xử lý yêu thích:', err);
+      setLiked(!newLiked);
+      setPopupText('Có lỗi xảy ra khi cập nhật yêu thích.');
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
     } finally {
       setShowPopup(true);
-      setPopupText(newLiked ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích');
+      setPopupText(newLiked ? 'Đã thêm vào mục yêu thích!' : 'Đã xóa khỏi mục yêu thích!');
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
 
   const handleFollow = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token || !product?.shop?.id) return;
+    if (!token || !product?.shop?.id) {
+      setPopupText('Vui lòng đăng nhập để theo dõi cửa hàng');
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+      return;
+    }
 
     try {
       const url = `${API_BASE_URL}/shops/${product.shop.id}/${followed ? 'unfollow' : 'follow'}`;
@@ -223,9 +275,22 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.ok) setFollowed(!followed);
+      if (res.ok) {
+        setFollowed(!followed);
+        setPopupText(followed ? 'Đã bỏ theo dõi cửa hàng' : 'Đã theo dõi cửa hàng');
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 2000);
+      } else {
+        const errorData = await res.json();
+        setPopupText(errorData.message || 'Lỗi khi theo dõi/bỏ theo dõi cửa hàng');
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 2000);
+      }
     } catch (err) {
-      console.error('❌ Lỗi follow/unfollow:', err);
+      console.error('❌ Lỗi theo dõi/bỏ theo dõi:', err);
+      setPopupText('Có lỗi xảy ra khi xử lý theo dõi.');
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
     }
   };
 
@@ -248,13 +313,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         body: JSON.stringify({
           product_id: product?.id,
           quantity: quantity,
-          color: selectedColor,
-          size: selectedSize,
+          option1: selectedColor,
+          option2: selectedSize,
         }),
       });
 
       if (res.ok) {
-        router.push('/cart');  // Chuyển đến trang giỏ hàng sau khi thêm sản phẩm
+        router.push('/cart');
       } else {
         const data = await res.json();
         setPopupText(data.message || 'Thêm vào giỏ hàng thất bại');
@@ -281,10 +346,11 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           ]}
         />
       </div>
-      <div className="rounded-xl border shadow-sm bg-white p-10 border-red-500">
-
+      <div className="rounded-xl border shadow-sm bg-white p-10 borde">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
+          {/* Thay thế phần hiển thị ảnh bằng ProductGallery component */}
           <div className="md:col-span-6 flex flex-col gap-4 relative">
+            {/* Nút yêu thích vẫn ở đây nếu bạn muốn nó nằm trên cùng của ProductDetail */}
             <button
               onClick={toggleLike}
               className="absolute top-2 left-2 p-2 text-[22px] z-20 transition-colors duration-200 select-none"
@@ -295,43 +361,16 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 <FiHeart className="text-gray-400 transition-colors duration-200" />
               )}
             </button>
-
-
-
-
-            <div className="flex justify-center items-center w-full bg-gray-50 rounded-lg p-6 min-h-[220px]">
-              <div className="w-full max-w-[300px] h-[290px] relative">
-                <Image
-                  src={mainImage}
-                  alt={product.name}
-                  fill
-                  className="object-contain rounded-lg"
-                  key={mainImage}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              {thumbnails.map((img, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setMainImage(img)}
-                  className={`cursor-pointer border-2 rounded w-[80px] h-[80px] ${mainImage === img ? 'border-brand' : 'border-gray-300'}`}
-                >
-                  <Image
-                    src={img}
-                    alt={`Thumb ${idx}`}
-                    width={80}
-                    height={80}
-                    className="object-contain w-full h-full"
-                  />
-                </div>
-              ))}
-            </div>
+            <ProductGallery
+              images={product.image}
+              mainImage={mainImage}
+              setMainImage={setMainImage}
+            />
           </div>
 
-          {/* ✅ Thông tin sản phẩm bên phải */}
+          {/* ✅ Thông tin sản phẩm bên phải (giữ nguyên) */}
           <div className="md:col-span-6 space-y-6 ">
-            <h1 className="text-[1.5rem] md:text-[2rem] font-bold text-gray-900">{product.name}</h1>
+            <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{product.name}</h1>
             {/* ✅ rating */}
             <div className="flex items-center gap-3 text-sm -translate-y-4">
               <div className="flex items-center gap-3 text-sm">
@@ -377,46 +416,65 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 </span>
               )}
             </div>
-            {/* ✅ mô tả */}
-            {/* <p
-              className="text-gray-600 text-sm md:text-base truncate max-w-[300px] -translate-y-8"
-              title={product.description}
-            >
-              {product.description}
-            </p> */}
 
             {/* ✅ Options màu và size */}
-            <div className="flex flex-col gap-2 -translate-y-10">
-              <div className="flex items-center gap-3">
-                <p className="font-medium text-gray-700  text-lg">Màu Sắc:</p>
-                <div className="flex gap-1">
-                  {colorOptions.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`w-4 h-4 rounded-full border transition ${selectedColor === color
-                        ? 'border-black scale-105'
-                        : 'border-gray-300 hover:border-black'
-                        }`}
-                      style={{ backgroundColor: color.toLowerCase() }}
-                      title={color}
-                    />
-                  ))}
+            <div className="flex flex-col gap-4 -translate-y-10">
+              {/* Màu sắc */}
+              <div className="flex flex-col gap-2">
+                <p className="font-medium text-gray-700 text-lg">Màu Sắc:</p>
+                <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
+                  {colorOptions.map((color) => {
+                    return (
+                      <button
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px]
+                                ${selectedColor === color
+                            ? 'border-red-600 text-black bg-white'
+                            : 'border-gray-300 text-black bg-white hover:border-red-500'}`}
+                      >
+                        {selectedColor === color && (
+                          <div
+                            className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
+                            style={{
+                              borderBottomLeftRadius: '7px',
+                              borderTopRightRadius: '7px',
+                            }}
+                          >
+                            <span className="text-white text-[9px] font-bold leading-none">✓</span>
+                          </div>
+                        )}
+                        {color}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 ">
+              {/* Kích cỡ */}
+              <div className="flex flex-col gap-2">
                 <p className="font-medium text-gray-700 text-lg">Kích cỡ:</p>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
                   {sizeOptions.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`text-xs min-w-[28px] px-2 py-0.5 rounded border text-center font-medium transition ${selectedSize === size
-                        ? 'bg-black text-white border-black'
-                        : 'bg-white text-black border-gray-300 hover:bg-black hover:text-white'
-                        }`}
+                      className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px]
+                              ${selectedSize === size
+                          ? 'border-red-600 text-black bg-white'
+                          : 'border-gray-300 text-black bg-white hover:border-red-500'}`}
                     >
+                      {selectedSize === size && (
+                        <div
+                          className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
+                          style={{
+                            borderBottomLeftRadius: '7px',
+                            borderTopRightRadius: '7px',
+                          }}
+                        >
+                          <span className="text-white text-[9px] font-bold leading-none">✓</span>
+                        </div>
+                      )}
                       {size}
                     </button>
                   ))}
@@ -456,8 +514,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               >
                 Thêm Vào Giỏ Hàng
               </button>
-
-           
             </div>
 
             {/* ✅ Chính sách vận chuyển */}
@@ -492,48 +548,33 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
       {/* ✅ Thông tin cửa hàng */}
       <ShopInfo
-        shop={product.shop || undefined} // Kiểm tra nếu không có shop thì truyền undefined
+        shop={product.shop || undefined}
         followed={followed}
         onFollowToggle={handleFollow}
       />
 
       <ProductDescription
         html={product.description}
-        
       />
 
-
-
-
-
-
-
-
       {/* Gợi ý sản phẩm shop */}
-      <div className="w-full max-w-screen-xl mx-auto mt-16 px-">
+      <div className="w-full max-w-screen-xl mx-auto mt-16">
         <ShopProductSlider />
       </div>
-     
-    
-    
 
+      ---
 
-
-
-      
       {/* Gợi ý sản phẩm khác */}
-      <div className="w-full max-w-screen-xl mx-auto mt-6 px-">
+      <div className="w-full max-w-screen-xl mx-auto mt-6">
         <BestSellingSlider />
       </div>
       {/* Thông báo thêm/xoá yêu thích */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
           {popupText ||
-            (liked ? 'Đã thêm vào yêu thích ' : 'Đã xóa khỏi yêu thích ')}
+            (liked ? 'Đã thêm vào mục yêu thích!' : 'Đã xóa khỏi mục yêu thích!')}
         </div>
       )}
     </div>
   );
 }
-
-

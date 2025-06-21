@@ -156,8 +156,7 @@ export default function ProductCard({
       }
 
       setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
-      window.dispatchEvent(new Event('cartUpdated'));
-
+      window.dispatchEvent(new Event("cartUpdated"));
     } catch (err: any) {
       console.error("❌ Lỗi khi thêm vào giỏ hàng:", err);
       setPopupMessage(err.message || "Đã xảy ra lỗi khi thêm sản phẩm");
@@ -211,7 +210,7 @@ export default function ProductCard({
       </div>
 
       <div className="flex flex-col mt-4 w-full px-1 pb-14">
-        <h4 className="text-sm font-semibold text-black truncate capitalize pointer-events-none">
+        <h4 className="text-base font-semibold text-black leading-tight line-clamp-2 capitalize pointer-events-none">
           {product.name}
         </h4>
 
@@ -235,7 +234,9 @@ export default function ProductCard({
             .map((_, i) => (
               <AiFillStar
                 key={i}
-                className={`w-4 h-4 ${i < Math.round(product.rating) ? "text-yellow-500" : "text-gray-300"
+                className={`w-4 h-4 ${i < Math.round(product.rating)
+                    ? "text-yellow-500"
+                    : "text-gray-300"
                   }`}
               />
             ))}
