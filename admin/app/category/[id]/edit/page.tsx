@@ -1,9 +1,10 @@
 "use client";
 
-import ActionButtons from "@/app/components/categories/edit/ActionButtons";
-import CategoryInfoForm from "@/app/components/categories/edit/Form";
-import CateImageDrop from "@/app/components/categories/edit/ImageDrop";
-import CategoryPreviewCard from "@/app/components/categories/edit/PreviewCard";
+
+import ActionButtons from "@/app/components/category/edit/ActionButtons";
+import CategoryInfoForm from "@/app/components/category/edit/Form";
+import CateImageDrop from "@/app/components/category/edit/ImageDrop";
+import CategoryPreviewCard from "@/app/components/category/edit/PreviewCard";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 

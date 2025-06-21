@@ -6,9 +6,9 @@ import Cookies from "js-cookie";
 import { CategoryRowSkeleton } from "../components/loading/loading";
 import Swal from "sweetalert2";
 import { API_BASE_URL } from "@/utils/api";
-import CategoryListHeader from "../components/categories/list/Header";
-import Pagination from "../components/categories/list/Pagination";
-import CategoryRow from "../components/categories/list/Row";
+import CategoryListHeader from "../components/category/list/Header";
+import Pagination from "../components/category/list/Pagination";
+import CategoryRow from "../components/category/list/Row";
 
 
 type LocalCategory = {
