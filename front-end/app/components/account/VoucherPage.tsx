@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '@/utils/api';
-import { Tag, Gift, Calendar, Clock, Copy, Check, Star } from 'lucide-react';
+import { Tag, Gift, Calendar, Clock, Copy, Check } from 'lucide-react';
 
 interface Voucher {
   id: number;
@@ -23,7 +23,7 @@ interface Voucher {
 interface VoucherUser {
   id: number;
   voucher_id: number;
-  created_at: string; // thời gian người dùng lưu
+  created_at: string;
   voucher: Voucher;
 }
 
@@ -31,6 +31,9 @@ export default function MyVouchersPage() {
   const [voucherUsers, setVoucherUsers] = useState<VoucherUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<number | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupType, setPopupType] = useState<'success' | 'error'>('success');
 
   useEffect(() => {
     const fetchVouchers = async () => {
@@ -59,9 +62,18 @@ export default function MyVouchersPage() {
     try {
       await navigator.clipboard.writeText(code);
       setCopied(id);
-      setTimeout(() => setCopied(null), 2000);
+      setPopupType('success');
+      setPopupMessage('Đã sao chép mã');
+      setShowPopup(true);
+      setTimeout(() => {
+        setCopied(null);
+        setShowPopup(false);
+      }, 2000);
     } catch {
-      alert('Không thể sao chép mã');
+      setPopupType('error');
+      setPopupMessage('Không thể sao chép mã');
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
     }
   };
 
@@ -69,94 +81,143 @@ export default function MyVouchersPage() {
 
   return (
     <div className="min-h-screen p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center mb-6">
-          <div className="p-3 bg-red-500 rounded-xl">
+      <div className="max-w-7xl mx-auto">
+        {/* Popup thông báo */}
+        {showPopup && (
+          <div
+            className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-fadeIn
+            ${popupType === 'success'
+                ? 'bg-white text-black border-green-500'
+                : 'bg-white text-red-600 border-red-500'
+              }`}
+          >
+            {popupMessage}
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="flex items-center mb-8">
+          <div className="w-14 h-14 bg-red-500 rounded-2xl flex items-center justify-center">
             <Tag className="w-6 h-6 text-white" />
           </div>
-          <div className="ml-4">
-            <h1 className="text-2xl font-bold text-red-500">Voucher đã lưu</h1>
-            <p className="text-gray-500 text-sm">Các mã giảm giá bạn đã lưu vào tài khoản</p>
+          <div className="ml-6">
+            <h1 className="text-3xl font-bold text-red-500 mb-1">Voucher đã lưu</h1>
+            <p className="text-gray-600">Các mã giảm giá bạn đã lưu vào tài khoản</p>
           </div>
         </div>
 
+        {/* Nội dung voucher */}
         {loading ? (
-          <p>Đang tải...</p>
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">Đang tải...</p>
+          </div>
         ) : voucherUsers.length === 0 ? (
-          <p className="text-gray-500">Bạn chưa lưu mã giảm giá nào.</p>
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">Bạn chưa lưu mã giảm giá nào.</p>
+          </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {voucherUsers.map((vu) => {
               const { voucher } = vu;
               const expired = isExpired(voucher.end_date);
               const usedUp = voucher.usage_count >= voucher.usage_limit;
+              const isValid = !expired && !usedUp;
 
               return (
                 <div
                   key={vu.id}
-                  className={`relative border rounded-xl p-4 shadow-sm bg-white ${
-                    expired || usedUp ? 'opacity-60' : ''
-                  }`}
+                  className={`relative bg-white border border-gray-200 rounded-xl h-fit transition-all duration-200 ${isValid ? 'hover:border-red-300' : ''
+                    } ${expired || usedUp ? 'opacity-60' : ''}`}
                 >
-                  <div className="absolute top-2 right-2 text-xs px-2 py-1 rounded-full text-white font-medium bg-gray-500">
-                    {expired
-                      ? 'Đã hết hạn'
-                      : usedUp
-                      ? 'Đã hết lượt'
-                      : 'Còn hiệu lực'}
-                  </div>
-
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-bold text-red-500 bg-red-100 px-3 py-1 rounded-md">
-                      {voucher.code}
+                  <div className="absolute top-2 right-2 z-10">
+                    <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${isValid
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-600'
+                      }`}>
+                      {expired
+                        ? 'Hết hạn'
+                        : usedUp
+                          ? 'Hết lượt'
+                          : 'Còn Hạn'}
                     </span>
-                    <button
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => handleCopy(voucher.code, vu.id)}
-                      disabled={expired || usedUp}
-                    >
-                      {copied === vu.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </button>
                   </div>
 
-                  <div className="space-y-1 text-sm text-gray-700">
-                    <div className="flex items-center gap-2">
-                      <Gift className="w-4 h-4 text-red-400" />
-                      {voucher.discount_type === 'percent'
-                        ? `Giảm ${voucher.discount_value}%`
-                        : `Giảm ${formatCurrency(voucher.discount_value)}`}
-                      {voucher.max_discount_value && voucher.discount_type === 'percent' && (
-                        <span className="text-xs text-gray-500">
-                          (tối đa {formatCurrency(Number(voucher.max_discount_value))})
-                        </span>
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-3 pt-2">
+                      <div className="flex-1 mr-2">
+                        <div className="inline-block bg-red-50 border border-red-200 rounded-md px-2 py-1">
+                          <span className="text-red-600 font-bold text-sm tracking-wide">
+                            {voucher.code}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        className={`p-1.5 rounded-md transition-colors flex-shrink-0 ${isValid
+                          ? 'text-red-500 hover:bg-red-50 hover:text-red-600'
+                          : 'text-gray-400 cursor-not-allowed'
+                          }`}
+                        onClick={() => handleCopy(voucher.code, vu.id)}
+                        disabled={!isValid}
+                      >
+                        {copied === vu.id ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="mb-3">
+                      <div className="flex items-center text-gray-700">
+                        <Gift className="w-4 h-4 text-red-500 mr-2 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-base truncate">
+                            {voucher.discount_type === 'percent'
+                              ? `Giảm ${voucher.discount_value}%`
+                              : `Giảm ${formatCurrency(voucher.discount_value)}`}
+                          </div>
+                          {voucher.max_discount_value && voucher.discount_type === 'percent' && (
+                            <div className="text-xs text-gray-500 mt-0.5 truncate">
+                              Tối đa {formatCurrency(Number(voucher.max_discount_value))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mb-4 text-xs text-gray-600">
+                      <div className="flex items-center">
+                        <Calendar className="w-3 h-3 mr-2 flex-shrink-0" />
+                        <span>HSD: {formatDate(voucher.end_date)}</span>
+                      </div>
+
+                      <div className="flex items-center">
+                        <Clock className="w-3 h-3 mr-2 flex-shrink-0" />
+                        <span>Đã lưu: {formatDate(vu.created_at)}</span>
+                      </div>
+
+                      <div>
+                        <span>Đơn tối thiểu: </span>
+                        <span className="font-medium">{formatCurrency(voucher.min_order_value)}</span>
+                      </div>
+
+                      {voucher.is_free_shipping === 1 && (
+                        <div className="inline-block bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-md">
+                          Miễn phí ship
+                        </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Calendar className="w-3 h-3" />
-                      HSD: {formatDate(voucher.end_date)}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Clock className="w-3 h-3" />
-                      Đã lưu lúc: {formatDate(vu.created_at)}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Đơn tối thiểu: {formatCurrency(voucher.min_order_value)}
-                    </div>
-                    {voucher.is_free_shipping === 1 && (
-                      <div className="text-xs text-green-500 font-medium">Miễn phí vận chuyển</div>
-                    )}
-                  </div>
 
-                  <button
-                    className={`w-full mt-4 py-2 rounded-md text-sm font-semibold ${
-                      expired || usedUp
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-red-500 text-white hover:bg-red-600'
-                    }`}
-                    disabled={expired || usedUp}
-                  >
-                    {expired || usedUp ? 'Không thể sử dụng' : 'Sử dụng ngay'}
-                  </button>
+                    <button
+                      className={`w-full py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${isValid
+                        ? 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        }`}
+                      disabled={!isValid}
+                    >
+                      {isValid ? 'Sử dụng ngay' : 'Không thể sử dụng'}
+                    </button>
+                  </div>
                 </div>
               );
             })}
