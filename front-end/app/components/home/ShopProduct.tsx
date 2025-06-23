@@ -1,21 +1,25 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import ProductCardCate, { Product } from "../product/ProductCardCate";
 import { API_BASE_URL } from "@/utils/api";
 
-export default function ShopProductSlider() {
+// ✅ Nhận shopSlug qua props
+export default function ShopProductSlider({ shopSlug }: { shopSlug: string }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
     const router = useRouter();
-    const { slug: shopSlug } = useParams(); // 👈 Lấy slug động từ URL
-
     const sliderRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (!shopSlug) return;
         setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!shopSlug) return;
+        console.log("Shop slug:", shopSlug);
+        setLoading(true);
 
         fetch(`${API_BASE_URL}/shop/${shopSlug}/products`)
             .then((res) => res.json())
@@ -24,7 +28,7 @@ export default function ShopProductSlider() {
                 setProducts(list);
             })
             .catch((err) => {
-                console.error("Lỗi khi fetch sản phẩm:", err);
+                console.error("❌ Lỗi khi fetch sản phẩm:", err);
                 setProducts([]);
             })
             .finally(() => setLoading(false));

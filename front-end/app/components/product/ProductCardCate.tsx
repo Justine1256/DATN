@@ -164,6 +164,7 @@ export default function ProductCardCate({
 
   const handleViewDetail = () => {
     const shopSlug = product.shop_slug || (product as any)?.shop?.slug;
+
     router.push(`/shop/${shopSlug}/product/${product.slug}`);
   };
 

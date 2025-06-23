@@ -516,9 +516,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       <ProductDescription html={product.description} />
 
       {/* Gợi ý sản phẩm shop */}
-      <div className="w-full max-w-screen-xl mx-auto mt-16">
-        <ShopProductSlider />
-      </div>
+      {product?.shop?.slug && (
+        <div className="w-full max-w-screen-xl mx-auto mt-16">
+          <ShopProductSlider shopSlug={product.shop.slug} />
+        </div>
+      )}
+
 
       {/* Gợi ý sản phẩm khác */}
       <div className="w-full max-w-screen-xl mx-auto mt-6">
