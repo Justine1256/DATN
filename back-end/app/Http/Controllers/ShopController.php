@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Shop;
 use Illuminate\Support\Str;
+use App\Models\Product;
+
+
 
 
 class ShopController extends Controller
@@ -136,4 +139,50 @@ class ShopController extends Controller
 
         return redirect('/');
     }
+    public function showShopInfo($slug)
+{
+    $shop = Shop::where('slug', $slug)->first();
+
+    if (!$shop) {
+        return response()->json(['error' => 'Shop không tồn tại'], 404);
+    }
+
+    return response()->json(['shop' => $shop]);
+}
+
+public function getShopProducts($slug)
+{
+    $shop = Shop::where('slug', $slug)->first();
+
+    if (!$shop) {
+        return response()->json(['error' => 'Shop không tồn tại'], 404);
+    }
+
+    $products = Product::where('shop_id', $shop->id)
+        ->where('status', 'activated') // đúng với enum trong migration
+        ->latest()
+        ->paginate(12);
+
+    return response()->json([
+        'shop' => $shop->only(['id', 'name', 'slug', 'logo']),
+        'products' => $products->through(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'slug' => $product->slug,
+                'price' => $product->price,
+                'sale_price' => $product->sale_price,
+                'image' => $product->image[0] ?? null, // lấy hình đầu tiên nếu có
+                'stock' => $product->stock,
+                'rating' => $product->rating,
+            ];
+        }),
+        'pagination' => [
+            'current_page' => $products->currentPage(),
+            'last_page' => $products->lastPage(),
+            'total' => $products->total(),
+        ]
+    ]);
+}
+
 }
