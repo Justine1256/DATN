@@ -48,9 +48,7 @@ export default function ProductCard({
   wishlistProductIds?: number[];
 }) {
   const router = useRouter();
-  const isInWishlist = product
-    ? wishlistProductIds.includes(product.id)
-    : false;
+  const isInWishlist = product ? wishlistProductIds.includes(product.id) : false;
 
   const [liked, setLiked] = useState(isInWishlist);
   const [showPopup, setShowPopup] = useState(false);
@@ -59,11 +57,16 @@ export default function ProductCard({
 
   useEffect(() => {
     setLiked(isInWishlist);
-  }, [isInWishlist, product?.id]);
+
+    // ✅ Auto-select biến thể đầu tiên nếu có ít nhất 1 biến thể
+    if (product && Array.isArray(product.variants) && product.variants.length > 0) {
+      setSelectedVariant(product.variants[0]);
+    }
+    
+  }, [isInWishlist, product?.id, product]);
 
   if (!product) return <LoadingSkeleton />;
 
-  // Logic for checking the price
   const getPrice = () => {
     if (selectedVariant) {
       return Number(selectedVariant.sale_price || selectedVariant.price).toLocaleString('vi-VN');
@@ -78,6 +81,7 @@ export default function ProductCard({
     const newLiked = !liked;
     setLiked(newLiked);
     const token = localStorage.getItem("token") || Cookies.get("authToken");
+
     if (!token) {
       setPopupMessage("Bạn cần đăng nhập để thêm vào yêu thích");
       setShowPopup(true);
@@ -137,19 +141,20 @@ export default function ProductCard({
       setTimeout(() => setShowPopup(false), 2000);
       return;
     }
-     if (!selectedVariant?.id) {
-    setPopupMessage("Vui lòng chọn biến thể trước khi thêm vào giỏ hàng");
-    setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 2000);
-    return;
-  }
+
+    if (!selectedVariant?.id) {
+      setPopupMessage("Vui lòng chọn biến thể trước khi thêm vào giỏ hàng");
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/cart`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          Accept: "application/json",
         },
         body: JSON.stringify({
           product_id: product.id,
@@ -233,7 +238,28 @@ export default function ProductCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
+        {/* 👉 Hiển thị chọn biến thể */}
+        {product.variants?.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {product.variants.map((variant, i) => (
+              <button
+                key={variant.id || i}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedVariant(variant);
+                }}
+                className={`px-2 py-1 border rounded text-xs ${selectedVariant?.id === variant.id
+                    ? "border-brand text-brand font-semibold"
+                    : "border-gray-300 text-gray-600"
+                  }`}
+              >
+                {variant?.name || variant?.value1 || `Chọn ${i + 1}`}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center gap-1 text-yellow-500 text-xs mt-2">
           {Array(5)
             .fill(0)
             .map((_, i) => (
