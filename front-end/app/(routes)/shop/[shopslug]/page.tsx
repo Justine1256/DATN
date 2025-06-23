@@ -2,7 +2,8 @@ import axios from 'axios';
 import ShopInfo from '@/app/components/stores/storesinfor';
 import { API_BASE_URL } from '@/utils/api';
 
-export default async function ShopPage({ params }: { params: { shopslug: string } }) {
+export default async function ShopPage(props: { params: Promise<{ shopslug: string }> }) {
+    const params = await props.params;
     try {
         console.log("🧪 Slug:", params.shopslug);
         const res = await axios.get(`${API_BASE_URL}/shop/slug/${params.shopslug}`);

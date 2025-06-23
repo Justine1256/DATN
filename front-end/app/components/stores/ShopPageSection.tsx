@@ -25,6 +25,10 @@ interface Product {
     sale_price?: number;
     shop_slug: string;
     slug: string;
+    oldPrice: number;
+    rating: number;
+    discount: number;
+    variants: any[];
 }
 
 interface Props {
