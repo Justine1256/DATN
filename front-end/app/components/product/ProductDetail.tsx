@@ -12,7 +12,7 @@ import ShopProductSlider from '../home/ShopProduct';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Breadcrumb from '../cart/CartBreadcrumb';
-import { AiFillHeart } from 'react-icons/ai';
+import { AiFillHeart, AiOutlineHeart } from 'react-icons/ai';
 import { FiHeart } from 'react-icons/fi';
 import ProductGallery from './ProductGallery';
 import { Product, ProductDetailProps } from './hooks/Product';
@@ -316,14 +316,15 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           <div className="md:col-span-6 flex flex-col gap-4 relative">
             <button
               onClick={toggleLike}
-              className="absolute top-2 left-2 p-2 text-[22px] z-20 transition-colors duration-200 select-none"
+              className="absolute top-2 left-2 p-2 text-[22px] z-20 select-none"
             >
               {liked ? (
-                <AiFillHeart className="text-brand transition-colors duration-200" />
+                <AiFillHeart className="text-red-500" />
               ) : (
-                <FiHeart className="text-gray-400 transition-colors duration-200" />
+                <AiOutlineHeart className="text-red-500" /> // ✅ Trái tim viền đỏ khi chưa like
               )}
             </button>
+
             <ProductGallery
               images={product.image}
               mainImage={mainImage}

@@ -275,13 +275,13 @@ export default function ProductCard({
         </div>
       </div>
 
-      <button
+      {/* <button
         onClick={handleAddToCart}
         className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
       >
         <FiShoppingCart className="text-base" />
         Thêm Vào Giỏ Hàng
-      </button>
+      </button> */}
     </div>
   );
 }
