@@ -66,6 +66,8 @@ Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
 Route::post('/login', [UserController::class, 'login']);
 
 Route::get('/{shopslug}/product/{productslug}/comments', [CommentController::class, 'getCommentsInProduct']);
+Route::get('/shops/{slug}', [ShopController::class, 'showShopInfo']);
+Route::get('/shops/{slug}/products', [ShopController::class, 'getShopProducts']);
 
 Route::get('/notification', [NotificationController::class, 'index']);
 Route::post('/notification', [NotificationController::class, 'store']);
@@ -102,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shopotp', [ShopController::class, 'confirmOtp']);
     Route::get('/shopdashboard', [ShopController::class, 'index']);
     Route::post('/shopexit', [ShopController::class, 'exitShop']);
+
 
     Route::get('/addresses', [AddressController::class, 'index']);
     Route::get('/addressesUser/{id}', [AddressController::class, 'getAddressesByUser']);
