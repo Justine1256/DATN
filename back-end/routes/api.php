@@ -61,6 +61,7 @@ Route::post('/product', [ProductController::class, 'store']);
 Route::patch('/product/{id}', [ProductController::class, 'update']);
 Route::delete('/product/{id}', [ProductController::class, 'delete']);
 
+
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
 Route::post('/login', [UserController::class, 'login']);
@@ -76,6 +77,7 @@ Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 
 Route::get('/vouchers', [VoucherController::class, 'index']);
 Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::class, 'showVouchersByCategory']);
+Route::get('/search', [ProductController::class, 'search']);
 
 
 Route::get('/vouchers', [VoucherController::class, 'index']);
