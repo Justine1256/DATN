@@ -11,9 +11,6 @@ export default function ProductDescription({ html, specs }: ProductDescriptionPr
     const shouldRenderHTML = html && html.trim().length > 0;
 
     // Hàm để chuyển đổi hashtag thành thẻ a có thể click được
-<<<<<<< HEAD
-
-=======
     const renderHashtags = (text: string) => {
         const regex = /#\w+/g; // Tìm tất cả các hashtag bắt đầu với #
         return text.split(' ').map((word, idx) => {
@@ -32,7 +29,6 @@ export default function ProductDescription({ html, specs }: ProductDescriptionPr
         });
     };
     
->>>>>>> 24914919eb516f8f5139daf5abd96f18223d7bc7
 
     return (
         <div className="w-full max-w-screen-xl mx-auto px-4 mt-20">
