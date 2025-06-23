@@ -1,4 +1,4 @@
-// Giữ các enum tại đây
+import type { Product } from "./product"; // đường dẫn đúng đến file định nghĩa Product
 
 export enum OrderStatus {
     Processing = "processing",
@@ -17,26 +17,13 @@ export enum ShippingStatus {
     Returned = "returned"
 }
 
-export interface Product {
-    id: number;
-    name: string;
-    quantity: number;
-    price_at_time: string;
-    image: string[];
-    shop_id: number;
-    description?: string;
-    value1?: string;
-    value2?: string;
-    category_id?: number;
-}
-
 export interface OrderDetail {
     id: number;
     order_id: number;
     price_at_time: string;
     quantity: number;
     subtotal: string;
-    product: Product;
+    product: Product; // ✅ Sử dụng Product có variants
 }
 
 export interface Order {

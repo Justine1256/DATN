@@ -50,6 +50,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         }
 
         const productData = await productRes.json();
+        console.log("✅ Dữ liệu sản phẩm:", productData.data);
         setProduct(productData.data);
 
         const firstImage = Array.isArray(productData.data.image) && productData.data.image.length > 0 ? productData.data.image[0] : '';
