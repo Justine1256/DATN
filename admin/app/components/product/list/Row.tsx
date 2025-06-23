@@ -3,6 +3,7 @@ import { FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
 import { AiFillStar } from "react-icons/ai"; // ✅ Thêm icon sao
 import { Product } from "@/types/product";
 import { Category } from "@/types/category";
+import { STATIC_BASE_URL } from "@/utils/api";
 
 type ProductRowProps = {
   product: Product;
@@ -11,9 +12,10 @@ type ProductRowProps = {
 };
 
 const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
-  const imageSrc = product.image?.[0]
-    ? `http://127.0.0.1:8000/storage/images/${product.image[0]}`
-    : "/default-image.jpg";
+const imageSrc = product.image?.[0]
+  ? `${STATIC_BASE_URL}/${product.image[0]}`
+  : `${STATIC_BASE_URL}/default-image.jpg`;
+
 
   let parentCategoryName = "Không rõ";
   let subcategoryName = "Không rõ";

@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import ProductCard, { Product } from "../product/ProductCard";
+import ProductCardCate, { Product } from "../product/ProductCardCate";
 import { API_BASE_URL } from "@/utils/api";
 
-export default function ShopProductSlider() {
+// ✅ Nhận shopSlug qua props
+export default function ShopProductSlider({ shopSlug }: { shopSlug: string }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
@@ -13,19 +14,25 @@ export default function ShopProductSlider() {
 
     useEffect(() => {
         setMounted(true);
-        fetch(`${API_BASE_URL}/shop/cua-hang-dien-thoai/products`)
+    }, []);
+
+    useEffect(() => {
+        if (!shopSlug) return;
+        console.log("Shop slug:", shopSlug);
+        setLoading(true);
+
+        fetch(`${API_BASE_URL}/shop/${shopSlug}/products`)
             .then((res) => res.json())
             .then((data) => {
                 const list = Array.isArray(data.products?.data) ? data.products.data : [];
                 setProducts(list);
             })
             .catch((err) => {
-                console.error("Lỗi khi fetch sản phẩm:", err);
+                console.error("❌ Lỗi khi fetch sản phẩm:", err);
                 setProducts([]);
             })
             .finally(() => setLoading(false));
-    }, []);
-      
+    }, [shopSlug]);
 
     const handlePrev = () => {
         sliderRef.current?.scrollBy({ left: -sliderRef.current.clientWidth, behavior: "smooth" });
@@ -64,12 +71,11 @@ export default function ShopProductSlider() {
         sliderRef.current!.scrollLeft = scrollLeft.current - walk;
     };
 
-    if (!mounted) return null;
+    if (!mounted || !shopSlug) return null;
 
     return (
         <section className="bg-white pt-10 pb-6">
             <div className="max-w-[1170px] mx-auto px-4">
-                {/* Header */}
                 <div className="mb-6">
                     <div className="border-t border-gray-200 mb-6" />
                     <div className="flex items-center justify-between gap-10 mb-6">
@@ -89,7 +95,6 @@ export default function ShopProductSlider() {
                     </div>
                 </div>
 
-                {/* Slider */}
                 <div className="relative">
                     <button
                         onClick={handlePrev}
@@ -100,15 +105,18 @@ export default function ShopProductSlider() {
 
                     <div
                         ref={sliderRef}
-                        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar cursor-grab select-none"
+                        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar cursor-grab select-none justify-start"
                         onMouseDown={handleMouseDown}
                         onMouseUp={handleMouseUp}
                         onMouseLeave={handleMouseLeave}
                         onMouseMove={handleMouseMove}
                     >
                         {(loading ? Array(8).fill(0) : products).map((product, index) => (
-                            <div key={index} className="min-w-[calc(25%-12px)] px-2 box-border">
-                                <ProductCard product={!loading ? product : undefined} />
+                            <div
+                                key={index}
+                                className="px-2 box-border min-w-[100%] sm:min-w-[calc(50%-8px)] md:min-w-[calc(25%-12px)] flex-shrink-0"
+                            >
+                                <ProductCardCate product={!loading ? product : undefined} />
                             </div>
                         ))}
                     </div>

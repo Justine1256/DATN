@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import ProductListHeader from "../components/product/list/ListHeader";
 import ProductRow from "../components/product/list/Row";
 import Pagination from "../components/product/list/Pagination";
-import ProductRowSkeleton from "../components/loading/loading"; // ✅ dùng import đã tách riêng
 import { Product } from "@/types/product";
 import { Category } from "@/types/category";
 import Swal from "sweetalert2";
 import Cookies from "js-cookie";
+import { API_BASE_URL } from "@/utils/api";
+import { useAuth } from "../AuthContext";
 
 const ProductRowSkeleton = () => (
   <tr className="border-b border-gray-100 animate-pulse">
@@ -31,8 +32,9 @@ const ProductRowSkeleton = () => (
 );
 
 
-
 export default function ProductListPage() {
+  const { isAuthReady } = useAuth(); // Lấy isAuthReady từ context
+
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,26 +48,17 @@ export default function ProductListPage() {
       categoriesMap.set(c.parent.id, c.parent);
     }
   });
-  useEffect(() => {
-  const token = Cookies.get('authToken');
-  if (!token) {
-    // Chưa login, redirect về trang login hoặc show message
-    window.location.href = '/login';
-    return;
-  }}, []);
+
   const fetchProducts = async (page = 1) => {
     try {
       setLoading(true);
       const token = Cookies.get("authToken");
-      if (!token) {
-        console.error("Không có token. Hãy đăng nhập.");
-        setProducts([]);
-        return;
-      }
-
-      const res = await fetch(`http://127.0.0.1:8000/api/shop/products?page=${page}`, {
+      const res = await fetch(`${API_BASE_URL}/shop/products`, {
         headers: { Authorization: `Bearer ${token}` },
+        
       });
+
+      console.log(res);
 
       if (!res.ok) throw new Error("Lỗi fetch sản phẩm");
 
@@ -92,11 +85,7 @@ export default function ProductListPage() {
         created_at: p.created_at,
         updated_at: p.updated_at,
         deleted_at: p.deleted_at,
-        size: typeof p.size === "string"
-          ? p.size.split(",").map((s: string) => s.trim())
-          : Array.isArray(p.size)
-          ? p.size
-          : [],
+        size: typeof p.size === "string" ? p.size.split(",").map((s: string) => s.trim()) : Array.isArray(p.size) ? p.size : [],
         category: p.category ?? null,
         rating: p.rating ? parseFloat(p.rating) : 0,
       }));
@@ -115,9 +104,7 @@ export default function ProductListPage() {
   const fetchCategories = async () => {
     try {
       const token = Cookies.get("authToken");
-      if (!token) return;
-
-      const res = await fetch("http://127.0.0.1:8000/api/shop/categories", {
+      const res = await fetch(`${API_BASE_URL}/shop/categories`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -146,7 +133,7 @@ export default function ProductListPage() {
 
     const token = Cookies.get("authToken");
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/product/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/product/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -166,12 +153,16 @@ export default function ProductListPage() {
   };
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (isAuthReady) {
+      fetchCategories();
+    }
+  }, [isAuthReady]);
 
   useEffect(() => {
-    fetchProducts(currentPage);
-  }, [currentPage]);
+    if (isAuthReady) {
+      fetchProducts(currentPage);
+    }
+  }, [isAuthReady, currentPage]);
 
   return (
     <div className="p-6 flex flex-col">
@@ -192,9 +183,7 @@ export default function ProductListPage() {
             </thead>
             <tbody key={currentPage}>
               {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <ProductRowSkeleton key={i} />
-                ))
+                Array.from({ length: 5 }).map((_, i) => <ProductRowSkeleton key={i} />)
               ) : products.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-gray-500">
@@ -216,11 +205,7 @@ export default function ProductListPage() {
         </div>
 
         <div className="pt-4 mt-auto">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            setCurrentPage={setCurrentPage}
-          />
+          <Pagination currentPage={currentPage} totalPages={totalPages} setCurrentPage={setCurrentPage} />
         </div>
       </div>
     </div>

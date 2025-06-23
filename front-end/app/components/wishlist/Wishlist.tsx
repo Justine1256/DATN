@@ -20,8 +20,11 @@ interface Product {
   discount: number;
   option1?: string;
   value1?: string;
+  option2?: string;
+  value2?: string;
   reviewCount?: number;
   shop_slug: string;
+  variants: any[];
 }
 
 // ✅ Kiểu dữ liệu mỗi item trong wishlist
@@ -62,9 +65,11 @@ const Wishlist = () => {
         return res.json();
       })
       .then((data: WishlistItem[]) => {
-        setWishlistItems(data);
+        const validData = data.filter((item) => item.product !== null);
+        setWishlistItems(validData);
         setLoading(false);
       })
+      
       .catch((error) => {
         console.error("❌ Lỗi lấy wishlist:", error);
         setLoading(false);
@@ -74,7 +79,8 @@ const Wishlist = () => {
   // ✅ Gỡ sản phẩm khỏi danh sách hiển thị khi đã unlike (xóa khỏi UI)
   const removeItem = (productId: number) => {
     setWishlistItems((prev) =>
-      prev.filter((item) => item.product.id !== productId)
+      prev.filter((item) => item.product?.id !== productId)
+
     );
   };
 
@@ -91,7 +97,9 @@ const Wishlist = () => {
   };
 
   // ✅ Trích danh sách product_id để truyền xuống ProductCard
-  const wishlistProductIds = wishlistItems.map((item) => item.product.id);
+  const wishlistProductIds = wishlistItems
+    .map((item) => item.product?.id)
+    .filter((id): id is number => id !== undefined);
 
   // ✅ Navigate to product detail page
   const handleProductClick = (slug: string) => {

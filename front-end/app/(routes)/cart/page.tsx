@@ -6,8 +6,9 @@ import CartItemsSection from "@/app/components/cart/CartItemsSection";
 import CartSummarySection from "@/app/components/cart/CartSummarySection";
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '@/utils/api';
+import { CartItem } from '@/app/components/cart/hooks/CartItem';
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState([]);
+const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   const fetchCartItems = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
@@ -46,7 +47,7 @@ export default function CartPage() {
       />
 
       <div className="md:col-span-2 mb-4 pt-[40px]">
-        <CartItemsSection cartItems={cartItems} setCartItems={cartItems as any}/>
+        <CartItemsSection cartItems={cartItems} setCartItems={setCartItems} />
       </div>
       <div>
         <CartSummarySection cartItems={cartItems} />

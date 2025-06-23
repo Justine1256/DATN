@@ -5,51 +5,67 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Product;
+use App\Models\ProductVariant;
 
 class CartController extends Controller
 {
     public function index()
     {
         $userId = Auth::id();
-        $carts = Cart::with('product')->where('user_id', $userId)->where('is_active', true)->get();
+        $carts = Cart::with('product', 'variant')->where('user_id', $userId)->where('is_active', true)->get();
         return response()->json($carts);
     }
 
     public function store(Request $request)
 {
     $validated = $request->validate([
-        'product_id' => 'required|exists:products,id',
-        'quantity'   => 'nullable|integer|min:1',
+        'product_id'   => 'required|exists:products,id',
+        'variant_id'   => 'required|exists:product_variants,id',
+        'quantity'     => 'nullable|integer|min:1',
     ]);
 
     $userId = Auth::id();
     $quantity = $validated['quantity'] ?? 1;
 
-    // Kiểm tra sản phẩm có status = 'activated' hay không
-    $product = \App\Models\Product::where('id', $validated['product_id'])
+    // 1. Kiểm tra sản phẩm có tồn tại và đang kích hoạt không
+    $product = Product::where('id', $validated['product_id'])
         ->where('status', 'activated')
         ->first();
 
     if (!$product) {
-        return response()->json([
-            'message' => 'Sản phẩm không tồn tại hoặc đã bị xóa/bị ẩn'
-        ], 404);
+        return response()->json(['message' => 'Sản phẩm không tồn tại hoặc đã bị vô hiệu hóa'], 404);
     }
 
-    $cart = Cart::where('user_id', $userId)
-        ->where('product_id', $validated['product_id'])
-        ->where('is_active', true)
+    // 2. Bắt buộc truyền variant_id
+    $variant = ProductVariant::where('id', $validated['variant_id'])
+        ->where('product_id', $product->id)
         ->first();
+
+    if (!$variant) {
+        return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
+    }
+
+    // 3. Kiểm tra xem đã có bản ghi trong giỏ chưa
+    $cartQuery = Cart::where('user_id', $userId)
+        ->where('product_id', $product->id)
+        ->where('variant_id', $variant->id)
+        ->where('is_active', true);
+
+    $cart = $cartQuery->first();
 
     if ($cart) {
         $cart->quantity += $quantity;
         $cart->save();
     } else {
         $cart = Cart::create([
-            'user_id'    => $userId,
-            'product_id' => $validated['product_id'],
-            'quantity'   => $quantity,
-            'is_active'  => true,
+            'user_id'        => $userId,
+            'product_id'     => $product->id,
+            'variant_id'     => $variant->id,
+            'quantity'       => $quantity,
+            'product_option' => $variant->option1,
+            'product_value'  => $variant->value1,
+            'is_active'      => true,
         ]);
     }
 
@@ -63,16 +79,26 @@ class CartController extends Controller
         $validated = $request->validate([
             'quantity'  => 'nullable|integer|min:1',
             'is_active' => 'nullable|boolean',
+            'product_option'  => 'nullable|string|max:255',
+            'product_value'   => 'nullable|string|max:255',
         ]);
 
         if (isset($validated['quantity'])) {
-            $product = $cart->product;
-            if ($validated['quantity'] > $product->stock) {
-                return response()->json([
-                    'message' => 'Số lượng vượt quá tồn kho (' . $product->stock . ')'
-                ], 400);
+            if ($cart->variant) {
+                if ($validated['quantity'] > $cart->variant->stock) {
+                    return response()->json([
+                        'message' => 'Số lượng vượt quá tồn kho (' . $cart->variant->stock . ')'
+                    ], 400);
+                }
+            } else {
+                if ($validated['quantity'] > $cart->product->stock) {
+                    return response()->json([
+                        'message' => 'Số lượng vượt quá tồn kho (' . $cart->product->stock . ')'
+                    ], 400);
+                }
             }
         }
+
 
         $cart->update($validated);
 
@@ -85,7 +111,8 @@ class CartController extends Controller
 
         $total = 0;
         foreach ($carts as $cart) {
-            $total += $cart->quantity * $cart->product->price;
+            $price = $cart->variant->sale_price ?? $cart->variant->price ?? $cart->product->sale_price ?? $cart->product->price;
+            $total += $cart->quantity * $price;
         }
 
         return response()->json(['total' => $total]);

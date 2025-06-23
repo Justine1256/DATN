@@ -4,44 +4,65 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '@/utils/api';
+
 export default function LoginForm() {
-  // ✅ State quản lý form và trạng thái
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showPopup, setShowPopup] = useState(false); // Hiện popup sau khi login
+  const [showPopup, setShowPopup] = useState(false);
 
-  // ✅ Cập nhật dữ liệu khi người dùng nhập
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ✅ Gửi form login
+  // ✅ Hàm kiểm tra định dạng email chuẩn
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const { email, password } = formData;
+
+    // ✅ VALIDATION
+    if (!email.trim()) {
+      return setError('Vui lòng nhập email.');
+    }
+
+    if (!isValidEmail(email.trim())) {
+      return setError('Email không đúng định dạng.');
+    }
+
+    if (!password.trim()) {
+      return setError('Vui lòng nhập mật khẩu.');
+    }
+
+    if (password.length < 6) {
+      return setError('Mật khẩu phải có ít nhất 6 ký tự.');
+    }
+
     setIsLoading(true);
 
     try {
       const res = await axios.post(`${API_BASE_URL}/login`, formData);
       const { token } = res.data;
 
-      // ✅ Lưu token vào cookie
       Cookies.set('authToken', token, { expires: 7 });
-      
-      // ✅ Hiện popup đăng nhập thành công
       setShowPopup(true);
 
-      // ✅ Trang hiện tại chuyển về homepage
       window.location.href = 'http://localhost:3000';
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      const msg =
+        err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ✅ Kiểm tra token có sẵn trong cookie khi component mount
   useEffect(() => {
     const token = Cookies.get('authToken');
     if (token) {
@@ -57,53 +78,46 @@ export default function LoginForm() {
 
   return (
     <div className="w-[370px] max-w-md mx-auto text-black relative">
-      {/* ✅ Tiêu đề và hướng dẫn */}
-      <h2 className="text-[1.5rem] font-semibold mb-1">Log in to MAKETO</h2>
-      <p className="text-sm text-gray-700 mb-6">Enter your details below</p>
+      <h2 className="text-[1.5rem] font-semibold mb-1">Đăng nhập vào MAKETO</h2>
+      <p className="text-sm text-gray-700 mb-6">Nhập thông tin của bạn bên dưới</p>
 
-      {/* ✅ Hiển thị lỗi nếu có */}
-      {error && <p className="text-brand text-sm mb-4 whitespace-pre-wrap">{error}</p>}
+      {error && <p className="text-red-600 text-sm mb-4 whitespace-pre-wrap">{error}</p>}
 
-      {/* ✅ Form login */}
       <form onSubmit={handleSubmit} className="space-y-8">
         <input
           type="text"
           name="email"
-          placeholder="Email or Phone Number"
+          placeholder="Email"
           onChange={handleChange}
           className="w-full border-b p-2 mt-2 focus:outline-none text-sm text-black placeholder-gray-400"
           disabled={isLoading}
-          required
         />
         <input
           type="password"
           name="password"
-          placeholder="Password"
+          placeholder="Mật khẩu"
           onChange={handleChange}
           className="w-full border-b p-2 mt-2 focus:outline-none text-sm text-black placeholder-gray-400"
           disabled={isLoading}
-          required
         />
 
-        {/* ✅ Nút login và link forgot password */}
         <div className="flex items-center justify-between h-[56px] mt-4">
           <button
             type="submit"
             className="bg-brand text-white w-[120px] h-full text-sm rounded hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
-            {isLoading ? 'Đang đăng nhập...' : 'Log In'}
+            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
           <a
             href="/signup"
             className="text-brand text-sm hover:underline hover:opacity-80"
           >
-            Forget Password?
+            Quên mật khẩu?
           </a>
         </div>
       </form>
 
-      {/* ✅ Popup đăng nhập thành công */}
       {showPopup && (
         <div className="fixed top-5 right-5 animate-slide-in z-50 bg-white border-l-4 border-green-500 shadow-lg rounded px-4 py-3 flex items-center gap-3">
           <svg
@@ -118,7 +132,6 @@ export default function LoginForm() {
         </div>
       )}
 
-      {/* ✅ CSS animation cho popup */}
       <style jsx>{`
         .animate-slide-in {
           animation: slide-in 0.5s ease-out;

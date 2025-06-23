@@ -20,44 +20,33 @@ export default function OrderListItem({
         if (order.order_status.toLowerCase() === "canceled") {
             onReorder(order);
             setAddToCartSuccess(true);
+
+            // Lưu thông tin giỏ hàng vào localStorage
+            const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
+            cartItems.push(...order.order_details); // Thêm sản phẩm vào giỏ hàng
+            localStorage.setItem("cart", JSON.stringify(cartItems)); // Cập nhật giỏ hàng trong localStorage
+
             setTimeout(() => {
-                setAddToCartSuccess(false);
-                window.location.href = "/cart";
+                setAddToCartSuccess(false); // Ẩn thông báo thành công sau 1.5 giây
+                window.location.href = "/cart"; // Điều hướng đến giỏ hàng mà không reload trang
             }, 1500);
         } else {
             alert("Đơn hàng này không thể đặt lại.");
         }
     };
 
-    // Debug: In ra console để kiểm tra
-    // console.log('Order status:', order.order_status);
-    // console.log('Order status JSON:', JSON.stringify(order.order_status));
-    // console.log('Order status type:', typeof order.order_status);
-    // console.log('Status colors keys:', Object.keys(statusColors));
-    // console.log('Applied color:', statusColors[order.order_status as OrderStatus]);
-
     // Hàm lấy màu trạng thái với xử lý case-insensitive
     const getStatusColor = (status: string) => {
-        // Làm sạch và chuẩn hóa status
         const cleanStatus = status?.toString().trim().toLowerCase();
-        console.log('Clean status:', cleanStatus);
-
-        // Thử tìm key khớp (case-insensitive)
         const matchingKey = Object.keys(statusColors).find(
             key => key.toLowerCase() === cleanStatus
         );
 
-        console.log('Matching key:', matchingKey);
-
         if (matchingKey) {
-            const color = statusColors[matchingKey as OrderStatus];
-            console.log('Found color:', color);
-            return color;
+            return statusColors[matchingKey as OrderStatus];
         }
 
-        console.log('Using fallback color');
-        // Fallback
-        return 'bg-gray-200 text-gray-800';
+        return 'bg-gray-200 text-gray-800'; // Fallback color
     };
 
     return (
@@ -77,7 +66,7 @@ export default function OrderListItem({
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                         <div className="flex flex-col">
                             <span className="text-gray-500 text-xs font-medium">Ngày đặt</span>
                             <span className="font-semibold text-black">

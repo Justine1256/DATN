@@ -326,7 +326,7 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="p-3  rounded-xl">
+              <div className="p-3 rounded-xl">
                 {/* Map Pin - Use text instead of icon */}
                 <span className="text-white">📍</span>
               </div>
@@ -387,9 +387,9 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
                 <div
                   key={addr.id}
                   className={`p-6 rounded-xl border-2 transition-all duration-200 hover:shadow-lg ${addr.is_default
-                    ? "border-[#db4444]  "
-                    : "border-gray-200 bg-white hover:border-[#db4444]"
-                    }`}
+                    ? "border-[#db4444]"
+                    : "border-gray-200 bg-white hover:border-[#db4444]"}`
+                  }
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -498,7 +498,7 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
       )}
     </div>
   );
-
+  
   // ✅ Hàm hiển thị form nhập/sửa địa chỉ
   function renderForm() {
     return (

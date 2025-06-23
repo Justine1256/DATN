@@ -1,4 +1,5 @@
 // hooks/useCategories.ts
+import { API_BASE_URL } from "@/utils/api";
 import { useEffect, useState } from "react";
 
 export interface Category {
@@ -31,7 +32,7 @@ useEffect(() => {
         throw new Error("Không tìm thấy token đăng nhập.");
       }
 
-      const res = await fetch("http://127.0.0.1:8000/api/shop/categories", {
+      const res = await fetch(`${API_BASE_URL}/shop/categories`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

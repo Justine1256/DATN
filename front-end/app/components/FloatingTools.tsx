@@ -223,7 +223,8 @@ export default function ModernFloatingTools() {
           {/* Left: Contact List */}
           <div className="bg-gradient-to-b from-gray-50 to-white border-r border-gray-200 flex flex-col text-black w-[340px] h-[600px]">
             {/* Header */}
-            <div className="w-full px-6 h-[80px] border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-[#db4444] to-[#ff6b6b]">
+            <div className="w-full px-6 h-[80px] border-b border-gray-200 flex items-center justify-between bg-[#db4444]">
+
               <div className="flex items-center gap-3">
                 <div className="bg-white/20 backdrop-blur-sm text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
                   SH
@@ -426,7 +427,7 @@ export default function ModernFloatingTools() {
                     <button
                       className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                      <Smile size={18} />
+                     
                     </button>
                   </div>
 

@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\Product;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\Product;
+use App\Models\ProductVariant;
+use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
 {
@@ -12,75 +13,152 @@ class ProductSeeder extends Seeder
     {
         $products = [
             [
-                "shop_id" => 1,
-                "category_id" => 2,
-                "name" => "Áo Thun Nam Basic",
-                "description" => "Áo thun cotton thoáng mát, dễ phối đồ.",
-                "price" => 150000,
-                "stock" => 20,
-                "sold" => 5,
-                "image" => "products/sample-product.png",
-                "option1" => "Màu sắc",
-                "value1" => "Trắng",
-                "option2" => "Size",
-                "value2" => "M",
-                "status" => "activated",
+                'name' => 'Điện thoại iPhone 15 Pro Max',
+                'category_id' => 2,
+                'price' => 35000000,
+                'sale_price' => 33000000,
+                'images' => [
+                    'products/iphone15-1.jpg',
+                    'products/iphone15-2.jpg',
+                ],
+                'variants' => [
+                    [
+                        'option1' => 'Dung lượng',
+                        'value1' => '256GB',
+                        'option2' => 'Màu sắc',
+                        'value2' => 'Titan Xám',
+                        'price' => 33000000,
+                        'stock' => 10,
+                        'image' => [
+                            'products/variants/iphone15-256-titan.jpg',
+                        ],
+                    ],
+                    [
+                        'option1' => 'Dung lượng',
+                        'value1' => '512GB',
+                        'option2' => 'Màu sắc',
+                        'value2' => 'Titan Xanh',
+                        'price' => 36000000,
+                        'stock' => 5,
+                        'image' => [
+                            'products/variants/iphone15-512-xanh.jpg',
+                        ],
+                    ],
+                ],
             ],
             [
-                "shop_id" => 1,
-                "category_id" => 3,
-                "name" => "Áo Sơ Mi Trắng Nữ",
-                "description" => "Sơ mi công sở thanh lịch, chất liệu mát.",
-                "price" => 200000,
-                "stock" => 25,
-                "sold" => 6,
-                "image" => "products/sample-product.png",
-                "option1" => "Màu sắc",
-                "value1" => "Trắng",
-                "option2" => "Size",
-                "value2" => "S",
-                "status" => "activated",
-                "created_at" => now(),
-                "updated_at" => now(),
+                'name' => 'Laptop Dell XPS 13',
+                'category_id' => 3,
+                'price' => 42000000,
+                'sale_price' => 40000000,
+                'images' => [
+                    'products/dellxps-1.jpg',
+                    'products/dellxps-2.jpg',
+                ],
+                'variants' => [
+                    [
+                        'option1' => 'RAM',
+                        'value1' => '16GB',
+                        'option2' => 'SSD',
+                        'value2' => '512GB',
+                        'price' => 40000000,
+                        'stock' => 8,
+                        'image' => [
+                            'products/variants/dellxps-16-512.jpg',
+                        ],
+                    ],
+                    [
+                        'option1' => 'RAM',
+                        'value1' => '32GB',
+                        'option2' => 'SSD',
+                        'value2' => '1TB',
+                        'price' => 45000000,
+                        'stock' => 4,
+                        'image' => [
+                            'products/variants/dellxps-32-1tb.jpg',
+                        ],
+                    ],
+                ],
             ],
             [
-                "shop_id" => 1,
-                "category_id" => 4,
-                "name" => "Quần Kaki Nam",
-                "description" => "Quần kaki ống đứng, lịch sự.",
-                "price" => 250000,
-                "stock" => 18,
-                "sold" => 3,
-                "image" => "products/sample-product.png",
-                "option1" => "Màu sắc",
-                "value1" => "Be",
-                "option2" => "Size",
-                "value2" => "XL",
-                "status" => "activated",
-                "created_at" => now(),
-                "updated_at" => now(),
+                'name' => 'Tai nghe Sony WH-1000XM5',
+                'category_id' => 4,
+                'price' => 9990000,
+                'sale_price' => 8990000,
+                'images' => [
+                    'products/sony1000xm5-1.jpg',
+                    'products/sony1000xm5-2.jpg',
+                ],
+                'variants' => [
+                    [
+                        'option1' => 'Màu sắc',
+                        'value1' => 'Đen',
+                        'option2' => null,
+                        'value2' => null,
+                        'price' => 8990000,
+                        'stock' => 20,
+                        'image' => [
+                            'products/variants/sony1000xm5-black.jpg',
+                        ],
+                    ],
+                    [
+                        'option1' => 'Màu sắc',
+                        'value1' => 'Trắng',
+                        'option2' => null,
+                        'value2' => null,
+                        'price' => 8990000,
+                        'stock' => 15,
+                        'image' => [
+                            'products/variants/sony1000xm5-white.jpg',
+                        ],
+                    ],
+                ],
             ],
-            [
-                "shop_id" => 1,
-                "category_id" => 3,
-                "name" => "Váy Suông Công Sở",
-                "description" => "Váy liền nữ thanh lịch, vải mịn thoáng.",
-                "price" => 300000,
-                "stock" => 10,
-                "sold" => 1,
-                "image" => "products/sample-product.png",
-                "option1" => "Màu sắc",
-                "value1" => "Hồng",
-                "option2" => "Size",
-                "value2" => "M",
-                "status" => "activated",
-                "created_at" => now(),
-                "updated_at" => now(),
-            ],
+            // Bạn có thể tự thêm tiếp sản phẩm 4 → 15 theo ý bạn
         ];
 
-        foreach ($products as $product) {
-            Product::create($product); // slug sẽ tự sinh ở model
+        foreach ($products as $item) {
+
+            $slug = Str::slug($item['name']); // Không thêm -1 -2
+
+            $product = Product::create([
+                'shop_id' => 1,
+                'category_id' => $item['category_id'],
+                'name' => $item['name'],
+                'slug' => $slug,
+                'description' => "Mô tả sản phẩm {$item['name']}",
+                'price' => $item['price'],
+                'sale_price' => $item['sale_price'],
+                'stock' => 0, // sẽ cập nhật sau khi thêm variants
+                'sold' => rand(0, 20),
+                'image' => json_encode($item['images']),
+                'option1' => null,
+                'value1' => null,
+                'option2' => null,
+                'value2' => null,
+                'status' => 'activated',
+            ]);
+
+            $totalStock = 0;
+
+            foreach ($item['variants'] as $variant) {
+                ProductVariant::create([
+                    'product_id' => $product->id,
+                    'option1' => $variant['option1'],
+                    'value1' => $variant['value1'],
+                    'option2' => $variant['option2'],
+                    'value2' => $variant['value2'],
+                    'price' => $variant['price'],
+                    'stock' => $variant['stock'],
+                    'image' => json_encode($variant['image']),
+                ]);
+
+                $totalStock += $variant['stock'];
+            }
+
+            // Cập nhật stock tổng
+            $product->stock = $totalStock;
+            $product->save();
         }
     }
 }

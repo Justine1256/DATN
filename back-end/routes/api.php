@@ -47,6 +47,7 @@ Route::get('/category/{id}', [CategoryController::class, 'show']);
 Route::post('/category', [CategoryController::class, 'store']);
 Route::patch('/category/{id}', [CategoryController::class, 'update']);
 Route::delete('/category/{id}', [CategoryController::class, 'delete']);
+Route::get('/shop/{slug}/categories', [CategoryController::class, 'showShopCategoriesByUser']);
 
 Route::get('/product', [ProductController::class, 'index']);
 Route::get('/{shopslug}/product/{productslug}', [ProductController::class, 'show']);
@@ -65,6 +66,8 @@ Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
 Route::post('/login', [UserController::class, 'login']);
 
 Route::get('/{shopslug}/product/{productslug}/comments', [CommentController::class, 'getCommentsInProduct']);
+Route::get('/shops/{slug}', [ShopController::class, 'showShopInfo']);
+Route::get('/shops/{slug}/products', [ShopController::class, 'getShopProducts']);
 
 Route::get('/notification', [NotificationController::class, 'index']);
 Route::post('/notification', [NotificationController::class, 'store']);
@@ -101,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shopotp', [ShopController::class, 'confirmOtp']);
     Route::get('/shopdashboard', [ShopController::class, 'index']);
     Route::post('/shopexit', [ShopController::class, 'exitShop']);
+
 
     Route::get('/addresses', [AddressController::class, 'index']);
     Route::get('/addressesUser/{id}', [AddressController::class, 'getAddressesByUser']);
@@ -185,8 +189,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // shop management
     // quản lý sản phẩm  của shop
-
-    Route::post('/shop/products', [ProductController::class, 'addProductByShop']);
+    Route::get('/shop/products', [ProductController::class, 'getProductByShop']);
+    Route::post('/shop/products', [ProductController::class, 'store']);
     Route::patch('/shop/products/{id}', [ProductController::class, 'update']);
     Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
     Route::post('/shop/products/{id}', [ProductController::class, 'restoreProduct']);

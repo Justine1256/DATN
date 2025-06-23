@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from "react";
-import { Bell, ExternalLink, Clock } from "lucide-react";
+import { Bell, ExternalLink, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
 import Cookies from "js-cookie";
@@ -38,12 +38,14 @@ const NotificationDropdown: React.FC = () => {
     useEffect(() => {
         const token = Cookies.get("authToken");
 
+        // Nếu không có token (người dùng chưa đăng nhập), không làm gì cả
         if (!token) {
             setErrorMessage("Bạn cần đăng nhập để xem thông báo.");
-            setLoading(false);
-            return;
+            setLoading(false); // Dừng loading
+            return; // Không gọi API
         }
 
+        // Nếu có token, gọi API lấy thông báo
         axios
             .get(`${API_BASE_URL}/notification`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -86,49 +88,58 @@ const NotificationDropdown: React.FC = () => {
     };
 
     return (
-        <div className="w-full max-w-[1280px] mx-auto py-8 px-4 mt-10">
-            {/* Phần hiển thị tiêu đề và số lượng thông báo */}
-            <div className="mb-6">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-[#DB4444] rounded-lg flex items-center justify-center">
-                        <Bell className="w-5 h-5 text-white" />
+        <div className="w-full max-w-[1280px] mx-auto py-8 px-4">
+            {/* Header với gradient background */}
+            <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 mb-8">
+                {errorMessage ? (
+                    <div className="bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl p-4">
+                        <p className="text-rose-700 text-sm font-medium">{errorMessage}</p>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900">Thông Báo</h1>
-                    {notifications.filter((note) => note.is_read === 0).length > 0 && (
-                        <span className="bg-[#DB4444] text-white text-xs px-2 py-1 rounded-full font-medium">
-                            {notifications.filter((note) => note.is_read === 0).length}
-                        </span>
-                    )}
-                </div>
-
+                ) : (
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-[#DB4444] to-red-500 rounded-2xl flex items-center justify-center">
+                            <Bell className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                                Thông Báo
+                            </h1>
+                            <p className="text-gray-600 text-sm mt-1">
+                                {notifications.length > 0 ? `${notifications.length} thông báo` : 'Chưa có thông báo'}
+                            </p>
+                        </div>
+                        {notifications.filter((note) => note.is_read === 0).length > 0 && (
+                            <div className="ml-auto">
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-[#DB4444] to-red-500 text-white">
+                                    {notifications.filter((note) => note.is_read === 0).length} mới
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Hiển thị thông báo lỗi nếu có */}
-            {errorMessage && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                    <p className="text-red-700 text-sm">{errorMessage}</p>
-                </div>
-            )}
-
-            {/* Trạng thái tải (hiển thị skeleton loading) */}
+            {/* Loading skeleton */}
             {loading && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="bg-white rounded-lg shadow-sm border p-4 flex items-center gap-3 animate-pulse">
-                            <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-                            <div className="flex-grow space-y-2">
-                                <div className="w-3/4 h-4 bg-gray-200 rounded"></div>
-                                <div className="w-2/3 h-3 bg-gray-200 rounded"></div>
-                                <div className="w-1/2 h-3 bg-gray-200 rounded"></div>
+                        <div key={i} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 animate-pulse">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl"></div>
+                                <div className="flex-grow space-y-3">
+                                    <div className="w-3/4 h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg"></div>
+                                    <div className="w-2/3 h-3 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg"></div>
+                                    <div className="w-1/2 h-3 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg"></div>
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Lưới hiển thị các thông báo thực tế */}
+            {/* Danh sách thông báo */}
             {!loading && (
-                <div className="space-y-4 max-h-[420px] overflow-y-scroll">
+                <div className="space-y-4 max-h-[445px] overflow-y-auto">
                     {notifications.length > 0 ? (
                         notifications.map((notification) => (
                             <Link
@@ -137,40 +148,65 @@ const NotificationDropdown: React.FC = () => {
                                 className="block group"
                                 onClick={() => handleNotificationClick(notification.id)}
                             >
-                                <div
-                                    className={`bg-white rounded-lg shadow-sm p-4 flex items-center gap-3 transition-all duration-200 hover:shadow-lg hover:bg-gray-50 ${notification.is_read === 0 ? "border-l-4 border-[#DB4444]" : "border-gray-200"}`}
-                                >
-                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100">
-                                        <img
-                                            src={notification.image_url ? `${STATIC_BASE_URL}${notification.image_url}` : "/images/default-image.png"}
-                                            alt={notification.title}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                            onError={(e) => {
-                                                e.currentTarget.src = "/images/default-image.png";
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="flex-grow">
-                                        <h3 className={`text-sm font-semibold ${notification.is_read === 0 ? "text-gray-900" : "text-gray-600"}`} title={notification.title}>
-                                            {notification.title}
-                                        </h3>
-                                        <p className="text-xs text-gray-500 line-clamp-2">{notification.content}</p>
-                                        <div className="flex items-center justify-between pt-2">
-                                            <span className="text-xs text-gray-400 flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                {formatTime(notification.created_at)}
-                                            </span>
-                                            <ExternalLink className="w-4 h-4 text-[#DB4444] opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                                <div className={`relative rounded-2xl p-6 transition-all duration-300 ${notification.is_read === 0
+                                        ? "bg-gradient-to-r from-blue-50 via-white to-indigo-50"
+                                        : "bg-gradient-to-r from-gray-50 to-slate-50"
+                                    }`}>
+                                    <div className="flex items-start gap-4">
+                                        {/* Avatar với gradient border */}
+                                        <div className="relative">
+                                            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 p-0.5">
+                                                <div className="w-full h-full rounded-2xl overflow-hidden">
+                                                    <img
+                                                        src={notification.image_url ? `${STATIC_BASE_URL}${notification.image_url}` : "/images/default-image.png"}
+                                                        alt={notification.title}
+                                                        className="w-full h-full object-cover transition-transform duration-300"
+                                                        onError={(e) => {
+                                                            e.currentTarget.src = "/images/default-image.png";
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            {notification.is_read === 0 && (
+                                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#DB4444] to-red-500 rounded-full border-2 border-white"></div>
+                                            )}
+                                        </div>
+
+                                        {/* Nội dung thông báo */}
+                                        <div className="flex-grow min-w-0">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <h3 className={`text-base font-semibold leading-snug ${notification.is_read === 0 ? "text-gray-900" : "text-gray-600"
+                                                    }`}>
+                                                    {notification.title}
+                                                </h3>
+                                                {notification.is_read === 1 && (
+                                                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                                )}
+                                            </div>
+
+                                            <p className="text-sm text-gray-600 mt-2 line-clamp-2 leading-relaxed">
+                                                {notification.content}
+                                            </p>
+
+                                            <div className="flex items-center justify-between mt-4">
+                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                    <Clock className="w-3 h-3" />
+                                                    <span>{formatTime(notification.created_at)}</span>
+                                                </div>
+                                                <ExternalLink className="w-4 h-4 text-[#DB4444] opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1" />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </Link>
                         ))
                     ) : (
-                        <div className="bg-white rounded-lg shadow-sm border p-6 text-center">
-                            <Bell className="w-8 h-8 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900">Không có thông báo</h3>
-                            <p className="text-sm text-gray-500">Hiện tại bạn chưa có thông báo nào</p>
+                        <div className="bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50 rounded-2xl p-12 text-center">
+                            <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                <Bell className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-gray-800 mb-2">Chưa có thông báo</h3>
+                            <p className="text-gray-600">Hiện tại bạn chưa có thông báo nào để hiển thị</p>
                         </div>
                     )}
                 </div>
