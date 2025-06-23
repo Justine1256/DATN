@@ -13,7 +13,8 @@ interface Shop {
     phone: string;
     total_sales: number;
     email: string;
-    status: string;
+    status: "activated" | "pending" | "suspended";
+    created_at: string;
 }
 
 interface Product {
