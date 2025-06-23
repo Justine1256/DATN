@@ -137,7 +137,12 @@ export default function ProductCard({
       setTimeout(() => setShowPopup(false), 2000);
       return;
     }
-
+     if (!selectedVariant?.id) {
+    setPopupMessage("Vui lòng chọn biến thể trước khi thêm vào giỏ hàng");
+    setShowPopup(true);
+    setTimeout(() => setShowPopup(false), 2000);
+    return;
+  }
     try {
       const res = await fetch(`${API_BASE_URL}/cart`, {
         method: "POST",
@@ -148,6 +153,7 @@ export default function ProductCard({
         },
         body: JSON.stringify({
           product_id: product.id,
+          variant_id: selectedVariant.id,
           quantity: 1,
         }),
       });

@@ -18,62 +18,60 @@ class CartController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'product_id'   => 'required|exists:products,id',
-            'variant_id'   => 'nullable|exists:product_variants,id',
-            'quantity'     => 'nullable|integer|min:1',
-        ]);
+{
+    $validated = $request->validate([
+        'product_id'   => 'required|exists:products,id',
+        'variant_id'   => 'required|exists:product_variants,id',
+        'quantity'     => 'nullable|integer|min:1',
+    ]);
 
-        $userId = Auth::id();
-        $quantity = $validated['quantity'] ?? 1;
+    $userId = Auth::id();
+    $quantity = $validated['quantity'] ?? 1;
 
-        // 1. Kiểm tra sản phẩm có tồn tại không
-        $product = Product::where('id', $validated['product_id'])
-            ->where('status', 'activated')
-            ->first();
+    // 1. Kiểm tra sản phẩm có tồn tại và đang kích hoạt không
+    $product = Product::where('id', $validated['product_id'])
+        ->where('status', 'activated')
+        ->first();
 
-        if (!$product) {
-            return response()->json(['message' => 'Sản phẩm không tồn tại'], 404);
-        }
-
-        // 2. Nếu có variant_id, kiểm tra variant có khớp với product không
-        $variant = null;
-        if (!empty($validated['variant_id'])) {
-            $variant = ProductVariant::where('id', $validated['variant_id'])
-                ->where('product_id', $product->id)
-                ->first();
-
-            if (!$variant) {
-                return response()->json(['message' => 'Biến thể không hợp lệ'], 400);
-            }
-        }
-
-        // 3. Kiểm tra xem có bản ghi giỏ hàng tương tự chưa
-        $cartQuery = Cart::where('user_id', $userId)
-            ->where('product_id', $product->id)
-            ->where('variant_id', $variant->id ?? null)
-            ->where('is_active', true);
-
-        $cart = $cartQuery->first();
-
-        if ($cart) {
-            $cart->quantity += $quantity;
-            $cart->save();
-        } else {
-            $cart = Cart::create([
-                'user_id'        => $userId,
-                'product_id'     => $product->id,
-                'variant_id'     => $variant->id ?? null,
-                'quantity'       => $quantity,
-                'product_option' => $variant?->option1,
-                'product_value'  => $variant?->value1,
-                'is_active'      => true,
-            ]);
-        }
-
-        return response()->json($cart, 201);
+    if (!$product) {
+        return response()->json(['message' => 'Sản phẩm không tồn tại hoặc đã bị vô hiệu hóa'], 404);
     }
+
+    // 2. Bắt buộc truyền variant_id
+    $variant = ProductVariant::where('id', $validated['variant_id'])
+        ->where('product_id', $product->id)
+        ->first();
+
+    if (!$variant) {
+        return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
+    }
+
+    // 3. Kiểm tra xem đã có bản ghi trong giỏ chưa
+    $cartQuery = Cart::where('user_id', $userId)
+        ->where('product_id', $product->id)
+        ->where('variant_id', $variant->id)
+        ->where('is_active', true);
+
+    $cart = $cartQuery->first();
+
+    if ($cart) {
+        $cart->quantity += $quantity;
+        $cart->save();
+    } else {
+        $cart = Cart::create([
+            'user_id'        => $userId,
+            'product_id'     => $product->id,
+            'variant_id'     => $variant->id,
+            'quantity'       => $quantity,
+            'product_option' => $variant->option1,
+            'product_value'  => $variant->value1,
+            'is_active'      => true,
+        ]);
+    }
+
+    return response()->json($cart, 201);
+}
+
     public function update(Request $request, $id)
     {
         $cart = Cart::where('user_id', Auth::id())->findOrFail($id);
