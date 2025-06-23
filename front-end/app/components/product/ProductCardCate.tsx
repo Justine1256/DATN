@@ -17,6 +17,7 @@ export interface Product {
   price: number;
   oldPrice: number;
   rating: number;
+  sold?: number;
   discount: number;
   option1?: string;
   value1?: string;
@@ -225,19 +226,19 @@ export default function ProductCardCate({
           )}
         </div>
 
-        <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
-          {Array(5)
-            .fill(0)
-            .map((_, i) => (
-              <AiFillStar
-                key={i}
-                className={`w-4 h-4 ${i < Math.round(product.rating)
-                  ? "text-yellow-500"
-                  : "text-gray-300"
-                  }`}
-              />
-            ))}
-          <span className="text-gray-600 text-[10px]">({product.rating})</span>
+        <div className="flex items-center justify-between text-yellow-500 text-sm mt-2">
+          <div className="flex items-center"> {/* Stars and rating */}
+            {Array(5)
+              .fill(0)
+              .map((_, i) => (
+                <AiFillStar
+                  key={i}
+                  className={`w-4 h-4 ${i < Math.round(product.rating) ? "text-yellow-500" : "text-gray-300"}`}
+                />
+              ))}
+            <span className="text-gray-600">({product.rating})</span>
+          </div>
+          <span className="text-gray-600 text-sm">{product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}</span> {/* Sold info */}
         </div>
       </div>
 
