@@ -295,11 +295,11 @@ const handleSelectB = (b: string) => {
           </div>
 
           {/* Product Info */}
-          <div className="md:col-span-6 space-y-6">
+          <div className="md:col-span-6 space-y-4">
             <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{product.name}</h1>
 
             {/* Rating and Stock Info */}
-            <div className="flex items-center gap-3 text-sm ">
+            <div className="flex items-center gap-3 text-sm">
               <div className="flex items-center gap-2 text-base">
                 {parseFloat(product.rating) > 0 ? (
                   <>
