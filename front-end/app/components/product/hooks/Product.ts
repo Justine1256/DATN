@@ -17,6 +17,7 @@ export interface Product {
   category_id: number;
   shop_id: number;
   name: string;
+  
   slug: string;
   description: string;
   price: string;          // từ API → string
@@ -82,4 +83,20 @@ export interface Product {
 export interface ProductDetailProps {
   shopslug: string;
   productslug: string;
+}
+export interface Shop {
+  id: number;
+  user_id: number;
+  name: string;
+  slug: string;
+  description: string;
+  logo: string | null;  // Allow logo to be null
+  phone: string;
+  email: string;
+  total_sales: number;
+  rating: string;
+  status: 'activated' | 'pending' | 'suspended';
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }

@@ -12,9 +12,11 @@ import ShopProductSlider from '../home/ShopProduct';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Breadcrumb from '../cart/CartBreadcrumb';
+import { AiOutlineClose } from 'react-icons/ai';
+
 import { AiFillHeart, AiOutlineHeart } from 'react-icons/ai';
 import ProductGallery from './ProductGallery';
-import { Product, ProductDetailProps, Variant } from './hooks/Product';
+import { Product, ProductDetailProps, Variant ,Shop} from './hooks/Product';
 
 const formatImageUrl = (img: string | string[]): string => {
   if (Array.isArray(img)) img = img[0];
@@ -188,15 +190,7 @@ const handleSelectB = (b: string) => {
       return;
     }
 
-    // Prepare the body to be sent in the POST request
-    const body = {
-      product_id: product?.id,
-      quantity,
-      option1: selectedColor || '', // If no color, send empty string
-      option2: selectedSize || '', // If no size, send empty string
-      variant_id: selectedVariant?.id || '', // If no variant, send empty string
-    };
-
+  
     try {
       // Send the request to add the product to the cart
       const res = await fetch(`${API_BASE_URL}/cart`, {
@@ -270,17 +264,26 @@ const handleSelectB = (b: string) => {
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
+      {/* Popup */}
+      {showPopup && (
+        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
+          {popupText}
+        </div>
+      )}
+
+
       <div className="mb-8">
         <Breadcrumb
           items={[
             { label: 'Trang chủ', href: '/' },
-            { label: product.category.parent?.name || 'Danh mục', href: `/category/${product.category.parent?.slug}` },
-            { label: product.category.name, href: `/category/${product.category.slug}` },
-            { label: product.name }
+            { label: product.category?.parent?.name || 'Danh mục', href: `/category/${product.category?.parent?.slug}` },
+            { label: product.category?.name || 'Danh mục', href: `/category/${product.category?.slug}` },
+            { label: product.name },
           ]}
         />
       </div>
 
+      {/* Product Detail Section */}
       <div className="rounded-xl border shadow-sm bg-white p-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
           {/* Gallery & Like Button */}
@@ -296,7 +299,7 @@ const handleSelectB = (b: string) => {
             <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{product.name}</h1>
 
             {/* Rating and Stock Info */}
-            <div className="flex items-center gap-3 text-sm">
+            <div className="flex items-center gap-3 text-sm ">
               <div className="flex items-center gap-2 text-base">
                 {parseFloat(product.rating) > 0 ? (
                   <>
@@ -348,8 +351,9 @@ const handleSelectB = (b: string) => {
                         <div className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
                           style={{
                             borderBottomLeftRadius: '7px',
-                            borderTopRightRadius: '7px'
-                          }}>
+                            borderTopRightRadius: '7px',
+                          }}
+                        >
                           <span className="text-white text-[9px] font-bold leading-none">✓</span>
                         </div>
                       )}
@@ -379,8 +383,9 @@ const handleSelectB = (b: string) => {
                         <div className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
                           style={{
                             borderBottomLeftRadius: '7px',
-                            borderTopRightRadius: '7px'
-                          }}>
+                            borderTopRightRadius: '7px',
+                          }}
+                        >
                           <span className="text-white text-[9px] font-bold leading-none">✓</span>
                         </div>
                       )}
@@ -396,7 +401,8 @@ const handleSelectB = (b: string) => {
               <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition">
+                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition"
+                >
                   −
                 </button>
                 <span className="w-[55px] flex items-center justify-center text-base font-extrabold text-black">
@@ -404,7 +410,8 @@ const handleSelectB = (b: string) => {
                 </span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition">
+                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition"
+                >
                   +
                 </button>
               </div>
@@ -422,8 +429,7 @@ const handleSelectB = (b: string) => {
                 Thêm Vào Giỏ Hàng
               </button>
             </div>
-
-            {/* Giao hàng - Shipping Policy */}
+            {/* Giao hàng - Shipping Policy Section */}
             <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
               <div className="flex items-center gap-3 p-4">
                 <div className="flex justify-center items-center h-[40px]">
@@ -450,26 +456,25 @@ const handleSelectB = (b: string) => {
           </div>
         </div>
 
-        {/* Shop Info & Description */}
-        <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} />
-        <ProductDescription html={product.description} />
+        {/* Separate Shop Info & Description Section */}
+        <div className="mt-16">
+          <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} />
+        </div>
+
+        <div className="mt-6">
+          <ProductDescription html={product.description} />
+        </div>
 
         {/* Related Products */}
         <div className="mt-16">
           <ShopProductSlider shopSlug={product.shop.slug} />
         </div>
 
+        {/* Best Selling */}
         <div className="mt-6">
           <BestSellingSlider />
         </div>
-
-        {/* Popup */}
-        {showPopup && (
-          <div className="fixed top-20 right-5 bg-white p-4 rounded shadow-lg">
-            {popupText}
-          </div>
-        )}
       </div>
-    </div>
-  );
-}  
+      </div>
+      );
+      }
