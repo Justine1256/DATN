@@ -207,9 +207,14 @@ export default function OrderDetailModal({
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4 text-center">
-                                                <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-medium">
-                                                    {detail.product?.shop_id ? `Cửa hàng #${detail.product.shop_id}` : 'Không rõ cửa hàng'}
-                                                </span>
+                                               
+                                                    <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-medium">
+                                                        {/* Lấy tên cửa hàng từ order.shop_name */}
+                                                        {order.shop_name ? `Cửa hàng ${order.shop_name}` : 'Không rõ cửa hàng'}
+                                                    </span>
+                                             
+
+
 
                                             </td>
                                             <td className="px-4 py-4 text-right">

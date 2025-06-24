@@ -15,23 +15,22 @@ export interface Variant {
 
 export interface Product {
   id: number;
-  category_id: number;
-  shop_id: number;
   name: string;
+  image: string[];
   slug: string;
-  description?: string;
   price: number;
-  sale_price?: number;
-  stock: number;
-  sold: number;
-  image: string[]; // ✅ ép luôn về mảng
+  oldPrice: number;
+  rating: number;
+  sold?: number;
+  discount: number;
   option1?: string;
   value1?: string;
-  option2?: string;
+  sale_price?: number;
+  description?: string;
   value2?: string;
-  variants: Variant[]; // ✅ thêm mảng variant
-  status: 'activated' | 'deleted';
-  created_at?: string;
-  updated_at?: string;
-  deleted_at?: string | null;
+  shop: {  // Thêm trường shop
+    id: number;
+    name: string;  // Trường name cho tên cửa hàng
+  };
 }
+

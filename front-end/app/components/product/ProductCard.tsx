@@ -1,5 +1,4 @@
-'use client';
-
+import React from 'react';
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -48,7 +47,7 @@ export default function ProductCard({
   onLiked?: (product: Product) => void;
   wishlistProductIds?: number[];
 }) {
-  
+
   const router = useRouter();
   const isInWishlist = product ? wishlistProductIds.includes(product.id) : false;
 
@@ -64,7 +63,7 @@ export default function ProductCard({
     if (product && Array.isArray(product.variants) && product.variants.length > 0) {
       setSelectedVariant(product.variants[0]);
     }
-    
+
   }, [isInWishlist, product?.id, product]);
 
   if (!product) return <LoadingSkeleton />;
@@ -190,7 +189,7 @@ export default function ProductCard({
     <div
       onClick={handleViewDetail}
       className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[240px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
-      style={{ minHeight: '100px' }}
+      style={{ minHeight: '250px' }}
     >
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
@@ -215,7 +214,7 @@ export default function ProductCard({
         )}
       </button>
 
-      <div className="w-full h-[130px] mt-8 flex items-center justify-center">
+      <div className="w-full h-[150px] mt-8 flex items-center justify-center">
         <Image
           src={mainImage}
           alt={product.name}
@@ -225,11 +224,10 @@ export default function ProductCard({
         />
       </div>
 
-      <div className="flex flex-col mt-8 w-full px-1 pb-14">
+      <div className="flex flex-col mt-8 w-full px-1 pb-4">
         <h4 className="text-base font-semibold text-black leading-tight capitalize pointer-events-none overflow-hidden whitespace-nowrap text-ellipsis">
           {product.name}
         </h4>
-
 
         <div className="flex gap-2 mt-1 items-center">
           <span className="text-brand font-bold text-base">
@@ -240,13 +238,10 @@ export default function ProductCard({
               {new Intl.NumberFormat("vi-VN").format(product.price)}đ
             </span>
           )}
-         
         </div>
 
-       
-
         <div className="flex items-center justify-between text-yellow-500 text-sm mt-2">
-          <div className="flex items-center"> {/* Stars and rating */}
+          <div className="flex items-center">
             {Array(5)
               .fill(0)
               .map((_, i) => (
@@ -257,21 +252,10 @@ export default function ProductCard({
               ))}
             <span className="text-gray-600">({product.rating})</span>
           </div>
-          <span className="text-gray-600 text-sm">{product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}</span> {/* Sold info */}
+          <span className="text-gray-600 text-sm">{product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}</span>
         </div>
-
-        
       </div>
 
-      {/* <button
-        onClick={handleAddToCart}
-        className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
-      >
-        <FiShoppingCart className="text-base" />
-        Thêm Vào Giỏ Hàng
-      </button> */}
-    
     </div>
   );
 }
-
