@@ -268,7 +268,7 @@ const handleSelectB = (b: string) => {
     const url = `${API_BASE_URL}/shops/${product.shop.id}/${followed ? 'unfollow' : 'follow'}`;
     await fetch(url, { method: followed ? 'DELETE' : 'POST', headers: { Authorization: `Bearer ${token}` } });
     setFollowed(!followed);
-    commonPopup(followed ? 'Đã bỏ theo dõi cửa hàng' : 'Đã theo dõi cửa hàng');
+    
   };
 
   return (
