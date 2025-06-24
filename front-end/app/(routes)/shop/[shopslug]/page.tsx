@@ -163,7 +163,7 @@ const ShopPage = () => {
         );
     }
     return (
-        <div className="max-w-[1170px] mx-auto px-4 pt-6 pb-10 text-black">
+        <div className="max-w-[1170px] mx-auto px-4 pb-10 text-black">
             {/* Hiển thị thông tin cửa hàng */}
             <ShopCard shop={shop} />
 
