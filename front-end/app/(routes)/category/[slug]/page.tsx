@@ -232,13 +232,13 @@ export default function CategoryPage() {
 
               <button
                 onClick={handleApplyFilters}
-                className="w-full py-2 bg-[#DB4444] text-white rounded-lg hover:bg-red-600 transition-colors mt-4"
+                className="w-[160px] py-2 bg-[#DB4444] text-white rounded-lg hover:bg-red-600 transition-colors mt-4"
               >
                 Lọc
               </button>
               <button
                 onClick={handleResetFilters}
-                className="w-full py-2 border border-gray-300 text-black rounded-lg hover:bg-gray-100 transition-colors mt-2"
+                className="w-[160px] py-2 border border-gray-300 text-black rounded-lg hover:bg-gray-100 transition-colors mt-2"
               >
                 Đặt lại
               </button>
