@@ -11,11 +11,46 @@ use App\Models\ProductVariant;
 class CartController extends Controller
 {
     public function index()
-    {
-        $userId = Auth::id();
-        $carts = Cart::with('product', 'variant')->where('user_id', $userId)->where('is_active', true)->get();
-        return response()->json($carts);
-    }
+{
+    $userId = Auth::id();
+    $carts = Cart::with('product')
+        ->where('user_id', $userId)
+        ->where('is_active', true)
+        ->get();
+
+    // Gắn thủ công dữ liệu "variant" dựa vào product_option và product_value
+    $carts->transform(function ($cart) {
+        // Tách option và value
+        $options = explode(' - ', $cart->product_option ?? '');
+        $values = explode(' - ', $cart->product_value ?? '');
+
+        // Tạo một object giả để trả về FE
+        $variant = [
+            'option1' => $options[0] ?? null,
+            'value1'  => $values[0] ?? null,
+            'option2' => $options[1] ?? null,
+            'value2'  => $values[1] ?? null,
+            'price'   => null,
+            'sale_price' => null,
+        ];
+
+        // Nếu cần, bạn có thể truy từ bảng `product_variants` để lấy giá:
+        $query = ProductVariant::where('product_id', $cart->product_id);
+        if (isset($values[0])) $query->where('value1', $values[0]);
+        if (isset($values[1])) $query->where('value2', $values[1]);
+        $matched = $query->first();
+        if ($matched) {
+            $variant['price'] = $matched->price;
+            $variant['sale_price'] = $matched->sale_price;
+        }
+
+        $cart->variant = $variant;
+        return $cart;
+    });
+
+    return response()->json($carts);
+}
+
 
     public function store(Request $request)
     {
