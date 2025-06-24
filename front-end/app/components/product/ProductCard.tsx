@@ -48,7 +48,6 @@ export default function ProductCard({
   onLiked?: (product: Product) => void;
   wishlistProductIds?: number[];
 }) {
-  
   const router = useRouter();
   const isInWishlist = product ? wishlistProductIds.includes(product.id) : false;
 
@@ -60,11 +59,9 @@ export default function ProductCard({
   useEffect(() => {
     setLiked(isInWishlist);
     console.log("Product Data:", product);
-    // ✅ Auto-select biến thể đầu tiên nếu có ít nhất 1 biến thể
     if (product && Array.isArray(product.variants) && product.variants.length > 0) {
       setSelectedVariant(product.variants[0]);
     }
-    
   }, [isInWishlist, product?.id, product]);
 
   if (!product) return <LoadingSkeleton />;
@@ -230,7 +227,6 @@ export default function ProductCard({
           {product.name}
         </h4>
 
-
         <div className="flex gap-2 mt-1 items-center">
           <span className="text-brand font-bold text-base">
             {getPrice()}₫
@@ -240,13 +236,10 @@ export default function ProductCard({
               {new Intl.NumberFormat("vi-VN").format(product.price)}đ
             </span>
           )}
-         
         </div>
 
-       
-
         <div className="flex items-center justify-between text-yellow-500 text-sm mt-2">
-          <div className="flex items-center"> {/* Stars and rating */}
+          <div className="flex items-center">
             {Array(5)
               .fill(0)
               .map((_, i) => (
@@ -257,26 +250,17 @@ export default function ProductCard({
               ))}
             <span className="text-gray-600">({product.rating})</span>
           </div>
-          <span className="text-gray-600 text-sm">{product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}</span> {/* Sold info */}
+          <span className="text-gray-600 text-sm">{product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}</span>
         </div>
 
-        
+        <button
+          onClick={handleViewDetail}
+          className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
+        >
+          <FiEye className="text-base" />
+          Xem Chi Tiết Sản Phẩm
+        </button>
       </div>
-
-      {/* <button
-        onClick={handleAddToCart}
-        className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
-      >
-        <FiShoppingCart className="text-base" />
-        Thêm Vào Giỏ Hàng
-      </button> */}
-      <button
-        onClick={handleViewDetail}  // Sử dụng handleViewDetail thay vì handleAddToCart
-        className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
-      >
-        <FiEye className="text-base" />  
-        Xem Chi Tiết Sản Phẩm
-      </button>
     </div>
   );
 }
