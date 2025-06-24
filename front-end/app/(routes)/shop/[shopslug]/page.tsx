@@ -1,80 +1,62 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import { API_BASE_URL } from '@/utils/api';
+import ShopCard from '@/app/components/stores/Shopcard';
+import { API_BASE_URL } from "@/utils/api";
 
-interface Shop {
-    id: number;
-    name: string;
-    description: string;
-    logo: string;
-    phone: string;
-    rating: string;
-    total_sales: number;
-    created_at: string;
-    status: 'activated' | 'pending' | 'suspended';
-    email: string;
-    slug: string;
-}
-
-export default function ShopPage({ params }: { params: { shopslug: string } }) {
-    const [shop, setShop] = useState<Shop | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const router = useRouter();
+const ShopPage = () => {
+    const [shop, setShop] = useState(null);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Log slug to verify that it is being passed correctly
-        console.log('Fetching shop with slug:', params.shopslug);
+        const slug = window.location.pathname.split('/').pop();
+
+        if (!slug) {
+        
+            return;
+        }
 
         const fetchShop = async () => {
             try {
-                // Fetch shop data using slug
-                const response = await axios.get(`${API_BASE_URL}/shop/${params.shopslug}`);
+                const response = await fetch(`${API_BASE_URL}/shop/${slug}`);
+                const data = await response.json();
 
-                // Check if shop data exists and set it
-                if (response.data && response.data.shop) {
-                    setShop(response.data.shop);
+                if (data && data.shop) {
+                    setShop(data.shop);
                 } else {
-                    setError('Cửa hàng không tìm thấy');
+              
                 }
-            } catch (err: any) {
-                setError('Lỗi khi lấy dữ liệu cửa hàng');
+            } catch (err) {
+               
                 console.error('Error fetching shop data:', err);
             }
         };
 
         fetchShop();
-    }, [params.shopslug]);
+    }, []);
 
     if (error) {
-        return <div className="text-center text-red-500 mt-20">{error}</div>;
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-center">
+                    <div className="text-xl" style={{ color: '#db4444' }}>{error}</div>
+                </div>
+            </div>
+        );
     }
 
     if (!shop) {
-        return <div>Đang tải dữ liệu cửa hàng...</div>;
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4" style={{ borderColor: '#db4444' }}></div>
+                    <div className="text-lg" style={{ color: '#db4444' }}>Đang tải dữ liệu cửa hàng...</div>
+                </div>
+            </div>
+        );
     }
 
-    // Render shop information once it's available
-    return (
-        <div className="max-w-screen-lg mx-auto px-4 py-6">
-            <div className="border rounded-lg bg-white p-4 sm:p-6 md:p-8 relative">
-                <h1 className="text-xl font-bold">{shop.name}</h1>
-                <p>{shop.description}</p>
-                <img src={`${API_BASE_URL}/image/${shop.logo}`} alt="Shop Logo" className="w-20 h-20 rounded-full" />
-                <div>
-                    <p>Phone: {shop.phone}</p>
-                    <p>Email: {shop.email}</p>
-                    <p>Status: {shop.status}</p>
-                    <p>Rating: {shop.rating}</p>
-                    <p>Total Sales: {shop.total_sales}</p>
-                    <p>Joined: {shop.created_at}</p>
-                </div>
-                <button onClick={() => router.push(`/shop/${shop.slug}`)} className="mt-4 text-blue-500 underline">
-                    Xem Shop
-                </button>
-            </div>
-        </div>
-    );
-}
+    return <ShopCard shop={shop} />;
+};
+
+export default ShopPage;
