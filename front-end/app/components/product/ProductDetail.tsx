@@ -271,7 +271,7 @@ const handleSelectB = (b: string) => {
         </div>
       )}
 
-
+      {/* Breadcrumb */}
       <div className="mb-8">
         <Breadcrumb
           items={[
@@ -429,7 +429,7 @@ const handleSelectB = (b: string) => {
                 Thêm Vào Giỏ Hàng
               </button>
             </div>
-            {/* Giao hàng - Shipping Policy Section */}
+            {/* Shipping Policy Section */}
             <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
               <div className="flex items-center gap-3 p-4">
                 <div className="flex justify-center items-center h-[40px]">
@@ -454,13 +454,16 @@ const handleSelectB = (b: string) => {
               </div>
             </div>
           </div>
+          
         </div>
-
-        {/* Separate Shop Info & Description Section */}
+        
+      </div>
+        {/* Shop Info Section */}
         <div className="mt-16">
           <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} />
         </div>
 
+        {/* Product Description */}
         <div className="mt-6">
           <ProductDescription html={product.description} />
         </div>
@@ -475,6 +478,7 @@ const handleSelectB = (b: string) => {
           <BestSellingSlider />
         </div>
       </div>
-      </div>
+      
       );
-      }
+  };
+
