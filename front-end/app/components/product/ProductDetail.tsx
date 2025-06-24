@@ -39,7 +39,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [followed, setFollowed] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState('');
-
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const parseOptionValues = (value?: string | string[]): string[] => {
     if (!value) return [];
     if (Array.isArray(value)) return value.map(v => v.trim());
@@ -190,7 +191,15 @@ const handleSelectB = (b: string) => {
       return;
     }
 
-  
+    // Prepare the request body
+    const body = {
+      product_id: product?.id,           // Product ID
+      quantity,                          // Quantity selected
+      option1: selectedColor || '',      // Color option (if any)
+      option2: selectedSize || '',       // Size option (if any)
+      variant_id: selectedVariant?.id || '',  // Variant ID (if any)
+    };
+
     try {
       // Send the request to add the product to the cart
       const res = await fetch(`${API_BASE_URL}/cart`, {
@@ -199,7 +208,7 @@ const handleSelectB = (b: string) => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(body), // Pass the body to the request
       });
 
       // Handle the response
