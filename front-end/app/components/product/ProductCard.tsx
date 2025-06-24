@@ -270,13 +270,7 @@ export default function ProductCard({
         <FiShoppingCart className="text-base" />
         Thêm Vào Giỏ Hàng
       </button> */}
-      <button
-        onClick={handleViewDetail}  // Sử dụng handleViewDetail thay vì handleAddToCart
-        className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
-      >
-        <FiEye className="text-base" />  
-        Xem Chi Tiết Sản Phẩm
-      </button>
+    
     </div>
   );
 }
