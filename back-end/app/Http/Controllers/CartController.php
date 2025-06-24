@@ -51,11 +51,14 @@ class CartController extends Controller
                 return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
             }
 
-            // 3. Kiểm tra xem đã có bản ghi trong giỏ chưa
+            // 3. Kiểm tra xem đã có bản ghi trong giỏ chưa (KHÔNG kiểm theo variant_id nữa)
+            // Kiểm tra giỏ hàng đã có bản ghi chưa (kiểm theo cả option1 + option2)
             $cartQuery = Cart::where('user_id', $userId)
                 ->where('product_id', $product->id)
-                ->where('variant_id', $variant->id)
+                ->where('product_option', $variant->option1 . ' - ' . $variant->option2)
+                ->where('product_value', $variant->value1 . ' - ' . $variant->value2)
                 ->where('is_active', true);
+
 
             $cart = $cartQuery->first();
 
@@ -66,10 +69,9 @@ class CartController extends Controller
                 $cart = Cart::create([
                     'user_id'        => $userId,
                     'product_id'     => $product->id,
-                    'variant_id'     => $variant->id,
                     'quantity'       => $quantity,
-                    'product_option' => $variant->option1,
-                    'product_value'  => $variant->value1,
+                    'product_option' => $variant->option1 . ' - ' . $variant->option2,
+                    'product_value'  => $variant->value1 . ' - ' . $variant->value2,
                     'is_active'      => true,
                 ]);
             }
@@ -84,6 +86,7 @@ class CartController extends Controller
             ], 500);
         }
     }
+
 
     public function update(Request $request, $id)
     {
