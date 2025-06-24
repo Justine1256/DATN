@@ -193,13 +193,21 @@ const ShopPage = () => {
                         <div className="space-y-2 mb-6">
                             <h4 className="text-base font-medium mb-1">Sắp xếp</h4>
                             {["Phổ Biến", "Mới Nhất", "Bán Chạy"].map((label) => (
-                                <button
-                                    key={label}
-                                    onClick={() => setSelectedSort(label)}
-                                    className={`w-full text-left px-4 py-2 rounded transition-colors ${selectedSort === label ? "text-[#DB4444] font-semibold" : "text-black hover:text-[#DB4444]"}`}
-                                >
-                                    {label}
-                                </button>
+                                <label key={label} className="flex items-center space-x-2 text-black cursor-pointer w-full px-4 py-2 rounded transition-colors hover:text-[#DB4444]">
+                                    <input
+                                        type="radio"
+                                        name="sortOption"
+                                        className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
+                                        checked={selectedSort === label}
+                                        onChange={() => {
+                                            setSelectedSort(label);
+                                            setSelectedPriceFilter(null);
+                                        }}
+                                    />
+                                    <span className={`${selectedSort === label && !selectedPriceFilter ? "text-[#DB4444] font-semibold" : ""}`}>
+                                        {label}
+                                    </span>
+                                </label>
                             ))}
                         </div>
 
