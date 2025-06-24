@@ -176,7 +176,58 @@ const handleSelectB = (b: string) => {
     setShowPopup(true);
     setTimeout(() => setShowPopup(false), 2000);
   };
+  const handleBuyNow = async () => {
+    // Check for authentication token
+    const token = localStorage.getItem("token") || Cookies.get("authToken");
 
+    if (!token) {
+      // Show a popup if the user is not logged in
+      setPopupText("Vui lòng đăng nhập để mua sản phẩm");
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000); // Hide popup after 2 seconds
+      return;
+    }
+
+    // Prepare the body to be sent in the POST request
+    const body = {
+      product_id: product?.id,
+      quantity,
+      option1: selectedColor || '', // If no color, send empty string
+      option2: selectedSize || '', // If no size, send empty string
+      variant_id: selectedVariant?.id || '', // If no variant, send empty string
+    };
+
+    try {
+      // Send the request to add the product to the cart
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      // Handle the response
+      if (res.ok) {
+        // Redirect to the cart page if successful
+        router.push("/cart");
+      } else {
+        // Handle failure response
+        const data = await res.json();
+        setPopupText(data.message || "Thêm vào giỏ hàng thất bại");
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 2000); // Hide popup after 2 seconds
+      }
+    } catch (err) {
+      // Catch any error that happens during the process
+      console.error("Error during 'Buy Now' action:", err);
+      setPopupText("Có lỗi xảy ra khi thực hiện mua sản phẩm");
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000); // Hide popup after 2 seconds
+    }
+  };
+  
   const handleAddToCart = async () => {
     if (!selectedVariant?.id) return commonPopup('Vui lòng chọn biến thể phù hợp');
     const token = Cookies.get('authToken') || localStorage.getItem('token');
@@ -232,7 +283,7 @@ const handleSelectB = (b: string) => {
 
       <div className="rounded-xl border shadow-sm bg-white p-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
-          {/* Gallery & like */}
+          {/* Gallery & Like Button */}
           <div className="md:col-span-6 flex flex-col gap-4 relative">
             <button onClick={toggleLike} className="absolute top-2 left-2 p-2 text-[22px] z-20">
               {liked ? <AiFillHeart className="text-red-500" /> : <AiOutlineHeart className="text-red-500" />}
@@ -240,106 +291,185 @@ const handleSelectB = (b: string) => {
             <ProductGallery images={product.image} mainImage={mainImage} setMainImage={setMainImage} />
           </div>
 
-          {/* Info */}
+          {/* Product Info */}
           <div className="md:col-span-6 space-y-6">
             <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{product.name}</h1>
-            {/* Rating, stock */}
+
+            {/* Rating and Stock Info */}
             <div className="flex items-center gap-3 text-sm">
               <div className="flex items-center gap-2 text-base">
                 {parseFloat(product.rating) > 0 ? (
                   <>
-                    <span>{(parseFloat(product.rating) / 2).toFixed(1)}</span>
-                    <div className="flex">
+                    <span className="text-gray-800">{(parseFloat(product.rating) / 2).toFixed(1)}</span>
+                    <div className="flex items-center">
                       {Array.from({ length: 5 }).map((_, i) =>
-                        i < Math.round(parseFloat(product.rating) / 2) ? <FaStar key={i} /> : <FaRegStar key={i} />
+                        i < Math.round(parseFloat(product.rating) / 2) ? (
+                          <FaStar key={i} className="text-yellow-400" />
+                        ) : (
+                          <FaRegStar key={i} className="text-gray-300" />
+                        )
                       )}
                     </div>
                   </>
-                ) : <span className="text-red-500">Chưa đánh giá</span>}
+                ) : (
+                  <span className="text-red-500 font-semibold">Chưa đánh giá</span>
+                )}
               </div>
-              <span>|</span>
-              <span className="text-emerald-400">Kho: {getStock()}</span>
+              <span className="text-gray-500">|</span>
+              <span className="text-emerald-400 font-medium">Kho: {getStock()}</span>
             </div>
 
             {/* Price */}
             <div className="flex items-center gap-3">
-  <span className="text-[1.5rem] font-bold text-brand">{getPrice()}₫</span>
-  
-  {selectedVariant ? (
-    selectedVariant.sale_price && (
-      <span className="line-through text-gray-400">
-        {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
-      </span>
-    )
-  ) : isFromProduct && product.sale_price ? (
-    <span className="line-through text-gray-400">
-      {Number(product.price).toLocaleString('vi-VN')}₫
-    </span>
-  ) : null}
-</div>
-
+              <span className="text-[1.5rem] font-bold text-brand">{getPrice()}₫</span>
+              {selectedVariant && selectedVariant.sale_price && (
+                <span className="line-through text-gray-400">
+                  {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
+                </span>
+              )}
+            </div>
 
             {/* Option A */}
-            <div className="flex flex-col gap-2">
-              <p className="font-medium">{product.option1 || 'Option A'}</p>
-              <div className="flex flex-wrap gap-2">
-                {optsA.map(a => (
-                  <button
-                    key={a}
-                    onClick={() => handleSelectA(a)}
-                    disabled={!hasCombination(a, selectedB)}
-                    className={`px-4 py-2 rounded-lg border ${selectedA === a ? 'border-red-600' : 'border-gray-300'} ${!hasCombination(a, selectedB) ? 'opacity-50' : ''}`}
-                  >{a}</button>
-                ))}
+            <div className="flex flex-col gap-2 mb-4 mt-4">
+              <p className="font-medium text-gray-700 text-lg">{product.option1 || 'Option A'}</p>
+              <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
+                {optsA.map(a => {
+                  const hasCombinationWithSize = hasCombination(a, selectedB);
+                  return (
+                    <button
+                      key={a}
+                      onClick={() => handleSelectA(a)}
+                      disabled={!hasCombinationWithSize}
+                      className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] 
+                        ${selectedA === a ? 'border-red-600 text-black bg-white' : 'border-gray-300 text-black bg-white hover:border-red-500'}
+                        ${!hasCombinationWithSize ? 'opacity-50' : ''}`}
+                    >
+                      {selectedA === a && (
+                        <div className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
+                          style={{
+                            borderBottomLeftRadius: '7px',
+                            borderTopRightRadius: '7px'
+                          }}>
+                          <span className="text-white text-[9px] font-bold leading-none">✓</span>
+                        </div>
+                      )}
+                      {a}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Option B */}
-            <div className="flex flex-col gap-2">
-              <p className="font-medium">{product.option2 || 'Option B'}</p>
-              <div className="flex flex-wrap gap-2">
-                {optsB.map(b => (
-                  <button
-                    key={b}
-                    onClick={() => handleSelectB(b)}
-                    disabled={!hasCombination(selectedA, b)}
-                    className={`px-4 py-2 rounded-lg border ${selectedB === b ? 'border-red-600' : 'border-gray-300'} ${!hasCombination(selectedA, b) ? 'opacity-50' : ''}`}
-                  >{b}</button>
-                ))}
+            <div className="flex flex-col gap-2 mb-4 mt-4">
+              <p className="font-medium text-gray-700 text-lg">{product.option2 || 'Option B'}</p>
+              <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
+                {optsB.map(b => {
+                  const hasCombinationWithColor = hasCombination(selectedA, b);
+                  return (
+                    <button
+                      key={b}
+                      onClick={() => handleSelectB(b)}
+                      disabled={!hasCombinationWithColor}
+                      className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] 
+                        ${selectedB === b ? 'border-red-600 text-black bg-white' : 'border-gray-300 text-black bg-white hover:border-red-500'}
+                        ${!hasCombinationWithColor ? 'opacity-50' : ''}`}
+                    >
+                      {selectedB === b && (
+                        <div className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
+                          style={{
+                            borderBottomLeftRadius: '7px',
+                            borderTopRightRadius: '7px'
+                          }}>
+                          <span className="text-white text-[9px] font-bold leading-none">✓</span>
+                        </div>
+                      )}
+                      {b}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Quantity & actions */}
-            <div className="flex items-center gap-3">
-              <div className="flex border rounded overflow-hidden h-[44px]">
-                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-12">−</button>
-                <span className="w-12 text-center">{quantity}</span>
-                <button onClick={() => setQuantity(q => q + 1)} className="w-12">+</button>
+            {/* Quantity & Actions */}
+            <div className="flex items-center gap-3 mt-4">
+              <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition">
+                  −
+                </button>
+                <span className="w-[55px] flex items-center justify-center text-base font-extrabold text-black">
+                  {quantity}
+                </span>
+                <button
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition">
+                  +
+                </button>
               </div>
-              <button onClick={handleAddToCart} className="px-6 py-2 bg-brand text-white rounded">Thêm Vào Giỏ Hàng</button>
+
+              <button
+                onClick={handleBuyNow}
+                className="w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium"
+              >
+                Mua Ngay
+              </button>
+              <button
+                onClick={handleAddToCart}
+                className="w-[165px] h-[44px] text-brand border border-brand text-sm md:text-base rounded hover:bg-brand hover:text-white transition font-medium"
+              >
+                Thêm Vào Giỏ Hàng
+              </button>
+            </div>
+
+            {/* Giao hàng - Shipping Policy */}
+            <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
+              <div className="flex items-center gap-3 p-4">
+                <div className="flex justify-center items-center h-[40px]">
+                  <Image src="/ship.png" alt="Logo" width={30} height={40} />
+                </div>
+                <div>
+                  <p className="font-semibold">Giao hàng miễn phí</p>
+                  <p>
+                    Giao hàng miễn phí tại nội thành & một số khu vực ngoại thành.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4">
+                <div className="flex justify-center items-center h-[40px]">
+                  <Image src="/trahang.png" alt="Logo" width={30} height={40} />
+                </div>
+                <div>
+                  <p className="font-semibold">Trả hàng</p>
+                  <p>Giao hàng miễn phí trong vòng 30 ngày.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Shop Info & Description */}
-      <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} />
-      <ProductDescription html={product.description} />
+        {/* Shop Info & Description */}
+        <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} />
+        <ProductDescription html={product.description} />
 
-      {/* Related */}
-      <div className="mt-16">
-        <ShopProductSlider shopSlug={product.shop.slug} />
-      </div>
-      <div className="mt-6">
-        <BestSellingSlider />
-      </div>
-
-      {/* Popup */}
-      {showPopup && (
-        <div className="fixed top-20 right-5 bg-white p-4 rounded shadow-lg">
-          {popupText}
+        {/* Related Products */}
+        <div className="mt-16">
+          <ShopProductSlider shopSlug={product.shop.slug} />
         </div>
-      )}
+
+        <div className="mt-6">
+          <BestSellingSlider />
+        </div>
+
+        {/* Popup */}
+        {showPopup && (
+          <div className="fixed top-20 right-5 bg-white p-4 rounded shadow-lg">
+            {popupText}
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+}  
