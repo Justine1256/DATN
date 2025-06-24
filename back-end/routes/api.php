@@ -67,8 +67,8 @@ Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
 Route::post('/login', [UserController::class, 'login']);
 
 Route::get('/{shopslug}/product/{productslug}/comments', [CommentController::class, 'getCommentsInProduct']);
-Route::get('/shops/{slug}', [ShopController::class, 'showShopInfo']);
-Route::get('/shops/{slug}/products', [ShopController::class, 'getShopProducts']);
+Route::get('/shop/{slug}', [ShopController::class, 'showShopInfo']);
+Route::get('/shop/{slug}/products', [ShopController::class, 'getShopProducts']);
 
 Route::get('/notification', [NotificationController::class, 'index']);
 Route::post('/notification', [NotificationController::class, 'store']);
