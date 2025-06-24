@@ -161,55 +161,58 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   // Sửa lại hàm thêm vào giỏ hàng
   const handleAddToCart = async () => {
-  const token = localStorage.getItem("token") || Cookies.get("authToken");
+    const token = localStorage.getItem("token") || Cookies.get("authToken");
 
-  if (!token) {
-    setPopupText("Vui lòng đăng nhập để thêm vào giỏ hàng");
-    setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 2000);
-    return;
-  }
-
-  if (!selectedVariant?.id) {
-    setPopupText("Vui lòng chọn biến thể phù hợp");
-    setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 2000);
-    return;
-  }
-
-  try {
-    const body = {
-      product_id: product?.id,
-      variant_id: selectedVariant.id,
-      quantity,
-    };
-
-    const res = await fetch(`${API_BASE_URL}/cart`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    const text = await res.text();
-    console.log("🔥 [Response body]:", text);
-
-    if (!res.ok) {
-      throw new Error(`Lỗi server: ${res.status}`);
+    if (!token) {
+      setPopupText("Vui lòng đăng nhập để thêm vào giỏ hàng");
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+      return;
     }
 
-    setPopupText(`Đã thêm "${product?.name}" vào giỏ hàng!`);
-    window.dispatchEvent(new Event("cartUpdated"));
-  } catch (err: any) {
-    console.error("❌ Lỗi khi thêm vào giỏ hàng:", err);
-    setPopupText(err.message || "Đã xảy ra lỗi khi thêm sản phẩm");
-  } finally {
-    setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 2000);
-  }
-};
+    if (!selectedVariant?.id) {
+      setPopupText("Vui lòng chọn biến thể phù hợp");
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+      return;
+    }
+
+    try {
+      const body = {
+        product_id: product?.id,
+        quantity,
+        variant_id: selectedVariant?.id,
+        product_option: `${selectedVariant?.option1} - ${selectedVariant?.option2}`,
+        product_value: `${selectedVariant?.value1} - ${selectedVariant?.value2}`,
+      };
+
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+
+      const text = await res.text();
+      console.log("🔥 [Response body]:", text);
+
+      if (!res.ok) {
+        throw new Error(`Lỗi server: ${res.status}`);
+      }
+
+      setPopupText(`Đã thêm "${product?.name}" vào giỏ hàng!`);
+      window.dispatchEvent(new Event("cartUpdated"));
+    } catch (err: any) {
+      console.error("❌ Lỗi khi thêm vào giỏ hàng:", err);
+      setPopupText(err.message || "Đã xảy ra lỗi khi thêm sản phẩm");
+    } finally {
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+    }
+  };
 
 
 
