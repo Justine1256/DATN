@@ -186,12 +186,19 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          product_id: product?.id,
+          quantity,
+          variant_id: selectedVariant?.id,
+        }),
       });
 
+      const text = await res.text(); // 👈 lấy raw text (dù là HTML hay JSON)
+      console.log("🔥 Response status:", res.status);
+      console.log("🔥 Response body:", text);
+
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Thêm vào giỏ hàng thất bại");
+        throw new Error(`Lỗi server: ${res.status}`);
       }
 
       setPopupText(`Đã thêm "${product?.name}" vào giỏ hàng!`);
@@ -390,8 +397,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                       key={`option1-${value1}-${index}`}
                       onClick={() => handleSelectValue1(value1)}
                       className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedSize === value1
-                          ? 'border-red-600 text-black bg-white'
-                          : 'border-gray-300 text-black bg-white hover:border-red-500'
+                        ? 'border-red-600 text-black bg-white'
+                        : 'border-gray-300 text-black bg-white hover:border-red-500'
                         } ${!hasCombination ? 'opacity-50' : ''}`}
                     >
                       {selectedSize === value1 && (
@@ -421,8 +428,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                       key={`option2-${value2}-${index}`}
                       onClick={() => handleSelectValue2(value2)}
                       className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedColor === value2
-                          ? 'border-red-600 text-black bg-white'
-                          : 'border-gray-300 text-black bg-white hover:border-red-500'
+                        ? 'border-red-600 text-black bg-white'
+                        : 'border-gray-300 text-black bg-white hover:border-red-500'
                         } ${!hasCombination ? 'opacity-50' : ''}`}
                     >
                       {selectedColor === value2 && (
