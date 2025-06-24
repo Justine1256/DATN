@@ -61,9 +61,7 @@ export default function ShopInfo({
       <div className="flex flex-col md:flex-row md:justify-between gap-6">
         {/* Left: logo + name + follow button */}
         <div className="flex gap-4 flex-shrink-0">
-          <div
-            className="cursor-pointer relative w-20 h-20"
-          >
+          <div className="cursor-pointer relative w-20 h-20">
             {/* Add a Link around the logo to navigate to the shop page */}
             <Link href={`/shop/${shop.slug}`}>
               <Image

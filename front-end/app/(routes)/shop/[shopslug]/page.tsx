@@ -1,8 +1,8 @@
 'use client';
 
-import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import { API_BASE_URL } from '@/utils/api';
 
 interface Shop {
@@ -25,15 +25,17 @@ export default function ShopPage({ params }: { params: { shopslug: string } }) {
     const router = useRouter();
 
     useEffect(() => {
-        // Ensure params.shopslug is correct
+        // Log slug to verify that it is being passed correctly
         console.log('Fetching shop with slug:', params.shopslug);
 
-        // Fetch shop data
         const fetchShop = async () => {
             try {
+                // Fetch shop data using slug
                 const response = await axios.get(`${API_BASE_URL}/shop/${params.shopslug}`);
+
+                // Check if shop data exists and set it
                 if (response.data && response.data.shop) {
-                    setShop(response.data.shop); // Save shop data
+                    setShop(response.data.shop);
                 } else {
                     setError('Cửa hàng không tìm thấy');
                 }
@@ -44,7 +46,7 @@ export default function ShopPage({ params }: { params: { shopslug: string } }) {
         };
 
         fetchShop();
-    }, [params.shopslug]); // Ensure to fetch again if shopslug changes
+    }, [params.shopslug]);
 
     if (error) {
         return <div className="text-center text-red-500 mt-20">{error}</div>;
@@ -54,7 +56,7 @@ export default function ShopPage({ params }: { params: { shopslug: string } }) {
         return <div>Đang tải dữ liệu cửa hàng...</div>;
     }
 
-    // Render shop information
+    // Render shop information once it's available
     return (
         <div className="max-w-screen-lg mx-auto px-4 py-6">
             <div className="border rounded-lg bg-white p-4 sm:p-6 md:p-8 relative">
