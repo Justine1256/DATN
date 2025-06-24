@@ -170,34 +170,28 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       return;
     }
 
-    if (!selectedVariant?.id) {
-      setPopupText("Vui lòng chọn biến thể phù hợp");
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-      return;
-    }
-
     try {
-      const body = {
-        product_id: product?.id,
-        quantity,
-        variant_id: selectedVariant?.id,
-        product_option: `${selectedVariant?.option1} - ${selectedVariant?.option2}`,
-        product_value: `${selectedVariant?.value1} - ${selectedVariant?.value2}`,
-      };
+     const body = {
+  product_id: product?.id,
+  quantity,
+  variant_id: selectedVariant?.id,
+  product_option: `${selectedVariant?.option1} - ${selectedVariant?.option2}`,
+  product_value: `${selectedVariant?.value1} - ${selectedVariant?.value2}`,
+};
 
-      const res = await fetch(`${API_BASE_URL}/cart`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+const res = await fetch(`${API_BASE_URL}/cart`, {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(body),
+});
 
 
-      const text = await res.text();
-      console.log("🔥 [Response body]:", text);
+      const text = await res.text(); // 👈 lấy raw text (dù là HTML hay JSON)
+      console.log("🔥 Response status:", res.status);
+      console.log("🔥 Response body:", text);
 
       if (!res.ok) {
         throw new Error(`Lỗi server: ${res.status}`);
@@ -213,7 +207,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
-
 
 
   // Hàm lấy giá gốc nếu có sale_price

@@ -17,7 +17,7 @@ class CartController extends Controller
         return response()->json($carts);
     }
 
-public function store(Request $request)
+    public function store(Request $request)
 {
     try {
         $validated = $request->validate([
