@@ -17,7 +17,6 @@ export interface Product {
   category_id: number;
   shop_id: number;
   name: string;
-  
   slug: string;
   description: string;
   price: string;          // từ API → string
@@ -84,6 +83,7 @@ export interface ProductDetailProps {
   shopslug: string;
   productslug: string;
 }
+
 export interface Shop {
   id: number;
   user_id: number;
