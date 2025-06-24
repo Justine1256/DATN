@@ -181,25 +181,25 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
       // Gửi yêu cầu thêm vào giỏ hàng
       const res = await fetch(`${API_BASE_URL}/cart`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          product_id: product?.id,
-          quantity,
-          variant_id: selectedVariant?.id,
-        }),
-      });
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    product_id: product?.id,
+    quantity,
+    variant_id: selectedVariant?.id,
+  }),
+});
 
-      const text = await res.text(); // 👈 lấy raw text (dù là HTML hay JSON)
-      console.log("🔥 Response status:", res.status);
-      console.log("🔥 Response body:", text);
+const text = await res.text(); // 👈 log toàn bộ response
+console.log("🔥 [Response body]:", text);
 
-      if (!res.ok) {
-        throw new Error(`Lỗi server: ${res.status}`);
-      }
+if (!res.ok) {
+  throw new Error(`Lỗi server: ${res.status}`);
+}
+
 
       setPopupText(`Đã thêm "${product?.name}" vào giỏ hàng!`);
       window.dispatchEvent(new Event("cartUpdated"));
