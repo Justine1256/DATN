@@ -170,7 +170,6 @@ const handleSelectB = (b: string) => {
 };
 
 
-
   const commonPopup = (msg: string) => {
     setPopupText(msg);
     setShowPopup(true);

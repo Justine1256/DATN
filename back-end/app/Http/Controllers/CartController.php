@@ -50,7 +50,7 @@ class CartController extends Controller
         return response()->json($carts);
     }
 
-    public function store(Request $request)
+ public function store(Request $request)
 {
     try {
         $validated = $request->validate([
@@ -75,7 +75,9 @@ class CartController extends Controller
             return response()->json(['message' => 'Sản phẩm không tồn tại hoặc đã bị vô hiệu hóa'], 404);
         }
 
-        $isVariable = !empty($product->option1) && !empty($product->value1);
+        // ✅ Kiểm tra sản phẩm có biến thể thật không (từ DB)
+        $isVariable = ProductVariant::where('product_id', $product->id)->exists();
+
         $variant = null;
 
         if ($isVariable) {
@@ -91,23 +93,24 @@ class CartController extends Controller
                 return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
             }
 
-            // Gắn lại option từ product
+            // Gắn lại option từ product (dùng để lưu vào cart)
             $variant->option1 = $product->option1;
             $variant->option2 = $product->option2;
         } else {
-            // Nếu không có biến thể, gán value từ product
+            // Sản phẩm đơn (không có biến thể)
             $variant = (object)[
-                'option1' => null,
-                'value1'  => $product->value1 ?? null,
-                'option2' => null,
-                'value2'  => $product->value2 ?? null,
+                'option1' => $product->option1,
+                'value1'  => $product->value1,
+                'option2' => $product->option2,
+                'value2'  => $product->value2,
             ];
         }
 
+        // Ghép chuỗi để lưu vào cart
         $productOption = trim(implode(' - ', array_filter([$variant->option1, $variant->option2])));
         $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
 
-        // Tìm xem đã có cart trùng chưa
+        // Kiểm tra trùng giỏ
         $cart = Cart::where('user_id', $userId)
             ->where('product_id', $product->id)
             ->where('product_option', $productOption)
@@ -130,6 +133,7 @@ class CartController extends Controller
         }
 
         return response()->json($cart, 201);
+
     } catch (\Throwable $e) {
         return response()->json([
             'message' => 'Đã xảy ra lỗi khi thêm vào giỏ hàng',
@@ -139,6 +143,7 @@ class CartController extends Controller
         ], 500);
     }
 }
+
 
 
     public function update(Request $request, $id)
