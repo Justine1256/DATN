@@ -7,21 +7,23 @@ import { LoadingSkeleton } from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import Cookies from "js-cookie";
 
-// Ensure `discount` is always a number
+// Ensure `rating` is always a string
 export interface Product {
   id: number;
   name: string;
   image: string[];
   slug: string;
   price: number;
-  oldPrice: number;
-  rating: number;
-  sold?: number;
-  discount: number;  // Ensure discount is a number
-  option1?: string;
-  value1?: string;
+  oldPrice?: number;
+  rating: string;  // Ensure rating is a string
+  discount?: number;
   sale_price?: number;
-  shop_slug: string;
+  shop_slug?: string;
+  shop_id?: number;
+  category_id?: number;
+  createdAt?: number;
+  updated_at?: string;
+  sold?: number;
 }
 
 const formatImageUrl = (img: unknown): string => {
@@ -179,7 +181,7 @@ export default function ProductCardCate({
     <div
       onClick={handleViewDetail}
       className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[240px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
-      style={{ minHeight: '250px' }}
+      style={{ minHeight: "250px" }}
     >
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
@@ -237,14 +239,18 @@ export default function ProductCardCate({
               .map((_, i) => (
                 <AiFillStar
                   key={i}
-                  className={`w-4 h-4 ${i < Math.round(product.rating) ? "text-yellow-500" : "text-gray-300"}`}
+                  className={`w-4 h-4 ${i < Math.round(parseFloat(product.rating) / 2)
+                      ? "text-yellow-500"
+                      : "text-gray-300"
+                    }`}
                 />
               ))}
             <span className="text-gray-600 text-xs">({product.rating})</span>
           </div>
-          <span className="text-gray-600 text-xs">{product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}</span>
+          <span className="text-gray-600 text-xs">
+            {product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}
+          </span>
         </div>
-
       </div>
     </div>
   );
