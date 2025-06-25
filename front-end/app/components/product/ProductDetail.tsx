@@ -437,10 +437,12 @@ const handleSelectB = (b: string) => {
 
       {/* Popup */}
       {showPopup && (
-        <div className="fixed top-20 right-5 bg-white p-4 rounded shadow-lg">
-          {popupText}
+        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
+          {popupText ||
+            (liked ? 'Đã thêm vào mục yêu thích!' : 'Đã xóa khỏi mục yêu thích!')}
         </div>
       )}
+
     </div>
   );
 }
