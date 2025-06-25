@@ -90,7 +90,7 @@ Route::get('/shop/{slug}/products-by-category/{category_slug}', [ProductControll
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment']);
     // User
-    Route::get('/user', [UserController::class, 'show']);
+    // Route::get('/user', [UserController::class, 'show']);
     Route::put('/user', [UserController::class, 'update']);
     Route::delete('/user', [UserController::class, 'destroy']);
     Route::post('/user/avatar', [UserController::class, 'updateAvatar']);
