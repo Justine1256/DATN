@@ -79,8 +79,8 @@ public function store(Request $request)
         $productOption = null;
         $productValue  = null;
 
-        if ($validated['variant_id']) {
-            // Người dùng chọn biến thể cụ thể
+        // ✅ Nếu có variant_id được truyền
+        if (array_key_exists('variant_id', $validated) && $validated['variant_id']) {
             $variant = ProductVariant::where('id', $validated['variant_id'])
                 ->where('product_id', $product->id)
                 ->first();
@@ -89,21 +89,24 @@ public function store(Request $request)
                 return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
             }
 
+            // Ghép chuỗi từ biến thể
             $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
             $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
         } else {
-            // Người dùng không chọn biến thể → kiểm tra có thể lấy từ sản phẩm gốc không
+            // ✅ Không có variant_id, dùng dữ liệu từ product gốc
             $hasValues = $product->value1 || $product->value2;
 
             if ($hasVariants && !$hasValues) {
+                // ❌ Có biến thể nhưng không có value từ product → phải chọn variant
                 return response()->json(['message' => 'Vui lòng chọn biến thể cụ thể cho sản phẩm này'], 400);
             }
 
-            // Gắn từ sản phẩm gốc
+            // Ghép chuỗi từ product gốc
             $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
             $productValue  = trim(implode(' - ', array_filter([$product->value1, $product->value2])));
         }
 
+        // ✅ Kiểm tra giỏ hàng đã tồn tại chưa
         $cart = Cart::where('user_id', $userId)
             ->where('product_id', $product->id)
             ->where('product_option', $productOption)
@@ -136,6 +139,7 @@ public function store(Request $request)
         ], 500);
     }
 }
+
 
 
 

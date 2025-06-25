@@ -181,9 +181,15 @@ const handleAddToCart = async () => {
   if (!token) return commonPopup('Vui lòng đăng nhập để thêm vào giỏ hàng');
 
   // Nếu sản phẩm có biến thể nhưng người dùng chưa chọn => chặn
-  if (product.variants?.length > 0 && !selectedVariant?.id) {
+if (product.variants.length > 0 && !selectedVariant?.id) {
+  const isFromProduct =
+    parseOptionValues(product.value1).includes(selectedA) &&
+    parseOptionValues(product.value2).includes(selectedB);
+
+  if (!isFromProduct) {
     return commonPopup('Vui lòng chọn biến thể phù hợp');
   }
+}
 
   const body = {
     product_id: product.id,
