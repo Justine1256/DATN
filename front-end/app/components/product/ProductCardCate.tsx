@@ -203,7 +203,7 @@ export default function ProductCardCate({
         )}
       </button>
 
-      <div className="w-full h-[150px] mt-8 flex items-center justify-center overflow-hidden">
+      <div className="w-full h-[150px] mt-4 flex items-center justify-center overflow-hidden">
         <Image
           src={mainImage}
           alt={product.name}
@@ -213,8 +213,8 @@ export default function ProductCardCate({
         />
       </div>
 
-      <div className="flex flex-col mt-8 w-full px-1 pb-4">
-        <h4 className="text-base font-semibold text-black leading-tight capitalize pointer-events-none overflow-hidden whitespace-nowrap text-ellipsis">
+      <div className="flex flex-col mt-4 w-full px-1 pb-4">
+        <h4 className="text-sm font-semibold text-black leading-tight capitalize pointer-events-none overflow-hidden whitespace-nowrap text-ellipsis">
           {product.name}
         </h4>
 
@@ -229,8 +229,8 @@ export default function ProductCardCate({
           )}
         </div>
 
-        <div className="flex items-center justify-between text-yellow-500 text-sm mt-2">
-          <div className="flex items-center">
+        <div className="flex items-center justify-between text-yellow-500 text-sm mt-2 flex-wrap">
+          <div className="flex items-center gap-1">
             {Array(5)
               .fill(0)
               .map((_, i) => (
@@ -239,11 +239,13 @@ export default function ProductCardCate({
                   className={`w-4 h-4 ${i < Math.round(product.rating) ? "text-yellow-500" : "text-gray-300"}`}
                 />
               ))}
-            <span className="text-gray-600">({product.rating})</span>
+            <span className="text-gray-600 text-xs">({product.rating})</span>
           </div>
-          <span className="text-gray-600 text-sm">{product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}</span>
+          <span className="text-gray-600 text-xs">{product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}</span>
         </div>
+
       </div>
     </div>
   );
+  
 }
