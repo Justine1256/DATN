@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Category } from "@/types/category";
-import useCategories from "@/app/hooks/useCategories";
+import Cookies from "js-cookie";
 
 interface ProductInfoFormProps {
   data: any;
@@ -15,21 +15,49 @@ export default function ProductInfoForm({
   category,
   setCategory,
 }: ProductInfoFormProps) {
-  const { categories, loading, error } = useCategories();
-
-  const [subCategory, setSubCategory] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [shopId, setShopId] = useState<string | null>(null);
 
   useEffect(() => {
-    setSubCategory("");
-  }, [category]);
+    const fetchUser = async () => {
+      try {
+        const token = Cookies.get("authToken");
+        const res = await fetch("https://api.marketo.info.vn/api/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  const currentCategory = categories.find(
-    (cat) => cat.id.toString() === category
-  );
+        if (!res.ok) throw new Error("Failed to fetch user");
+        const data = await res.json();
+        setShopId(data.shop?.id || null);
+      } catch (error) {
+        console.error("Lỗi lấy thông tin user:", error);
+      }
+    };
 
-  const subCategories = categories.filter(
-    (cat) => cat.parent_id === currentCategory?.id
-  );
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    if (!shopId) return;
+
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(
+          `https://api.marketo.info.vn/api/shop/categories/${shopId}`
+        );
+        const data = await res.json();
+        setCategories(data.categories || []);
+      } catch (error) {
+        console.error("Lỗi khi load categories:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, [shopId]);
 
   if (loading) return <p className="text-gray-600">Đang tải danh mục...</p>;
 
@@ -98,50 +126,83 @@ export default function ProductInfoForm({
           />
         </div>
 
-        {/* Danh mục cha */}
+        {/* Danh mục con */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Danh mục
           </label>
-          <select
-            name="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-            required
-          >
-            <option value="">Chọn danh mục</option>
-            {categories
-              .filter((cat) => cat.parent_id === null)
-              .map((cat) => (
-                <option key={cat.id} value={cat.id.toString()}>
-                  {cat.name}
-                </option>
-              ))}
-          </select>
+<select
+  name="category_id"
+  value={category}
+  onChange={(e) => setCategory(e.target.value)}
+  className="w-full border rounded px-3 py-2"
+  required
+>
+  <option value="">Chọn danh mục</option>
+  {categories
+    .filter((cat) => cat.parent_id !== null) // Ẩn danh mục cha
+    .map((cat) => (
+      <option key={cat.id} value={cat.id.toString()}>
+        {cat.name} {/* Chỉ hiển thị tên danh mục con */}
+      </option>
+    ))}
+</select>
+
+
         </div>
 
-        {/* Danh mục con */}
-        {subCategories.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Danh mục con
-            </label>
-            <select
-              name="sub_category_id"
-              value={subCategory}
-              onChange={(e) => setSubCategory(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            >
-              <option value="">Chọn danh mục con</option>
-              {subCategories.map((sub) => (
-                <option key={sub.id} value={sub.id.toString()}>
-                  {sub.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+
+        {/* Option 1 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tên tuỳ chọn 1 (ví dụ: Bộ nhớ)
+          </label>
+          <input
+            name="option1"
+            defaultValue={data?.option1 || ""}
+            type="text"
+            className="w-full border rounded px-3 py-2"
+          />
+        </div>
+
+        {/* Value 1 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Giá trị tuỳ chọn 1 (ví dụ: 256GB)
+          </label>
+          <input
+            name="value1"
+            defaultValue={data?.value1 || ""}
+            type="text"
+            className="w-full border rounded px-3 py-2"
+          />
+        </div>
+
+        {/* Option 2 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tên tuỳ chọn 2 (ví dụ: Màu sắc)
+          </label>
+          <input
+            name="option2"
+            defaultValue={data?.option2 || ""}
+            type="text"
+            className="w-full border rounded px-3 py-2"
+          />
+        </div>
+
+        {/* Value 2 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Giá trị tuỳ chọn 2 (ví dụ: Đen, Xám, Xanh...)
+          </label>
+          <input
+            name="value2"
+            defaultValue={data?.value2 || ""}
+            type="text"
+            className="w-full border rounded px-3 py-2"
+          />
+        </div>
       </div>
 
       {/* Mô tả sản phẩm */}
