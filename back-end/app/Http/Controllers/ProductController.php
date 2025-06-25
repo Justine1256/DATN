@@ -90,31 +90,21 @@ class ProductController extends Controller
             'shops' => $shops
         ]);
     }
-public function getShopProductsByCategorySlug(Request $request, $slug)
+public function getShopProductsByCategorySlug($slug, $category_slug)
 {
-    $shopSlug = $request->query('shop_slug');
-
-    if (!$shopSlug) {
-        return response()->json(['message' => 'Thiếu shop_slug'], 400);
-    }
-
-    $shop = Shop::where('slug', $shopSlug)->first();
+    $shop = Shop::where('slug', $slug)->first();
     if (!$shop) {
         return response()->json(['message' => 'Không tìm thấy shop'], 404);
     }
 
-    // Lấy danh mục cha theo slug
-    $category = Category::where('slug', $slug)->first();
+    $category = Category::where('slug', $category_slug)->first();
     if (!$category) {
         return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
     }
 
-    // Lấy tất cả ID danh mục con (kèm danh mục cha nếu muốn)
     $categoryIds = $this->getAllChildCategoryIds($category);
-
     $categoryIds = array_map('intval', $categoryIds);
 
-    // Lấy sản phẩm thuộc danh mục và thuộc shop
     $products = Product::with('shop')
         ->where('shop_id', $shop->id)
         ->whereIn('category_id', $categoryIds)
@@ -127,6 +117,7 @@ public function getShopProductsByCategorySlug(Request $request, $slug)
         'products' => $products,
     ]);
 }
+
 
 
 
