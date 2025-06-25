@@ -2,7 +2,9 @@
 module.exports = {
     content: [
         "./app/**/*.{js,ts,jsx,tsx}",
+        "./pages/**/*.{js,ts,jsx,tsx}",
         "./components/**/*.{js,ts,jsx,tsx}",
+        "./globals.css",
     ],
     theme: {
         extend: {
@@ -20,5 +22,9 @@ module.exports = {
             },
         },
     },
-    plugins: [],
+    plugins: [
+        // Add plugins if needed, for example:
+        // require('@tailwindcss/forms'),
+    ],
 }
+  

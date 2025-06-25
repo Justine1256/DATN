@@ -2,24 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ================================
+   Biến hệ thống & chế độ nền
+================================ */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-:root {
+  /* Màu nền chính */
+  --foreground: rgb(31 41 55 / var(--tw-text-opacity, 1));
+  /* Màu chữ chính */
   --color-background: var(--background);
+  /* Biến tiện ích cho màu nền */
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Biến tiện ích cho màu chữ */
+  --font-sans: 'Roboto', Arial, Helvetica, sans-serif;
+  /* Font sans-serif mặc định là Roboto */
+  --font-mono: 'Courier New', Courier, monospace;
+  /* Font monospace mặc định */
 }
 
+/* Định nghĩa chế độ tối */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* --background: #0a0a0a; */
+    /* Màu nền trong chế độ tối */
+    /* --foreground: #ededed; */
+    /* Màu chữ trong chế độ tối */
   }
 }
+
 
 body {
   background: var(--background);
