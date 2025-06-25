@@ -378,51 +378,26 @@ public function store(Request $request)
     }
 
     // Lấy danh sách sản phẩm theo shop của shop đã đăng nhập
-public function getProductByShop(Request $request)
-{
-    $user = $request->user(); // Lấy user từ token
+    public function getProductByShop(Request $request)
+    {
+        $user = $request->user();
 
-    // Ghi log để xem có nhận được user không
-    Log::info('DEBUG getProductByShop - Authenticated user:', [
-        'user_id' => $user?->id,
-        'user_email' => $user?->email,
-        'user' => $user
-    ]);
+        if (!$user || !$user->shop) {
+            return response()->json(['status' => false, 'message' => 'Shop không tồn tại.'], 403);
+        }
 
-    if (!$user) {
-        Log::warning('DEBUG getProductByShop - Không xác thực được user từ token');
+        $products = Product::with('category') // nếu muốn có cả category
+            ->where('shop_id', $user->shop->id)
+            ->latest()
+            ->paginate(6);
+        Log::info('User:', [$user]);
+Log::info('Shop:', [$user?->shop]);
+
         return response()->json([
-            'status' => false,
-            'message' => 'Chưa đăng nhập hoặc token không hợp lệ.'
-        ], 401);
-    }
-
-    if (!$user->shop) {
-        Log::warning('DEBUG getProductByShop - User không có shop:', [
-            'user_id' => $user->id
+            'status' => true,
+            'products' => $products
         ]);
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Shop không tồn tại.'
-        ], 403);
     }
-
-    Log::info('DEBUG getProductByShop - Shop found:', [
-        'shop_id' => $user->shop->id,
-        'shop_name' => $user->shop->name
-    ]);
-
-    $products = Product::with('category')
-        ->where('shop_id', $user->shop->id)
-        ->latest()
-        ->paginate(6);
-
-    return response()->json([
-        'status' => true,
-        'products' => $products
-    ]);
-}
 
 
     // Cập nhật sản phẩm bởi shop
