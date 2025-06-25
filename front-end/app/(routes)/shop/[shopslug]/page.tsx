@@ -5,14 +5,14 @@ import ShopCard from '@/app/components/stores/Shopcard';
 import ProductCardCate from '@/app/components/product/ProductCardCate';
 import { API_BASE_URL } from "@/utils/api";
 
-interface Product {
+export interface Product {
     id: number;
     name: string;
     image: string[];
     slug: string;
     price: number;
-    oldPrice?: number;
-    rating: string;
+    oldPrice: number; // Ensure oldPrice is always a number
+    rating: string; // rating is now a string
     discount?: number;
     sale_price?: number;
     shop_slug?: string;
@@ -69,7 +69,7 @@ const ShopPage = () => {
             const shopUrl = `${API_BASE_URL}/shop/${slug}`;
             const categoryUrl = `${API_BASE_URL}/shop/${slug}/categories`;
             let productUrl = `${API_BASE_URL}/shop/${slug}/products`;
-            // let productUrl = `${API_BASE_URL}/shop/${slug}/products-by-category/${categorySlug}`;
+            //  let productUrl = `${API_BASE_URL}/shop / ${ slug } /products-by-category/${ categorySlug }`api thật để fetch sp danh mục
             if (categorySlug) {
                 productUrl += `?category=${categorySlug}`;
             }
@@ -109,7 +109,8 @@ const ShopPage = () => {
             const productsWithTimestamp = fetchedProducts.map(p => ({
                 ...p,
                 createdAt: p.updated_at ? new Date(p.updated_at).getTime() : 0,
-                rating: p.rating ? p.rating.toString() : "0"
+                rating: p.rating.toString(), // Ensure rating is a string
+                oldPrice: p.oldPrice ?? 0,   // Ensure oldPrice is a number (default to 0 if undefined)
             }));
 
             setProducts(productsWithTimestamp);
@@ -143,19 +144,20 @@ const ShopPage = () => {
         } else if (selectedSort === "Bán Chạy") {
             filteredProducts.sort((a, b) => (b.sold || 0) - (a.sold || 0));
         } else {
-            filteredProducts.sort((a, b) => parseFloat(b.rating || "0") - parseFloat(a.rating || "0"));
+            filteredProducts.sort((a, b) => Number(b.rating) - Number(a.rating));  // Ep kiểu rating thành number
         }
 
         if (selectedPriceFilter === "asc") {
-            filteredProducts.sort((a, b) => (a.sale_price || a.price || 0) - (b.sale_price || b.price || 0));
+            filteredProducts.sort((a, b) => (Number(a.sale_price) || Number(a.price) || 0) - (Number(b.sale_price) || Number(b.price) || 0));
         } else if (selectedPriceFilter === "desc") {
-            filteredProducts.sort((a, b) => (b.sale_price || b.price || 0) - (a.sale_price || a.price || 0));
+            filteredProducts.sort((a, b) => (Number(b.sale_price) || Number(b.price) || 0) - (Number(a.sale_price) || Number(a.price) || 0));
         } else if (selectedPriceFilter === "discount") {
-            filteredProducts.sort((a, b) => (b.discount || 0) - (a.discount || 0));
+            filteredProducts.sort((a, b) => (Number(b.discount) || 0) - (Number(a.discount) || 0));  // Ep kiểu discount thành number
         }
 
         setProducts(filteredProducts);
     };
+    
 
     const handleResetFilters = () => {
         setSelectedSort("Phổ Biến");
@@ -212,7 +214,7 @@ const ShopPage = () => {
                                     key={cat.id}
                                     onClick={() => handleCategorySelect(cat.slug)}
                                     className={`w-full text-left px-4 py-2 rounded transition-colors text-xs 
-                        ${cat.slug === selectedCategory ? "text-brand font-semibold" : "text-black hover:text-brand text-sm whitespace-nowrap"}`}
+                                        ${cat.slug === selectedCategory ? "text-brand font-semibold" : "text-black hover:text-brand text-sm whitespace-nowrap"}`}
                                     style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
                                 >
                                     {cat.name}
@@ -318,11 +320,9 @@ const ShopPage = () => {
                         )}
                     </div>
                 </div>
-
             </div>
         </div>
     );
-      
 };
 
 export default ShopPage;
