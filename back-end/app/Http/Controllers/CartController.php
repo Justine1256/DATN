@@ -96,6 +96,8 @@ class CartController extends Controller
             // Gắn lại option từ product (dùng để lưu vào cart)
             $variant->option1 = $product->option1;
             $variant->option2 = $product->option2;
+            $variant->value1  = $variant->value1; // lấy từ DB variant
+$variant->value2  = $variant->value2;
         } else {
             // Sản phẩm đơn (không có biến thể)
             $variant = (object)[
