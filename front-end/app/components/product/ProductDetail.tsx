@@ -176,18 +176,41 @@ const handleSelectB = (b: string) => {
     setTimeout(() => setShowPopup(false), 2000);
   };
 
-  const handleAddToCart = async () => {
-    if (!selectedVariant?.id) return commonPopup('Vui lòng chọn biến thể phù hợp');
-    const token = Cookies.get('authToken') || localStorage.getItem('token');
-    if (!token) return commonPopup('Vui lòng đăng nhập để thêm vào giỏ hàng');
-    const res = await fetch(`${API_BASE_URL}/cart`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product_id: product.id, variant_id: selectedVariant.id, quantity })
-    });
-    if (res.ok) commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
-    else commonPopup('Thêm vào giỏ hàng thất bại');
+const handleAddToCart = async () => {
+  const token = Cookies.get('authToken') || localStorage.getItem('token');
+  if (!token) return commonPopup('Vui lòng đăng nhập để thêm vào giỏ hàng');
+
+  // Nếu sản phẩm có biến thể nhưng người dùng chưa chọn => chặn
+  if (product.variants?.length > 0 && !selectedVariant?.id) {
+    return commonPopup('Vui lòng chọn biến thể phù hợp');
+  }
+
+  const body = {
+    product_id: product.id,
+    quantity,
   };
+
+  // Chỉ thêm variant_id nếu có biến thể
+  if (selectedVariant?.id) {
+    body.variant_id = selectedVariant.id;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/cart`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (res.ok) {
+    commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
+  } else {
+    commonPopup('Thêm vào giỏ hàng thất bại');
+  }
+};
+
 
   const toggleLike = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
