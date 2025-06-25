@@ -299,7 +299,7 @@ const handleSelectB = (b: string) => {
 
             {/* Option A */}
             <div className="flex flex-col gap-2 mb-4 mt-4">
-              <p className="font-medium text-gray-700 text-lg">{product.option1 || 'Option A'}</p>
+              <p className="font-medium text-gray-700 text-lg">{product.option1 || ''}</p>
               <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
                 {optsA.map(a => (
                   <button
@@ -328,7 +328,7 @@ const handleSelectB = (b: string) => {
 
             {/* Option B */}
             <div className="flex flex-col gap-2 mb-4 mt-4">
-              <p className="font-medium text-gray-700 text-lg">{product.option2 || 'Option B'}</p>
+              <p className="font-medium text-gray-700 text-lg">{product.option2 || ''}</p>
               <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
                 {optsB.map(b => (
                   <button
