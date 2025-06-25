@@ -1,30 +1,37 @@
-import { NextConfig } from 'next';
-
-// Khai báo cấu hình với kiểu NextConfig
-const nextConfig: NextConfig = {
+/** @type {import('next').Config} */
+const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
   images: {
     domains: [
-      '127.0.0.1',
       'localhost',
       'api.marketo.info.vn',
-      'example.com',
-      'res.cloudinary.com',
-      'cdn.example.org',
     ],
-  },
-  webpack(config, { isServer }) {
-    // Cấu hình Webpack cho CSS khi chạy trên client
-    if (!isServer) {
-      config.module.rules.push({
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader', 'postcss-loader'],
-      });
-    }
-    return config;
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'salt.tikicdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img4.thuthuatphanmem.vn', // Added this hostname
+      },
+      {
+        protocol: 'https',
+        hostname: 'thietbidiengiadung.io.vn', // Added this hostname
+      },
+      {
+        protocol: 'https',
+        hostname: 'shop.nagakawa.com.vn', // Added this hostname
+      },
+    ],
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
