@@ -390,8 +390,6 @@ public function store(Request $request)
             ->where('shop_id', $user->shop->id)
             ->latest()
             ->paginate(6);
-        Log::info('User:', [$user]);
-Log::info('Shop:', [$user?->shop]);
 
         return response()->json([
             'status' => true,
