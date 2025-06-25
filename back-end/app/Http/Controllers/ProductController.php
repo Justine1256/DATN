@@ -90,6 +90,49 @@ class ProductController extends Controller
             'shops' => $shops
         ]);
     }
+public function getShopProductsByCategorySlug(Request $request, $slug)
+{
+    $shopId = $request->query('shop_id'); // shop_id truyền qua query param
+
+    // Kiểm tra shop_id
+    if (!$shopId) {
+        return response()->json(['message' => 'Thiếu shop_id'], 400);
+    }
+
+    $shop = Shop::find($shopId);
+    if (!$shop) {
+        return response()->json(['message' => 'Không tìm thấy shop'], 404);
+    }
+
+    // Lấy danh mục cha theo slug
+    $category = Category::where('slug', $slug)->first();
+    if (!$category) {
+        return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
+    }
+
+    // Lấy tất cả ID danh mục con (bao gồm cả danh mục cha nếu muốn)
+    $categoryIds = $this->getAllChildCategoryIds($category);
+
+    // Nếu muốn loại bỏ danh mục cha khỏi kết quả, dùng đoạn này:
+    // if (($key = array_search($category->id, $categoryIds)) !== false) {
+    //     unset($categoryIds[$key]);
+    // }
+
+    $categoryIds = array_map('intval', $categoryIds);
+
+    // Lấy sản phẩm của shop trong các danh mục
+    $products = Product::with('shop')
+        ->where('shop_id', $shopId)
+        ->whereIn('category_id', $categoryIds)
+        ->where('status', 'activated')
+        ->get();
+
+    return response()->json([
+        'category' => $category,
+        'shop' => $shop,
+        'products' => $products,
+    ]);
+}
 
 
 

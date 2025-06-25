@@ -86,6 +86,8 @@ Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
 Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
 Route::get('/shop/{slug}/products', [ProductController::class, 'showShopProducts']);
+Route::get('/shop/{slug}/products-by-category/{category_slug}', [ProductController::class, 'getShopProductsByCategorySlug']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment']);
     // User
