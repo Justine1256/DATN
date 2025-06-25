@@ -11,37 +11,44 @@ use App\Models\ProductVariant;
 class CartController extends Controller
 {
     public function index()
-{
-    $userId = Auth::id();
+    {
+        $userId = Auth::id();
+        $carts = Cart::with('product')
+            ->where('user_id', $userId)
+            ->where('is_active', true)
+            ->get();
 
-    $carts = Cart::with(['product', 'variant'])
-        ->where('user_id', $userId)
-        ->where('is_active', true)
-        ->get();
+        $carts->transform(function ($cart) {
+            // Tách option và value
+            $options = explode(' - ', $cart->product_option ?? '');
+            $values = explode(' - ', $cart->product_value ?? '');
 
-    $carts->transform(function ($cart) {
-        if ($cart->variant) {
             $variant = [
-                'id'         => $cart->variant->id,
-                'option1'    => $cart->variant->option1,
-                'value1'     => $cart->variant->value1,
-                'option2'    => $cart->variant->option2,
-                'value2'     => $cart->variant->value2,
-                'price'      => $cart->variant->price,
-                'sale_price' => $cart->variant->sale_price,
-                'stock'      => $cart->variant->stock,
+                'option1'     => $options[0] ?? null,
+                'value1'      => $values[0] ?? null,
+                'option2'     => $options[1] ?? null,
+                'value2'      => $values[1] ?? null,
+                'price'       => null,
+                'sale_price'  => null,
             ];
-        } else {
-            $variant = null;
-        }
 
-        $cart->variant = $variant;
-        return $cart;
-    });
+            // Lấy thông tin biến thể nếu có
+            $query = ProductVariant::where('product_id', $cart->product_id);
+            if (isset($values[0])) $query->where('value1', $values[0]);
+            if (isset($values[1])) $query->where('value2', $values[1]);
 
-    return response()->json($carts);
-}
+            $matched = $query->first();
+            if ($matched) {
+                $variant['price'] = $matched->price;
+                $variant['sale_price'] = $matched->sale_price;
+            }
 
+            $cart->variant = $variant;
+            return $cart;
+        });
+
+        return response()->json($carts);
+    }
 
 public function store(Request $request)
 {
@@ -172,15 +179,44 @@ public function getTotal()
 {
     $userId = Auth::id();
 
-    $carts = Cart::with(['product', 'variant'])
+    $carts = Cart::with('product')
         ->where('user_id', $userId)
         ->where('is_active', true)
         ->get();
 
+    // Gắn variant giống logic ở index()
+    $carts->transform(function ($cart) {
+        $options = explode(' - ', $cart->product_option ?? '');
+        $values = explode(' - ', $cart->product_value ?? '');
+
+        $query = ProductVariant::where('product_id', $cart->product_id);
+        if (isset($values[0])) $query->where('value1', $values[0]);
+        if (isset($values[1])) $query->where('value2', $values[1]);
+
+        $matched = $query->first();
+
+        if ($matched) {
+            $cart->variant = [
+                'id'         => $matched->id,
+                'option1'    => $matched->option1,
+                'value1'     => $matched->value1,
+                'option2'    => $matched->option2,
+                'value2'     => $matched->value2,
+                'price'      => $matched->price,
+                'sale_price' => $matched->sale_price,
+                'stock'      => $matched->stock,
+            ];
+        } else {
+            $cart->variant = null;
+        }
+
+        return $cart;
+    });
+
     $total = 0;
     foreach ($carts as $cart) {
-        $price = $cart->variant->sale_price
-            ?? $cart->variant->price
+        $price = $cart->variant['sale_price']
+            ?? $cart->variant['price']
             ?? $cart->product->sale_price
             ?? $cart->product->price;
 
@@ -189,7 +225,6 @@ public function getTotal()
 
     return response()->json(['total' => $total]);
 }
-
 
 
     public function destroy($id)
