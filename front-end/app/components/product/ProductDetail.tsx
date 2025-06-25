@@ -47,7 +47,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   useEffect(() => {
     async function fetchData() {
       const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
-      if (!res.ok) return router.push('/not-found');
+      console.log('Fetching product:', res);
+      // if (!res.ok) return router.push('/not-found');
       const { data } = await res.json();
       setProduct(data);
       setMainImage(formatImageUrl(data.image[0] || ''));
