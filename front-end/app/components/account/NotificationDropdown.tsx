@@ -193,7 +193,7 @@ const NotificationDropdown: React.FC = () => {
                                                     <Clock className="w-3 h-3" />
                                                     <span>{formatTime(notification.created_at)}</span>
                                                 </div>
-                                                <ExternalLink className="w-4 h-4 text-[#DB4444] opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1" />
+                                                <ExternalLink className="w-4 h-4 text-brand opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1" />
                                             </div>
                                         </div>
                                     </div>

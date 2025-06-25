@@ -286,7 +286,7 @@ const Header = () => {
             {/* 🔔 Thông báo */}
             <div className="relative group">
               <div className="relative w-5 h-5 flex items-center justify-center cursor-pointer scale-[0.9]">
-                <FaRegBell className="text-black group-hover:text-[#DB4444] w-5 h-5 transition duration-200" />
+                <FaRegBell className="text-black group-hover:text-brand w-5 h-5 transition duration-200" />
                 {unreadNotificationCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
                     {unreadNotificationCount}
@@ -332,7 +332,7 @@ const Header = () => {
                   )}
                 </ul>
                 <div className="text-center p-2">
-                  <button onClick={() => router.push("/account")} className="text-sm text-[#DB4444] font-medium hover:underline transition">
+                  <button onClick={() => router.push("/account")} className="text-sm text-brand font-medium hover:underline transition">
                     Xem tất cả
                   </button>
                 </div>

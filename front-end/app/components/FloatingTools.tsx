@@ -294,7 +294,7 @@ export default function ModernFloatingTools() {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                  
-                  <button className="text-[#db4444] border-2 border-[#db4444] text-sm px-4 py-1.5 rounded-full hover:bg-[#db4444] hover:text-white transition-all font-semibold group-hover:scale-105">
+                  <button className="text-brand border-2 border-[#db4444] text-sm px-4 py-1.5 rounded-full hover:bg-[#db4444] hover:text-white transition-all font-semibold group-hover:scale-105">
                     Chat ngay
                   </button>
                 </div>

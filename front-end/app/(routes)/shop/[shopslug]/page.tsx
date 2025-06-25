@@ -173,13 +173,13 @@ const ShopPage = () => {
                 <div className="w-full lg:w-1/4 flex flex-col gap-8 mb-8">
                     {/* Danh mục */}
                     <div className="mb-8">
-                        <h2 className="text-lg font-semibold text-[#db4444]">Danh mục sản phẩm</h2>
+                        <h2 className="text-lg font-semibold text-brand">Danh mục sản phẩm</h2>
                         <div className="space-y-1">
                             {categories.map((cat) => (
                                 <button
                                     key={cat.id}
                                     onClick={() => handleCategorySelect(cat.slug)}
-                                    className={`w-full text-left px-4 py-2 rounded transition-colors ${cat.slug === selectedCategory ? "text-[#DB4444] font-semibold" : "text-black hover:text-[#DB4444]"}`}
+                                    className={`w-full text-left px-4 py-2 rounded transition-colors ${cat.slug === selectedCategory ? "text-brand font-semibold" : "text-black hover:text-brand"}`}
                                 >
                                     {cat.name}
                                 </button>
@@ -193,18 +193,18 @@ const ShopPage = () => {
                         <div className="space-y-2 mb-6">
                             <h4 className="text-base font-medium mb-1">Sắp xếp</h4>
                             {["Phổ Biến", "Mới Nhất", "Bán Chạy"].map((label) => (
-                                <label key={label} className="flex items-center space-x-2 text-black cursor-pointer w-full px-4 py-2 rounded transition-colors hover:text-[#DB4444]">
+                                <label key={label} className="flex items-center space-x-2 text-black cursor-pointer w-full px-4 py-2 rounded transition-colors hover:text-brand">
                                     <input
                                         type="radio"
                                         name="sortOption"
-                                        className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
+                                        className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
                                         checked={selectedSort === label}
                                         onChange={() => {
                                             setSelectedSort(label);
                                             setSelectedPriceFilter(null);
                                         }}
                                     />
-                                    <span className={`${selectedSort === label && !selectedPriceFilter ? "text-[#DB4444] font-semibold" : ""}`}>
+                                    <span className={`${selectedSort === label && !selectedPriceFilter ? "text-brand font-semibold" : ""}`}>
                                         {label}
                                     </span>
                                 </label>
@@ -218,7 +218,7 @@ const ShopPage = () => {
                                 <input
                                     type="radio"
                                     name="priceFilterOptions"
-                                    className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
+                                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
                                     checked={selectedPriceFilter === "asc"}
                                     onChange={() => {
                                         setSelectedPriceFilter("asc");
@@ -231,7 +231,7 @@ const ShopPage = () => {
                                 <input
                                     type="radio"
                                     name="priceFilterOptions"
-                                    className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
+                                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
                                     checked={selectedPriceFilter === "desc"}
                                     onChange={() => {
                                         setSelectedPriceFilter("desc");
@@ -244,7 +244,7 @@ const ShopPage = () => {
                                 <input
                                     type="radio"
                                     name="priceFilterOptions"
-                                    className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
+                                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
                                     checked={selectedPriceFilter === "discount"}
                                     onChange={() => {
                                         setSelectedPriceFilter("discount");
