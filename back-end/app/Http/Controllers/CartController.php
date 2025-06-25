@@ -18,42 +18,34 @@ class CartController extends Controller
             ->where('is_active', true)
             ->get();
 
-$carts->transform(function ($cart) {
-    // Tách option và value
-    $options = explode(' - ', $cart->product_option ?? '');
-    $values = explode(' - ', $cart->product_value ?? '');
+        $carts->transform(function ($cart) {
+            // Tách option và value
+            $options = explode(' - ', $cart->product_option ?? '');
+            $values = explode(' - ', $cart->product_value ?? '');
 
-    $variant = null;
+            $variant = [
+                'option1'     => $options[0] ?? null,
+                'value1'      => $values[0] ?? null,
+                'option2'     => $options[1] ?? null,
+                'value2'      => $values[1] ?? null,
+                'price'       => null,
+                'sale_price'  => null,
+            ];
 
-    // Lấy thông tin biến thể nếu có
-    $query = ProductVariant::where('product_id', $cart->product_id);
-    if (isset($values[0])) $query->where('value1', $values[0]);
-    if (isset($values[1])) $query->where('value2', $values[1]);
+            // Lấy thông tin biến thể nếu có
+            $query = ProductVariant::where('product_id', $cart->product_id);
+            if (isset($values[0])) $query->where('value1', $values[0]);
+            if (isset($values[1])) $query->where('value2', $values[1]);
 
-    $matched = $query->first();
+            $matched = $query->first();
+            if ($matched) {
+                $variant['price'] = $matched->price;
+                $variant['sale_price'] = $matched->sale_price;
+            }
 
-    if ($matched) {
-        $variant = [
-            'id'         => $matched->id,
-            'option1'    => $matched->option1,
-            'value1'     => $matched->value1,
-            'option2'    => $matched->option2,
-            'value2'     => $matched->value2,
-            'price'      => $matched->price,
-            'sale_price' => $matched->sale_price,
-            'stock'      => $matched->stock,
-            'sku'        => $matched->sku,
-        ];
-    } else {
-        // Nếu không có biến thể => trả về null hoặc giá sản phẩm gốc
-        $variant = null;
-    }
-
-    $cart->variant = $variant;
-
-    return $cart;
-});
-
+            $cart->variant = $variant;
+            return $cart;
+        });
 
         return response()->json($carts);
     }
@@ -184,22 +176,57 @@ $carts->transform(function ($cart) {
         return response()->json($cart);
     }
 
-    public function getTotal()
-    {
-        $userId = Auth::id();
-        $carts = Cart::with('product')->where('user_id', $userId)->where('is_active', true)->get();
+public function getTotal()
+{
+    $userId = Auth::id();
 
-        $total = 0;
-        foreach ($carts as $cart) {
-            $price = $cart->variant->sale_price
-                ?? $cart->variant->price
-                ?? $cart->product->sale_price
-                ?? $cart->product->price;
-            $total += $cart->quantity * $price;
+    $carts = Cart::with('product')
+        ->where('user_id', $userId)
+        ->where('is_active', true)
+        ->get();
+
+    // Gắn variant giống logic ở index()
+    $carts->transform(function ($cart) {
+        $options = explode(' - ', $cart->product_option ?? '');
+        $values = explode(' - ', $cart->product_value ?? '');
+
+        $query = ProductVariant::where('product_id', $cart->product_id);
+        if (isset($values[0])) $query->where('value1', $values[0]);
+        if (isset($values[1])) $query->where('value2', $values[1]);
+
+        $matched = $query->first();
+
+        if ($matched) {
+            $cart->variant = [
+                'id'         => $matched->id,
+                'option1'    => $matched->option1,
+                'value1'     => $matched->value1,
+                'option2'    => $matched->option2,
+                'value2'     => $matched->value2,
+                'price'      => $matched->price,
+                'sale_price' => $matched->sale_price,
+                'stock'      => $matched->stock,
+            ];
+        } else {
+            $cart->variant = null;
         }
 
-        return response()->json(['total' => $total]);
+        return $cart;
+    });
+
+    $total = 0;
+    foreach ($carts as $cart) {
+        $price = $cart->variant['sale_price']
+            ?? $cart->variant['price']
+            ?? $cart->product->sale_price
+            ?? $cart->product->price;
+
+        $total += $cart->quantity * $price;
     }
+
+    return response()->json(['total' => $total]);
+}
+
 
     public function destroy($id)
     {
