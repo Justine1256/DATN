@@ -50,7 +50,7 @@ class CartController extends Controller
         return response()->json($carts);
     }
 
- public function store(Request $request)
+public function store(Request $request)
 {
     try {
         $validated = $request->validate([
@@ -75,46 +75,45 @@ class CartController extends Controller
             return response()->json(['message' => 'Sản phẩm không tồn tại hoặc đã bị vô hiệu hóa'], 404);
         }
 
-        // ✅ Kiểm tra sản phẩm có biến thể thật không (từ DB)
+        // Kiểm tra sản phẩm có biến thể
         $isVariable = ProductVariant::where('product_id', $product->id)->exists();
 
-        $variant = null;
-
         if ($isVariable) {
+            // Bắt buộc chọn biến thể nếu sản phẩm có biến thể
             if (empty($validated['variant_id'])) {
                 return response()->json(['message' => 'Vui lòng chọn biến thể của sản phẩm'], 400);
             }
 
-            $variant = ProductVariant::where('id', $validated['variant_id'])
+            $matchedVariant = ProductVariant::where('id', $validated['variant_id'])
                 ->where('product_id', $product->id)
                 ->first();
 
-            if (!$variant) {
+            if (!$matchedVariant) {
                 return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
             }
 
-            // Gắn lại option từ product (dùng để lưu vào cart)
-$variant->option1 = $product->option1;
-$variant->option2 = $product->option2;
-$variant->value1  = $variant->value1;
-$variant->value2  = $variant->value2;
-
-
-        } else {
-            // Sản phẩm đơn (không có biến thể)
+            // ✅ Gắn đúng option từ product, value từ variant
             $variant = (object)[
                 'option1' => $product->option1,
-                'value1'  => $product->value1,
                 'option2' => $product->option2,
+                'value1'  => $matchedVariant->value1,
+                'value2'  => $matchedVariant->value2,
+            ];
+        } else {
+            // Sản phẩm đơn
+            $variant = (object)[
+                'option1' => $product->option1,
+                'option2' => $product->option2,
+                'value1'  => $product->value1,
                 'value2'  => $product->value2,
             ];
         }
 
-        // Ghép chuỗi để lưu vào cart
+        // ✅ Ghép đúng option + value
         $productOption = trim(implode(' - ', array_filter([$variant->option1, $variant->option2])));
         $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
 
-        // Kiểm tra trùng giỏ
+        // Kiểm tra sản phẩm đã có trong giỏ chưa
         $cart = Cart::where('user_id', $userId)
             ->where('product_id', $product->id)
             ->where('product_option', $productOption)
@@ -137,7 +136,6 @@ $variant->value2  = $variant->value2;
         }
 
         return response()->json($cart, 201);
-
     } catch (\Throwable $e) {
         return response()->json([
             'message' => 'Đã xảy ra lỗi khi thêm vào giỏ hàng',
