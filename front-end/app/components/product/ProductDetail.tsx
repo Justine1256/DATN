@@ -47,9 +47,15 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   useEffect(() => {
     async function fetchData() {
       const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
-      console.log('Fetching product:', res);
-      // if (!res.ok) return router.push('/not-found');
       const { data } = await res.json();
+
+      const gocA = parseOptionValues(data.value1);
+      const gocB = parseOptionValues(data.value2);
+      data.variants.sort((v1: Variant, v2: Variant) => {
+        const score = (v: Variant) => (gocA.includes(v.value1) ? 1 : 0) + (gocB.includes(v.value2) ? 1 : 0);
+        return score(v2) - score(v1);
+      });
+
       setProduct(data);
       setMainImage(formatImageUrl(data.image[0] || ''));
       if (data.variants.length) {
@@ -57,8 +63,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         setSelectedB(data.variants[0].value2);
         setSelectedVariant(data.variants[0]);
       } else {
-        setSelectedA(parseOptionValues(data.value1)[0] || '');
-        setSelectedB(parseOptionValues(data.value2)[0] || '');
+        setSelectedA(gocA[0] || '');
+        setSelectedB(gocB[0] || '');
       }
     }
     fetchData();
@@ -66,110 +72,67 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   if (!product) return <LoadingProductDetail />;
 
-  // gom mọi option từ product + variants
   const optsA = Array.from(new Set([
-    ...parseOptionValues(product.value1),
-    ...product.variants.map(v => v.value1)
-  ].filter(v => v)));
+    ...product.variants.map(v => v.value1),
+    ...parseOptionValues(product.value1)
+  ].filter(Boolean)));
+
   const optsB = Array.from(new Set([
-    ...parseOptionValues(product.value2),
-    ...product.variants.map(v => v.value2)
-  ].filter(v => v)));
+    ...product.variants.map(v => v.value2),
+    ...parseOptionValues(product.value2)
+  ].filter(Boolean)));
 
 const hasCombination = (a: string, b: string) => {
-  // Nếu sản phẩm không có variant thì enable hết
+  // Nếu không có biến thể thì luôn cho chọn
   if (!product.variants.length) return true;
 
-  // Nếu (a,b) đúng cặp value1/value2 trong bảng product → enable
-  if (
-    (!a || parseOptionValues(product.value1).includes(a)) &&
-    (!b || parseOptionValues(product.value2).includes(b))
-  ) {
-    return true;
-  }
+  const inVariant = product.variants.some(v => {
+    const matchA = !a || v.value1 === a;
+    const matchB = !b || v.value2 === b;
+    return matchA && matchB;
+  });
 
-  // Nếu (a,b) đúng cặp trong variants → enable
-  if (a && b) {
-    return product.variants.some(v => v.value1 === a && v.value2 === b);
-  }
+  const fromProduct =
+    parseOptionValues(product.value1).includes(a) &&
+    parseOptionValues(product.value2).includes(b);
 
-  if (a && !b) {
-    return product.variants.some(v => v.value1 === a);
-  }
-
-  if (!a && b) {
-    return product.variants.some(v => v.value2 === b);
-  }
-
-  // Nếu chưa chọn gì thì enable hết
-  return true;
+  return inVariant || fromProduct;
 };
 
 
+  const isFromProduct = parseOptionValues(product.value1).includes(selectedA) && parseOptionValues(product.value2).includes(selectedB);
 
-
-
-const isFromProduct = 
-  parseOptionValues(product.value1).includes(selectedA) &&
-  parseOptionValues(product.value2).includes(selectedB);
-
-const getPrice = () => {
-  if (selectedVariant) {
-    return Number(selectedVariant.sale_price || selectedVariant.price).toLocaleString('vi-VN');
-  }
-  if (isFromProduct) {
+  const getPrice = () => {
+    if (selectedVariant) return Number(selectedVariant.sale_price || selectedVariant.price).toLocaleString('vi-VN');
+    if (isFromProduct) return Number(product.sale_price || product.price).toLocaleString('vi-VN');
     return Number(product.sale_price || product.price).toLocaleString('vi-VN');
-  }
-  return Number(product.sale_price || product.price).toLocaleString('vi-VN');
-};
+  };
 
-const getStock = () => {
-  if (selectedVariant) {
-    return selectedVariant.stock;
-  }
-  if (isFromProduct) {
+  const getStock = () => {
+    if (selectedVariant) return selectedVariant.stock;
+    if (isFromProduct) return product.stock;
     return product.stock;
-  }
-  return product.stock;
-};
+  };
 
-  // lấy variant / giá / stock dựa vào selectedA/B
-const matched = selectedVariant || product.variants.find(v =>
-  v.value1 === selectedA && v.value2 === selectedB
-);
+  const handleSelectA = (a: string) => {
+    let matched = product.variants.find(v => v.value1 === a && v.value2 === selectedB);
+    if (!matched) {
+      matched = product.variants.find(v => v.value1 === a);
+      if (matched) setSelectedB(matched.value2);
+    }
+    setSelectedA(a);
+    setSelectedVariant(matched || null);
+  };
 
-
-  // handlers chung
-const handleSelectA = (a: string) => {
-  setSelectedA(a);
-
-  const v = product.variants.find(v =>
-    v.value1 === a && (selectedB ? v.value2 === selectedB : true)
-  );
-
-  if (v) {
-    setSelectedVariant(v);
-    if (!selectedB) setSelectedB(v.value2);
-  } else {
-    setSelectedVariant(null);
-  }
-};
-
-const handleSelectB = (b: string) => {
-  setSelectedB(b);
-
-  const v = product.variants.find(v =>
-    v.value2 === b && (selectedA ? v.value1 === selectedA : true)
-  );
-
-  if (v) {
-    setSelectedVariant(v);
-    if (!selectedA) setSelectedA(v.value1);
-  } else {
-    setSelectedVariant(null);
-  }
-};
-
+  const handleSelectB = (b: string) => {
+    let matched = product.variants.find(v => v.value2 === b && v.value1 === selectedA);
+    if (!matched) {
+      matched = product.variants.find(v => v.value2 === b);
+      if (matched) setSelectedA(matched.value1);
+    }
+    setSelectedB(b);
+    setSelectedVariant(matched || null);
+  };
 
   const commonPopup = (msg: string) => {
     setPopupText(msg);
@@ -177,47 +140,33 @@ const handleSelectB = (b: string) => {
     setTimeout(() => setShowPopup(false), 2000);
   };
 
-const handleAddToCart = async () => {
-  const token = Cookies.get('authToken') || localStorage.getItem('token');
-  if (!token) return commonPopup('Vui lòng đăng nhập để thêm vào giỏ hàng');
+  const handleAddToCart = async () => {
+    const token = Cookies.get('authToken') || localStorage.getItem('token');
+    if (!token) return commonPopup('Vui lòng đăng nhập để thêm vào giỏ hàng');
 
-  // Nếu sản phẩm có biến thể nhưng người dùng chưa chọn => chặn
-if (product.variants.length > 0 && !selectedVariant?.id) {
-  const isFromProduct =
-    parseOptionValues(product.value1).includes(selectedA) &&
-    parseOptionValues(product.value2).includes(selectedB);
+    if (product.variants.length > 0 && !selectedVariant?.id) {
+      const isFromProduct = parseOptionValues(product.value1).includes(selectedA) && parseOptionValues(product.value2).includes(selectedB);
+      if (!isFromProduct) return commonPopup('Vui lòng chọn biến thể phù hợp');
+    }
 
-  if (!isFromProduct) {
-    return commonPopup('Vui lòng chọn biến thể phù hợp');
-  }
-}
+    const body: any = {
+      product_id: product.id,
+      quantity,
+    };
+    if (selectedVariant?.id) body.variant_id = selectedVariant.id;
 
-  const body = {
-    product_id: product.id,
-    quantity,
+    const res = await fetch(`${API_BASE_URL}/cart`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
+    } else {
+      commonPopup('Thêm vào giỏ hàng thất bại');
+    }
   };
-
-  // Chỉ thêm variant_id nếu có biến thể
-  if (selectedVariant?.id) {
-    body.variant_id = selectedVariant.id;
-  }
-
-  const res = await fetch(`${API_BASE_URL}/cart`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (res.ok) {
-    commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
-  } else {
-    commonPopup('Thêm vào giỏ hàng thất bại');
-  }
-};
-
 
   const toggleLike = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
@@ -243,13 +192,12 @@ if (product.variants.length > 0 && !selectedVariant?.id) {
     const url = `${API_BASE_URL}/shops/${product.shop.id}/${followed ? 'unfollow' : 'follow'}`;
     await fetch(url, { method: followed ? 'DELETE' : 'POST', headers: { Authorization: `Bearer ${token}` } });
     setFollowed(!followed);
-
   };
+
   const handleBuyNow = () => {
-    // Add item to cart logic
-    // Then redirect to the cart page
-    router.push('/cart');  // For Next.js, use `useRouter` for routing
-  }
+    router.push('/cart');
+  };
+
   return (
     <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
       <div className="mb-8">
@@ -334,7 +282,6 @@ if (product.variants.length > 0 && !selectedVariant?.id) {
                   <button
                     key={a}
                     onClick={() => handleSelectA(a)}
-                    disabled={!hasCombination(a, selectedB)}
                     className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedA === a
                       ? 'border-red-600 text-black bg-white'
                       : 'border-gray-300 text-black bg-white hover:border-red-500'
@@ -363,7 +310,6 @@ if (product.variants.length > 0 && !selectedVariant?.id) {
                   <button
                     key={b}
                     onClick={() => handleSelectB(b)}
-                    disabled={!hasCombination(selectedA, b)}
                     className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedB === b
                       ? 'border-red-600 text-black bg-white'
                       : 'border-gray-300 text-black bg-white hover:border-red-500'
