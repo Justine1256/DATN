@@ -215,7 +215,7 @@ return (
         )}
       </button>
 
-      <div className="w-full h-[150px] mt-8 flex items-center justify-center">
+      <div className="w-full h-[150px] mt-8 flex items-center justify-center overflow-hidden">
         <Image
           src={mainImage}
           alt={product.name}
