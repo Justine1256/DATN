@@ -39,9 +39,9 @@ class ProductController extends Controller
         }
 
         // Nếu trong variants có image dạng json cũng decode luôn
-        foreach ($product->variants as $variant) {
-            $variant->image = json_decode($variant->image, true);
-        }
+        // foreach ($product->variants as $variant) {
+        //     $variant->image = json_decode($variant->image, true);
+        // }
 
         return response()->json([
             'status' => true,
