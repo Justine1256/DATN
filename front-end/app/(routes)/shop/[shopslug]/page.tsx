@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import ShopCard from '@/app/components/stores/Shopcard';
 import ProductCardCate from '@/app/components/product/ProductCardCate';
 import { API_BASE_URL } from "@/utils/api";
@@ -11,17 +11,16 @@ interface Product {
     image: string[];
     slug: string;
     price: number;
-    oldPrice: number;
-    rating: number;
-    discount: number;
-    option1?: string;
-    value1?: string;
+    oldPrice?: number;
+    rating: string;
+    discount?: number;
     sale_price?: number;
-    shop_slug: string;
-    shop?: {
-        slug: string;
-    };
+    shop_slug?: string;
+    shop_id?: number;
+    category_id?: number;
     createdAt?: number;
+    updated_at?: string;
+    sold?: number;
 }
 
 interface Category {
@@ -48,99 +47,123 @@ const ShopPage = () => {
     const [shop, setShop] = useState<Shop | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [initialProducts, setInitialProducts] = useState<Product[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
     const [selectedPriceFilter, setSelectedPriceFilter] = useState<string | null>(null);
 
-    // Fetch shop and category data
-    useEffect(() => {
+    const fetchData = useCallback(async (categorySlug: string | null = null) => {
         const slug = window.location.pathname.split('/').pop();
-
         if (!slug) {
+            setError('Không tìm thấy slug cửa hàng trên URL.');
+            setLoading(false);
             return;
         }
 
-        const fetchShop = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/shop/${slug}`);
-                const data = await response.json();
-
-                if (data && data.shop) {
-                    setShop(data.shop);
-
-                    // Fetch categories of the shop
-                    const categoryResponse = await fetch(`${API_BASE_URL}/shop/${slug}/categories`);
-                    const categoryData = await categoryResponse.json();
-
-                    if (categoryData && categoryData.categories) {
-                        setCategories(categoryData.categories);
-                    }
-                } else {
-                    setError('Không tìm thấy dữ liệu cửa hàng');
-                }
-            } catch (err) {
-                console.error('Error fetching shop data:', err);
-                setError('Đã xảy ra lỗi khi tải dữ liệu cửa hàng');
-            }
-            setLoading(false);
-        };
-
-        fetchShop();
-    }, []);
-
-    // Handle category selection
-    const handleCategorySelect = async (categorySlug: string | null) => {
-        setSelectedCategory(categorySlug);
+        setLoading(true);
+        setError(null);
 
         try {
-            const url = categorySlug
-                ? `${API_BASE_URL}/shop/${shop?.slug}/category/${categorySlug}/products`
-                : `${API_BASE_URL}/shop/${shop?.slug}/products`;
+            const shopUrl = `${API_BASE_URL}/shop/${slug}`;
+            const categoryUrl = `${API_BASE_URL}/shop/${slug}/categories`;
+            let productUrl = `${API_BASE_URL}/shop/${slug}/products`;
+            // let productUrl = `${API_BASE_URL}/shop/${slug}/products-by-category/${categorySlug}`;
+            if (categorySlug) {
+                productUrl += `?category=${categorySlug}`;
+            }
 
-            const productResponse = await fetch(url);
+            const [shopResponse, categoryResponse, productResponse] = await Promise.all([
+                fetch(shopUrl),
+                fetch(categoryUrl),
+                fetch(productUrl)
+            ]);
+
+            const shopData = await shopResponse.json();
+            const categoryData = await categoryResponse.json();
             const productData = await productResponse.json();
 
-            if (productData && productData.products) {
-                setProducts(productData.products);
+            if (shopData && shopData.shop) {
+                setShop(shopData.shop);
+            } else {
+                setError('Không tìm thấy dữ liệu cửa hàng.');
+                setLoading(false);
+                return;
             }
+
+            if (categoryData && categoryData.categories) {
+                setCategories(categoryData.categories);
+            } else {
+                setCategories([]);
+            }
+
+            let fetchedProducts: Product[] = [];
+
+            if (productData && productData.products && Array.isArray(productData.products.data)) {
+                fetchedProducts = productData.products.data;
+            } else {
+                fetchedProducts = [];
+            }
+
+            const productsWithTimestamp = fetchedProducts.map(p => ({
+                ...p,
+                createdAt: p.updated_at ? new Date(p.updated_at).getTime() : 0,
+                rating: p.rating ? p.rating.toString() : "0"
+            }));
+
+            setProducts(productsWithTimestamp);
+            setInitialProducts(productsWithTimestamp);
         } catch (err) {
-            console.error('Error fetching products:', err);
+            console.error('Lỗi khi tải dữ liệu cửa hàng:', err);
+            setError('Đã xảy ra lỗi khi tải dữ liệu cửa hàng.');
+            setShop(null);
+            setCategories([]);
+            setProducts([]);
+            setInitialProducts([]);
+        } finally {
+            setLoading(false);
         }
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const handleCategorySelect = (categorySlug: string | null) => {
+        setSelectedCategory(categorySlug);
+        fetchData(categorySlug);
     };
 
-    // Apply price and sorting filters
     const handleApplyFilters = () => {
-        let filteredProducts = products;
+        let filteredProducts = [...initialProducts];
 
-        // Sort products by price or discount
-        if (selectedPriceFilter === "asc") {
-            filteredProducts = filteredProducts.sort((a, b) => (a.price || 0) - (b.price || 0));
-        } else if (selectedPriceFilter === "desc") {
-            filteredProducts = filteredProducts.sort((a, b) => (b.price || 0) - (a.price || 0));
-        } else if (selectedPriceFilter === "discount") {
-            filteredProducts = filteredProducts.sort((a, b) => (b.discount || 0) - (a.discount || 0));
+        if (selectedSort === "Mới Nhất") {
+            filteredProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        } else if (selectedSort === "Bán Chạy") {
+            filteredProducts.sort((a, b) => (b.sold || 0) - (a.sold || 0));
+        } else {
+            filteredProducts.sort((a, b) => parseFloat(b.rating || "0") - parseFloat(a.rating || "0"));
         }
 
-        // Sort products by the selected sorting option
-        if (selectedSort === "Mới Nhất") {
-            filteredProducts = filteredProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        } else if (selectedSort === "Bán Chạy") {
-            // Logic for best-selling sorting can be implemented here
+        if (selectedPriceFilter === "asc") {
+            filteredProducts.sort((a, b) => (a.sale_price || a.price || 0) - (b.sale_price || b.price || 0));
+        } else if (selectedPriceFilter === "desc") {
+            filteredProducts.sort((a, b) => (b.sale_price || b.price || 0) - (a.sale_price || a.price || 0));
+        } else if (selectedPriceFilter === "discount") {
+            filteredProducts.sort((a, b) => (b.discount || 0) - (a.discount || 0));
         }
 
         setProducts(filteredProducts);
     };
 
-    // Reset filters
     const handleResetFilters = () => {
         setSelectedSort("Phổ Biến");
         setSelectedPriceFilter(null);
         setSelectedCategory(null);
-        setProducts(products);  // Reset to the original products
+        setProducts(initialProducts);
+        fetchData();
     };
-
 
     if (error) {
         return (
@@ -152,7 +175,7 @@ const ShopPage = () => {
         );
     }
 
-    if (!shop) {
+    if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
@@ -162,24 +185,35 @@ const ShopPage = () => {
             </div>
         );
     }
+
+    if (!shop) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="text-center">
+                    <div className="text-xl" style={{ color: '#db4444' }}>Không thể tải thông tin cửa hàng.</div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="max-w-[1170px] mx-auto px-4 pb-10 text-black">
+        <div className="max-w-[1200px] mx-auto px-4 pb-10 text-black">
             {/* Hiển thị thông tin cửa hàng */}
             <ShopCard shop={shop} />
 
-            {/* Danh mục và bộ lọc */}
-            <div className="flex flex-col lg:flex-row gap-10 justify-between mt-8 ml-8">
-                {/* Danh mục và Bộ lọc bên trái */}
-                <div className="w-full lg:w-1/4 flex flex-col gap-8 mb-8">
-                    {/* Danh mục */}
-                    <div className="mb-8">
-                        <h2 className="text-lg font-semibold text-brand">Danh mục sản phẩm</h2>
+            <div className="flex flex-col lg:flex-row gap-10 justify-between mt-8">
+                {/* Sidebar cho Danh mục sản phẩm và Bộ lọc */}
+                <div className="w-full lg:w-1/5 flex flex-col gap-8 mb-8">
+                    <div className="mb-4">
+                        <h2 className="text-xs font-semibold text-brand">Danh mục sản phẩm</h2>
                         <div className="space-y-1">
                             {categories.map((cat) => (
                                 <button
                                     key={cat.id}
                                     onClick={() => handleCategorySelect(cat.slug)}
-                                    className={`w-full text-left px-4 py-2 rounded transition-colors ${cat.slug === selectedCategory ? "text-brand font-semibold" : "text-black hover:text-brand"}`}
+                                    className={`w-full text-left px-4 py-2 rounded transition-colors text-xs 
+                        ${cat.slug === selectedCategory ? "text-brand font-semibold" : "text-black hover:text-brand text-sm whitespace-nowrap"}`}
+                                    style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
                                 >
                                     {cat.name}
                                 </button>
@@ -187,10 +221,9 @@ const ShopPage = () => {
                         </div>
                     </div>
 
-                    {/* Bộ lọc & Sắp xếp */}
                     <div className="mb-8">
                         <h3 className="text-lg font-semibold mb-3">Bộ lọc & Sắp xếp</h3>
-                        <div className="space-y-2 mb-6">
+                        <div className="space-y-3 mb-6">
                             <h4 className="text-base font-medium mb-1">Sắp xếp</h4>
                             {["Phổ Biến", "Mới Nhất", "Bán Chạy"].map((label) => (
                                 <label key={label} className="flex items-center space-x-2 text-black cursor-pointer w-full px-4 py-2 rounded transition-colors hover:text-brand">
@@ -211,7 +244,6 @@ const ShopPage = () => {
                             ))}
                         </div>
 
-                        {/* Bộ lọc theo giá */}
                         <div className="space-y-3">
                             <h4 className="text-base font-medium mb-1">Giá</h4>
                             <label className="flex items-center space-x-2 text-black cursor-pointer">
@@ -270,36 +302,27 @@ const ShopPage = () => {
                     </div>
                 </div>
 
-                {/* Hiển thị sản phẩm bên phải */}
-                <div className="flex-1 ml-6">
-                    <div className="mt-6">
-                        <h2 className="text-xl font-semibold">Sản phẩm trong danh mục "{selectedCategory || 'Tất cả'}"</h2>
+                {/* Khu vực hiển thị sản phẩm */}
+                <div className="flex flex-wrap gap-4 justify-start items-start">
+                    <div className="w-full lg:w-4/5 flex flex-wrap gap-4 justify-start items-start">
                         {loading ? (
-                            <div className="text-center">Đang tải sản phẩm...</div>
+                            Array(6).fill(0).map((_, idx) => (
+                                <div key={idx} className="h-[250px] bg-gray-100 rounded animate-pulse w-full sm:w-1/2 md:w-1/3 lg:w-1/4" />
+                            ))
+                        ) : products.length === 0 ? (
+                            <p className="text-gray-500 col-span-full text-center">Không có sản phẩm nào trong danh mục này. Vui lòng thử lại sau.</p>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[650px] justify-start items-start auto-rows-auto">
-                                {products.length > 0 ? (
-                                    products.map((product, idx) => (
-                                        <div key={idx} className="w-full sm:w-[calc(50%-1rem)] md:w-[calc(33.33%-1rem)] lg:w-[calc(25%-1rem)]">
-                                            <ProductCardCate product={product} />
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-gray-500">Không có sản phẩm nào trong danh mục này.</p>
-                                )}
-                            </div>
+                            products.map((product) => (
+                                <ProductCardCate key={product.id} product={product} />
+                            ))
                         )}
                     </div>
                 </div>
+
             </div>
         </div>
     );
-    
-
-
-    
-    
-    
+      
 };
 
 export default ShopPage;
