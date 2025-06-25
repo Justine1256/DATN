@@ -18,34 +18,42 @@ class CartController extends Controller
             ->where('is_active', true)
             ->get();
 
-        $carts->transform(function ($cart) {
-            // Tách option và value
-            $options = explode(' - ', $cart->product_option ?? '');
-            $values = explode(' - ', $cart->product_value ?? '');
+$carts->transform(function ($cart) {
+    // Tách option và value
+    $options = explode(' - ', $cart->product_option ?? '');
+    $values = explode(' - ', $cart->product_value ?? '');
 
-            $variant = [
-                'option1'     => $options[0] ?? null,
-                'value1'      => $values[0] ?? null,
-                'option2'     => $options[1] ?? null,
-                'value2'      => $values[1] ?? null,
-                'price'       => null,
-                'sale_price'  => null,
-            ];
+    $variant = null;
 
-            // Lấy thông tin biến thể nếu có
-            $query = ProductVariant::where('product_id', $cart->product_id);
-            if (isset($values[0])) $query->where('value1', $values[0]);
-            if (isset($values[1])) $query->where('value2', $values[1]);
+    // Lấy thông tin biến thể nếu có
+    $query = ProductVariant::where('product_id', $cart->product_id);
+    if (isset($values[0])) $query->where('value1', $values[0]);
+    if (isset($values[1])) $query->where('value2', $values[1]);
 
-            $matched = $query->first();
-            if ($matched) {
-                $variant['price'] = $matched->price;
-                $variant['sale_price'] = $matched->sale_price;
-            }
+    $matched = $query->first();
 
-            $cart->variant = $variant;
-            return $cart;
-        });
+    if ($matched) {
+        $variant = [
+            'id'         => $matched->id,
+            'option1'    => $matched->option1,
+            'value1'     => $matched->value1,
+            'option2'    => $matched->option2,
+            'value2'     => $matched->value2,
+            'price'      => $matched->price,
+            'sale_price' => $matched->sale_price,
+            'stock'      => $matched->stock,
+            'sku'        => $matched->sku,
+        ];
+    } else {
+        // Nếu không có biến thể => trả về null hoặc giá sản phẩm gốc
+        $variant = null;
+    }
+
+    $cart->variant = $variant;
+
+    return $cart;
+});
+
 
         return response()->json($carts);
     }
