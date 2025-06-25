@@ -214,9 +214,13 @@ const handleSelectB = (b: string) => {
     const url = `${API_BASE_URL}/shops/${product.shop.id}/${followed ? 'unfollow' : 'follow'}`;
     await fetch(url, { method: followed ? 'DELETE' : 'POST', headers: { Authorization: `Bearer ${token}` } });
     setFollowed(!followed);
-    commonPopup(followed ? 'Đã bỏ theo dõi cửa hàng' : 'Đã theo dõi cửa hàng');
-  };
 
+  };
+  const handleBuyNow = () => {
+    // Add item to cart logic
+    // Then redirect to the cart page
+    router.push('/cart');  // For Next.js, use `useRouter` for routing
+  }
   return (
     <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
       <div className="mb-8">
@@ -241,82 +245,179 @@ const handleSelectB = (b: string) => {
           </div>
 
           {/* Info */}
-          <div className="md:col-span-6 space-y-6">
+          <div className="md:col-span-6 space-y-4">
             <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{product.name}</h1>
             {/* Rating, stock */}
             <div className="flex items-center gap-3 text-sm">
-              <div className="flex items-center gap-2 text-base">
-                {parseFloat(product.rating) > 0 ? (
-                  <>
-                    <span>{(parseFloat(product.rating) / 2).toFixed(1)}</span>
-                    <div className="flex">
-                      {Array.from({ length: 5 }).map((_, i) =>
-                        i < Math.round(parseFloat(product.rating) / 2) ? <FaStar key={i} /> : <FaRegStar key={i} />
-                      )}
-                    </div>
-                  </>
-                ) : <span className="text-red-500">Chưa đánh giá</span>}
+              <div className="flex items-center gap-3 text-sm">
+                <div className="flex items-center gap-2 text-base">
+                  {parseFloat(product.rating) > 0 ? (
+                    <>
+                      <span className="text-gray-800 flex items-center">
+                        {(parseFloat(product.rating) / 2).toFixed(1)}
+                      </span>
+                      <div className="flex items-center">
+                        {Array.from({ length: 5 }).map((_, i) =>
+                          i < Math.round(parseFloat(product.rating) / 2) ? (
+                            <FaStar key={i} className="text-yellow-400" />
+                          ) : (
+                            <FaRegStar key={i} className="text-gray-300" />
+                          )
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-red-500 font-semibold">Chưa đánh giá</span>
+                  )}
+                </div>
               </div>
-              <span>|</span>
-              <span className="text-emerald-400">Kho: {getStock()}</span>
+
+              <span className="text-gray-500">(150 Lượt Xem)</span>
+              <span className="text-gray-300">|</span>
+              <span className="text-emerald-400 font-medium">
+                Hàng trong kho: {product.stock || 0} sản phẩm
+              </span>
             </div>
 
             {/* Price */}
             <div className="flex items-center gap-3">
-  <span className="text-[1.5rem] font-bold text-brand">{getPrice()}₫</span>
-  
-  {selectedVariant ? (
-    selectedVariant.sale_price && (
-      <span className="line-through text-gray-400">
-        {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
-      </span>
-    )
-  ) : isFromProduct && product.sale_price ? (
-    <span className="line-through text-gray-400">
-      {Number(product.price).toLocaleString('vi-VN')}₫
-    </span>
-  ) : null}
-</div>
+              <span className="text-[1.5rem] font-bold text-brand">{getPrice()}₫</span>
+
+              {selectedVariant ? (
+                selectedVariant.sale_price && (
+                  <span className="line-through text-gray-400">
+                    {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
+                  </span>
+                )
+              ) : isFromProduct && product.sale_price ? (
+                <span className="line-through text-gray-400">
+                  {Number(product.price).toLocaleString('vi-VN')}₫
+                </span>
+              ) : null}
+            </div>
 
 
             {/* Option A */}
-            <div className="flex flex-col gap-2">
-              <p className="font-medium">{product.option1 || 'Option A'}</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 mb-4 mt-4">
+              <p className="font-medium text-gray-700 text-lg">{product.option1 || 'Option A'}</p>
+              <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
                 {optsA.map(a => (
                   <button
                     key={a}
                     onClick={() => handleSelectA(a)}
                     disabled={!hasCombination(a, selectedB)}
-                    className={`px-4 py-2 rounded-lg border ${selectedA === a ? 'border-red-600' : 'border-gray-300'} ${!hasCombination(a, selectedB) ? 'opacity-50' : ''}`}
-                  >{a}</button>
+                    className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedA === a
+                      ? 'border-red-600 text-black bg-white'
+                      : 'border-gray-300 text-black bg-white hover:border-red-500'
+                      } ${!hasCombination(a, selectedB) ? 'opacity-50' : ''}`}
+                  >
+                    {selectedA === a && (
+                      <div className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
+                        style={{
+                          borderBottomLeftRadius: '7px',
+                          borderTopRightRadius: '7px'
+                        }}>
+                        <span className="text-white text-[9px] font-bold leading-none">✓</span>
+                      </div>
+                    )}
+                    {a}
+                  </button>
                 ))}
               </div>
             </div>
 
             {/* Option B */}
-            <div className="flex flex-col gap-2">
-              <p className="font-medium">{product.option2 || 'Option B'}</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 mb-4 mt-4">
+              <p className="font-medium text-gray-700 text-lg">{product.option2 || 'Option B'}</p>
+              <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
                 {optsB.map(b => (
                   <button
                     key={b}
                     onClick={() => handleSelectB(b)}
                     disabled={!hasCombination(selectedA, b)}
-                    className={`px-4 py-2 rounded-lg border ${selectedB === b ? 'border-red-600' : 'border-gray-300'} ${!hasCombination(selectedA, b) ? 'opacity-50' : ''}`}
-                  >{b}</button>
+                    className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedB === b
+                      ? 'border-red-600 text-black bg-white'
+                      : 'border-gray-300 text-black bg-white hover:border-red-500'
+                      } ${!hasCombination(selectedA, b) ? 'opacity-50' : ''}`}
+                  >
+                    {selectedB === b && (
+                      <div className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
+                        style={{
+                          borderBottomLeftRadius: '7px',
+                          borderTopRightRadius: '7px'
+                        }}>
+                        <span className="text-white text-[9px] font-bold leading-none">✓</span>
+                      </div>
+                    )}
+                    {b}
+                  </button>
                 ))}
               </div>
             </div>
 
+
             {/* Quantity & actions */}
-            <div className="flex items-center gap-3">
-              <div className="flex border rounded overflow-hidden h-[44px]">
-                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-12">−</button>
-                <span className="w-12 text-center">{quantity}</span>
-                <button onClick={() => setQuantity(q => q + 1)} className="w-12">+</button>
+            <div className="flex items-center gap-3 mt-4">
+              <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition"
+                >
+                  −
+                </button>
+                <span className="w-[55px] flex items-center justify-center text-base font-extrabold text-black">
+                  {quantity}
+                </span>
+                <button
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition"
+                >
+                  +
+                </button>
               </div>
-              <button onClick={handleAddToCart} className="px-6 py-2 bg-brand text-white rounded">Thêm Vào Giỏ Hàng</button>
+
+              <button
+                onClick={() => {
+                  handleAddToCart();
+                  handleBuyNow(); // Trigger buying and redirecting to cart
+                }}
+                className="w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium"
+              >
+                Mua Ngay
+              </button>
+
+              <button
+                onClick={handleAddToCart}
+                className="w-[165px] h-[44px] text-brand border border-brand text-sm md:text-base rounded hover:bg-brand hover:text-white transition font-medium"
+              >
+                Thêm Vào Giỏ Hàng
+              </button>
+            </div>
+            {/* Chính sách vận chuyển */}
+            <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
+              <div className="flex items-center gap-3 p-4">
+                <div className="flex justify-center items-center h-[40px]">
+                  <Image src="/ship.png" alt="Logo" width={30} height={40} />
+                </div>
+                <div>
+                  <p className="font-semibold">Giao hàng miễn phí</p>
+                  <p>
+                    <a className="no-underline" href="#">
+                      Giao hàng miễn phí tại nội thành & một số khu vực ngoại thành
+                    </a>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4">
+                <div className="flex justify-center items-center h-[40px]">
+                  <Image src="/trahang.png" alt="Logo" width={30} height={40} />
+                </div>
+                <div>
+                  <p className="font-semibold">Trả hàng</p>
+                  <p>Giao hàng miễn phí trong vòng 30 ngày.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -343,4 +444,3 @@ const handleSelectB = (b: string) => {
     </div>
   );
 }
-
