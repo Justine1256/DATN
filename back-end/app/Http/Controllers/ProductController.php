@@ -152,7 +152,7 @@ public function store(Request $request)
         'price' => 'required|numeric|min:0',
         'sale_price' => 'nullable|numeric|min:0|lt:price',
         'stock' => 'required|integer|min:0',
-        'image' => 'required|array|min:1',
+        'image' => 'nullable|array|min:1',
         'image.*' => 'string',
         'option1' => 'nullable|string|max:50',
         'value1' => 'nullable|string|max:255',
