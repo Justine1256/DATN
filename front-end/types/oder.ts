@@ -36,4 +36,5 @@ export interface Order {
     created_at: string;
     shipping_address: string;
     order_details: OrderDetail[];
+    shop_name: string; // Add shop_name here
 }

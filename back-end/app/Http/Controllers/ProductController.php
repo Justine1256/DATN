@@ -535,4 +535,38 @@ public function store(Request $request)
             'message' => 'Khôi phục sản phẩm thành công.'
         ]);
     }
+public function search(Request $request)
+{
+    $query = $request->query('query');
+
+    if (!$query) {
+        return response()->json(['message' => 'Thiếu từ khóa tìm kiếm'], 400);
+    }
+
+    $products = Product::with('category', 'shop')
+        ->where('status', 1)
+        ->where(function ($q) use ($query) {
+            $q->where('name', 'like', '%' . $query . '%')
+              ->orWhere('description', 'like', '%' . $query . '%')
+              ->orWhere('slug', 'like', '%' . $query . '%');
+        })
+        ->orderBy('created_at', 'desc')
+        ->limit(20)
+        ->get();
+
+    // Rút gọn dữ liệu trả về
+    return response()->json($products->map(function ($product) {
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'image' => $product->image,
+            'price' => $product->price,
+            'sale_price' => $product->sale_price,
+            'category' => $product->category->name ?? null,
+            'shop' => $product->shop->name ?? null,
+        ];
+    }));
+
+}
 }

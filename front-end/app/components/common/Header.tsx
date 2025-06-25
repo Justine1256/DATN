@@ -37,6 +37,7 @@ const Header = () => {
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
   const categoryRef = useRef<HTMLDivElement>(null);
   const [cartItems, setCartItems] = useState<any[]>([]);
+  
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/category`)
@@ -145,14 +146,19 @@ const Header = () => {
     { href: "/voucher", label: "Mã giảm giá" },
   ];
 
-  // Xử lý sự kiện tìm kiếm
-  const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      console.log("Searching for:", searchQuery);
-      // Có thể thêm logic điều hướng hoặc gọi API tìm kiếm ở đây
-    }
-  };
+    // Xử lý sự kiện tìm kiếm
+    const handleSearchSubmit = async (e: React.FormEvent | React.KeyboardEvent) => {
+  e.preventDefault();
+  const keyword = searchQuery.trim();
+  if (!keyword) return;
+
+  try {
+    // 👉 Điều hướng sang trang /search?query=...
+    router.push(`/search?query=${encodeURIComponent(keyword)}`);
+  } catch (err) {
+    console.error("Lỗi khi tìm kiếm:", err);
+  }
+};
 
   // Xử lý đăng xuất người dùng
   const handleLogout = () => {

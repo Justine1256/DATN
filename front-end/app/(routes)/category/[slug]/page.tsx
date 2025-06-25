@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import ProductCard from "@/app/components/product/ProductCardCate";
+import ProductCardcate from "@/app/components/product/ProductCardCate";
 import LandingSlider from "@/app/components/home/LandingSlider";
 import { API_BASE_URL } from "@/utils/api";
 import CategoryGrid from "@/app/components/home/CategoryGrid";
@@ -141,7 +141,8 @@ export default function CategoryPage() {
       <div className="mt-8 flex flex-col lg:flex-row gap-6">
         <div className="w-full lg:w-1/4 flex flex-col gap-8">
           <div>
-            <h3 className="text-lg font-semibold mb-2">Danh mục</h3>
+            <h3 className="text-lg font-semibold mb-2 text-[#DB4444]">Danh mục</h3>
+
             <div className="space-y-2">
               <button
                 onClick={() => handleCategorySelect(null)}
@@ -231,13 +232,13 @@ export default function CategoryPage() {
 
               <button
                 onClick={handleApplyFilters}
-                className="w-full py-2 bg-[#DB4444] text-white rounded-lg hover:bg-red-600 transition-colors mt-4"
+                className="w-[160px] py-2 bg-[#DB4444] text-white rounded-lg hover:bg-red-600 transition-colors mt-4"
               >
                 Lọc
               </button>
               <button
                 onClick={handleResetFilters}
-                className="w-full py-2 border border-gray-300 text-black rounded-lg hover:bg-gray-100 transition-colors mt-2"
+                className="w-[160px] py-2 border border-gray-300 text-black rounded-lg hover:bg-gray-100 transition-colors mt-2"
               >
                 Đặt lại
               </button>
@@ -257,7 +258,7 @@ export default function CategoryPage() {
                   {loading ? (
                     <div className="h-[250px] bg-gray-100 rounded animate-pulse" />
                   ) : (
-                    <ProductCard product={product!} />
+                    <ProductCardcate product={product!} />
                   )}
                 </div>
               ))}
