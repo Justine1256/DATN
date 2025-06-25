@@ -111,21 +111,27 @@ const fetchProducts = async (page = 1) => {
 };
 
 
-  const fetchCategories = async () => {
-    try {
-      const token = Cookies.get("authToken");
-      const res = await fetch(`${API_BASE_URL}/shop/categories`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+const fetchCategories = async () => {
+  if (!user?.shop?.id) {
+    console.warn("Không có shop_id từ user");
+    return;
+  }
 
-      if (!res.ok) throw new Error("Lỗi fetch categories");
+  try {
+    const token = Cookies.get("authToken");
+    const res = await fetch(`${API_BASE_URL}/shop/categories/${user.shop.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      const data = await res.json();
-      setCategories(data.categories || []);
-    } catch (error) {
-      console.error("Lỗi khi load categories:", error);
-    }
-  };
+    if (!res.ok) throw new Error("Lỗi fetch categories");
+
+    const data = await res.json();
+    setCategories(data.categories || []);
+  } catch (error) {
+    console.error("Lỗi khi load categories:", error);
+  }
+};
+
 
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({

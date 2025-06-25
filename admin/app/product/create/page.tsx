@@ -7,6 +7,8 @@ import ProductInfoForm from "@/app/components/product/create/Form";
 import Options from "@/app/components/product/create/Option";
 import ActionButtons from "@/app/components/product/create/ActionButtons";
 import Category from "@/types/category";
+import { API_BASE_URL } from "@/utils/api";
+import { useAuth } from "@/app/AuthContext";
 
 export default function AddProductPage() {
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
@@ -15,7 +17,7 @@ export default function AddProductPage() {
   const [option2Values, setOption2Values] = useState<string[]>([]);
   const [option1Label, setOption1Label] = useState("Option 1");
   const [option2Label, setOption2Label] = useState("Option 2");
-  const {  loading } = Category();
+  const { user } = useAuth();
 
   const toggleOption1 = (val: string) => {
     setOption1Values((prev) =>
@@ -56,12 +58,11 @@ export default function AddProductPage() {
     };
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/shop/products", {
+      const res = await fetch(`${API_BASE_URL}/shop/products/${user.shop.id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization:
-            "Bearer 11|93aV9h4PlwtJ2i4jsHtzNsLZnGIsxJTaruFcb9kLa31fc58a",
+          Authorization: `Bearer ${user.token}`,
         },
         body: JSON.stringify(payload),
       });
@@ -81,8 +82,6 @@ export default function AddProductPage() {
       alert("Error: " + (error as Error).message);
     }
   };
-
-  if (loading) return <p>Đang tải danh mục...</p>;
 
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-6">
