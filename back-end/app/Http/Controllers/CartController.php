@@ -85,19 +85,25 @@ class CartController extends Controller
                 return response()->json(['message' => 'Vui lòng chọn biến thể của sản phẩm'], 400);
             }
 
-            $variant = ProductVariant::where('id', $validated['variant_id'])
-                ->where('product_id', $product->id)
-                ->first();
+$variant = ProductVariant::where('id', $validated['variant_id'])
+    ->where('product_id', $product->id)
+    ->first();
 
-            if (!$variant) {
-                return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
-            }
+if (!$variant) {
+    return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
+}
 
-            // Gắn lại option từ product (dùng để lưu vào cart)
-            $variant->option1 = $product->option1;
-            $variant->option2 = $product->option2;
-            $variant->value1  = $variant->value1; // lấy từ DB variant
+// ✅ Gán đầy đủ option và value (QUAN TRỌNG)
+$variant->option1 = $product->option1;
+$variant->option2 = $product->option2;
+$variant->value1  = $variant->value1;
 $variant->value2  = $variant->value2;
+
+// ✅ Ghép đúng value để lưu vào cart
+$productOption = trim(implode(' - ', array_filter([$variant->option1, $variant->option2])));
+$productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
+
+
         } else {
             // Sản phẩm đơn (không có biến thể)
             $variant = (object)[
