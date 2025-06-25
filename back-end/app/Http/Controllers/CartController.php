@@ -75,11 +75,10 @@ public function store(Request $request)
             return response()->json(['message' => 'Sản phẩm không tồn tại hoặc đã bị vô hiệu hóa'], 404);
         }
 
-        // Kiểm tra sản phẩm có biến thể
-        $isVariable = ProductVariant::where('product_id', $product->id)->exists();
+        $variant = null;
+        $matchedVariant = null;
 
-        if ($isVariable) {
-            // Bắt buộc chọn biến thể nếu sản phẩm có biến thể
+        if (ProductVariant::where('product_id', $product->id)->exists()) {
             if (empty($validated['variant_id'])) {
                 return response()->json(['message' => 'Vui lòng chọn biến thể của sản phẩm'], 400);
             }
@@ -89,35 +88,31 @@ public function store(Request $request)
                 ->first();
 
             if (!$matchedVariant) {
-                return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
+                return response()->json(['message' => 'Biến thể không hợp lệ'], 400);
             }
 
-            // ✅ Gắn đúng option từ product, value từ variant
             $variant = (object)[
                 'option1' => $product->option1,
+                'value1' => $matchedVariant->value1,
                 'option2' => $product->option2,
-                'value1'  => $matchedVariant->value1,
-                'value2'  => $matchedVariant->value2,
+                'value2' => $matchedVariant->value2,
             ];
         } else {
-            // Sản phẩm đơn
             $variant = (object)[
                 'option1' => $product->option1,
+                'value1' => $product->value1,
                 'option2' => $product->option2,
-                'value1'  => $product->value1,
-                'value2'  => $product->value2,
+                'value2' => $product->value2,
             ];
         }
 
-        // ✅ Ghép đúng option + value
         $productOption = trim(implode(' - ', array_filter([$variant->option1, $variant->option2])));
-        $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
+        $productValue = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
 
-        // Kiểm tra sản phẩm đã có trong giỏ chưa
+        // Kiểm tra nếu đã có cart
         $cart = Cart::where('user_id', $userId)
             ->where('product_id', $product->id)
-            ->where('product_option', $productOption)
-            ->where('product_value', $productValue)
+            ->where('variant_id', $validated['variant_id'] ?? null)
             ->where('is_active', true)
             ->first();
 
@@ -128,6 +123,7 @@ public function store(Request $request)
             $cart = Cart::create([
                 'user_id'        => $userId,
                 'product_id'     => $product->id,
+                'variant_id'     => $validated['variant_id'] ?? null,
                 'quantity'       => $quantity,
                 'product_option' => $productOption,
                 'product_value'  => $productValue,
@@ -145,6 +141,7 @@ public function store(Request $request)
         ], 500);
     }
 }
+
 
 
 
