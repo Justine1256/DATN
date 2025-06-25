@@ -125,18 +125,16 @@ private function getAllChildCategoryIds(Category $category)
     return view('categories.index', compact('categories'));
 }
 // Lấy danh mục của shop
-    public function getShopCategories(Request $request)
+public function getShopCategories($shop_id)
 {
-    $user = $request->user();
+    $shop = Shop::find($shop_id);
 
-    if (!$user || !$user->shop) {
-        return response()->json(['error' => 'User chưa có shop.'], 403);
+    if (!$shop) {
+        return response()->json(['error' => 'Shop không tồn tại.'], 404);
     }
 
-    $shopId = $user->shop->id;
-
     // Lấy các category do shop tạo, liên kết với category admin (parent)
-    $categories = Category::where('shop_id', $shopId)
+    $categories = Category::where('shop_id', $shop_id)
         ->where('status', 'activated')
         ->with(['parent' => function ($query) {
             $query->whereNull('shop_id'); // chỉ lấy parent do admin tạo
@@ -145,10 +143,11 @@ private function getAllChildCategoryIds(Category $category)
         ->get();
 
     return response()->json([
-        'shop_id' => $shopId,
+        'shop_id' => $shop_id,
         'categories' => $categories
     ]);
 }
+
 public function showShopCategoriesByUser($slug)
 {
     // Lấy shop theo slug

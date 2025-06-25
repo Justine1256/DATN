@@ -51,57 +51,65 @@ const { user, isAuthReady } = useAuth();
   });
 console.log("User ID:", user?.id);
 console.log("User Shop:", user?.shop);
-  const fetchProducts = async (page = 1) => {
-    try {
-      setLoading(true);
-      const token = Cookies.get("authToken");
-      const res = await fetch(`${API_BASE_URL}/shop/products`, {
+const fetchProducts = async (page = 1) => {
+  if (!user?.shop?.id) {
+    console.warn("Không có shop_id từ user");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const token = Cookies.get("authToken");
+    const res = await fetch(
+      `${API_BASE_URL}/shop/products/${user.shop.id}?page=${page}`,
+      {
         headers: { Authorization: `Bearer ${token}` },
-        
-      });
+      }
+    );
 
-      console.log(res);
+    if (!res.ok) throw new Error("Lỗi fetch sản phẩm");
 
-      if (!res.ok) throw new Error("Lỗi fetch sản phẩm");
+    const data = await res.json();
+    const rawProducts = Array.isArray(data.products?.data)
+      ? data.products.data
+      : [];
 
-      const data = await res.json();
-      const rawProducts = Array.isArray(data.products?.data) ? data.products.data : [];
+    const mapped: Product[] = rawProducts.map((p: any): Product => ({
+      id: p.id,
+      category_id: p.category_id,
+      shop_id: p.shop_id,
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      price: parseFloat(p.price),
+      sale_price: p.sale_price ? parseFloat(p.sale_price) : null,
+      stock: p.stock,
+      sold: p.sold,
+      image: typeof p.image === "string" ? [p.image] : Array.isArray(p.image) ? p.image : [],
+      option1: p.option1 ?? null,
+      value1: p.value1 ?? null,
+      option2: p.option2 ?? null,
+      value2: p.value2 ?? null,
+      status: p.status,
+      created_at: p.created_at,
+      updated_at: p.updated_at,
+      deleted_at: p.deleted_at,
+      size: typeof p.size === "string" ? p.size.split(",").map((s: string) => s.trim()) : Array.isArray(p.size) ? p.size : [],
+      category: p.category ?? null,
+      rating: p.rating ? parseFloat(p.rating) : 0,
+    }));
 
-      const mapped: Product[] = rawProducts.map((p: any): Product => ({
-        id: p.id,
-        category_id: p.category_id,
-        shop_id: p.shop_id,
-        name: p.name,
-        slug: p.slug,
-        description: p.description,
-        price: parseFloat(p.price),
-        sale_price: p.sale_price ? parseFloat(p.sale_price) : null,
-        stock: p.stock,
-        sold: p.sold,
-        image: typeof p.image === "string" ? [p.image] : Array.isArray(p.image) ? p.image : [],
-        option1: p.option1 ?? null,
-        value1: p.value1 ?? null,
-        option2: p.option2 ?? null,
-        value2: p.value2 ?? null,
-        status: p.status,
-        created_at: p.created_at,
-        updated_at: p.updated_at,
-        deleted_at: p.deleted_at,
-        size: typeof p.size === "string" ? p.size.split(",").map((s: string) => s.trim()) : Array.isArray(p.size) ? p.size : [],
-        category: p.category ?? null,
-        rating: p.rating ? parseFloat(p.rating) : 0,
-      }));
+    setProducts(mapped);
+    setTotalPages(data.products?.last_page || 1);
+    setCurrentPage(data.products?.current_page || 1);
+  } catch (error) {
+    console.error("Lỗi khi load sản phẩm:", error);
+    setProducts([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
-      setProducts(mapped);
-      setTotalPages(data.products?.last_page || 1);
-      setCurrentPage(data.products?.current_page || 1);
-    } catch (error) {
-      console.error("Lỗi khi load sản phẩm:", error);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchCategories = async () => {
     try {
@@ -160,11 +168,12 @@ console.log("User Shop:", user?.shop);
     }
   }, [isAuthReady]);
 
-  useEffect(() => {
-    if (isAuthReady) {
-      fetchProducts(currentPage);
-    }
-  }, [isAuthReady, currentPage]);
+useEffect(() => {
+  if (isAuthReady && user?.shop?.id) {
+    fetchProducts(currentPage);
+  }
+}, [isAuthReady, user, currentPage]);
+
 
   return (
     <div className="p-6 flex flex-col">
