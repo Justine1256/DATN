@@ -10,7 +10,7 @@ interface Shop {
   id: number;
   name: string;
   description: string;
-  logo: string;
+  logo: string | null;
   phone: string;
   rating: string;
   total_sales: number;

@@ -153,7 +153,7 @@ export default function FollowedShopsSection() {
                                             </div>
 
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="text-lg font-semibold text-gray-900 truncate mb-1 group-hover:text-[#DB4444] transition-colors duration-200">
+                                                <h3 className="text-lg font-semibold text-gray-900 truncate mb-1 group-hover:text-brand transition-colors duration-200">
                                                     {shop.name}
                                                 </h3>
 
@@ -211,7 +211,7 @@ export default function FollowedShopsSection() {
                                             <button
                                                 onClick={() => handleUnfollow(shop.id)}
                                                 disabled={unfollowing === shop.id}
-                                                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border-2 border-[#DB4444] text-[#DB4444] font-medium transition-all duration-200 hover:bg-[#DB4444] hover:text-white hover:shadow-lg hover:shadow-[#DB4444]/25 disabled:opacity-50 disabled:cursor-not-allowed group"
+                                                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border-2 border-[#DB4444] text-brand font-medium transition-all duration-200 hover:bg-[#DB4444] hover:text-white hover:shadow-lg hover:shadow-[#DB4444]/25 disabled:opacity-50 disabled:cursor-not-allowed group"
                                             >
                                                 {unfollowing === shop.id ? (
                                                     <>
@@ -244,7 +244,7 @@ export default function FollowedShopsSection() {
                                     <button
                                         onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                                         disabled={currentPage === 1}
-                                        className="p-2 rounded-xl border border-gray-300 text-gray-600 hover:border-[#DB4444] hover:text-[#DB4444] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                                        className="p-2 rounded-xl border border-gray-300 text-gray-600 hover:border-[#DB4444] hover:text-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -257,7 +257,7 @@ export default function FollowedShopsSection() {
                                             onClick={() => setCurrentPage(page)}
                                             className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${page === currentPage
                                                 ? "bg-[#DB4444] text-white shadow-lg shadow-[#DB4444]/25"
-                                                : "bg-white text-gray-700 border border-gray-300 hover:border-[#DB4444] hover:text-[#DB4444]"}`
+                                                : "bg-white text-gray-700 border border-gray-300 hover:border-[#DB4444] hover:text-brand"}`
                                             }
                                         >
                                             {page}
@@ -267,7 +267,7 @@ export default function FollowedShopsSection() {
                                     <button
                                         onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                                         disabled={currentPage === totalPages}
-                                        className="p-2 rounded-xl border border-gray-300 text-gray-600 hover:border-[#DB4444] hover:text-[#DB4444] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                                        className="p-2 rounded-xl border border-gray-300 text-gray-600 hover:border-[#DB4444] hover:text-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

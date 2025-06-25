@@ -215,13 +215,13 @@ return (
         )}
       </button>
 
-      <div className="w-full h-[150px] mt-8 flex items-center justify-center">
+      <div className="w-full h-[150px] mt-8 flex items-center justify-center overflow-hidden">
         <Image
           src={mainImage}
           alt={product.name}
           width={150}
-          height={100}
-          className="object-contain max-h-[2220px] transition-transform duration-300 group-hover:scale-105"
+          height={150}
+          className="object-contain max-h-[150px] transition-transform duration-300 group-hover:scale-105"
         />
       </div>
 

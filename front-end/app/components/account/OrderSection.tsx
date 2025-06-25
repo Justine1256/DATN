@@ -144,7 +144,7 @@ export default function OrderSection() {
   return (
     <div className="w-full max-w-[1400px] mx-auto  px-4">
       <div className="bg-white p-6 rounded-xl shadow-lg min-h-[500px]">
-        <h2 className="text-xl font-semibold text-[#db4444] mb-4 text-center">
+        <h2 className="text-xl font-semibold text-brand mb-4 text-center">
           Đơn mua của tôi
         </h2>
 

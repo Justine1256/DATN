@@ -61,7 +61,7 @@ export default function BestSelling() {
             {/* Bên phải: nút xem tất cả */}
             <button
               onClick={() => router.push('/category')}
-              className="text-[#DB4444] border border-[#DB4444] hover:bg-[#DB4444] hover:text-white font-medium text-sm py-2.5 px-4 rounded-md transition duration-300 w-fit ml-4 mt-4">
+              className="text-brand border border-[#DB4444] hover:bg-[#DB4444] hover:text-white font-medium text-sm py-2.5 px-4 rounded-md transition duration-300 w-fit ml-4 mt-4">
               Xem tất cả sản phẩm {/* Đổi tiêu đề nút */}
             </button>
           </div>

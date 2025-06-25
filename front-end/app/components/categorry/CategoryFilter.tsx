@@ -66,7 +66,7 @@ const PriceFilter: React.FC<PriceFilterProps> = ({
             className="w-full accent-[#DB4444]"
           />
 
-          <button
+          {/* <button
             className="mt-4 w-full bg-[#DB4444] text-white text-sm py-2 rounded hover:opacity-90 transition"
             onClick={() => {
               setShowPriceFilter(false);
@@ -74,7 +74,7 @@ const PriceFilter: React.FC<PriceFilterProps> = ({
             }}
           >
             Lọc
-          </button>
+          </button> */}
         </div>
       )}
     </div>

@@ -331,7 +331,7 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
                 <span className="text-white">📍</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-[#db4444]">Quản lý địa chỉ</h1>
+                <h1 className="text-2xl font-bold text-brand">Quản lý địa chỉ</h1>
                 <p className="text-gray-500 text-sm">Quản lý danh sách địa chỉ giao hàng của bạn</p>
               </div>
             </div>
@@ -434,7 +434,7 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
                     <div className="flex space-x-2 ml-4">
                       <button
                         onClick={() => handleEdit(addr)}
-                        className="flex items-center space-x-1 px-3 py-2 text-[#db4444] hover:bg-[#db4444]/10 rounded-lg transition-colors duration-200"
+                        className="flex items-center space-x-1 px-3 py-2 text-brand hover:bg-[#db4444]/10 rounded-lg transition-colors duration-200"
                       >
                         <span className="text-sm font-medium">Sửa</span>
                       </button>
@@ -514,7 +514,7 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
           >
             ×
           </button>
-          <h3 className="text-h2 font-bold text-center text-[#db4444] mb-4">
+          <h3 className="text-h2 font-bold text-center text-brand mb-4">
             {isEditing ? "Cập nhật địa chỉ" : "Thêm địa chỉ"}
           </h3>
 

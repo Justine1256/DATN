@@ -60,7 +60,7 @@ export default function AccountSidebar({
   }, [currentSection]);
 
   const getActiveClass = (section: string) =>
-    currentSection === section ? 'text-[#DB4444] bg-[#DB4444]/5' : 'text-gray-600 hover:text-[#DB4444] hover:bg-gray-50';
+    currentSection === section ? 'text-brand bg-[#DB4444]/5' : 'text-gray-600 hover:text-brand hover:bg-gray-50';
 
   const handleAccountClick = () => {
     setIsAccountOpen(!isAccountOpen);
@@ -205,7 +205,7 @@ export default function AccountSidebar({
             onClick={handleAccountClick}
             className={clsx(
               'w-full flex items-center justify-between p-4 transition-colors',
-              isAccountOpen ? 'bg-[#DB4444]/5 text-[#DB4444]' : 'text-gray-700 hover:bg-gray-50'
+              isAccountOpen ? 'bg-[#DB4444]/5 text-brand' : 'text-gray-700 hover:bg-gray-50'
             )}
           >
             <div className="flex items-center gap-3">

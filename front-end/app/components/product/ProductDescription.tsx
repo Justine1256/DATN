@@ -39,7 +39,7 @@ export default function ProductDescription({ html }: ProductDescriptionProps) {
             {/* ✅ Thêm khoảng cách trên tiêu đề */}
             <div className="mt-10 mb-4 pb-2 flex items-center">
                 <div className="w-[10px] h-[22px] bg-[#db4444] rounded-tl-sm rounded-bl-sm mr-2" />
-                <p className="font-medium text-[#db4444] text-base">Thông tin sản phẩm</p>
+                <p className="font-medium text-brand text-base">Thông tin sản phẩm</p>
             </div>
 
             {/* Đẩy div phần mô tả sang phải */}
@@ -48,10 +48,10 @@ export default function ProductDescription({ html }: ProductDescriptionProps) {
                     className="
             leading-relaxed text-[15px] text-black
             [&_a[href^='http']]:text-black 
-            [&_a[href^='http']:hover]:text-[#db4444]
-            [&_a[href^='/']]:text-[#db4444]
-            [&_a[href^='/']:hover]:text-[#db4444]
-            [&_a[href^='#']]:text-[#db4444]
+            [&_a[href^='http']:hover]:text-brand
+            [&_a[href^='/']]:text-brand
+            [&_a[href^='/']:hover]:text-brand
+            [&_a[href^='#']]:text-brand
             [&_a[href^='#']:hover]:text-[#b91c1c]
             [&_table]:w-full 
             [&_table]:text-sm

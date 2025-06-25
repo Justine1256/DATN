@@ -20,12 +20,12 @@ const ShopCate: React.FC<ShopCateProps> = ({ categories, selectedCategory, handl
 
     return (
         <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-[#db4444]">Danh mục sản phẩm</h2>
+            <h2 className="text-2xl font-semibold text-brand">Danh mục sản phẩm</h2>
             <div className="space-y-2">
                 <button
                     onClick={() => handleCategorySelect(null)}
                     className={`w-full text-left px-4 py-2 rounded transition-colors
-            ${!selectedCategory ? "text-[#DB4444] font-semibold" : "text-black hover:text-[#DB4444]"}`}
+            ${!selectedCategory ? "text-brand font-semibold" : "text-black hover:text-brand"}`}
                 >
                     Tất Cả Sản Phẩm
                 </button>
@@ -34,7 +34,7 @@ const ShopCate: React.FC<ShopCateProps> = ({ categories, selectedCategory, handl
                         key={cat.id}
                         onClick={() => handleCategorySelect(cat.slug)}
                         className={`w-full text-left px-4 py-2 rounded transition-colors
-              ${cat.slug === selectedCategory ? "text-[#DB4444] font-semibold" : "text-black hover:text-[#DB4444]"}`}
+              ${cat.slug === selectedCategory ? "text-brand font-semibold" : "text-black hover:text-brand"}`}
                     >
                         {cat.name}
                     </button>

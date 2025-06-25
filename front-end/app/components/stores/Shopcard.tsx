@@ -76,11 +76,11 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
 
                             {/* Follow and Chat Buttons */}
                             <div className="flex gap-2 w-[250px]">
-                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-[#db4444] border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
+                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
                                     <User size={16} />
                                     <span>Theo Dõi</span>
                                 </button>
-                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-[#db4444] border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
+                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
                                     <MessageCircle size={16} />
                                     <span>Chat</span>
                                 </button>
@@ -101,7 +101,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 {/* Row 1 */}
                                 <div className="flex items-center gap-2">
-                                    <Phone size={18} className="text-[#db4444]" />
+                                    <Phone size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Điện thoại</div>
                                         <div className="font-semibold text-black">{shop.phone}</div>
@@ -109,7 +109,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    <Package size={18} className="text-[#db4444]" />
+                                    <Package size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Đã bán</div>
                                         <div className="font-semibold text-black">{shop.total_sales}</div>
@@ -117,7 +117,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    <Star size={18} className="text-[#db4444]" />
+                                    <Star size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Đánh giá</div>
                                         <div className="font-semibold text-black">{shop.rating}</div>
@@ -126,7 +126,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
 
                                 {/* Row 2 */}
                                 <div className="flex items-center gap-2">
-                                    <Calendar size={18} className="text-[#db4444]" />
+                                    <Calendar size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Tham gia</div>
                                         <div className="font-semibold text-black">{formatTimeAgo(shop.created_at)}</div>
@@ -134,7 +134,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    <Users size={18} className="text-[#db4444]" />
+                                    <Users size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Người theo dõi</div>
                                         <div className="font-semibold text-black">1.2K</div>
@@ -142,7 +142,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    <MessageCircle size={18} className="text-[#db4444]" />
+                                    <MessageCircle size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Email</div>
                                         <div className="font-semibold text-black text-xs">{shop.email}</div>
