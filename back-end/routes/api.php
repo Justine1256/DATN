@@ -68,7 +68,6 @@ Route::post('/login', [UserController::class, 'login']);
 
 Route::get('/{shopslug}/product/{productslug}/comments', [CommentController::class, 'getCommentsInProduct']);
 Route::get('/shop/{slug}', [ShopController::class, 'showShopInfo']);
-Route::get('/shop/{slug}/products', [ShopController::class, 'getShopProducts']);
 
 Route::get('/notification', [NotificationController::class, 'index']);
 Route::post('/notification', [NotificationController::class, 'store']);

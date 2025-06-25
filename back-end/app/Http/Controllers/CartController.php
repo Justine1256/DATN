@@ -11,54 +11,54 @@ use App\Models\ProductVariant;
 class CartController extends Controller
 {
     public function index()
-{
-    $userId = Auth::id();
-    $carts = Cart::with('product')
-        ->where('user_id', $userId)
-        ->where('is_active', true)
-        ->get();
+    {
+        $userId = Auth::id();
+        $carts = Cart::with('product')
+            ->where('user_id', $userId)
+            ->where('is_active', true)
+            ->get();
 
-    // Gắn thủ công dữ liệu "variant" dựa vào product_option và product_value
-    $carts->transform(function ($cart) {
-        // Tách option và value
-        $options = explode(' - ', $cart->product_option ?? '');
-        $values = explode(' - ', $cart->product_value ?? '');
+        // Gắn thủ công dữ liệu "variant" dựa vào product_option và product_value
+        $carts->transform(function ($cart) {
+            // Tách option và value
+            $options = explode(' - ', $cart->product_option ?? '');
+            $values = explode(' - ', $cart->product_value ?? '');
 
-        // Tạo một object giả để trả về FE
-        $variant = [
-            'option1' => $options[0] ?? null,
-            'value1'  => $values[0] ?? null,
-            'option2' => $options[1] ?? null,
-            'value2'  => $values[1] ?? null,
-            'price'   => null,
-            'sale_price' => null,
-        ];
+            // Tạo một object giả để trả về FE
+            $variant = [
+                'option1' => $options[0] ?? null,
+                'value1'  => $values[0] ?? null,
+                'option2' => $options[1] ?? null,
+                'value2'  => $values[1] ?? null,
+                'price'   => null,
+                'sale_price' => null,
+            ];
 
-        // Nếu cần, bạn có thể truy từ bảng `product_variants` để lấy giá:
-        $query = ProductVariant::where('product_id', $cart->product_id);
-        if (isset($values[0])) $query->where('value1', $values[0]);
-        if (isset($values[1])) $query->where('value2', $values[1]);
-        $matched = $query->first();
-        if ($matched) {
-            $variant['price'] = $matched->price;
-            $variant['sale_price'] = $matched->sale_price;
-        }
+            // Nếu cần, bạn có thể truy từ bảng `product_variants` để lấy giá:
+            $query = ProductVariant::where('product_id', $cart->product_id);
+            if (isset($values[0])) $query->where('value1', $values[0]);
+            if (isset($values[1])) $query->where('value2', $values[1]);
+            $matched = $query->first();
+            if ($matched) {
+                $variant['price'] = $matched->price;
+                $variant['sale_price'] = $matched->sale_price;
+            }
 
-        $cart->variant = $variant;
-        return $cart;
-    });
+            $cart->variant = $variant;
+            return $cart;
+        });
 
-    return response()->json($carts);
-}
+        return response()->json($carts);
+    }
 
 
     public function store(Request $request)
     {
         try {
             $validated = $request->validate([
-                'product_id'   => 'required|exists:products,id',
-                'variant_id'   => 'required|exists:product_variants,id',
-                'quantity'     => 'nullable|integer|min:1',
+                'product_id' => 'required|exists:products,id',
+                'variant_id' => 'nullable|exists:product_variants,id',
+                'quantity'   => 'nullable|integer|min:1',
             ]);
 
             $userId = Auth::id();
@@ -68,7 +68,7 @@ class CartController extends Controller
 
             $quantity = $validated['quantity'] ?? 1;
 
-            // 1. Kiểm tra sản phẩm có tồn tại và đang kích hoạt không
+            // Lấy sản phẩm và kiểm tra trạng thái
             $product = Product::where('id', $validated['product_id'])
                 ->where('status', 'activated')
                 ->first();
@@ -77,16 +77,34 @@ class CartController extends Controller
                 return response()->json(['message' => 'Sản phẩm không tồn tại hoặc đã bị vô hiệu hóa'], 404);
             }
 
-            // 2. Kiểm tra biến thể hợp lệ
-            $variant = ProductVariant::where('id', $validated['variant_id'])
-                ->where('product_id', $product->id)
-                ->first();
+            // Kiểm tra xem sản phẩm có biến thể không
+            $isVariable = !empty($product->option1) && !empty($product->value1);
 
-            if (!$variant) {
-                return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
+            $variant = null;
+
+            if ($isVariable) {
+                // Nếu sản phẩm có biến thể mà không truyền variant_id → lỗi
+                if (empty($validated['variant_id'])) {
+                    return response()->json(['message' => 'Vui lòng chọn biến thể của sản phẩm'], 400);
+                }
+
+                // Kiểm tra variant có hợp lệ không
+                $variant = ProductVariant::where('id', $validated['variant_id'])
+                    ->where('product_id', $product->id)
+                    ->first();
+
+                if (!$variant) {
+                    return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
+                }
+            } else {
+                // Sản phẩm không có biến thể → dùng chính product làm dữ liệu
+                $variant = (object)[
+                    'option1' => null,
+                    'value1'  => null,
+                ];
             }
 
-            // 3. Kiểm tra xem đã có bản ghi trong giỏ chưa (KHÔNG kiểm theo variant_id nữa)
+            // Tìm trong giỏ theo product + option nếu có
             $cartQuery = Cart::where('user_id', $userId)
                 ->where('product_id', $product->id)
                 ->where('product_option', $variant->option1)
@@ -119,6 +137,7 @@ class CartController extends Controller
             ], 500);
         }
     }
+
 
 
 
