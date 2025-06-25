@@ -11,6 +11,7 @@ import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/utils/api";
 import { useAuth } from "../AuthContext";
 
+
 const ProductRowSkeleton = () => (
   <tr className="border-b border-gray-100 animate-pulse">
     <td className="py-4 px-3 flex items-center gap-3">
@@ -33,7 +34,7 @@ const ProductRowSkeleton = () => (
 
 
 export default function ProductListPage() {
-  const { isAuthReady } = useAuth(); // Lấy isAuthReady từ context
+const { user, isAuthReady } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -48,7 +49,8 @@ export default function ProductListPage() {
       categoriesMap.set(c.parent.id, c.parent);
     }
   });
-
+console.log("User ID:", user?.id);
+console.log("User Shop:", user?.shop);
   const fetchProducts = async (page = 1) => {
     try {
       setLoading(true);
