@@ -7,6 +7,7 @@ import { LoadingSkeleton } from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import Cookies from "js-cookie";
 
+// Ensure `discount` is always a number
 export interface Product {
   id: number;
   name: string;
@@ -16,7 +17,7 @@ export interface Product {
   oldPrice: number;
   rating: number;
   sold?: number;
-  discount: number;
+  discount: number;  // Ensure discount is a number
   option1?: string;
   value1?: string;
   sale_price?: number;
@@ -247,5 +248,4 @@ export default function ProductCardCate({
       </div>
     </div>
   );
-  
 }
