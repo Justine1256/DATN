@@ -41,7 +41,7 @@ public function show($path)
     return response()->file($filePath);
 }
 
-    public function store($request){
+public function store(Request $request){
         if (!$request->hasFile('file')) {
         return response()->json(['error' => 'No file provided'], 400);
     }

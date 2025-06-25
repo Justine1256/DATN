@@ -9,6 +9,7 @@ import ActionButtons from "@/app/components/product/create/ActionButtons";
 import Category from "@/types/category";
 import { API_BASE_URL } from "@/utils/api";
 import { useAuth } from "@/app/AuthContext";
+import Cookies from "js-cookie";
 
 export default function AddProductPage() {
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
@@ -33,53 +34,51 @@ export default function AddProductPage() {
 
   const isFashion = category === "fashion";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget as HTMLFormElement;
+    const form = e.currentTarget;
     const formData = new FormData(form);
-    const name = formData.get("name") as string;
-    const price = Number(formData.get("price"));
-    const sale_price = Number(formData.get("sale_price"));
-    const stock = Number(formData.get("stock"));
-    const description = formData.get("description") as string;
 
-    const payload = {
-      name,
-      price,
-      sale_price,
-      stock,
-      description,
-      category,
-      images: images.map((img) => img.url),
-      option1Values,
-      option2Values,
-      option1Label,
-      option2Label,
+    const payload: any = {
+      name: formData.get("name"),
+      category_id: parseInt(formData.get("category_id") as string, 10),
+      description: formData.get("description"),
+      price: parseFloat(formData.get("price") as string),
+      sale_price: parseFloat(formData.get("sale_price") as string),
+      stock: parseInt(formData.get("stock") as string, 10),
+      option1: formData.get("option1") || null,
+      value1: formData.get("value1") || null,
+      option2: formData.get("option2") || null,
+      value2: formData.get("value2") || null,
+      image: images.map((img) => img.url),
     };
+console.log("Payload gửi:", payload);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/shop/products/${user.shop.id}`, {
+      const token = Cookies.get("authToken");
+      const res = await fetch(`${API_BASE_URL}/shop/products`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${user.token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
-        const text = await res.text();
-        let errorMessage = text;
-        try {
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.message || text;
-        } catch {}
-        throw new Error(errorMessage);
-      }
+  const text = await res.text();
+  console.error("❌ Lỗi server trả về:", text);
+  alert("Lỗi: " + text);
+  return;
+}
 
-      alert("Product added successfully!");
+
+      const result = await res.json();
+      alert("Thêm sản phẩm thành công!");
+      console.log("Kết quả:", result);
     } catch (error) {
-      alert("Error: " + (error as Error).message);
+      console.error(error);
+      alert("Gửi sản phẩm thất bại.");
     }
   };
 
@@ -88,7 +87,7 @@ export default function AddProductPage() {
       <h1 className="text-xl font-bold text-gray-800 mb-4">Add New Product</h1>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <PreviewCard
-          image={images[0]?.url || "/placeholder.png"}
+          image={images[0]?.url || ""}
           name=""
           category={category}
           price={0}
@@ -100,21 +99,8 @@ export default function AddProductPage() {
 
         <div className="xl:col-span-2 space-y-6">
           <ImageDrop images={images} setImages={setImages} />
-          <ProductInfoForm
-            data={{}}
-            category={category}
-            setCategory={setCategory}
-          />
-          <Options
-            selectedOption1={option1Values}
-            toggleOption1={toggleOption1}
-            selectedOption2={option2Values}
-            toggleOption2={toggleOption2}
-            option1Label={option1Label}
-            setOption1Label={setOption1Label}
-            option2Label={option2Label}
-            setOption2Label={setOption2Label}
-          />
+          <ProductInfoForm images={images} />
+
           <ActionButtons />
         </div>
       </div>
