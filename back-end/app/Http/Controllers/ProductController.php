@@ -90,6 +90,35 @@ class ProductController extends Controller
             'shops' => $shops
         ]);
     }
+public function getShopProductsByCategorySlug($slug, $category_slug)
+{
+    $shop = Shop::where('slug', $slug)->first();
+    if (!$shop) {
+        return response()->json(['message' => 'Không tìm thấy shop'], 404);
+    }
+
+    $category = Category::where('slug', $category_slug)->first();
+    if (!$category) {
+        return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
+    }
+
+    $categoryIds = $this->getAllChildCategoryIds($category);
+    $categoryIds = array_map('intval', $categoryIds);
+
+    $products = Product::with('shop')
+        ->where('shop_id', $shop->id)
+        ->whereIn('category_id', $categoryIds)
+        ->where('status', 'activated')
+        ->get();
+
+    return response()->json([
+        'category' => $category,
+        'shop' => $shop,
+        'products' => $products,
+    ]);
+}
+
+
 
 
 
