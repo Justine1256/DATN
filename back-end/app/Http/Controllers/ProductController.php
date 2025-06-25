@@ -92,14 +92,13 @@ class ProductController extends Controller
     }
 public function getShopProductsByCategorySlug(Request $request, $slug)
 {
-    $shopId = $request->query('shop_id'); // shop_id truyền qua query param
+    $shopSlug = $request->query('shop_slug');
 
-    // Kiểm tra shop_id
-    if (!$shopId) {
-        return response()->json(['message' => 'Thiếu shop_id'], 400);
+    if (!$shopSlug) {
+        return response()->json(['message' => 'Thiếu shop_slug'], 400);
     }
 
-    $shop = Shop::find($shopId);
+    $shop = Shop::where('slug', $shopSlug)->first();
     if (!$shop) {
         return response()->json(['message' => 'Không tìm thấy shop'], 404);
     }
@@ -110,19 +109,14 @@ public function getShopProductsByCategorySlug(Request $request, $slug)
         return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
     }
 
-    // Lấy tất cả ID danh mục con (bao gồm cả danh mục cha nếu muốn)
+    // Lấy tất cả ID danh mục con (kèm danh mục cha nếu muốn)
     $categoryIds = $this->getAllChildCategoryIds($category);
-
-    // Nếu muốn loại bỏ danh mục cha khỏi kết quả, dùng đoạn này:
-    // if (($key = array_search($category->id, $categoryIds)) !== false) {
-    //     unset($categoryIds[$key]);
-    // }
 
     $categoryIds = array_map('intval', $categoryIds);
 
-    // Lấy sản phẩm của shop trong các danh mục
+    // Lấy sản phẩm thuộc danh mục và thuộc shop
     $products = Product::with('shop')
-        ->where('shop_id', $shopId)
+        ->where('shop_id', $shop->id)
         ->whereIn('category_id', $categoryIds)
         ->where('status', 'activated')
         ->get();
@@ -133,6 +127,7 @@ public function getShopProductsByCategorySlug(Request $request, $slug)
         'products' => $products,
     ]);
 }
+
 
 
 
