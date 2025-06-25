@@ -15,7 +15,7 @@ export interface Product {
   slug: string;
   price: number;
   oldPrice?: number;
-  rating: string;  // Ensure rating is a string
+  rating: string|number;  // Ensure rating is a string
   discount?: number;
   sale_price?: number;
   shop_slug?: string;
@@ -170,6 +170,7 @@ export default function ProductCardCate({
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
+  const ratingValue = typeof product.rating === "string" ? parseFloat(product.rating) : product.rating;
 
   const handleViewDetail = () => {
     const shopSlug = product.shop_slug || (product as any)?.shop?.slug;
@@ -239,13 +240,10 @@ export default function ProductCardCate({
               .map((_, i) => (
                 <AiFillStar
                   key={i}
-                  className={`w-4 h-4 ${i < Math.round(parseFloat(product.rating) / 2)
-                      ? "text-yellow-500"
-                      : "text-gray-300"
-                    }`}
+                  className={`w-4 h-4 ${i < Math.round(ratingValue / 2) ? "text-yellow-500" : "text-gray-300"}`}
                 />
               ))}
-            <span className="text-gray-600 text-xs">({product.rating})</span>
+            <span className="text-gray-600 text-xs">({ratingValue})</span>
           </div>
           <span className="text-gray-600 text-xs">
             {product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}

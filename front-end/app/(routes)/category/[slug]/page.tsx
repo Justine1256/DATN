@@ -143,7 +143,7 @@ export default function CategoryPage() {
 
 
           <div className="pt-4 flex flex-col space-y-4">
-            <h3 className="text-lg font-semibold pb-4 border-b">Bộ lọc & Sắp xếp</h3>
+            <h3 className="text-lg font-semibold pb-4 border-b">Bộ lọc </h3>
 
             {/* Danh sách danh mục */}
             <div className="flex flex-col space-y-4">
@@ -171,28 +171,7 @@ export default function CategoryPage() {
             </div>
 
             {/* Sắp xếp */}
-            <div className="flex flex-col space-y-4">
-              <h4 className="font-semibold">Sắp xếp</h4>
-              <div className="flex flex-col">
-                {["Phổ Biến", "Mới Nhất", "Bán Chạy"].map((label) => (
-                  <label key={label} className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
-                    <input
-                      type="radio"
-                      name="sortOption"
-                      className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
-                      checked={selectedSort === label}
-                      onChange={() => {
-                        setSelectedSort(label);
-                        setSelectedPriceFilter(null);
-                      }}
-                    />
-                    <span className={`${selectedSort === label && !selectedPriceFilter ? "text-brand font-semibold" : ""}`}>
-                      {label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
+
 
             <div className="flex flex-col space-y-4">
               <h4 className="font-semibold">Giá</h4>
