@@ -380,7 +380,7 @@ public function store(Request $request)
     // Lấy danh sách sản phẩm theo shop của shop đã đăng nhập
     public function getProductByShop(Request $request)
     {
-        $user = $request->user();
+        $user = $request->user()->load('shop');
 
         if (!$user || !$user->shop) {
             return response()->json(['status' => false, 'message' => 'Shop không tồn tại.'], 403);
