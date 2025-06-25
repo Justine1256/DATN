@@ -378,24 +378,31 @@ public function store(Request $request)
     }
 
     // Lấy danh sách sản phẩm theo shop của shop đã đăng nhập
-    public function getProductByShop(Request $request)
-    {
-        $user = $request->user()->load('shop');
-
-        if (!$user || !$user->shop) {
-            return response()->json(['status' => false, 'message' => 'Shop không tồn tại.'], 403);
-        }
-
-        $products = Product::with('category') // nếu muốn có cả category
-            ->where('shop_id', $user->shop->id)
-            ->latest()
-            ->paginate(6);
-
-        return response()->json([
-            'status' => true,
-            'products' => $products
-        ]);
+public function getProductByShop($shop_id)
+{
+    if (!$shop_id) {
+        return response()->json(['status' => false, 'message' => 'Thiếu shop_id.'], 400);
     }
+
+    $shop = Shop::find($shop_id);
+
+    if (!$shop) {
+        return response()->json(['status' => false, 'message' => 'Shop không tồn tại.'], 404);
+    }
+
+    $products = Product::with('category')
+        ->where('shop_id', $shop_id)
+        ->latest()
+        ->paginate(6);
+
+    return response()->json([
+        'status' => true,
+        'products' => $products,
+    ]);
+}
+
+
+
 
 
     // Cập nhật sản phẩm bởi shop
