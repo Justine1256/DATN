@@ -25,27 +25,19 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
 
   const generateId = () => Math.random().toString(36).substring(2, 9);
 
-const uploadToServer = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append("file", file);
+  const uploadToServer = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
 
-  const res = await fetch(`${API_BASE_URL}/upload-product-image`, {
-    method: "POST",
-    body: formData,
-  });
+    const res = await fetch(`${API_BASE_URL}/upload-image`, {
+      method: "POST",
+      body: formData,
+    });
 
-  if (!res.ok) throw new Error("Upload failed");
-  const data = await res.json();
-
-  // Debug log
-  if (!data.url || typeof data.url !== "string") {
-    console.error("Invalid response:", data);
-    throw new Error("Server did not return image URL");
-  }
-
-  return data.url;
-};
-
+    if (!res.ok) throw new Error("Upload failed");
+    const data = await res.json();
+    return data.url; // url from Laravel
+  };
 
   const handleFiles = async (files: FileList | null) => {
     if (!files) return;
@@ -60,7 +52,7 @@ const uploadToServer = async (file: File): Promise<string> => {
         setImages((prev) => [...prev, { id: generateId(), url: uploadedUrl, isNew: true }]);
       } catch (err) {
         console.error("Image upload failed:", err);
-        alert("Tải hình ảnh thất bại.");
+        alert("Upload image failed.");
       }
     }
   };
@@ -91,7 +83,11 @@ const uploadToServer = async (file: File): Promise<string> => {
   };
 
   const handleRemoveImage = (idToRemove: string) => {
-    setImages((prev) => prev.filter((img) => img.id !== idToRemove));
+    setImages((prev) => {
+      const index = prev.findIndex((img) => img.id === idToRemove);
+      if (index === -1) return prev;
+      return prev.filter((img) => img.id !== idToRemove);
+    });
   };
 
   return (
@@ -185,11 +181,11 @@ const uploadToServer = async (file: File): Promise<string> => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               <p className="text-gray-600">
-                Kéo thả hình vào đây hoặc {" "}
-                <span className="text-blue-600 font-medium cursor-pointer">chọn để tải lên</span>
+                Drop your images here, or {" "}
+                <span className="text-blue-600 font-medium cursor-pointer">click to browse</span>
               </p>
               <p className="text-xs text-gray-400">
-                Gợi ý kích thước 1600x1200 (4:3). Hỗ trợ PNG, JPG, GIF.
+                1600x1200 (4:3) recommended. PNG, JPG, GIF.
               </p>
             </div>
           )}
