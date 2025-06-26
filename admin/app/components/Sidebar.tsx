@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FaTshirt,
   FaClipboardList,
@@ -66,7 +66,7 @@ const menu = [
 ];
 
 export default function ModernAdminSidebar() {
-  const [activeItem, setActiveItem] = useState("/dashboard");
+  const [activeItem, setActiveItem] = useState(window.location.pathname); // Keep track of the active path
   const [openDropdowns, setOpenDropdowns] = useState(new Set());
 
   const toggleDropdown = (label: string) => {
@@ -80,8 +80,14 @@ export default function ModernAdminSidebar() {
   };
 
   const handleItemClick = (href: string) => {
-    setActiveItem(href);
+    setActiveItem(href); // Update the active item
+    window.location.href = href; // Navigate to the clicked page
   };
+
+  useEffect(() => {
+    // If the page is loaded or refreshed, make sure the correct item is highlighted
+    setActiveItem(window.location.pathname);
+  }, []);
 
   return (
     <div className="h-screen w-72 bg-white border-r border-gray-100 flex flex-col">
@@ -111,8 +117,8 @@ export default function ModernAdminSidebar() {
                     <button
                       onClick={() => toggleDropdown(item.label)}
                       className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isOpen
-                          ? "bg-[#db4444] text-white"  // Red background and white text when active
-                          : "text-gray-700 hover:bg-[#db4444] hover:text-white"
+                        ? "bg-[#db4444] text-white"  // Red background and white text when active
+                        : "text-gray-700 hover:bg-[#db4444] hover:text-white"
                         }`}
                     >
                       <div className="flex items-center">
@@ -129,8 +135,8 @@ export default function ModernAdminSidebar() {
                     <button
                       onClick={() => handleItemClick(item.href)}
                       className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isActive
-                          ? "bg-[#db4444] text-white"  // Red background and white text when active
-                          : "text-gray-700 hover:bg-[#db4444] hover:text-white"
+                        ? "bg-[#db4444] text-white"  // Red background and white text when active
+                        : "text-gray-700 hover:bg-[#db4444] hover:text-white"
                         }`}
                     >
                       <span className={`text-lg mr-3 ${isActive ? "text-white" : "text-gray-500"}`}>
@@ -150,8 +156,8 @@ export default function ModernAdminSidebar() {
                             key={child.href}
                             onClick={() => handleItemClick(child.href)}
                             className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 mt-1 ${isChildActive
-                                ? "bg-[#db4444]/10 text-[#db4444] border-l-2 border-[#db4444]"  // Slightly darker red for active child
-                                : "text-gray-600 hover:bg-[#db4444] hover:text-white"
+                              ? "bg-[#db4444]/10 text-[#db4444] border-l-2 border-[#db4444]"  // Slightly darker red for active child
+                              : "text-gray-600 hover:bg-[#db4444] hover:text-white"
                               }`}
                           >
                             <div className={`w-2 h-2 rounded-full mr-3 ${isChildActive ? "bg-[#db4444]" : "bg-gray-300"}`}></div>
@@ -184,22 +190,6 @@ export default function ModernAdminSidebar() {
           </div>
         </div>
       </div>
-
-      {/* User Profile */}
-      {/* <div className="border-t border-gray-50 p-4">
-        <div className="flex items-center">
-          <div className="w-10 h-10 bg-[#db4444] rounded-full flex items-center justify-center">
-            <span className="text-white font-semibold text-sm">AD</span>
-          </div>
-          <div className="ml-3 flex-1">
-            <p className="text-sm font-semibold text-gray-900">Admin User</p>
-            <p className="text-xs text-gray-500">Super Administrator</p>
-          </div>
-          <button className="p-1 rounded-lg hover:bg-gray-50 transition-colors duration-200">
-            <FaChevronRight className="text-xs text-gray-400" />
-          </button>
-        </div>
-      </div> */}
     </div>
   );
 }
