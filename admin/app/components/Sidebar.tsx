@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   FaTshirt,
   FaClipboardList,
@@ -11,11 +9,10 @@ import {
   FaTruck,
   FaUsers,
   FaChevronDown,
-  FaChevronUp,
+  FaChevronRight,
   FaShoppingCart,
   FaMagic,
 } from "react-icons/fa";
-import Image from "next/image";
 
 const menu = [
   {
@@ -68,104 +65,141 @@ const menu = [
   },
 ];
 
-// ... phần import và menu giữ nguyên
+export default function ModernAdminSidebar() {
+  const [activeItem, setActiveItem] = useState("/dashboard");
+  const [openDropdowns, setOpenDropdowns] = useState(new Set());
 
-export default function Sidebar() {
-  const pathname = usePathname();
-  const [open, setOpen] = useState<string | null>(null);
+  const toggleDropdown = (label: string) => {
+    const newOpenDropdowns = new Set(openDropdowns);
+    if (newOpenDropdowns.has(label)) {
+      newOpenDropdowns.delete(label);
+    } else {
+      newOpenDropdowns.add(label);
+    }
+    setOpenDropdowns(newOpenDropdowns);
+  };
 
-  useEffect(() => {
-    const storedOpen = localStorage.getItem("sidebar_open");
-    if (storedOpen) setOpen(storedOpen);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("sidebar_open", open ?? "");
-  }, [open]);
+  const handleItemClick = (href: string) => {
+    setActiveItem(href);
+  };
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-64 bg-white border-r shadow-sm overflow-y-auto z-40 px-5 py-4">
-      {/* Logo */}
-      <div className="w-full flex justify-center mb-6">
-        <img src="/logo.png"  alt="Logo" className="w-[140px] h-[50px]" />
+    <div className="h-screen w-72 bg-white border-r border-gray-100 flex flex-col">
+      {/* Logo Section */}
+      <div className="px-6 py-6 border-b border-gray-100">
+        <div className="flex items-center">
+          <img src="/logo.png" alt="Logo" className="w-32 h-auto" />
+        </div>
       </div>
 
-      <p className="text-[11px] font-bold text-[#DC4B47] uppercase mb-3 tracking-wider border-l-4 border-[#DC4B47] pl-2">
-  GENERAL
-</p>
+      {/* Navigation Section */}
+      <div className="flex-1 px-4 py-6 overflow-y-auto">
+        <div className="mb-6">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 px-3">
+            Navigation
+          </p>
 
+          <nav className="space-y-1">
+            {menu.map((item) => {
+              const isActive = activeItem === item.href;
+              const isOpen = openDropdowns.has(item.label);
+              const hasChildren = item.children && item.children.length > 0;
 
-      <ul className="space-y-1 text-[15px]">
-        {menu.map((item) => {
-          const isOpen = open === item.label;
-          const isCurrentParent =
-            item.href === pathname ||
-            item.children?.some((child) => pathname.startsWith(child.href));
-
-          return (
-            <li key={item.label}>
-              {item.children && item.children.length > 0 ? (
-                <div>
-                  <button
-                    onClick={() => setOpen(isOpen ? null : item.label)}
-                    className={`flex items-center justify-between w-full py-2 px-3 rounded-lg transition font-medium ${
-                      isCurrentParent
-                        ? "bg-[#DC4B47] text-white"
-                        : "text-gray-700 hover:bg-[#fbecec]"
-                    }`}
-                  >
-                    <span className="flex items-center space-x-2">
-                      <span className="text-lg w-5 h-5 flex items-center justify-center">
+              return (
+                <div key={item.label} className="relative">
+                  {hasChildren ? (
+                    <button
+                      onClick={() => toggleDropdown(item.label)}
+                      className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isOpen
+                          ? "bg-[#db4444] text-white"  // Red background and white text when active
+                          : "text-gray-700 hover:bg-[#db4444] hover:text-white"
+                        }`}
+                    >
+                      <div className="flex items-center">
+                        <span className={`text-lg mr-3 ${isOpen ? "text-white" : "text-gray-500"}`}>
+                          {item.icon}
+                        </span>
+                        <span>{item.label}</span>
+                      </div>
+                      <span className={`transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}>
+                        <FaChevronRight className="text-xs" />
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleItemClick(item.href)}
+                      className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isActive
+                          ? "bg-[#db4444] text-white"  // Red background and white text when active
+                          : "text-gray-700 hover:bg-[#db4444] hover:text-white"
+                        }`}
+                    >
+                      <span className={`text-lg mr-3 ${isActive ? "text-white" : "text-gray-500"}`}>
                         {item.icon}
                       </span>
                       <span>{item.label}</span>
-                    </span>
-                    {isOpen ? (
-                      <FaChevronUp className="text-xs" />
-                    ) : (
-                      <FaChevronDown className="text-xs" />
-                    )}
-                  </button>
+                    </button>
+                  )}
 
-                  {isOpen && (
-                    <ul className="ml-7 mt-1 space-y-1">
-                      {item.children.map((sub) => (
-                        <li key={sub.href}>
-                          <Link
-                            href={sub.href}
-                            className={`block px-3 py-2 rounded-lg transition font-medium ${
-                              pathname === sub.href
-                                ? "bg-[#DC4B47]/10 text-[#DC4B47] font-semibold"
-                                : "text-gray-600 hover:bg-[#fbecec]"
-                            }`}
+                  {/* Dropdown Menu */}
+                  {hasChildren && isOpen && (
+                    <div className="mt-1 ml-4 pl-6 border-l-2 border-gray-100">
+                      {item.children.map((child) => {
+                        const isChildActive = activeItem === child.href;
+                        return (
+                          <button
+                            key={child.href}
+                            onClick={() => handleItemClick(child.href)}
+                            className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 mt-1 ${isChildActive
+                                ? "bg-[#db4444]/10 text-[#db4444] border-l-2 border-[#db4444]"  // Slightly darker red for active child
+                                : "text-gray-600 hover:bg-[#db4444] hover:text-white"
+                              }`}
                           >
-                            {sub.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                            <div className={`w-2 h-2 rounded-full mr-3 ${isChildActive ? "bg-[#db4444]" : "bg-gray-300"}`}></div>
+                            <span>{child.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-              ) : (
-                <Link
-                  href={item.href || "#"}
-                  className={`flex items-center px-3 py-2 rounded-lg font-medium transition ${
-                    pathname === item.href
-                      ? "bg-[#DC4B47] text-white"
-                      : "text-gray-600 hover:bg-[#fbecec]"
-                  }`}
-                >
-                  <span className="text-lg w-5 h-5 flex items-center justify-center">
-                    {item.icon}
-                  </span>
-                  <span className="ml-2">{item.label}</span>
-                </Link>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </aside>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="border-t border-gray-50 pt-6">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 px-3">
+            Quick Actions
+          </p>
+          <div className="space-y-2">
+            <button className="w-full flex items-center px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-[#db4444] transition-all duration-200">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+              Add Product
+            </button>
+            <button className="w-full flex items-center px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-[#db4444] transition-all duration-200">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+              View Orders
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* User Profile */}
+      {/* <div className="border-t border-gray-50 p-4">
+        <div className="flex items-center">
+          <div className="w-10 h-10 bg-[#db4444] rounded-full flex items-center justify-center">
+            <span className="text-white font-semibold text-sm">AD</span>
+          </div>
+          <div className="ml-3 flex-1">
+            <p className="text-sm font-semibold text-gray-900">Admin User</p>
+            <p className="text-xs text-gray-500">Super Administrator</p>
+          </div>
+          <button className="p-1 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+            <FaChevronRight className="text-xs text-gray-400" />
+          </button>
+        </div>
+      </div> */}
+    </div>
   );
 }
-

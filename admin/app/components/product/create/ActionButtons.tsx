@@ -4,11 +4,18 @@ import React from "react";
 
 export default function ActionButtons() {
   return (
-    <div className="flex justify-end gap-2">
-      <button className="px-4 py-2 rounded border border-gray-300 font-medium text-gray-700 hover:bg-gray-100">
+    <div className="flex justify-end gap-4 mt-6">
+      {/* Nút Reset */}
+      <button
+        className="px-4 py-2 rounded border border-[#db4444] text-[#db4444] font-medium hover:bg-[#ffeaea] transition-colors duration-200"
+      >
         Reset
       </button>
-      <button className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
+
+      {/* Nút Save */}
+      <button
+        className="px-4 py-2 rounded bg-[#db4444] text-white font-medium hover:bg-[#c23333] transition-colors duration-200"
+      >
         Save
       </button>
     </div>

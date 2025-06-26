@@ -109,21 +109,21 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
         onClick={handleClick}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className="border border-dashed bg-white p-6 rounded shadow-sm border-gray-200 text-center hover:bg-gray-50 transition cursor-pointer max-w-full mx-auto"
+        className="border border-dashed bg-white p-6 rounded-lg shadow-sm border-gray-200 text-center hover:bg-gray-50 transition cursor-pointer max-w-full mx-auto"
       >
         <div className="w-full mx-auto">
           {images.length > 0 ? (
             <div className="space-y-4">
               <div className="relative">
                 <div className="relative w-full h-[200px]">
-                <Image
-                  src={images[0].url}
-                  alt="Main"
-                  fill
-                  className="object-contain rounded border"
-                />
-              </div>
-                <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
+                  <Image
+                    src={images[0].url}
+                    alt="Main"
+                    fill
+                    className="object-contain rounded-lg border shadow-md"
+                  />
+                </div>
+                <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-md">
                   Main image
                 </span>
                 <button
@@ -132,7 +132,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
                     e.stopPropagation();
                     handleRemoveImage(images[0].id);
                   }}
-                  className="absolute top-1 right-1 bg-white border border-gray-300 text-red-500 px-2 py-0.5 rounded text-xs hover:bg-red-100"
+                  className="absolute top-1 right-1 bg-white border border-gray-300 text-red-500 px-2 py-0.5 rounded-md text-xs hover:bg-red-100 transition-all"
                 >
                   ✕
                 </button>
@@ -153,14 +153,14 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
                           <Image
                             src={img.url}
                             alt="Other"
-                            className="w-full h-24 object-cover border rounded"
+                            className="w-full h-24 object-cover border rounded-md"
                           />
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleRemoveImage(img.id);
                             }}
-                            className="text-red-500 text-xs border border-gray-300 rounded px-2 py-0.5 hover:bg-red-100"
+                            className="text-red-500 text-xs border border-gray-300 rounded-md px-2 py-0.5 hover:bg-red-100 transition-all"
                           >
                             ✕
                           </button>

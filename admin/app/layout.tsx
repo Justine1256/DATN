@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
-import Sidebar from "./components/Sidebar";
+import Sidebar from "./components/Sidebar"; // This is likely the ModernAdminSidebar from your previous code
 import { AuthProvider } from "./AuthContext";
 
 const geistSans = Geist({
@@ -19,12 +19,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`bg-gray-50 text-gray-900 font-sans antialiased ${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
-          <div className="flex">
+          <div className="flex min-h-screen bg-gray-50">
+            {/* Sidebar - Assuming it has a fixed width like w-72 or w-64 */}
             <Sidebar />
-            <div className="flex-1 min-h-screen ml-64">
+
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col"> 
+              {/* Header */}
               <Header />
-              <main className="p-6 bg-gray-50 min-h-[calc(100vh-64px)]">
-                {children}
+
+              {/* Main Content */}
+              <main className="flex-1 p-6">
+                <div className="max-w-7xl mx-auto">
+                  {children}
+                </div>
               </main>
             </div>
           </div>

@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import PerformanceChart from "../components/dashboard/PerformanceChart";
 import ProfitChart from "../components/dashboard/ProfitChart";
 import SummaryCards from "../components/dashboard/SummaryCards";
-import RecentOrders from "../components/dashboard/RecentOrders";
+// import RecentOrders from "../components/dashboard/RecentOrders";
 import Swal from "sweetalert2";
 import Cookies from 'js-cookie';
 
@@ -61,7 +61,7 @@ useEffect(() => {
           <ProfitChart />
         </div>
       </div>
-      <RecentOrders />
+      {/* <RecentOrders /> */}
     </div>
   );
 }
