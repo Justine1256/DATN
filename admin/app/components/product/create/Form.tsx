@@ -268,7 +268,7 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
             <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
             Mô tả sản phẩm
           </h3>
-          <div className="border border-slate-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#db4444]/20 focus-within:border-[#db4444] transition-all">
+          <div className="border border-slate-300 rounded-lg overflow-hidden transition-all">
             <CKEditor
               editor={ClassicEditor}
               data={description}
@@ -293,6 +293,7 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
             Mô tả chi tiết sẽ giúp khách hàng hiểu rõ hơn về sản phẩm của bạn
           </p>
         </div>
+
       </div>
     </div>
   );

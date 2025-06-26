@@ -142,8 +142,8 @@ body.swal2-shown {
 
 /* CKEditor (giữ nguyên) */
 .ck-editor__editable {
-  min-height: 300px;
-  height: 400px;
+  min-height: 400px;
+  height: 300px;
   width: 100%;
   padding: 16px;
 }
@@ -153,13 +153,3 @@ body.swal2-shown {
   margin-bottom: 20px;
 }
 
-/* Loại bỏ các đoạn CSS ví dụ này nếu chúng không được sử dụng ở đâu khác */
-/* .main-content {
-  height: 80vh;
-  overflow-y: scroll;
-}
-
-.form-container {
-  max-height: 700px;
-  overflow-y: auto;
-} */
