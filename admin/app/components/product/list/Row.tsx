@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
-import { AiFillStar } from "react-icons/ai"; // ✅ Thêm icon sao
+import { AiFillStar } from "react-icons/ai"; 
 import { Product } from "@/types/product";
 import { Category } from "@/types/category";
 import { STATIC_BASE_URL } from "@/utils/api";
@@ -94,13 +94,7 @@ const router = useRouter();
       <button onClick={() => router.push(`/product/${product.id}/edit`)} className="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200" title="Edit">
         <FiEdit />
       </button>
-      <button
-        onClick={() => onDelete(product.id)}
-        className="bg-red-100 text-red-600 p-2 rounded hover:bg-red-200"
-        title="Delete"
-      >
-        <FiTrash2 />
-      </button>
+     
     </div>
   </td>
 </tr>
