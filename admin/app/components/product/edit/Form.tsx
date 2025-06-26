@@ -51,7 +51,6 @@ export default function ProductForm({
         const userData = await userRes.json();
         const shopId = userData?.shop?.id;
         setShopId(shopId);
-
         const catRes = await fetch(`${API_BASE_URL}/shop/categories/${shopId}`);
         const catData = await catRes.json();
         const onlySubCategories = (catData.categories || []).filter(
@@ -77,10 +76,11 @@ export default function ProductForm({
 
   // Đồng bộ category prop với state local
   useEffect(() => {
-    if (category !== "" && category !== category) {
-      setCategory(category);
-    }
-  }, [category, setCategory]);
+  if (category !== "") {
+    setCategory(category);
+  }
+}, [category]);
+
 
   if (loading) return <p>Đang tải dữ liệu...</p>;
 
