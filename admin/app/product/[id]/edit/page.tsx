@@ -35,6 +35,7 @@ useEffect(() => {
       const userRes = await fetch(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.error("User response:", userRes);
       if (!userRes.ok) throw new Error("Lỗi lấy thông tin user");
       const userData = await userRes.json();
 
