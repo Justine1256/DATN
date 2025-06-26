@@ -29,7 +29,7 @@ export default function EditProductPage() {
     const fetchProduct = async () => {
       try {
         const token = Cookies.get("authToken");
-        const res = await fetch(`${API_BASE_URL}/product/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/shop/products/${id}/get`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
