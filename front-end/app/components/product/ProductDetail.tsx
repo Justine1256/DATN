@@ -115,24 +115,17 @@ const hasCombination = (a: string, b: string) => {
   };
 
   const handleSelectA = (a: string) => {
-    let matched = product.variants.find(v => v.value1 === a && v.value2 === selectedB);
-    if (!matched) {
-      matched = product.variants.find(v => v.value1 === a);
-      if (matched) setSelectedB(matched.value2);
-    }
-    setSelectedA(a);
-    setSelectedVariant(matched || null);
-  };
+  setSelectedA(a);
+  const matched = product.variants.find(v => v.value1 === a && v.value2 === selectedB);
+  setSelectedVariant(matched || null);
+};
 
-  const handleSelectB = (b: string) => {
-    let matched = product.variants.find(v => v.value2 === b && v.value1 === selectedA);
-    if (!matched) {
-      matched = product.variants.find(v => v.value2 === b);
-      if (matched) setSelectedA(matched.value1);
-    }
-    setSelectedB(b);
-    setSelectedVariant(matched || null);
-  };
+const handleSelectB = (b: string) => {
+  setSelectedB(b);
+  const matched = product.variants.find(v => v.value1 === selectedA && v.value2 === b);
+  setSelectedVariant(matched || null);
+};
+
 
   const commonPopup = (msg: string) => {
     setPopupText(msg);
@@ -185,7 +178,6 @@ const hasCombination = (a: string, b: string) => {
       commonPopup('Đã xóa khỏi mục yêu thích!');
     }
   };
-
   const handleFollow = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
     if (!token) return commonPopup('Vui lòng đăng nhập để theo dõi cửa hàng');

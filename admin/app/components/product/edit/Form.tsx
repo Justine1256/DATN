@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import { API_BASE_URL } from "@/utils/api";
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
 import { Product } from "@/types/product";
 
@@ -236,14 +236,16 @@ export default function ProductForm({
       <div className="mt-4">
         <h3 className="font-semibold mb-2">Hình ảnh sản phẩm</h3>
         <div className="flex gap-2 flex-wrap">
-          {images.map((img) => (
-            <img
-              key={img.id}
-              src={img.url}
-              alt="product"
-              className="w-20 h-20 object-cover rounded border"
-            />
-          ))}
+          {images.map((img) =>
+  img.url ? (
+    <img
+      key={img.id}
+      src={`${STATIC_BASE_URL}/${img.url}`}
+      alt="product"
+      className="w-20 h-20 object-cover rounded border"
+    />
+  ) : null
+)}
         </div>
       </div>
     </div>

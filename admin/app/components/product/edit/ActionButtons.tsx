@@ -48,12 +48,14 @@ export default function ActionButtons({
         sale_price: formValues.sale_price,
         stock: formValues.stock,
         category_id: parseInt(categoryId),
-        image: images.map((img) => img.url),
+        image: images.map(img => img.url),
         option1: optionValues.option1 || null,
         value1: optionValues.value1 || null,
         option2: optionValues.option2 || null,
         value2: optionValues.value2 || null,
       };
+console.log("Images before submit", images);
+console.log("Mapped URLs", images.map(img => img.url));
 
       const res = await fetch(`${API_BASE_URL}/shop/products/${productId}/edit`, {
         method: "PATCH",

@@ -1,4 +1,3 @@
-// Updated ImageDrop component for editing products
 "use client";
 
 import React, { useRef } from "react";
@@ -7,11 +6,11 @@ import "swiper/css";
 import "swiper/css/navigation";
 import { Navigation } from "swiper/modules";
 import Image from "next/image";
-import { API_BASE_URL } from "@/utils/api";
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 
 export type ImageItem = {
   id: string;
-  url: string;
+  url: string; // Example: "products/abc.jpg"
   isNew?: boolean;
 };
 
@@ -29,14 +28,17 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch(`${API_BASE_URL}/upload-image`, {
+    const res = await fetch(`${API_BASE_URL}/upload-product-image`, {
       method: "POST",
       body: formData,
     });
 
     if (!res.ok) throw new Error("Upload failed");
     const data = await res.json();
-    return data.url; // url from Laravel
+
+    if (!data.path) throw new Error("Invalid response from server");
+
+    return data.path; // e.g., "products/abc.jpg"
   };
 
   const handleFiles = async (files: FileList | null) => {
@@ -48,8 +50,11 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
 
     for (const file of validFiles) {
       try {
-        const uploadedUrl = await uploadToServer(file);
-        setImages((prev) => [...prev, { id: generateId(), url: uploadedUrl, isNew: true }]);
+        const uploadedPath = await uploadToServer(file);
+        setImages((prev) => [
+          ...prev,
+          { id: generateId(), url: uploadedPath, isNew: true },
+        ]);
       } catch (err) {
         console.error("Image upload failed:", err);
         alert("Upload image failed.");
@@ -83,11 +88,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
   };
 
   const handleRemoveImage = (idToRemove: string) => {
-    setImages((prev) => {
-      const index = prev.findIndex((img) => img.id === idToRemove);
-      if (index === -1) return prev;
-      return prev.filter((img) => img.id !== idToRemove);
-    });
+    setImages((prev) => prev.filter((img) => img.id !== idToRemove));
   };
 
   return (
@@ -113,7 +114,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
               <div className="relative">
                 <div className="relative w-full h-[200px]">
                   <Image
-                    src={images[0].url}
+                    src={`${STATIC_BASE_URL}/${images[0].url}`}
                     alt="Main"
                     fill
                     className="object-contain rounded border"
@@ -147,7 +148,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
                       <SwiperSlide key={img.id}>
                         <div className="flex flex-col items-center gap-1">
                           <Image
-                            src={img.url}
+                            src={`${STATIC_BASE_URL}/${img.url}`}
                             alt="Other"
                             width={80}
                             height={80}
@@ -181,8 +182,10 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               <p className="text-gray-600">
-                Drop your images here, or {" "}
-                <span className="text-blue-600 font-medium cursor-pointer">click to browse</span>
+                Drop your images here, or{" "}
+                <span className="text-blue-600 font-medium cursor-pointer">
+                  click to browse
+                </span>
               </p>
               <p className="text-xs text-gray-400">
                 1600x1200 (4:3) recommended. PNG, JPG, GIF.
