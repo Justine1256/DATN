@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-// import PreviewCard from "@/app/components/product/create/PreviewCard";
 import ImageDrop from "@/app/components/product/create/ImageDrop";
 import ProductInfoForm from "@/app/components/product/create/Form";
 import VariantModal from "@/app/components/product/create/VariantModal";
@@ -9,7 +8,6 @@ import ActionButtons from "@/app/components/product/create/ActionButtons";
 import { API_BASE_URL } from "@/utils/api";
 import { useAuth } from "@/app/AuthContext";
 import Cookies from "js-cookie";
-
 
 export default function AddProductPage() {
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
@@ -30,7 +28,6 @@ export default function AddProductPage() {
   const [popupMessage, setPopupMessage] = useState("");
 
   const { user } = useAuth();
-  const isFashion = category === "fashion";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,8 +61,23 @@ export default function AddProductPage() {
       });
 
       if (!res.ok) {
-        const text = await res.text();
-        setPopupMessage("Lỗi: " + text);
+        const contentType = res.headers.get("Content-Type");
+        let message = "Lỗi không xác định.";
+
+        if (contentType && contentType.includes("application/json")) {
+          const data = await res.json();
+          if (data.errors) {
+            const errorList = Object.values(data.errors).flat();
+            message = "Lỗi xác thực: " + errorList.join(" ");
+          } else if (data.error) {
+            message = "Lỗi: " + data.error;
+          }
+        } else {
+          const text = await res.text();
+          message = "Lỗi: " + text;
+        }
+
+        setPopupMessage(message);
         setShowPopup(true);
         return;
       }
@@ -80,12 +92,13 @@ export default function AddProductPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-9 flex justify-center"> {/* Added flex justify-center */}
-      <div className="w-full max-w-4xl"> {/* Added a max-width container */}
+    <form onSubmit={handleSubmit} className="p-6 space-y-9 flex justify-center">
+      <div className="w-full max-w-4xl">
         <h1 className="text-xl font-bold text-gray-800 mb-4">Add New Product</h1>
 
-        <div className="space-y-6 mt-8"> {/* Removed grid classes here */}
+        <div className="space-y-6 mt-8">
           <ImageDrop images={images} setImages={setImages} />
+
           <ProductInfoForm
             images={images}
             onOptionsChange={(opts) => setProductOptions(opts)}
@@ -209,7 +222,15 @@ export default function AddProductPage() {
         </div>
       </div>
 
-
+      {/* Simple popup */}
+      {showPopup && (
+        <div className="fixed top-4 right-4 bg-white text-black shadow-md border px-4 py-2 rounded z-50">
+          <p>{popupMessage}</p>
+          <button onClick={() => setShowPopup(false)} className="ml-4 text-blue-500 underline">
+            Đóng
+          </button>
+        </div>
+      )}
     </form>
   );
 }
