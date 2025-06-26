@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Shop;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class CategoryController extends Controller
@@ -126,20 +125,19 @@ private function getAllChildCategoryIds(Category $category)
     return view('categories.index', compact('categories'));
 }
 // Lấy danh mục của shop
-public function getShopCategories()
+public function getShopCategories($shop_id)
 {
-    $user = Auth::user();
+    $shop = Shop::find($shop_id);
 
-    if (!$user || !$user->shop) {
-        return response()->json(['error' => 'Người dùng không có cửa hàng.'], 403);
+    if (!$shop) {
+        return response()->json(['error' => 'Shop không tồn tại.'], 404);
     }
 
-    $shop_id = $user->shop->id;
-
+    // Lấy các category do shop tạo, liên kết với category admin (parent)
     $categories = Category::where('shop_id', $shop_id)
         ->where('status', 'activated')
         ->with(['parent' => function ($query) {
-            $query->whereNull('shop_id');
+            $query->whereNull('shop_id'); // chỉ lấy parent do admin tạo
         }])
         ->orderBy('created_at', 'desc')
         ->get();
