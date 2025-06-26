@@ -25,40 +25,55 @@ export default function EditProductPage() {
     value2: "",
   });
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const token = Cookies.get("authToken");
-        const res = await fetch(`${API_BASE_URL}/shop/products/${id}/get`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
+useEffect(() => {
+  const fetchUserAndProduct = async () => {
+    try {
+      const token = Cookies.get("authToken");
+      if (!token) throw new Error("Chưa đăng nhập");
 
-        if (!res.ok || !data) throw new Error("Không tìm thấy sản phẩm");
+      // 1. Lấy user để biết shop
+      const userRes = await fetch(`${API_BASE_URL}/user`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!userRes.ok) throw new Error("Lỗi lấy thông tin user");
+      const userData = await userRes.json();
 
-        setProduct(data.product);
-        setCategory(data.product.category_id?.toString() || "");
-        setSelectedImages(
-          (Array.isArray(data.product.image) ? data.product.image : [data.product.image || ""]).map(
-            (url: string, idx: number) => ({ id: String(idx), url })
-          )
-        );
-        setOptionValues({
-          option1: data.product.option1 || "",
-          value1: data.product.value1 || "",
-          option2: data.product.option2 || "",
-          value2: data.product.value2 || "",
-        });
-      } catch (err) {
-        console.error("Lỗi khi tải sản phẩm:", err);
-        router.push("/product");
-      } finally {
-        setLoading(false);
-      }
-    };
+      const shopId = userData?.shop?.id;
+      if (!shopId) throw new Error("User chưa có shop");
 
-    if (id) fetchProduct();
-  }, [id]);
+      // 2. Lấy sản phẩm theo id và shopId (nếu API hỗ trợ)
+      // Ví dụ endpoint chuẩn hơn: `/shop/{shopId}/products/{id}`
+      const productRes = await fetch(`${API_BASE_URL}/shop/products/${id}/get`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!productRes.ok) throw new Error("Không tìm thấy sản phẩm hoặc không có quyền");
+
+      const data = await productRes.json();
+
+      setProduct(data.product);
+      setCategory(data.product.category_id?.toString() || "");
+      setSelectedImages(
+        (Array.isArray(data.product.image) ? data.product.image : [data.product.image || ""]).map(
+          (url: string, idx: number) => ({ id: String(idx), url })
+        )
+      );
+      setOptionValues({
+        option1: data.product.option1 || "",
+        value1: data.product.value1 || "",
+        option2: data.product.option2 || "",
+        value2: data.product.value2 || "",
+      });
+    } catch (err) {
+      console.error("Lỗi khi tải sản phẩm:", err);
+      router.push("/product");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (id) fetchUserAndProduct();
+}, [id]);
+
 
   if (loading) return <div className="p-6">Đang tải sản phẩm...</div>;
   if (!product) return <div className="p-6 text-red-500">Không tìm thấy sản phẩm.</div>;
