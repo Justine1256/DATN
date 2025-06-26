@@ -135,31 +135,56 @@ const handleSelectB = (b: string) => {
 
   const handleAddToCart = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
-    if (!token) return commonPopup('Vui lòng đăng nhập để thêm vào giỏ hàng');
-
-    if (product.variants.length > 0 && !selectedVariant?.id) {
-      const isFromProduct = parseOptionValues(product.value1).includes(selectedA) && parseOptionValues(product.value2).includes(selectedB);
-      if (!isFromProduct) return commonPopup('Vui lòng chọn biến thể phù hợp');
-    }
-
-    const body: any = {
+    const cartItem = {
       product_id: product.id,
       quantity,
+      variant_id: selectedVariant?.id || null,
+      name: product.name,
+      image: formatImageUrl(product.image[0]),
+      price: selectedVariant
+        ? selectedVariant.sale_price || selectedVariant.price
+        : product.sale_price || product.price,
+      value1: selectedA,
+      value2: selectedB,
     };
-    if (selectedVariant?.id) body.variant_id = selectedVariant.id;
 
-    const res = await fetch(`${API_BASE_URL}/cart`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    if (!token) {
+      // Nếu chưa đăng nhập, lưu giỏ hàng vào localStorage
+      const existing = localStorage.getItem('cart');
+      const cart = existing ? JSON.parse(existing) : [];
 
-    if (res.ok) {
-      commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
+      const matchedIndex = cart.findIndex((item: any) =>
+        item.product_id === cartItem.product_id &&
+        item.variant_id === cartItem.variant_id
+      );
+
+      if (matchedIndex !== -1) {
+        cart[matchedIndex].quantity += cartItem.quantity;
+      } else {
+        cart.push(cartItem);
+      }
+
+      localStorage.setItem('cart', JSON.stringify(cart));
+      commonPopup(`Đã thêm "${cartItem.name}" vào giỏ hàng`);
     } else {
-      commonPopup('Thêm vào giỏ hàng thất bại');
+      // Nếu đã đăng nhập, gọi API để thêm sản phẩm vào giỏ hàng
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(cartItem),
+      });
+
+      if (res.ok) {
+        commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
+      } else {
+        commonPopup('Thêm vào giỏ hàng thất bại');
+      }
     }
   };
+  
+  
+  
+  
 
   const toggleLike = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
@@ -186,7 +211,8 @@ const handleSelectB = (b: string) => {
     setFollowed(!followed);
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async() => {
+    await handleAddToCart(); // Add product to cart
     router.push('/cart');
   };
 

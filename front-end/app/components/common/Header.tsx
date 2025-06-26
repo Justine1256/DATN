@@ -37,7 +37,8 @@ const Header = () => {
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
   const categoryRef = useRef<HTMLDivElement>(null);
   const [cartItems, setCartItems] = useState<any[]>([]);
-  
+  const [loading, setLoading] = useState(true);  // Initial state set to true (loading state)
+
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/category`)
@@ -46,17 +47,17 @@ const Header = () => {
       .catch(console.error);
   }, []);
 
-  // Fetch notifications from the API
+
   useEffect(() => {
-    const token = Cookies.get("authToken"); // Lấy token để xác thực
+    const token = Cookies.get("authToken"); 
     if (!token) {
-      // Không có token, không gọi API thông báo
+     
       return;
     }
 
     axios
       .get(`${API_BASE_URL}/notification`, {
-        headers: { Authorization: `Bearer ${token}` }, // Gửi token vào header
+        headers: { Authorization: `Bearer ${token}` }, 
       })
       .then((res) => {
         setNotifications(res.data);
@@ -101,26 +102,62 @@ const Header = () => {
       });
   }, []);
   useEffect(() => {
-  const token = Cookies.get("authToken");
-  if (!token) return;
+    const token = Cookies.get("authToken");
 
-  const fetchCart = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/cart`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setCartItems(res.data);
-    } catch (err) {
-      console.error("Không thể lấy giỏ hàng", err);
+    if (!token) {
+      // If no token, load the cart from localStorage
+      const guestCart = localStorage.getItem("cart");
+      if (guestCart) {
+        const parsedCart = JSON.parse(guestCart);
+
+        // Format the cart items to match the API structure
+        const formattedCart = parsedCart.map((item: any) => ({
+          id: item.product_id,
+          quantity: item.quantity,
+          product: {
+            id: item.product_id,
+            name: item.name,
+            image: [item.image],
+            price: item.price,
+            sale_price: null,
+          },
+          variant: item.variant_id
+            ? {
+              id: item.variant_id,
+              option1: 'Phân loại 1',
+              option2: 'Phân loại 2',
+              value1: item.value1,
+              value2: item.value2,
+              price: item.price,
+              sale_price: null,
+            }
+            : null,
+        }));
+
+        setCartItems(formattedCart); 
+      } else {
+        setCartItems([]); 
+      }
+      setLoading(false); 
+      return;
     }
-  };
 
-  fetchCart();
-
-  window.addEventListener("cartUpdated", fetchCart);
-
-  return () => window.removeEventListener("cartUpdated", fetchCart);
-}, []);
+    
+    fetch(`${API_BASE_URL}/cart`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setCartItems(data); 
+        setLoading(false); 
+      })
+      .catch((err) => {
+        console.error("Không thể lấy giỏ hàng", err);
+        setLoading(false); 
+      });
+  }, []);
+  
+  
 
 
   useEffect(() => {
@@ -358,22 +395,23 @@ const Header = () => {
                 <div className="p-3 border-b text-base font-semibold">Sản Phẩm Mới Thêm</div>
                 <ul className="max-h-[300px] overflow-y-auto divide-y divide-gray-100">
                   {cartItems.slice(0, 5).map((item: any) => {
-                    const price = item.product.sale_price ?? item.product.price;
-                    const image = item.product.image?.[0] ?? "default.jpg";
-
+                   
+                    const price = item.product?.sale_price ?? item.product?.price ?? 0; 
+                    const image = item.product?.image?.[0] ?? "default.jpg";  
+                    const name = item.product?.name ?? "Tên sản phẩm";  
                     return (
                       <li key={item.id} className="flex items-center p-3 hover:bg-gray-100 transition">
                         <div className="w-[48px] h-[48px] flex-shrink-0 overflow-hidden rounded border">
                           <Image
                             src={`${STATIC_BASE_URL}/${image}`}
-                            alt={item.product.name}
+                            alt={name}
                             width={48}
                             height={48}
                             className="object-cover w-full h-full"
                           />
                         </div>
                         <div className="ml-3 flex-1">
-                          <div className="text-sm font-medium line-clamp-1">{item.product.name}</div>
+                          <div className="text-sm font-medium line-clamp-1">{name}</div>
                           <div className="text-sm text-red-500">
                             {Number(price).toLocaleString('vi-VN')}đ
                           </div>
@@ -385,6 +423,8 @@ const Header = () => {
                     <li className="p-3 text-center text-gray-500">Giỏ hàng trống.</li>
                   )}
                 </ul>
+
+
                 <div className="p-3 border-t flex justify-between items-center">
                   <span className="text-sm text-gray-700">{cartItems.length} sản phẩm</span>
                   <Link href="/cart" className="bg-red-500 text-white px-4 py-1.5 rounded text-sm hover:bg-red-600 transition">
