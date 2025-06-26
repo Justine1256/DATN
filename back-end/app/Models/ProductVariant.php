@@ -12,16 +12,15 @@ class ProductVariant extends Model
     protected $table = 'product_variants';
 
     protected $fillable = [
-        'product_id',
-        'option1',
-        'value1',
-        'option2',
-        'value2',
-        'price',
-        'sale_price',
-        'stock',
-        'image',
-    ];
+    'product_id',
+    'value1',
+    'value2',
+    'price',
+    'sale_price',
+    'stock',
+    'image',
+];
+
 
     protected $casts = [
         'image' => 'array',

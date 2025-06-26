@@ -2,15 +2,15 @@
 
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { LoadingShopInfo } from '../loading/loading';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/utils/api';
+import Link from 'next/link'; // Import the Link component
 
 interface Shop {
   id: number;
   name: string;
   description: string;
-  logo: string;
+  logo: string | null;
   phone: string;
   rating: string;
   total_sales: number;
@@ -33,11 +33,10 @@ export default function ShopInfo({
 }: ShopInfoProps) {
   const [popupText, setPopupText] = useState('');
   const [showPopup, setShowPopup] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const timeout = setTimeout(() => setIsLoaded(true), 500);
+    const timeout = setTimeout(() => { }, 500);
     return () => clearTimeout(timeout);
   }, []);
 
@@ -57,34 +56,39 @@ export default function ShopInfo({
     setTimeout(() => setShowPopup(false), 2000);
   };
 
-  const handleNavigateToOrders = () => {
-    router.push('/orders');
-  };
-
   return (
     <div className="mt-12 border rounded-lg bg-white p-4 sm:p-6 md:p-8 relative">
       <div className="flex flex-col md:flex-row md:justify-between gap-6">
-        {/* Trái: logo + tên + nút */}
+        {/* Left: logo + name + follow button */}
         <div className="flex gap-4 flex-shrink-0">
-          <div className="relative w-20 h-20">
-            <Image
-              src={`${API_BASE_URL}/image/${shop.logo}`}
-              alt="Logo"
-              width={60}
-              height={60}
-              className="rounded-full object-cover"
-            />
+          <div className="cursor-pointer relative w-20 h-20">
+            {/* Add a Link around the logo to navigate to the shop page */}
+            <Link href={`/shop/${shop.slug}`}>
+              <Image
+                src={`${API_BASE_URL}/image/${shop.logo}`}
+                alt="Logo"
+                width={60}
+                height={60}
+                className="rounded-full object-cover"
+              />
+            </Link>
             <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
               {!followed ? (
                 <button
-                  onClick={handleFollowClick}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFollowClick();
+                  }}
                   className="bg-[#DC4B47] text-white text-[18px] font-semibold w-8 h-8 rounded-full flex items-center justify-center shadow-md hover:bg-[#FF5733] transition-all hover:scale-110"
                 >
                   +
                 </button>
               ) : (
                 <button
-                  onClick={handleFollowClick}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFollowClick();
+                  }}
                   className="bg-[#DC4B47] text-white text-[18px] font-semibold w-8 h-8 rounded-full flex items-center justify-center shadow-md animate-rotate-to-check"
                 >
                   <span className="text-[14px]">✔</span>
@@ -93,10 +97,13 @@ export default function ShopInfo({
             </div>
           </div>
 
-          {/* Tên shop + trạng thái + hủy theo dõi */}
+          {/* Shop name + status + unfollow button */}
           <div className="text-black max-w-[200px] sm:max-w-none">
             <h3 className="text-xl font-semibold mb-1 flex items-center gap-2 flex-wrap">
-              {shop.name}
+              {/* Wrap the shop name in a Link component */}
+              <Link href={`/shop/${shop.slug}`} className="hover:underline">
+                {shop.name}
+              </Link>
               {followed && (
                 <button
                   onClick={handleUnfollowClick}
@@ -108,10 +115,10 @@ export default function ShopInfo({
             </h3>
             <p
               className={`font-medium text-sm ${shop.status === 'activated'
-                  ? 'text-green-600'
-                  : shop.status === 'pending'
-                    ? 'text-yellow-500'
-                    : 'text-gray-500'
+                ? 'text-green-600'
+                : shop.status === 'pending'
+                  ? 'text-yellow-500'
+                  : 'text-gray-500'
                 }`}
             >
               {shop.status === 'activated' && 'Đang hoạt động'}
@@ -127,7 +134,7 @@ export default function ShopInfo({
                 Chat Ngay
               </button>
               <button
-                onClick={handleNavigateToOrders}
+                onClick={() => router.push(`/shop/${shop.slug}`)}
                 className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -139,16 +146,20 @@ export default function ShopInfo({
           </div>
         </div>
 
-        {/* Phải: Thông tin gọn gàng, có ngắt dòng trên mobile */}
+        {/* Right: additional info */}
         <div className="flex flex-wrap gap-y-2 gap-x-6 mt-6 md:mt-0 text-sm text-gray-800">
           <div className="flex items-center gap-1 min-w-[130px]">
             <span className="text-gray-500">Đánh Giá:</span>
-            <span className="text-red-500 font-semibold">{Number(shop.rating).toFixed(1)}</span>
+            <span className="text-red-500 font-semibold">
+              {Number(shop.rating).toFixed(1)}
+            </span>
             <span className="text-yellow-400 text-base">★</span>
           </div>
           <div className="flex items-center gap-1 min-w-[130px]">
             <span className="text-gray-500">Sản Phẩm:</span>
-            <span className="text-red-500 font-semibold">{shop.total_sales}</span>
+            <span className="text-red-500 font-semibold">
+              {shop.total_sales}
+            </span>
           </div>
           <div className="flex items-center gap-1 min-w-[130px]">
             <span className="text-gray-500">Phản Hồi:</span>

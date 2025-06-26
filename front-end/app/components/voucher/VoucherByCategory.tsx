@@ -152,9 +152,9 @@ export default function VoucherByCategory() {
         <section className="w-full bg-gradient-to-br via-white to-red-50/20 py-16">
             {/* Popup */}
             {showPopup && (
-                <div className="fixed top-20 right-5 z-[9999] bg-white text-[#DB4444] text-sm px-4 py-3 rounded-lg shadow-lg border-l-4 border-[#DB4444] animate-slideInFade">
+                <div className="fixed top-20 right-5 z-[9999] bg-white text-brand text-sm px-4 py-3 rounded-lg shadow-lg border-l-4 border-[#DB4444] animate-slideInFade">
                     <div className="flex items-center">
-                        <svg className="w-5 h-5 mr-2 text-[#DB4444]" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-5 h-5 mr-2 text-brand" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         {popupMessage}

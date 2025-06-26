@@ -97,7 +97,8 @@ export default function OrderListItem({
                 <div key={shopId} className="mb-6 last:mb-0">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-2 h-6 bg-[#db4444] rounded-full"></div>
-                        <h4 className="font-semibold text-black text-lg">Cửa hàng #{shopId}</h4>
+                        {/* Hiển thị tên cửa hàng từ order.shop_name */}
+                        <h4 className="font-semibold text-black text-lg">Cửa hàng {order.shop_name || "Chưa xác định"}</h4>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4">
                         <div className="space-y-4">

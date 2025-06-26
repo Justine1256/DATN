@@ -35,47 +35,42 @@ export default function ProductDescription({ html }: ProductDescriptionProps) {
     }, [html]);
 
     return (
-        <div className="w-full max-w-screen-xl mx-auto px-4 mt-20">
+        <div className="w-full max-w-screen-xl mx-auto px-4 mt-20 ml-9">
             {/* ✅ Thêm khoảng cách trên tiêu đề */}
             <div className="mt-10 mb-4 pb-2 flex items-center">
                 <div className="w-[10px] h-[22px] bg-[#db4444] rounded-tl-sm rounded-bl-sm mr-2" />
-                <p className="font-medium text-[#db4444] text-base">Thông tin sản phẩm</p>
+                <p className="font-medium text-brand text-base">Thông tin sản phẩm</p>
             </div>
 
-            <article
-                className="
-    leading-relaxed text-[15px] text-black
-
-    [&_a[href^='http']]:text-black 
-    [&_a[href^='http']:hover]:text-[#db4444]
-
-    [&_a[href^='/']]:text-[#db4444]
-    [&_a[href^='/']:hover]:text-[#db4444]
-
-    [&_a[href^='#']]:text-[#db4444]
-    [&_a[href^='#']:hover]:text-[#b91c1c]
-
-    [&_table]:w-full 
-    [&_table]:text-sm
-    [&_th]:text-left 
-    [&_th]:align-top
-    [&_td]:align-top 
-    [&_td]:py-2
-
-    [&_ul]:pl-0
-    [&_ul>li]:grid
-    [&_ul>li]:grid-cols-[200px_minmax(0,1fr)] 
-    [&_ul>li]:items-start
-    [&_ul>li]:gap-2
-    [&_ul>li]:mb-1
-
-    [&_ul>li>strong]:font-semibold
-    [&_ul>li>strong]:text-black
-  "
-                dangerouslySetInnerHTML={{ __html: processedHtml }}
-            />
-
+            {/* Đẩy div phần mô tả sang phải */}
+            <div className="ml-auto">
+                <article
+                    className="
+            leading-relaxed text-[15px] text-black
+            [&_a[href^='http']]:text-black 
+            [&_a[href^='http']:hover]:text-brand
+            [&_a[href^='/']]:text-brand
+            [&_a[href^='/']:hover]:text-brand
+            [&_a[href^='#']]:text-brand
+            [&_a[href^='#']:hover]:text-[#b91c1c]
+            [&_table]:w-full 
+            [&_table]:text-sm
+            [&_th]:text-left 
+            [&_th]:align-top
+            [&_td]:align-top 
+            [&_td]:py-2
+            [&_ul]:pl-0
+            [&_ul>li]:grid
+            [&_ul>li]:grid-cols-[200px_minmax(0,1fr)] 
+            [&_ul>li]:items-start
+            [&_ul>li]:gap-2
+            [&_ul>li]:mb-1
+            [&_ul>li>strong]:font-semibold
+            [&_ul>li>strong]:text-black
+          "
+                    dangerouslySetInnerHTML={{ __html: processedHtml }}
+                />
+            </div>
         </div>
     );
-    
 }

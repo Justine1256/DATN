@@ -14,7 +14,7 @@ import FollowedShops from '@/app/components/account/FollowedShops';
 import NotificationDropdown from '@/app/components/account/NotificationDropdown';
 import OrderSection from '@/app/components/account/OrderSection';
 import AccountProfileView from '@/app/components/account/AccountProfileView';
-
+import MyVouchersPage from '@/app/components/account/VoucherPage';
 export default function AccountRoute() {
   const [section, setSection] = useState<string>('profileView');
   const [user, setUser] = useState<any>(null);
@@ -90,6 +90,7 @@ export default function AccountRoute() {
               {section === 'followedshops' && <FollowedShops />}
               {section === 'orders' && <OrderSection />}
               {section === 'NotificationDropdown' && <NotificationDropdown />}
+              {section === 'vouchers' && <MyVouchersPage />}
             </div>
           </div>
         </div>

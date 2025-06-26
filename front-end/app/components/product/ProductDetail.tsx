@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import BestSellingSlider from '../home/RelatedProduct';
 import Cookies from 'js-cookie';
@@ -12,10 +12,9 @@ import ShopProductSlider from '../home/ShopProduct';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Breadcrumb from '../cart/CartBreadcrumb';
-import { AiFillHeart } from 'react-icons/ai';
-import { FiHeart } from 'react-icons/fi';
+import { AiFillHeart, AiOutlineHeart } from 'react-icons/ai';
 import ProductGallery from './ProductGallery';
-import { Product, ProductDetailProps } from './hooks/Product';
+import { Product, ProductDetailProps, Variant } from './hooks/Product';
 
 const formatImageUrl = (img: string | string[]): string => {
   if (Array.isArray(img)) img = img[0];
@@ -31,270 +30,164 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [mainImage, setMainImage] = useState('');
-  const [selectedColor, setSelectedColor] = useState('');
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedVariant, setSelectedVariant] = useState<any>(null); // Lưu variant đã chọn
+  const [selectedA, setSelectedA] = useState('');
+  const [selectedB, setSelectedB] = useState('');
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [liked, setLiked] = useState(false);
   const [followed, setFollowed] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState('');
 
+  const parseOptionValues = (value?: string | string[]): string[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.map(v => v.trim());
+    return value.split(',').map(v => v.trim());
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const productRes = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
+    async function fetchData() {
+      const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
+      const { data } = await res.json();
 
-        if (!productRes.ok) {
-          router.push('/not-found');
-          return;
-        }
+      const gocA = parseOptionValues(data.value1);
+      const gocB = parseOptionValues(data.value2);
+      data.variants.sort((v1: Variant, v2: Variant) => {
+        const score = (v: Variant) => (gocA.includes(v.value1) ? 1 : 0) + (gocB.includes(v.value2) ? 1 : 0);
+        return score(v2) - score(v1);
+      });
 
-        const productData = await productRes.json();
-        setProduct(productData.data);
-
-        const firstImage = Array.isArray(productData.data.image) && productData.data.image.length > 0 ? productData.data.image[0] : '';
-        setMainImage(formatImageUrl(firstImage));
-
-        // Lấy màu sắc và kích thước từ variants
-        const colors = productData.data.variants.map((variant: any) => variant.value2);
-        const sizes = productData.data.variants.map((variant: any) => variant.value1);
-        setSelectedColor(colors[0]);
-        setSelectedSize(sizes[0]);
-
-        // Lưu variant đầu tiên
-        setSelectedVariant(productData.data.variants[0]);
-
-      } catch (err) {
-        console.error('❌ Lỗi khi tải sản phẩm:', err);
+      setProduct(data);
+      setMainImage(formatImageUrl(data.image[0] || ''));
+      if (data.variants.length) {
+        setSelectedA(data.variants[0].value1);
+        setSelectedB(data.variants[0].value2);
+        setSelectedVariant(data.variants[0]);
+      } else {
+        setSelectedA(gocA[0] || '');
+        setSelectedB(gocB[0] || '');
       }
-    };
-
+    }
     fetchData();
-  }, [productslug, router]);
+  }, [shopslug, productslug, router]);
 
   if (!product) return <LoadingProductDetail />;
 
+  const optsA = Array.from(new Set([
+    ...product.variants.map(v => v.value1),
+    ...parseOptionValues(product.value1)
+  ].filter(Boolean)));
+
+  const optsB = Array.from(new Set([
+    ...product.variants.map(v => v.value2),
+    ...parseOptionValues(product.value2)
+  ].filter(Boolean)));
+
+const hasCombination = (a: string, b: string) => {
+  // Nếu không có biến thể thì luôn cho chọn
+  if (!product.variants.length) return true;
+
+  const inVariant = product.variants.some(v => {
+    const matchA = !a || v.value1 === a;
+    const matchB = !b || v.value2 === b;
+    return matchA && matchB;
+  });
+
+  const fromProduct =
+    parseOptionValues(product.value1).includes(a) &&
+    parseOptionValues(product.value2).includes(b);
+
+  return inVariant || fromProduct;
+};
+
+
+  const isFromProduct = parseOptionValues(product.value1).includes(selectedA) && parseOptionValues(product.value2).includes(selectedB);
+
   const getPrice = () => {
-    if (selectedVariant) {
-      return Number(selectedVariant.sale_price || selectedVariant.price).toLocaleString('vi-VN');
-    }
+    if (selectedVariant) return Number(selectedVariant.sale_price || selectedVariant.price).toLocaleString('vi-VN');
+    if (isFromProduct) return Number(product.sale_price || product.price).toLocaleString('vi-VN');
     return Number(product.sale_price || product.price).toLocaleString('vi-VN');
   };
 
-  // Hàm xử lý thêm vào giỏ hàng
-  const handleBuyNow = async () => {
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
-
-    if (!token) {
-      setPopupText("Vui lòng đăng nhập để mua sản phẩm");
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-      return;
-    }
-
-    try {
-      const body = {
-        product_id: product?.id,
-        quantity,
-        option1: selectedColor || '', // Nếu không có màu sắc, truyền giá trị rỗng
-        option2: selectedSize || '', // Nếu không có kích thước, truyền giá trị rỗng
-        variant_id: selectedVariant?.id || '', // Nếu không có variant, truyền giá trị rỗng
-      };
-
-      // Gửi yêu cầu thêm vào giỏ hàng
-      const res = await fetch(`${API_BASE_URL}/cart`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (res.ok) {
-        router.push("/cart"); // Chuyển hướng sang giỏ hàng
-      } else {
-        const data = await res.json();
-        setPopupText(data.message || "Thêm vào giỏ hàng thất bại");
-        setShowPopup(true);
-        setTimeout(() => setShowPopup(false), 2000);
-      }
-    } catch (err) {
-      console.error("❌ Lỗi khi mua ngay:", err);
-      setPopupText("Có lỗi xảy ra");
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-    }
-  };
-  // Xử lý chọn option1 (value1)
-  const handleSelectValue1 = (value: string) => {
-    setSelectedSize(value);
-
-    // Kiểm tra các variant có value1 === value
-    const validVariants = product?.variants?.filter(v => v.value1 === value);
-    const validVariant = validVariants?.find(v => v.value2 === selectedColor);
-
-    if (validVariant) {
-      setSelectedVariant(validVariant);
-    } else if (validVariants && validVariants.length > 0) {
-      // Nếu value2 hiện tại không hợp lệ -> tự chọn value2 đầu tiên hợp lệ
-      setSelectedColor(validVariants[0].value2);
-      setSelectedVariant(validVariants[0]);
-    }
+  const getStock = () => {
+    if (selectedVariant) return selectedVariant.stock;
+    if (isFromProduct) return product.stock;
+    return product.stock;
   };
 
-  // Xử lý chọn option2 (value2)
-  const handleSelectValue2 = (value: string) => {
-    setSelectedColor(value);
+  const handleSelectA = (a: string) => {
+  setSelectedA(a);
+  const matched = product.variants.find(v => v.value1 === a && v.value2 === selectedB);
+  setSelectedVariant(matched || null);
+};
 
-    const validVariants = product?.variants?.filter(v => v.value2 === value);
-    const validVariant = validVariants?.find(v => v.value1 === selectedSize);
+const handleSelectB = (b: string) => {
+  setSelectedB(b);
+  const matched = product.variants.find(v => v.value1 === selectedA && v.value2 === b);
+  setSelectedVariant(matched || null);
+};
 
-    if (validVariant) {
-      setSelectedVariant(validVariant);
-    } else if (validVariants && validVariants.length > 0) {
-      setSelectedSize(validVariants[0].value1);
-      setSelectedVariant(validVariants[0]);
-    }
+
+  const commonPopup = (msg: string) => {
+    setPopupText(msg);
+    setShowPopup(true);
+    setTimeout(() => setShowPopup(false), 2000);
   };
 
-  // Sửa lại hàm thêm vào giỏ hàng
   const handleAddToCart = async () => {
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
+    const token = Cookies.get('authToken') || localStorage.getItem('token');
+    if (!token) return commonPopup('Vui lòng đăng nhập để thêm vào giỏ hàng');
 
-    if (!token) {
-      setPopupText("Vui lòng đăng nhập để thêm vào giỏ hàng");
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-      return;
+    if (product.variants.length > 0 && !selectedVariant?.id) {
+      const isFromProduct = parseOptionValues(product.value1).includes(selectedA) && parseOptionValues(product.value2).includes(selectedB);
+      if (!isFromProduct) return commonPopup('Vui lòng chọn biến thể phù hợp');
     }
 
-    try {
-      const body = {
-        product_id: product?.id,
-        quantity,
-        option1: selectedColor || '', // Nếu không có màu sắc, truyền giá trị rỗng
-        option2: selectedSize || '', // Nếu không có kích thước, truyền giá trị rỗng
-        variant_id: selectedVariant?.id || '', // Nếu không có variant, truyền giá trị rỗng
-      };
+    const body: any = {
+      product_id: product.id,
+      quantity,
+    };
+    if (selectedVariant?.id) body.variant_id = selectedVariant.id;
 
-      // Gửi yêu cầu thêm vào giỏ hàng
-      const res = await fetch(`${API_BASE_URL}/cart`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+    const res = await fetch(`${API_BASE_URL}/cart`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Thêm vào giỏ hàng thất bại");
-      }
-
-      setPopupText(`Đã thêm "${product?.name}" vào giỏ hàng!`);
-      window.dispatchEvent(new Event("cartUpdated"));
-    } catch (err: any) {
-      console.error("❌ Lỗi khi thêm vào giỏ hàng:", err);
-      setPopupText(err.message || "Đã xảy ra lỗi khi thêm sản phẩm");
-    } finally {
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
+    if (res.ok) {
+      commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
+    } else {
+      commonPopup('Thêm vào giỏ hàng thất bại');
     }
   };
 
-
-  // Hàm lấy giá gốc nếu có sale_price
-  const getOriginalPrice = () => {
-    if (selectedVariant && selectedVariant.sale_price) {
-      return Number(selectedVariant.price).toLocaleString('vi-VN');
-    }
-    return Number(product?.price || 0).toLocaleString('vi-VN');
-  };
-
-
-
-
-  // Hàm xử lý toggle like (thêm vào hoặc bỏ khỏi mục yêu thích)
   const toggleLike = async () => {
-    if (!product) return;
-    const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token) {
-      setShowPopup(true);
-      setPopupText('Vui lòng đăng nhập để yêu thích sản phẩm');
-      setTimeout(() => setShowPopup(false), 2000);
-      return;
-    }
-
-    const newLiked = !liked;
-    setLiked(newLiked);
-
-    try {
-      if (newLiked) {
-        await fetch(`${API_BASE_URL}/wishlist`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ product_id: product.id }),
-        });
-      } else {
-        await fetch(`${API_BASE_URL}/wishlist/${product.id}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      }
-    } catch (err) {
-      console.error('❌ Lỗi xử lý yêu thích:', err);
-      setLiked(!newLiked);
-      setPopupText('Có lỗi xảy ra khi cập nhật yêu thích.');
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-    } finally {
-      setShowPopup(true);
-      setPopupText(newLiked ? 'Đã thêm vào mục yêu thích!' : 'Đã xóa khỏi mục yêu thích!');
-      setTimeout(() => setShowPopup(false), 2000);
+    const token = Cookies.get('authToken') || localStorage.getItem('token');
+    if (!token) return commonPopup('Vui lòng đăng nhập để yêu thích sản phẩm');
+    if (!liked) {
+      await fetch(`${API_BASE_URL}/wishlist`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: product.id })
+      });
+      setLiked(true);
+      commonPopup('Đã thêm vào mục yêu thích!');
+    } else {
+      await fetch(`${API_BASE_URL}/wishlist/${product.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      setLiked(false);
+      commonPopup('Đã xóa khỏi mục yêu thích!');
     }
   };
-
-  // Hàm theo dõi cửa hàng (giữ lại hàm)
   const handleFollow = async () => {
-    const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token || !product?.shop?.id) {
-      setPopupText('Vui lòng đăng nhập để theo dõi cửa hàng');
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-      return;
-    }
+    const token = Cookies.get('authToken') || localStorage.getItem('token');
+    if (!token) return commonPopup('Vui lòng đăng nhập để theo dõi cửa hàng');
+    const url = `${API_BASE_URL}/shops/${product.shop.id}/${followed ? 'unfollow' : 'follow'}`;
+    await fetch(url, { method: followed ? 'DELETE' : 'POST', headers: { Authorization: `Bearer ${token}` } });
+    setFollowed(!followed);
+  };
 
-    try {
-      const url = `${API_BASE_URL}/shops/${product.shop.id}/${followed ? 'unfollow' : 'follow'}`;
-      const method = followed ? 'DELETE' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        setFollowed(!followed);
-        setPopupText(followed ? 'Đã bỏ theo dõi cửa hàng' : 'Đã theo dõi cửa hàng');
-        setShowPopup(true);
-        setTimeout(() => setShowPopup(false), 2000);
-      } else {
-        const errorData = await res.json();
-        setPopupText(errorData.message || 'Lỗi khi theo dõi/bỏ theo dõi cửa hàng');
-        setShowPopup(true);
-        setTimeout(() => setShowPopup(false), 2000);
-      }
-    } catch (err) {
-      console.error('❌ Lỗi theo dõi/bỏ theo dõi:', err);
-      setPopupText('Có lỗi xảy ra khi xử lý theo dõi.');
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-    }
+  const handleBuyNow = () => {
+    router.push('/cart');
   };
 
   return (
@@ -303,36 +196,27 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         <Breadcrumb
           items={[
             { label: 'Trang chủ', href: '/' },
-            { label: product.category?.parent?.name || 'Danh mục', href: `/category/${product.category?.parent?.slug}` },
-            { label: product.category?.name || 'Danh mục', href: `/category/${product.category?.slug}` },
-            { label: product.name },
+            { label: product.category.parent?.name || 'Danh mục', href: `/category/${product.category.parent?.slug}` },
+            { label: product.category.name, href: `/category/${product.category.slug}` },
+            { label: product.name }
           ]}
         />
       </div>
 
       <div className="rounded-xl border shadow-sm bg-white p-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
+          {/* Gallery & like */}
           <div className="md:col-span-6 flex flex-col gap-4 relative">
-            <button
-              onClick={toggleLike}
-              className="absolute top-2 left-2 p-2 text-[22px] z-20 transition-colors duration-200 select-none"
-            >
-              {liked ? (
-                <AiFillHeart className="text-brand transition-colors duration-200" />
-              ) : (
-                <FiHeart className="text-gray-400 transition-colors duration-200" />
-              )}
+            <button onClick={toggleLike} className="absolute top-2 left-2 p-2 text-[22px] z-20">
+              {liked ? <AiFillHeart className="text-red-500" /> : <AiOutlineHeart className="text-red-500" />}
             </button>
-            <ProductGallery
-              images={product.image}
-              mainImage={mainImage}
-              setMainImage={setMainImage}
-            />
+            <ProductGallery images={product.image} mainImage={mainImage} setMainImage={setMainImage} />
           </div>
 
-          <div className="md:col-span-6 space-y-6">
+          {/* Info */}
+          <div className="md:col-span-6 space-y-4">
             <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{product.name}</h1>
-
+            {/* Rating, stock */}
             <div className="flex items-center gap-3 text-sm">
               <div className="flex items-center gap-3 text-sm">
                 <div className="flex items-center gap-2 text-base">
@@ -364,89 +248,88 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               </span>
             </div>
 
-            {/* Giá - Đưa giá gần hơn */}
-            <div className="flex items-center gap-3 mt-3">
-              <span className="text-[1.25rem] md:text-[1.5rem] font-bold text-brand">
-                {getPrice()}₫
-              </span>
-              {selectedVariant?.sale_price && (
-                <span className="line-through text-gray-400 text-sm">
-                  {getOriginalPrice()}₫
+            {/* Price */}
+            <div className="flex items-center gap-3">
+              <span className="text-[1.5rem] font-bold text-brand">{getPrice()}₫</span>
+
+              {selectedVariant ? (
+                selectedVariant.sale_price && (
+                  <span className="line-through text-gray-400">
+                    {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
+                  </span>
+                )
+              ) : isFromProduct && product.sale_price ? (
+                <span className="line-through text-gray-400">
+                  {Number(product.price).toLocaleString('vi-VN')}₫
                 </span>
-              )}
+              ) : null}
             </div>
 
-            {/* Màu sắc và Kích cỡ - Đưa gần dưới giá */}
-            {/* Option 1 */}
+
+            {/* Option A */}
             <div className="flex flex-col gap-2 mb-4 mt-4">
-              <p className="font-medium text-gray-700 text-lg">{product?.variants[0]?.option1}</p>
+              <p className="font-medium text-gray-700 text-lg">{product.option1 || ''}</p>
               <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
-                {[...new Set(product?.variants?.map(v => v.value1))].map((value1, index) => {
-                  const hasCombination = product?.variants?.some(v => v.value1 === value1 && v.value2 === selectedColor);
-                  return (
-                    <button
-                      key={`option1-${value1}-${index}`}
-                      onClick={() => handleSelectValue1(value1)}
-                      className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedSize === value1
-                          ? 'border-red-600 text-black bg-white'
-                          : 'border-gray-300 text-black bg-white hover:border-red-500'
-                        } ${!hasCombination ? 'opacity-50' : ''}`}
-                    >
-                      {selectedSize === value1 && (
-                        <div className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
-                          style={{
-                            borderBottomLeftRadius: '7px',
-                            borderTopRightRadius: '7px'
-                          }}>
-                          <span className="text-white text-[9px] font-bold leading-none">✓</span>
-                        </div>
-                      )}
-                      {value1 || 'Không có'}
-                    </button>
-                  );
-                })}
+                {optsA.map(a => (
+                  <button
+                    key={a}
+                    onClick={() => handleSelectA(a)}
+                    className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedA === a
+                      ? 'border-red-600 text-black bg-white'
+                      : 'border-gray-300 text-black bg-white hover:border-red-500'
+                      } ${!hasCombination(a, selectedB) ? 'opacity-50' : ''}`}
+                  >
+                    {selectedA === a && (
+                      <div className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
+                        style={{
+                          borderBottomLeftRadius: '7px',
+                          borderTopRightRadius: '7px'
+                        }}>
+                        <span className="text-white text-[9px] font-bold leading-none">✓</span>
+                      </div>
+                    )}
+                    {a}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Option 2 */}
+            {/* Option B */}
             <div className="flex flex-col gap-2 mb-4 mt-4">
-              <p className="font-medium text-gray-700 text-lg">{product?.variants[0]?.option2}</p>
+              <p className="font-medium text-gray-700 text-lg">{product.option2 || ''}</p>
               <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
-                {[...new Set(product?.variants?.map(v => v.value2))].map((value2, index) => {
-                  const hasCombination = product?.variants?.some(v => v.value2 === value2 && v.value1 === selectedSize);
-                  return (
-                    <button
-                      key={`option2-${value2}-${index}`}
-                      onClick={() => handleSelectValue2(value2)}
-                      className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedColor === value2
-                          ? 'border-red-600 text-black bg-white'
-                          : 'border-gray-300 text-black bg-white hover:border-red-500'
-                        } ${!hasCombination ? 'opacity-50' : ''}`}
-                    >
-                      {selectedColor === value2 && (
-                        <div className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
-                          style={{
-                            borderBottomLeftRadius: '7px',
-                            borderTopRightRadius: '7px'
-                          }}>
-                          <span className="text-white text-[9px] font-bold leading-none">✓</span>
-                        </div>
-                      )}
-                      {value2 || 'Không có'}
-                    </button>
-                  );
-                })}
+                {optsB.map(b => (
+                  <button
+                    key={b}
+                    onClick={() => handleSelectB(b)}
+                    className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedB === b
+                      ? 'border-red-600 text-black bg-white'
+                      : 'border-gray-300 text-black bg-white hover:border-red-500'
+                      } ${!hasCombination(selectedA, b) ? 'opacity-50' : ''}`}
+                  >
+                    {selectedB === b && (
+                      <div className="absolute -top-[0px] -right-[0px] w-4 h-4 bg-red-600 flex items-center justify-center overflow-hidden"
+                        style={{
+                          borderBottomLeftRadius: '7px',
+                          borderTopRightRadius: '7px'
+                        }}>
+                        <span className="text-white text-[9px] font-bold leading-none">✓</span>
+                      </div>
+                    )}
+                    {b}
+                  </button>
+                ))}
               </div>
             </div>
 
 
-
-            {/* Số lượng và hành động */}
+            {/* Quantity & actions */}
             <div className="flex items-center gap-3 mt-4">
               <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition">
+                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition"
+                >
                   −
                 </button>
                 <span className="w-[55px] flex items-center justify-center text-base font-extrabold text-black">
@@ -454,17 +337,22 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 </span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition">
+                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition"
+                >
                   +
                 </button>
               </div>
 
               <button
-                onClick={handleBuyNow}
+                onClick={() => {
+                  handleAddToCart();
+                  handleBuyNow(); // Trigger buying and redirecting to cart
+                }}
                 className="w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium"
               >
                 Mua Ngay
               </button>
+
               <button
                 onClick={handleAddToCart}
                 className="w-[165px] h-[44px] text-brand border border-brand text-sm md:text-base rounded hover:bg-brand hover:text-white transition font-medium"
@@ -498,39 +386,30 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                 </div>
               </div>
             </div>
-
           </div>
-
-
         </div>
       </div>
 
-      {/* Thông tin cửa hàng */}
-      <ShopInfo
-        shop={product.shop || undefined}
-        followed={followed}
-        onFollowToggle={handleFollow}
-      />
-
+      {/* Shop Info & Description */}
+      <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} />
       <ProductDescription html={product.description} />
 
-      {/* Gợi ý sản phẩm shop */}
-      <div className="w-full max-w-screen-xl mx-auto mt-16">
-        <ShopProductSlider />
+      {/* Related */}
+      <div className="mt-16">
+        <ShopProductSlider shopSlug={product.shop.slug} />
       </div>
-
-      {/* Gợi ý sản phẩm khác */}
-      <div className="w-full max-w-screen-xl mx-auto mt-6">
+      <div className="mt-6">
         <BestSellingSlider />
       </div>
 
-      {/* Thông báo thêm/xoá yêu thích */}
+      {/* Popup */}
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
           {popupText ||
             (liked ? 'Đã thêm vào mục yêu thích!' : 'Đã xóa khỏi mục yêu thích!')}
         </div>
       )}
+
     </div>
   );
 }

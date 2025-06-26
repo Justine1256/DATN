@@ -37,6 +37,7 @@ const Header = () => {
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
   const categoryRef = useRef<HTMLDivElement>(null);
   const [cartItems, setCartItems] = useState<any[]>([]);
+  
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/category`)
@@ -145,14 +146,19 @@ const Header = () => {
     { href: "/voucher", label: "Mã giảm giá" },
   ];
 
-  // Xử lý sự kiện tìm kiếm
-  const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      console.log("Searching for:", searchQuery);
-      // Có thể thêm logic điều hướng hoặc gọi API tìm kiếm ở đây
-    }
-  };
+    // Xử lý sự kiện tìm kiếm
+    const handleSearchSubmit = async (e: React.FormEvent | React.KeyboardEvent) => {
+  e.preventDefault();
+  const keyword = searchQuery.trim();
+  if (!keyword) return;
+
+  try {
+    // 👉 Điều hướng sang trang /search?query=...
+    router.push(`/search?query=${encodeURIComponent(keyword)}`);
+  } catch (err) {
+    console.error("Lỗi khi tìm kiếm:", err);
+  }
+};
 
   // Xử lý đăng xuất người dùng
   const handleLogout = () => {
@@ -280,7 +286,7 @@ const Header = () => {
             {/* 🔔 Thông báo */}
             <div className="relative group">
               <div className="relative w-5 h-5 flex items-center justify-center cursor-pointer scale-[0.9]">
-                <FaRegBell className="text-black group-hover:text-[#DB4444] w-5 h-5 transition duration-200" />
+                <FaRegBell className="text-black group-hover:text-brand w-5 h-5 transition duration-200" />
                 {unreadNotificationCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
                     {unreadNotificationCount}
@@ -326,7 +332,7 @@ const Header = () => {
                   )}
                 </ul>
                 <div className="text-center p-2">
-                  <button onClick={() => router.push("/account")} className="text-sm text-[#DB4444] font-medium hover:underline transition">
+                  <button onClick={() => router.push("/account")} className="text-sm text-brand font-medium hover:underline transition">
                     Xem tất cả
                   </button>
                 </div>

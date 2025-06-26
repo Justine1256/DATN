@@ -1,21 +1,36 @@
-export interface Product {
+export interface Variant {
   id: number;
-  category_id: number;
-  shop_id: number;
-  name: string;
-  slug: string;
-  description?: string;
+  product_id: number;
+  option1: string;
+  value1: string;
+  option2: string;
+  value2: string;
   price: number;
   sale_price?: number;
   stock: number;
-  sold: number;
-image: string | string[];
+  image: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  image: string[];
+  slug: string;
+  price: number;
+  oldPrice: number;
+  rating: number;
+  sold?: number;
+  discount: number;
   option1?: string;
   value1?: string;
-  option2?: string;
+  sale_price?: number;
+  description?: string;
   value2?: string;
-  status: 'activated' | 'deleted';
-  created_at?: string;
-  updated_at?: string;
-  deleted_at?: string | null;
+  shop: {  // Thêm trường shop
+    id: number;
+    name: string;  // Trường name cho tên cửa hàng
+  };
 }
+

@@ -3,8 +3,34 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
   images: {
-    domains: ['127.0.0.1', 'localhost', 'api.marketo.info.vn', 'example.com', 'res.cloudinary.com', 'cdn.example.org'],
+    domains: [
+      'localhost',
+      'api.marketo.info.vn',
+    ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'salt.tikicdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img4.thuthuatphanmem.vn', // Added this hostname
+      },
+      {
+        protocol: 'https',
+        hostname: 'thietbidiengiadung.io.vn', // Added this hostname
+      },
+      {
+        protocol: 'https',
+        hostname: 'shop.nagakawa.com.vn', // Added this hostname
+      },
+    ],
   },
 };
 

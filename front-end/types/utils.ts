@@ -81,11 +81,17 @@ export const translateShippingStatus = (status: ShippingStatus): string => {
 // Hàm nhóm các chi tiết đơn hàng theo cửa hàng
 export const groupByShop = (orderDetails: any[]): Record<number, any[]> => {
     const grouped: Record<number, any[]> = {};
+
     orderDetails.forEach((detail) => {
-        if (!grouped[detail.product.shop_id]) {
-            grouped[detail.product.shop_id] = [];
+        if (!detail.product || detail.product.shop_id === undefined) return;
+
+        const shopId = detail.product.shop_id;
+        if (!grouped[shopId]) {
+            grouped[shopId] = [];
         }
-        grouped[detail.product.shop_id].push(detail);
+        grouped[shopId].push(detail);
     });
+
     return grouped;
 };
+

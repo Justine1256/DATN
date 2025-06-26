@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import { FiHeart, FiShoppingCart } from "react-icons/fi";
+import { FiHeart, FiShoppingCart, FiEye } from "react-icons/fi";
 import { AiFillHeart, AiFillStar } from "react-icons/ai";
 import { LoadingSkeleton } from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
@@ -23,6 +23,7 @@ export interface Product {
   sale_price?: number;
   shop_slug: string;
   variants: any[];
+  sold?: number;
 }
 
 const formatImageUrl = (img: unknown): string => {
@@ -47,10 +48,9 @@ export default function ProductCard({
   onLiked?: (product: Product) => void;
   wishlistProductIds?: number[];
 }) {
+  
   const router = useRouter();
-  const isInWishlist = product
-    ? wishlistProductIds.includes(product.id)
-    : false;
+  const isInWishlist = product ? wishlistProductIds.includes(product.id) : false;
 
   const [liked, setLiked] = useState(isInWishlist);
   const [showPopup, setShowPopup] = useState(false);
@@ -59,11 +59,16 @@ export default function ProductCard({
 
   useEffect(() => {
     setLiked(isInWishlist);
-  }, [isInWishlist, product?.id]);
+    console.log("Product Data:", product);
+    // ✅ Auto-select biến thể đầu tiên nếu có ít nhất 1 biến thể
+    if (product && Array.isArray(product.variants) && product.variants.length > 0) {
+      setSelectedVariant(product.variants[0]);
+    }
+    
+  }, [isInWishlist, product?.id, product]);
 
   if (!product) return <LoadingSkeleton />;
 
-  // Logic for checking the price
   const getPrice = () => {
     if (selectedVariant) {
       return Number(selectedVariant.sale_price || selectedVariant.price).toLocaleString('vi-VN');
@@ -78,6 +83,7 @@ export default function ProductCard({
     const newLiked = !liked;
     setLiked(newLiked);
     const token = localStorage.getItem("token") || Cookies.get("authToken");
+
     if (!token) {
       setPopupMessage("Bạn cần đăng nhập để thêm vào yêu thích");
       setShowPopup(true);
@@ -138,16 +144,23 @@ export default function ProductCard({
       return;
     }
 
+    if (!selectedVariant?.id) {
+      setPopupMessage("Vui lòng chọn biến thể trước khi thêm vào giỏ hàng");
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 2000);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/cart`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          Accept: "application/json",
         },
         body: JSON.stringify({
           product_id: product.id,
+          variant_id: selectedVariant.id,
           quantity: 1,
         }),
       });
@@ -173,10 +186,11 @@ export default function ProductCard({
     router.push(`/shop/${shopSlug}/product/${product.slug}`);
   };
 
-  return (
+return (
     <div
       onClick={handleViewDetail}
-      className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
+      className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[240px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
+      style={{ minHeight: '250px' }}
     >
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
@@ -201,18 +215,18 @@ export default function ProductCard({
         )}
       </button>
 
-      <div className="w-full h-[140px] mt-8 flex items-center justify-center">
+      <div className="w-full h-[150px] mt-8 flex items-center justify-center overflow-hidden">
         <Image
           src={mainImage}
           alt={product.name}
           width={150}
-          height={20}
-          className="object-contain max-h-[2220px] transition-transform duration-300 group-hover:scale-105"
+          height={150}
+          className="object-contain max-h-[150px] transition-transform duration-300 group-hover:scale-105"
         />
       </div>
 
-      <div className="flex flex-col mt-4 w-full px-1 pb-14">
-        <h4 className="text-base font-semibold text-black leading-tight line-clamp-2 capitalize pointer-events-none">
+      <div className="flex flex-col mt-8 w-full px-1 pb-4">
+        <h4 className="text-base font-semibold text-black leading-tight capitalize pointer-events-none overflow-hidden whitespace-nowrap text-ellipsis">
           {product.name}
         </h4>
 
@@ -227,29 +241,23 @@ export default function ProductCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1 text-yellow-500 text-xs mt-1">
-          {Array(5)
-            .fill(0)
-            .map((_, i) => (
-              <AiFillStar
-                key={i}
-                className={`w-4 h-4 ${i < Math.round(product.rating)
-                    ? "text-yellow-500"
-                    : "text-gray-300"
-                  }`}
-              />
-            ))}
-          <span className="text-gray-600 text-[10px]">({product.rating})</span>
+        <div className="flex items-center justify-between text-yellow-500 text-sm mt-2">
+          <div className="flex items-center">
+            {Array(5)
+              .fill(0)
+              .map((_, i) => (
+                <AiFillStar
+                  key={i}
+                  className={`w-4 h-4 ${i < Math.round(product.rating) ? "text-yellow-500" : "text-gray-300"}`}
+                />
+              ))}
+            <span className="text-gray-600">({product.rating})</span>
+          </div>
+          <span className="text-gray-600 text-sm">{product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}</span>
         </div>
       </div>
-
-      <button
-        onClick={handleAddToCart}
-        className="absolute bottom-0 left-0 right-0 bg-brand text-white text-sm py-2.5 rounded-b-lg items-center justify-center gap-2 transition-all duration-300 hidden group-hover:flex"
-      >
-        <FiShoppingCart className="text-base" />
-        Thêm Vào Giỏ Hàng
-      </button>
     </div>
   );
+  
 }
+

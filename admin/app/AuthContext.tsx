@@ -41,13 +41,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((res) => {
           const user = res.data;
           if (!["seller", "admin"].includes(user.role)) {
+            console.warn("Vai trò không hợp lệ:", user.role);
             redirectToLogin();
           } else {
             setUser(user);
             setIsAuthReady(true);
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error("Xác thực thất bại:", err);
           redirectToLogin();
         });
     } else {
@@ -55,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     function redirectToLogin() {
+      setIsAuthReady(true); // để tránh treo UI
       window.location.href = "http://localhost:3000/login";
     }
   }, []);

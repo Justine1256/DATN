@@ -133,34 +133,46 @@ export default function OrderDetailModal({
                                         >
                                             <td className="px-4 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
-                                                    <Image
-                                                        src={formatImageUrl(detail.product.image)}
-                                                        alt={detail.product.name}
-                                                        width={60}
-                                                        height={60}
-                                                        className="rounded-md border border-gray-200 object-cover"
-                                                    />
+                                                    {detail.product ? (
+                                                        <Image
+                                                            src={formatImageUrl(detail.product.image)}
+                                                            alt={detail.product.name}
+                                                            width={60}
+                                                            height={60}
+                                                            className="rounded-md border border-gray-200 object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-[60px] h-[60px] bg-gray-200 rounded-md flex items-center justify-center text-xs text-gray-500 border">
+                                                            Không có ảnh
+                                                        </div>
+                                                    )}
+
                                                     <div className="ml-3 max-w-[200px]">
                                                         <div
                                                             className="text-sm font-medium text-gray-900 truncate"
-                                                            title={detail.product.name}
+                                                            title={detail.product?.name || "Sản phẩm không xác định"}
+
                                                         >
-                                                            {detail.product.name}
+                                                            {detail.product?.name || "Sản phẩm đã bị xoá"}
+
                                                         </div>
-                                                        {detail.product.description && (
+                                                        {detail.product?.description ? (
                                                             <div
                                                                 className="text-xs text-gray-500 truncate"
                                                                 title={detail.product.description}
                                                             >
                                                                 {detail.product.description}
                                                             </div>
+                                                        ) : (
+                                                            <div className="text-xs text-gray-400">Không có mô tả</div>
                                                         )}
+
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="text-sm text-gray-900">
-                                                    {detail.product.value1 ? (
+                                                    {detail.product?.value1 ? (
                                                         <div className="mb-1">
                                                             <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                                                                 {detail.product.value1}
@@ -170,8 +182,9 @@ export default function OrderDetailModal({
                                                         <div className="text-xs text-gray-400">Không có giá trị 1</div>
                                                     )}
 
-                                                    {detail.product.value2 ? (
-                                                        <div>
+
+                                                     {detail.product?.value2 ? (
+                                                          <div>
                                                             <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                                                                 {detail.product.value2}
                                                             </span>
@@ -179,6 +192,7 @@ export default function OrderDetailModal({
                                                     ) : (
                                                         <div className="text-xs text-gray-400">Không có giá trị 2</div>
                                                     )}
+
                                                 </div>
                                             </td>
 
@@ -193,9 +207,15 @@ export default function OrderDetailModal({
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4 text-center">
-                                                <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-medium">
-                                                    Cửa hàng #{detail.product.shop_id}
-                                                </span>
+                                               
+                                                    <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-medium">
+                                                        {/* Lấy tên cửa hàng từ order.shop_name */}
+                                                        {order.shop_name ? `Cửa hàng ${order.shop_name}` : 'Không rõ cửa hàng'}
+                                                    </span>
+                                             
+
+
+
                                             </td>
                                             <td className="px-4 py-4 text-right">
                                                 <div className="text-sm font-bold text-red-600">

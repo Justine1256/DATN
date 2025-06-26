@@ -11,9 +11,10 @@ export default function AboutRouter() {
         <div className="container mx-auto px-4 max-w-[1170px]">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">
-              <Link href="/" className="hover:text-[#DB4444] cursor-pointer">
-                Trang Chủ
-              </Link>
+
+             <Link href="/" className="hover:text-[#DB4444] cursor-pointer">
+  Trang Chủ
+</Link>
               <span className="mx-2">/</span>
               <span>Giới Thiệu</span>
             </div>

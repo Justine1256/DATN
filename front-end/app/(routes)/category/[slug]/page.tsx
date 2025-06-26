@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import ProductCard from "@/app/components/product/ProductCardCate";
+import ProductCardcate from "@/app/components/product/ProductCardCate";
 import LandingSlider from "@/app/components/home/LandingSlider";
 import { API_BASE_URL } from "@/utils/api";
 import CategoryGrid from "@/app/components/home/CategoryGrid";
@@ -140,107 +140,96 @@ export default function CategoryPage() {
 
       <div className="mt-8 flex flex-col lg:flex-row gap-6">
         <div className="w-full lg:w-1/4 flex flex-col gap-8">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Danh mục</h3>
-            <div className="space-y-2">
-              <button
-                onClick={() => handleCategorySelect(null)}
-                className={`w-full text-left px-4 py-2 rounded transition-colors
-                  ${!slug ? "text-[#DB4444] font-semibold" : "text-black hover:text-[#DB4444]"}`}
-              >
-                Tất Cả Sản Phẩm
-              </button>
-              {categories.map((cat) => (
+
+
+          <div className="pt-4 flex flex-col space-y-4">
+            <h3 className="text-lg font-semibold pb-4 border-b">Bộ lọc </h3>
+
+            {/* Danh sách danh mục */}
+            <div className="flex flex-col space-y-4">
+              <h3 className="font-semibold">Danh mục</h3>
+
+              <div>
                 <button
-                  key={cat.id}
-                  onClick={() => handleCategorySelect(cat.slug)}
-                  className={`w-full text-left px-4 py-2 rounded transition-colors
-                    ${cat.slug === slug ? "text-[#DB4444] font-semibold" : "text-black hover:text-[#DB4444]"}`}
+                  onClick={() => handleCategorySelect(null)}
+                  className={`w-full px-3 py-2 transition-colors text-left
+                  ${!slug ? "text-brand font-semibold" : "hover:text-brand"}`}
                 >
-                  {cat.name}
+                  Tất Cả Sản Phẩm
                 </button>
-              ))}
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategorySelect(cat.slug)}
+                    className={`w-full px-3 py-2 transition-colors text-left
+                    ${cat.slug === slug ? "text-brand font-semibold" : "hover:text-brand"}`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="pt-4">
-            <h3 className="text-lg font-semibold mb-3">Bộ lọc & Sắp xếp</h3>
+            {/* Sắp xếp */}
 
-            <div className="space-y-2 mb-6">
-              <h4 className="text-base font-medium mb-1">Sắp xếp</h4>
-              {["Phổ Biến", "Mới Nhất", "Bán Chạy"].map((label) => (
-                <label key={label} className="flex items-center space-x-2 text-black cursor-pointer w-full px-4 py-2 rounded transition-colors hover:text-[#DB4444]">
+
+            <div className="flex flex-col space-y-4">
+              <h4 className="font-semibold">Giá</h4>
+              <div className="flex flex-col">
+                <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
                   <input
                     type="radio"
-                    name="sortOption"
-                    className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
-                    checked={selectedSort === label}
+                    name="priceFilterOptions"
+                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
+                    checked={selectedPriceFilter === "asc"}
                     onChange={() => {
-                      setSelectedSort(label);
-                      setSelectedPriceFilter(null);
+                      setSelectedPriceFilter("asc");
+                      setSelectedSort("Phổ Biến");
                     }}
                   />
-                  <span className={`${selectedSort === label && !selectedPriceFilter ? "text-[#DB4444] font-semibold" : ""}`}>
-                    {label}
-                  </span>
+                  <span>Giá: thấp đến cao</span>
                 </label>
-              ))}
-            </div>
+                <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
+                  <input
+                    type="radio"
+                    name="priceFilterOptions"
+                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
+                    checked={selectedPriceFilter === "desc"}
+                    onChange={() => {
+                      setSelectedPriceFilter("desc");
+                      setSelectedSort("Phổ Biến");
+                    }}
+                  />
+                  <span>Giá: cao đến thấp</span>
+                </label>
+                <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
+                  <input
+                    type="radio"
+                    name="priceFilterOptions"
+                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
+                    checked={selectedPriceFilter === "discount"}
+                    onChange={() => {
+                      setSelectedPriceFilter("discount");
+                      setSelectedSort("Phổ Biến");
+                    }}
+                  />
+                  <span>Giảm giá nhiều nhất</span>
+                </label>
+              </div>
 
-            <div className="space-y-3">
-              <h4 className="text-base font-medium mb-1">Giá</h4>
-              <label className="flex items-center space-x-2 text-black cursor-pointer">
-                <input
-                  type="radio"
-                  name="priceFilterOptions"
-                  className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
-                  checked={selectedPriceFilter === "asc"}
-                  onChange={() => {
-                    setSelectedPriceFilter("asc");
-                    setSelectedSort("Phổ Biến");
-                  }}
-                />
-                <span>Giá: thấp đến cao</span>
-              </label>
-              <label className="flex items-center space-x-2 text-black cursor-pointer">
-                <input
-                  type="radio"
-                  name="priceFilterOptions"
-                  className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
-                  checked={selectedPriceFilter === "desc"}
-                  onChange={() => {
-                    setSelectedPriceFilter("desc");
-                    setSelectedSort("Phổ Biến");
-                  }}
-                />
-                <span>Giá: cao đến thấp</span>
-              </label>
-              <label className="flex items-center space-x-2 text-black cursor-pointer">
-                <input
-                  type="radio"
-                  name="priceFilterOptions"
-                  className="form-radio text-[#DB4444] rounded-sm focus:ring-0 accent-[#DB4444]"
-                  checked={selectedPriceFilter === "discount"}
-                  onChange={() => {
-                    setSelectedPriceFilter("discount");
-                    setSelectedSort("Phổ Biến");
-                  }}
-                />
-                <span>Giảm giá nhiều nhất</span>
-              </label>
 
-              <button
+              {/* <button
                 onClick={handleApplyFilters}
-                className="w-full py-2 bg-[#DB4444] text-white rounded-lg hover:bg-red-600 transition-colors mt-4"
+                className="w-[160px] py-2 bg-[#DB4444] text-white rounded-lg hover:bg-red-600 transition-colors mt-4"
               >
                 Lọc
               </button>
               <button
                 onClick={handleResetFilters}
-                className="w-full py-2 border border-gray-300 text-black rounded-lg hover:bg-gray-100 transition-colors mt-2"
+                className="w-[160px] py-2 border border-gray-300 text-black rounded-lg hover:bg-gray-100 transition-colors mt-2"
               >
                 Đặt lại
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -257,7 +246,7 @@ export default function CategoryPage() {
                   {loading ? (
                     <div className="h-[250px] bg-gray-100 rounded animate-pulse" />
                   ) : (
-                    <ProductCard product={product!} />
+                    <ProductCardcate product={product!} />
                   )}
                 </div>
               ))}

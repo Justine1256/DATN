@@ -47,7 +47,7 @@
 
     <div class="mt-6 text-sm leading-relaxed">
       <p><strong>Kích hoạt bảo hành tại:</strong><br />
-        <a href="https://checkcoverage.apple.com/vn/en/" class="text-black hover:text-[#db4444]">
+        <a href="https://checkcoverage.apple.com/vn/en/" class="text-black hover:text-brand">
           https://checkcoverage.apple.com/vn/en/
         </a>
       </p>
@@ -57,7 +57,7 @@
         <div class="flex flex-wrap gap-2 items-center">
           <a>Bước 1: Truy cập</a>
           <a href="https://getsupport.apple.com/?caller=grl&locale=en_VN"
-             class="text-black hover:text-[#db4444] break-all">
+             class="text-black hover:text-brand break-all">
             https://getsupport.apple.com/?caller=grl&locale=en_VN
           </a>
         </div>
@@ -69,15 +69,15 @@
      <ul class="list-disc list-inside space-y-1">
   <li>
     <a href="https://www.apple.com/legal/warranty/products/warranty-rest-of-apac-vietnamese.html"
-       class="text-black hover:text-[#db4444]">Chính sách chung</a>
+       class="text-black hover:text-brand">Chính sách chung</a>
   </li>
   <li>
     <a href="https://www.apple.com/legal/warranty/products/accessory-warranty-vietnam.html"
-       class="text-black hover:text-[#db4444]">Chính sách phụ kiện</a>
+       class="text-black hover:text-brand">Chính sách phụ kiện</a>
   </li>
   <li>
     <a href="https://getsupport.apple.com/repair-locations?locale=vi_VN"
-       class="text-black hover:text-[#db4444]">Bảo hành tại Việt Nam</a>
+       class="text-black hover:text-brand">Bảo hành tại Việt Nam</a>
   </li>
 </ul>
 
@@ -85,9 +85,9 @@
       <p class="mt-4">Để đảm bảo quyền lợi, quý khách vui lòng quay video khi mở hộp để xử lý khiếu nại dễ dàng hơn.</p>
 
       <p class="mt-4 space-x-2">
-        <a href="#AppleChinhHang" class="text-[#db4444] hover:text-red-700">#AppleChinhHang</a>
-        <a href="#Smartphone" class="text-[#db4444] hover:text-red-700">#Smartphone</a>
-        <a href="#DienThoai" class="text-[#db4444] hover:text-red-700">#DienThoai</a>
+        <a href="#AppleChinhHang" class="text-brand hover:text-red-700">#AppleChinhHang</a>
+        <a href="#Smartphone" class="text-brand hover:text-red-700">#Smartphone</a>
+        <a href="#DienThoai" class="text-brand hover:text-red-700">#DienThoai</a>
       </p>
     </div>
   </div>
