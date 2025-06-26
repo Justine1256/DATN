@@ -6,11 +6,12 @@ import "swiper/css";
 import "swiper/css/navigation";
 import { Navigation } from "swiper/modules";
 import Image from "next/image";
-import { API_BASE_URL } from "@/utils/api";
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 
-type ImageItem = {
+export type ImageItem = {
   id: string;
-  url: string;
+  url: string; // Example: "products/abc.jpg"
+  isNew?: boolean;
 };
 
 interface ImageDropProps {
@@ -34,7 +35,10 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
 
     if (!res.ok) throw new Error("Upload failed");
     const data = await res.json();
-    return data.url; // url từ Laravel
+
+    if (!data.path) throw new Error("Invalid response from server");
+
+    return data.path; // e.g., "products/abc.jpg"
   };
 
   const handleFiles = async (files: FileList | null) => {
@@ -46,8 +50,11 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
 
     for (const file of validFiles) {
       try {
-        const uploadedUrl = await uploadToServer(file);
-        setImages((prev) => [...prev, { id: generateId(), url: uploadedUrl }]);
+        const uploadedPath = await uploadToServer(file);
+        setImages((prev) => [
+          ...prev,
+          { id: generateId(), url: uploadedPath, isNew: true },
+        ]);
       } catch (err) {
         console.error("Image upload failed:", err);
         alert("Upload image failed.");
@@ -81,17 +88,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
   };
 
   const handleRemoveImage = (idToRemove: string) => {
-    setImages((prev) => {
-      const index = prev.findIndex((img) => img.id === idToRemove);
-      if (index === -1) return prev;
-
-      if (index === 0) {
-        // Xoá ảnh chính, ảnh tiếp theo sẽ thay thế
-        return prev.slice(1);
-      }
-
-      return prev.filter((img) => img.id !== idToRemove);
-    });
+    setImages((prev) => prev.filter((img) => img.id !== idToRemove));
   };
 
   return (
@@ -109,7 +106,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
         onClick={handleClick}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className="border border-dashed bg-white p-6 rounded-lg shadow-sm border-gray-200 text-center hover:bg-gray-50 transition cursor-pointer max-w-full mx-auto"
+        className="border border-dashed bg-white p-6 rounded shadow-sm border-gray-200 text-center hover:bg-gray-50 transition cursor-pointer max-w-full mx-auto"
       >
         <div className="w-full mx-auto">
           {images.length > 0 ? (
@@ -117,13 +114,13 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
               <div className="relative">
                 <div className="relative w-full h-[200px]">
                   <Image
-                    src={images[0].url}
+                    src={`${STATIC_BASE_URL}/${images[0].url}`}
                     alt="Main"
                     fill
-                    className="object-contain rounded-lg border shadow-md"
+                    className="object-contain rounded border"
                   />
                 </div>
-                <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-md">
+                <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
                   Main image
                 </span>
                 <button
@@ -132,7 +129,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
                     e.stopPropagation();
                     handleRemoveImage(images[0].id);
                   }}
-                  className="absolute top-1 right-1 bg-white border border-gray-300 text-red-500 px-2 py-0.5 rounded-md text-xs hover:bg-red-100 transition-all"
+                  className="absolute top-1 right-1 bg-white border border-gray-300 text-red-500 px-2 py-0.5 rounded text-xs hover:bg-red-100"
                 >
                   ✕
                 </button>
@@ -151,16 +148,18 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
                       <SwiperSlide key={img.id}>
                         <div className="flex flex-col items-center gap-1">
                           <Image
-                            src={img.url}
+                            src={`${STATIC_BASE_URL}/${img.url}`}
                             alt="Other"
-                            className="w-full h-24 object-cover border rounded-md"
+                            width={80}
+                            height={80}
+                            className="object-cover border rounded"
                           />
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleRemoveImage(img.id);
                             }}
-                            className="text-red-500 text-xs border border-gray-300 rounded-md px-2 py-0.5 hover:bg-red-100 transition-all"
+                            className="text-red-500 text-xs border border-gray-300 rounded px-2 py-0.5 hover:bg-red-100"
                           >
                             ✕
                           </button>
@@ -168,34 +167,6 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
                       </SwiperSlide>
                     ))}
                   </Swiper>
-
-                  <style jsx>{`
-                    .swiper-button-prev,
-                    .swiper-button-next {
-                      top: 50%;
-                      transform: translateY(-50%);
-                      width: 28px;
-                      height: 28px;
-                      background: white;
-                      border-radius: 9999px;
-                      border: 1px solid #ccc;
-                      color: #000;
-                      z-index: 10;
-                    }
-
-                    .swiper-button-prev {
-                      left: 0px;
-                    }
-
-                    .swiper-button-next {
-                      right: 0px;
-                    }
-
-                    .swiper-button-disabled {
-                      opacity: 0.3;
-                      cursor: not-allowed;
-                    }
-                  `}</style>
                 </div>
               )}
             </div>
@@ -212,7 +183,9 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
               </svg>
               <p className="text-gray-600">
                 Drop your images here, or{" "}
-                <span className="text-blue-600 font-medium cursor-pointer">click to browse</span>
+                <span className="text-blue-600 font-medium cursor-pointer">
+                  click to browse
+                </span>
               </p>
               <p className="text-xs text-gray-400">
                 1600x1200 (4:3) recommended. PNG, JPG, GIF.
