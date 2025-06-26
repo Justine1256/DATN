@@ -30,14 +30,14 @@ export default function CartItemsSection({
         try {
           const parsed = JSON.parse(guestCart);
 
-          // Biến đổi mỗi item về dạng CartItem chuẩn
+          // Biến đổi mỗi item về dạng CartItem chuẩn và xử lý ảnh
           const formatted = parsed.map((item: any, index: number) => ({
             id: index + 1, // tạo id tạm
             quantity: item.quantity,
             product: {
               id: item.product_id,
               name: item.name,
-              image: [item.image],
+              image: [formatImageUrl(item.image)], // Xử lý ảnh từ giỏ hàng khách
               price: item.price,
               sale_price: null,
             },
@@ -83,9 +83,15 @@ export default function CartItemsSection({
       const data = await res.json();
       console.log('✅ Đã load giỏ hàng từ API:', data);
 
-      setCartItems(data);
-      propsSetCartItems(data);
-      localStorage.setItem('cartItems', JSON.stringify(data));
+      // Cập nhật giỏ hàng với ảnh đã xử lý
+      const updatedData = data.map((item: any) => ({
+        ...item,
+        image: [formatImageUrl(item.product.image || 'default.jpg')], // Xử lý ảnh cho từng sản phẩm
+      }));
+
+      setCartItems(updatedData);
+      propsSetCartItems(updatedData);
+      localStorage.setItem('cartItems', JSON.stringify(updatedData));
     } catch (error) {
       console.warn('⚠️ API thất bại, fallback localStorage');
 
@@ -103,6 +109,19 @@ export default function CartItemsSection({
       setLoading(false);
     }
   };
+  const formatImageUrl = (img: string | string[]): string => {
+    console.log('Đường dẫn ảnh:', img);  // In ra giá trị của img
+    if (Array.isArray(img)) img = img[0]; // Nếu là mảng, lấy ảnh đầu tiên
+    if (typeof img !== 'string' || !img.trim()) {
+      return `${STATIC_BASE_URL}/products/default-product.png`; // Sử dụng ảnh mặc định nếu không có ảnh
+    }
+    // Kiểm tra xem ảnh đã có URL hợp lệ chưa
+    if (img.startsWith('http')) return img; // Nếu đã có URL bắt đầu bằng 'http', giữ nguyên
+    // Đảm bảo rằng ảnh luôn có đường dẫn hợp lệ
+    return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
+  };
+
+  
   
   
 
@@ -112,9 +131,19 @@ export default function CartItemsSection({
 
   const handleRemove = async (id: number) => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token) return;
+
+    if (!token) {
+      // Nếu không đăng nhập, xóa giỏ hàng từ localStorage
+      const updatedCart = cartItems.filter((item) => item.id !== id);
+
+      setCartItems(updatedCart); // Cập nhật giỏ hàng trong state
+      propsSetCartItems(updatedCart); // Cập nhật giỏ hàng ở component cha
+      localStorage.setItem('cart', JSON.stringify(updatedCart)); // Cập nhật giỏ hàng trong localStorage
+      return;
+    }
 
     try {
+      // Nếu đã đăng nhập, gọi API để xóa sản phẩm
       const res = await fetch(`${API_BASE_URL}/cart/${id}`, {
         method: 'DELETE',
         headers: {
@@ -129,11 +158,11 @@ export default function CartItemsSection({
         throw new Error('Không thể xóa sản phẩm');
       }
 
+      // Cập nhật giỏ hàng trong state và localStorage sau khi xóa thành công từ API
       const updated = cartItems.filter((item) => item.id !== id);
-      setCartItems(updated); // Cập nhật state giỏ hàng
-      propsSetCartItems(updated); // Cập nhật giỏ hàng ở component cha
-
-      localStorage.setItem('cartItems', JSON.stringify(updated)); // Cập nhật lại localStorage
+      setCartItems(updated);
+      propsSetCartItems(updated);
+      localStorage.setItem('cart', JSON.stringify(updated)); // Cập nhật lại localStorage
 
       window.dispatchEvent(new Event('cartUpdated')); // Thông báo giỏ hàng đã thay đổi
     } catch (error) {
@@ -142,23 +171,29 @@ export default function CartItemsSection({
   };
   
   
-  const formatImageUrl = (img: string | string[]): string => {
-    if (Array.isArray(img)) img = img[0]; // Nếu là mảng, lấy ảnh đầu tiên
-    if (typeof img !== 'string' || !img.trim()) {
-      return `${STATIC_BASE_URL}/products/default-product.png`; // Sử dụng ảnh mặc định nếu không có ảnh
-    }
-    if (img.startsWith('http')) return img; // Nếu ảnh là URL hợp lệ
-    return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`; // Nếu ảnh là đường dẫn tương đối
-  };
+  
+
   
 
   const handleQuantityChange = async (id: number, value: number) => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token) return;
 
     const quantity = Math.max(1, value); // Đảm bảo số lượng không nhỏ hơn 1
 
+    if (!token) {
+      // Nếu chưa đăng nhập, cập nhật giỏ hàng trong localStorage
+      const updatedCart = cartItems.map((item) =>
+        item.id === id ? { ...item, quantity } : item
+      );
+
+      setCartItems(updatedCart); // Cập nhật giỏ hàng trong state
+      propsSetCartItems(updatedCart); // Cập nhật giỏ hàng trong component cha
+      localStorage.setItem('cart', JSON.stringify(updatedCart)); // Cập nhật giỏ hàng trong localStorage
+      return;
+    }
+
     try {
+      // Nếu đã đăng nhập, gọi API để cập nhật giỏ hàng
       const res = await fetch(`${API_BASE_URL}/cart/${id}`, {
         method: 'PATCH',
         headers: {
@@ -171,16 +206,19 @@ export default function CartItemsSection({
 
       if (!res.ok) throw new Error('Không thể cập nhật số lượng');
 
+      // Cập nhật giỏ hàng trong state và localStorage sau khi gọi API thành công
       const updated = cartItems.map((item) =>
         item.id === id ? { ...item, quantity } : item
       );
       setCartItems(updated);
       propsSetCartItems(updated);
-      localStorage.setItem('cartItems', JSON.stringify(updated)); // Cập nhật localStorage
+      localStorage.setItem('cart', JSON.stringify(updated)); // Cập nhật lại localStorage
+
     } catch (error) {
       console.error('Lỗi cập nhật số lượng:', error);
     }
   };
+  
   
   
 
@@ -250,13 +288,14 @@ export default function CartItemsSection({
                   ✕
                 </button>
 
-                <div className="w-16 h-16 relative shrink-0">
+                <div className="w-16 h-16 relative shrink-0 ml-3">
                   <Image
-                    src={`${STATIC_BASE_URL}/${firstImage}`}
+                    src={formatImageUrl(item.product.image)} // Đảm bảo gọi hàm formatImageUrl để xử lý ảnh
                     alt={item.product.name}
                     fill
                     className="object-contain"
                   />
+
                 </div>
 
                 <span className="text-sm font-medium text-black">

@@ -105,57 +105,66 @@ const Header = () => {
     const token = Cookies.get("authToken");
 
     if (!token) {
-      // If no token, load the cart from localStorage
+      // Nếu không có token (chưa đăng nhập), lấy giỏ hàng từ localStorage
       const guestCart = localStorage.getItem("cart");
       if (guestCart) {
         const parsedCart = JSON.parse(guestCart);
 
-        // Format the cart items to match the API structure
+        // Biến đổi mỗi item về dạng CartItem chuẩn
         const formattedCart = parsedCart.map((item: any) => ({
-          id: item.product_id,
+          id: item.product_id, // Tạo ID tạm cho sản phẩm
           quantity: item.quantity,
           product: {
             id: item.product_id,
             name: item.name,
-            image: [item.image],
+            image: [item.image], // Đảm bảo rằng ảnh được lưu trong mảng
             price: item.price,
-            sale_price: null,
+            sale_price: null, // Nếu có sale price, cập nhật tại đây
           },
           variant: item.variant_id
             ? {
               id: item.variant_id,
-              option1: 'Phân loại 1',
-              option2: 'Phân loại 2',
+              option1: "Phân loại 1",
+              option2: "Phân loại 2",
               value1: item.value1,
               value2: item.value2,
               price: item.price,
-              sale_price: null,
+              sale_price: null, // Nếu có sale price, cập nhật tại đây
             }
             : null,
         }));
 
-        setCartItems(formattedCart); 
+        setCartItems(formattedCart); // Cập nhật giỏ hàng vào state
       } else {
-        setCartItems([]); 
+        setCartItems([]); // Nếu không có giỏ hàng trong localStorage, set giỏ hàng rỗng
       }
-      setLoading(false); 
+      setLoading(false); // Đặt loading thành false sau khi xử lý giỏ hàng
       return;
     }
 
-    
+    // Nếu đã đăng nhập, gọi API để lấy giỏ hàng
     fetch(`${API_BASE_URL}/cart`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then((data) => {
-        setCartItems(data); 
-        setLoading(false); 
+        setCartItems(data); // Cập nhật giỏ hàng từ API vào state
+        setLoading(false); // Đặt loading thành false
       })
       .catch((err) => {
         console.error("Không thể lấy giỏ hàng", err);
-        setLoading(false); 
+        setLoading(false); // Đặt loading thành false khi xảy ra lỗi
       });
   }, []);
+  const formatImageUrl = (img: string | string[]): string => {
+    if (Array.isArray(img)) img = img[0]; // Nếu là mảng, lấy ảnh đầu tiên
+    if (typeof img !== 'string' || !img.trim()) {
+      return `${STATIC_BASE_URL}/products/default-product.png`; // Nếu không có ảnh, trả về ảnh mặc định
+    }
+    if (img.startsWith('http')) return img; // Nếu ảnh đã có URL hợp lệ
+    return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`; // Đảm bảo ảnh có URL hợp lệ
+  };
+    
   
   
 
@@ -403,13 +412,14 @@ const Header = () => {
                       <li key={item.id} className="flex items-center p-3 hover:bg-gray-100 transition">
                         <div className="w-[48px] h-[48px] flex-shrink-0 overflow-hidden rounded border">
                           <Image
-                            src={`${STATIC_BASE_URL}/${image}`}
-                            alt={name}
+                            src={formatImageUrl(item.product?.image)}  // Đảm bảo gọi hàm formatImageUrl để xử lý ảnh
+                            alt={item.product?.name || 'Tên sản phẩm'}
                             width={48}
                             height={48}
                             className="object-cover w-full h-full"
                           />
                         </div>
+
                         <div className="ml-3 flex-1">
                           <div className="text-sm font-medium line-clamp-1">{name}</div>
                           <div className="text-sm text-red-500">
