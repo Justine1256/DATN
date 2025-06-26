@@ -1,3 +1,4 @@
+// EditProductPage.tsx
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -24,57 +25,67 @@ export default function EditProductPage() {
     option2: "",
     value2: "",
   });
+  const [formValues, setFormValues] = useState({
+    name: "",
+    price: 0,
+    sale_price: 0,
+    stock: 0,
+    description: "",
+  });
 
-useEffect(() => {
-  const fetchUserAndProduct = async () => {
-    try {
-      const token = Cookies.get("authToken");
-      if (!token) throw new Error("Chưa đăng nhập");
+  useEffect(() => {
+    const fetchUserAndProduct = async () => {
+      try {
+        const token = Cookies.get("authToken");
+        if (!token) throw new Error("Chưa đăng nhập");
 
-      // 1. Lấy user để biết shop
-      const userRes = await fetch(`${API_BASE_URL}/user`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.error("User response:", userRes);
-      if (!userRes.ok) throw new Error("Lỗi lấy thông tin user");
-      const userData = await userRes.json();
+        const userRes = await fetch(`${API_BASE_URL}/user`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!userRes.ok) throw new Error("Lỗi lấy thông tin user");
+        const userData = await userRes.json();
 
-      const shopId = userData?.shop?.id;
-      if (!shopId) throw new Error("User chưa có shop");
+        const shopId = userData?.shop?.id;
+        if (!shopId) throw new Error("User chưa có shop");
 
-      // 2. Lấy sản phẩm theo id và shopId (nếu API hỗ trợ)
-      // Ví dụ endpoint chuẩn hơn: `/shop/{shopId}/products/{id}`
-      const productRes = await fetch(`${API_BASE_URL}/shop/products/${id}/get`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!productRes.ok) throw new Error("Không tìm thấy sản phẩm hoặc không có quyền");
+        const productRes = await fetch(`${API_BASE_URL}/shop/products/${id}/get`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!productRes.ok) throw new Error("Không tìm thấy sản phẩm hoặc không có quyền");
 
-      const data = await productRes.json();
+        const data = await productRes.json();
+        const p = data.product;
 
-      setProduct(data.product);
-      setCategory(data.product.category_id?.toString() || "");
-      setSelectedImages(
-        (Array.isArray(data.product.image) ? data.product.image : [data.product.image || ""]).map(
-          (url: string, idx: number) => ({ id: String(idx), url })
-        )
-      );
-      setOptionValues({
-        option1: data.product.option1 || "",
-        value1: data.product.value1 || "",
-        option2: data.product.option2 || "",
-        value2: data.product.value2 || "",
-      });
-    } catch (err) {
-      console.error("Lỗi khi tải sản phẩm:", err);
-      router.push("/product");
-    } finally {
-      setLoading(false);
-    }
-  };
+        setProduct(p);
+        setCategory(p.category_id?.toString() || "");
+        setSelectedImages(
+          (Array.isArray(p.image) ? p.image : [p.image || ""]).map(
+            (url: string, idx: number) => ({ id: String(idx), url })
+          )
+        );
+        setOptionValues({
+          option1: p.option1 || "",
+          value1: p.value1 || "",
+          option2: p.option2 || "",
+          value2: p.value2 || "",
+        });
+        setFormValues({
+          name: p.name,
+          price: p.price,
+          sale_price: p.sale_price || 0,
+          stock: p.stock || 0,
+          description: p.description || "",
+        });
+      } catch (err) {
+        console.error("Lỗi khi tải sản phẩm:", err);
+        router.push("/product");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (id) fetchUserAndProduct();
-}, [id]);
-
+    if (id) fetchUserAndProduct();
+  }, [id]);
 
   if (loading) return <div className="p-6">Đang tải sản phẩm...</div>;
   if (!product) return <div className="p-6 text-red-500">Không tìm thấy sản phẩm.</div>;
@@ -86,21 +97,17 @@ useEffect(() => {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <PreviewCard
           image={selectedImages[0]?.url || "/placeholder.png"}
-          name={product.name}
+          name={formValues.name}
           category={category}
-          price={product.price}
-          discount={product.sale_price || 0}
+          price={formValues.price}
+          discount={formValues.sale_price}
           sizes={product.size || []}
           colors={[]}
           isFashion={category === "fashion"}
         />
 
         <div className="xl:col-span-2 space-y-6">
-          <ImageDrop
-            images={selectedImages}
-            setImages={setSelectedImages}
-          />
-
+          <ImageDrop images={selectedImages} setImages={setSelectedImages} />
 
           <Form
             images={selectedImages}
@@ -108,12 +115,15 @@ useEffect(() => {
             category={category}
             setCategory={setCategory}
             onOptionsChange={setOptionValues}
+            onFormChange={setFormValues}
           />
 
           <ActionButtons
             productId={product.id}
             images={selectedImages}
             optionValues={optionValues}
+            categoryId={category}
+            formValues={formValues}
           />
         </div>
       </div>

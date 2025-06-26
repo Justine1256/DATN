@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
-import { Product } from "@/types/product"; // Đảm bảo import đúng kiểu Product
+import { Product } from "@/types/product";
 
 interface ProductFormProps {
   images: { id: string; url: string }[];
@@ -17,6 +17,13 @@ interface ProductFormProps {
     option2: string;
     value2: string;
   }) => void;
+  onFormChange?: (values: {
+    name: string;
+    price: number;
+    sale_price: number;
+    stock: number;
+    description: string;
+  }) => void;
 }
 
 export default function ProductForm({
@@ -25,12 +32,11 @@ export default function ProductForm({
   category,
   setCategory,
   onOptionsChange,
+  onFormChange,
 }: ProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [shopId, setShopId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Form controlled states
   const [name, setName] = useState(defaultValues?.name || "");
   const [price, setPrice] = useState(defaultValues?.price || 0);
   const [salePrice, setSalePrice] = useState(defaultValues?.sale_price || 0);
@@ -50,8 +56,10 @@ export default function ProductForm({
         });
         const userData = await userRes.json();
         const shopId = userData?.shop?.id;
-        setShopId(shopId);
-        const catRes = await fetch(`${API_BASE_URL}/shop/categories/${shopId}`);
+
+        const catRes = await fetch(`${API_BASE_URL}/shop/categories/${shopId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const catData = await catRes.json();
         const onlySubCategories = (catData.categories || []).filter(
           (cat: Category) => cat.parent_id !== null
@@ -67,20 +75,23 @@ export default function ProductForm({
     fetchUserAndCategories();
   }, []);
 
-  // Truyền option/value mỗi khi thay đổi
   useEffect(() => {
     if (onOptionsChange) {
       onOptionsChange({ option1, value1, option2, value2 });
     }
   }, [option1, value1, option2, value2, onOptionsChange]);
 
-  // Đồng bộ category prop với state local
   useEffect(() => {
-  if (category !== "") {
-    setCategory(category);
-  }
-}, [category]);
+    if (onFormChange) {
+      onFormChange({ name, price, sale_price: salePrice, stock, description });
+    }
+  }, [name, price, salePrice, stock, description, onFormChange]);
 
+  useEffect(() => {
+    if (category !== "") {
+      setCategory(category);
+    }
+  }, [category]);
 
   if (loading) return <p>Đang tải dữ liệu...</p>;
 
@@ -164,7 +175,7 @@ export default function ProductForm({
             onChange={(e) => {
               const val = e.target.value;
               setOption1(val);
-              if (!val) setValue1(""); // reset value1 nếu xoá option1
+              if (!val) setValue1("");
             }}
             className="border rounded px-3 py-2 w-full"
           />
@@ -178,7 +189,7 @@ export default function ProductForm({
             value={value1}
             onChange={(e) => setValue1(e.target.value)}
             className="border rounded px-3 py-2 w-full"
-            disabled={!option1} // disable nếu chưa nhập option1
+            disabled={!option1}
           />
         </div>
 
@@ -191,7 +202,7 @@ export default function ProductForm({
             onChange={(e) => {
               const val = e.target.value;
               setOption2(val);
-              if (!val) setValue2(""); // reset value2 nếu xoá option2
+              if (!val) setValue2("");
             }}
             className="border rounded px-3 py-2 w-full"
           />
@@ -205,7 +216,7 @@ export default function ProductForm({
             value={value2}
             onChange={(e) => setValue2(e.target.value)}
             className="border rounded px-3 py-2 w-full"
-            disabled={!option2} // disable nếu chưa nhập option2
+            disabled={!option2}
           />
         </div>
       </div>
@@ -222,7 +233,6 @@ export default function ProductForm({
         />
       </div>
 
-      {/* Bạn có thể thêm phần hiển thị images nếu muốn */}
       <div className="mt-4">
         <h3 className="font-semibold mb-2">Hình ảnh sản phẩm</h3>
         <div className="flex gap-2 flex-wrap">

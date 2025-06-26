@@ -44,7 +44,12 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
         const shopId = userData?.shop?.id;
         setShopId(shopId);
 
-        const catRes = await fetch(`${API_BASE_URL}/shop/categories/${shopId}`);
+        const catRes = await fetch(`${API_BASE_URL}/shop/categories/${shopId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
         const catData = await catRes.json();
         const onlySubCategories = (catData.categories || []).filter(
           (cat: Category) => cat.parent_id !== null

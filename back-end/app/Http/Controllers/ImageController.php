@@ -39,7 +39,27 @@ public function show($path)
         return response()->json(['error' => 'File không tồn tại'], 404);
     }
     return response()->file($filePath);
+}public function uploadProductImage(Request $request)
+{
+    if (!$request->hasFile('file')) {
+        return response()->json(['error' => 'No file provided'], 400);
+    }
+
+    $file = $request->file('file');
+
+    if (!$file->isValid()) {
+        return response()->json(['error' => 'Invalid file upload'], 400);
+    }
+
+    // Lưu file vào thư mục public/storage/products
+    $path = $file->store('products', 'public');
+
+    // Trả về đường dẫn truy cập trực tiếp
+    $url = asset('storage/' . $path);
+
+    return response()->json(['url' => $url]);
 }
+
 
 public function store(Request $request){
         if (!$request->hasFile('file')) {

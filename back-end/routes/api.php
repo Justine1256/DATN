@@ -41,6 +41,7 @@ Route::delete('/banner/{id}', [BannerController::class, 'destroy']);
 Route::get('/images', [ImageController::class, 'index']);
 Route::get('/image/{path}', [ImageController::class, 'show'])->where('path', '.*');
 Route::post('/upload-image', [ImageController::class, 'store']);
+Route::post('/upload-product-image', [ImageController::class, 'uploadProductImage']);
 
 Route::get('/category', [CategoryController::class, 'index']);
 Route::get('/category/{id}', [CategoryController::class, 'show']);
