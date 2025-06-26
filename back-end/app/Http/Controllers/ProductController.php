@@ -367,31 +367,36 @@ class ProductController extends Controller
             'products' => $products,
         ]);
     }
-    public function getProductByIdShop($id)
-    {
-        $user = Auth::user();
+public function getProductByIdShop($id)
+{
+    $user = Auth::user();
 
-        if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-
-        $shopId = $user->shop_id; // Giả sử user có shop_id
-
-        if (!$shopId) {
-            return response()->json(['message' => 'User has no shop'], 403);
-        }
-
-        // Tìm sản phẩm thuộc shop của user
-        $product = Product::where('id', $id)->where('shop_id', $shopId)->first();
-
-        if (!$product) {
-            return response()->json(['message' => 'Product not found or not authorized'], 404);
-        }
-
-        return response()->json([
-            'product' => $product,
-        ]);
+    if (!$user) {
+        return response()->json(['message' => 'Unauthorized'], 401);
     }
+
+    $shopId = $user->shop_id;
+
+    if (!$shopId) {
+        return response()->json(['message' => 'User has no shop'], 403);
+    }
+
+    // Tìm sản phẩm theo id và shop của user
+    $product = Product::where('id', $id)
+        ->where('shop_id', $shopId)
+        ->with('category') // nếu bạn muốn load quan hệ như bên getProductByShop
+        ->first();
+
+    if (!$product) {
+        return response()->json(['message' => 'Product not found or not authorized'], 404);
+    }
+
+    return response()->json([
+        'status' => true,
+        'product' => $product,
+    ]);
+}
+
 
     // Cập nhật sản phẩm bởi shop
     public function update(Request $request, $id)
