@@ -27,7 +27,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch(`${API_BASE_URL}/upload-image`, {
+    const res = await fetch(`${API_BASE_URL}/upload-product-image`, {
       method: "POST",
       body: formData,
     });
