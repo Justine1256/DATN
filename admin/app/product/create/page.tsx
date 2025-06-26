@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import PreviewCard from "@/app/components/product/create/PreviewCard";
+// import PreviewCard from "@/app/components/product/create/PreviewCard";
 import ImageDrop from "@/app/components/product/create/ImageDrop";
 import ProductInfoForm from "@/app/components/product/create/Form";
 import VariantModal from "@/app/components/product/create/VariantModal";
@@ -9,6 +9,7 @@ import ActionButtons from "@/app/components/product/create/ActionButtons";
 import { API_BASE_URL } from "@/utils/api";
 import { useAuth } from "@/app/AuthContext";
 import Cookies from "js-cookie";
+
 
 export default function AddProductPage() {
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
@@ -24,6 +25,9 @@ export default function AddProductPage() {
     option2: "",
     value2: "",
   });
+
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
 
   const { user } = useAuth();
   const isFashion = category === "fashion";
@@ -48,8 +52,6 @@ export default function AddProductPage() {
       variants,
     };
 
-    console.log("Payload gửi:", payload);
-
     try {
       const token = Cookies.get("authToken");
       const res = await fetch(`${API_BASE_URL}/shop/products`, {
@@ -63,36 +65,26 @@ export default function AddProductPage() {
 
       if (!res.ok) {
         const text = await res.text();
-        console.error("❌ Lỗi server trả về:", text);
-        alert("Lỗi: " + text);
+        setPopupMessage("Lỗi: " + text);
+        setShowPopup(true);
         return;
       }
 
       const result = await res.json();
-      alert("Thêm sản phẩm thành công!");
-      console.log("Kết quả:", result);
+      setPopupMessage("Thêm sản phẩm thành công!");
+      setShowPopup(true);
     } catch (error) {
-      console.error(error);
-      alert("Gửi sản phẩm thất bại.");
+      setPopupMessage("Gửi sản phẩm thất bại.");
+      setShowPopup(true);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-6">
-      <h1 className="text-xl font-bold text-gray-800 mb-4">Add New Product</h1>
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <PreviewCard
-          image={images[0]?.url || ""}
-          name=""
-          category={category}
-          price={0}
-          discount={0}
-          sizes={option1Values}
-          colors={option2Values}
-          isFashion={isFashion}
-        />
+    <form onSubmit={handleSubmit} className="p-6 space-y-9 flex justify-center"> {/* Added flex justify-center */}
+      <div className="w-full max-w-4xl"> {/* Added a max-width container */}
+        <h1 className="text-xl font-bold text-gray-800 mb-4">Add New Product</h1>
 
-        <div className="xl:col-span-2 space-y-6">
+        <div className="space-y-6 mt-8"> {/* Removed grid classes here */}
           <ImageDrop images={images} setImages={setImages} />
           <ProductInfoForm
             images={images}
@@ -109,19 +101,21 @@ export default function AddProductPage() {
                   option2.trim() === "" || value2.trim() !== "";
 
                 if (!hasOption1) {
-                  alert("Vui lòng nhập Option 1 và Value 1 trước khi thêm biến thể.");
+                  setPopupMessage("Vui lòng nhập Option 1 và Value 1 trước khi thêm biến thể.");
+                  setShowPopup(true);
                   return;
                 }
 
                 if (!hasValidOption2) {
-                  alert("Bạn đã nhập Option 2 nhưng chưa có Value 2.");
+                  setPopupMessage("Bạn đã nhập Option 2 nhưng chưa có Value 2.");
+                  setShowPopup(true);
                   return;
                 }
 
                 setShowVariantModal(true);
                 setEditingIndex(null);
               }}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              className="bg-[#db4444] text-white px-4 py-2 rounded hover:bg-[#c23333] transition-all"
             >
               Thêm biến thể
             </button>
@@ -144,7 +138,7 @@ export default function AddProductPage() {
                       Giá: {variant.price.toLocaleString()}đ
                       {variant.sale_price > 0 && (
                         <> - KM: {variant.sale_price.toLocaleString()}đ</>
-                      )} {" "}
+                      )}{" "}
                       - SL: {variant.stock}
                     </p>
                   </div>
@@ -214,6 +208,8 @@ export default function AddProductPage() {
           <ActionButtons />
         </div>
       </div>
+
+
     </form>
   );
 }

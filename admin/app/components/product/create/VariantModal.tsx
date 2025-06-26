@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+// Assuming NotificationPopup is created
 
 interface Variant {
   value1: string;
@@ -33,6 +34,10 @@ export default function VariantModal({
   const [stock, setStock] = useState<number>(initialData?.stock || 1);
   const [images, setImages] = useState<string[]>(initialData?.image || []);
 
+  // Popup state
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -51,11 +56,14 @@ export default function VariantModal({
   };
 
   const handleSubmit = () => {
+    // Validate inputs
     if ((!value1 && !disableValue1) || (!value2 && !disableValue2) || price <= 0 || stock <= 0) {
-      alert("Vui lòng nhập đầy đủ và hợp lệ.");
+      setPopupMessage("Vui lòng nhập đầy đủ và hợp lệ.");
+      setShowPopup(true);
       return;
     }
 
+    // Save the variant
     onSave({
       value1,
       value2,
@@ -65,17 +73,37 @@ export default function VariantModal({
       image: images,
     });
 
+    setPopupMessage("Biến thể đã được lưu thành công!");
+    setShowPopup(true);
+
     onClose();
+  };
+
+  // Handle price, sale price, and stock input to only allow valid positive numbers
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Math.max(0, Number(e.target.value)); // Ensures positive number
+    setPrice(value);
+  };
+
+  const handleSalePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Math.max(0, Number(e.target.value)); // Ensures positive number
+    setSalePrice(value);
+  };
+
+  const handleStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Math.max(0, Number(e.target.value)); // Ensures positive integer
+    setStock(value);
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md overflow-y-auto max-h-[90vh]">
-        <h2 className="text-lg font-semibold mb-4">Thêm biến thể</h2>
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg overflow-y-auto max-h-[90vh]">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Thêm biến thể</h2>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Value 1 */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label className="text-sm font-medium text-gray-700 block mb-2">
               Giá trị 1 (VD: 256GB, M, L)
             </label>
             <input
@@ -83,13 +111,14 @@ export default function VariantModal({
               value={value1}
               onChange={(e) => setValue1(e.target.value)}
               placeholder="Nhập giá trị 1"
-              className="border rounded w-full px-3 py-2"
+              className="border border-gray-300 focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] rounded-lg w-full px-4 py-3 transition-all"
               disabled={disableValue1}
             />
           </div>
 
+          {/* Value 2 */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label className="text-sm font-medium text-gray-700 block mb-2">
               Giá trị 2 (VD: Màu đen, Titan xanh)
             </label>
             <input
@@ -97,50 +126,54 @@ export default function VariantModal({
               value={value2}
               onChange={(e) => setValue2(e.target.value)}
               placeholder="Nhập giá trị 2"
-              className="border rounded w-full px-3 py-2"
+              className="border border-gray-300 focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] rounded-lg w-full px-4 py-3 transition-all"
               disabled={disableValue2}
             />
           </div>
 
+          {/* Price */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label className="text-sm font-medium text-gray-700 block mb-2">
               Giá gốc
             </label>
             <input
               type="number"
               value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
+              onChange={handlePriceChange}
               placeholder="Nhập giá gốc (VNĐ)"
-              className="border rounded w-full px-3 py-2"
+              className="border border-gray-300 focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] rounded-lg w-full px-4 py-3 transition-all"
             />
           </div>
 
+          {/* Sale Price */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label className="text-sm font-medium text-gray-700 block mb-2">
               Giá khuyến mãi
             </label>
             <input
               type="number"
               value={salePrice}
-              onChange={(e) => setSalePrice(Number(e.target.value))}
+              onChange={handleSalePriceChange}
               placeholder="Nhập giá khuyến mãi (nếu có)"
-              className="border rounded w-full px-3 py-2"
+              className="border border-gray-300 focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] rounded-lg w-full px-4 py-3 transition-all"
             />
           </div>
 
+          {/* Stock */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label className="text-sm font-medium text-gray-700 block mb-2">
               Số lượng tồn
             </label>
             <input
               type="number"
               value={stock}
-              onChange={(e) => setStock(Number(e.target.value))}
+              onChange={handleStockChange}
               placeholder="Nhập số lượng tồn"
-              className="border rounded w-full px-3 py-2"
+              className="border border-gray-300 focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] rounded-lg w-full px-4 py-3 transition-all"
             />
           </div>
 
+          {/* Image Upload */}
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">
               Hình ảnh biến thể
@@ -149,7 +182,7 @@ export default function VariantModal({
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
-              className="mb-2"
+              className="mb-4"
             />
             <div className="flex flex-wrap gap-2">
               {images.map((img, index) => (
@@ -157,7 +190,7 @@ export default function VariantModal({
                   <img
                     src={img}
                     alt={`variant-${index}`}
-                    className="w-20 h-20 object-cover rounded border"
+                    className="w-10 h-20 object-cover rounded-lg border"
                   />
                   <button
                     type="button"
@@ -172,23 +205,26 @@ export default function VariantModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-6">
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-4 mt-6">
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-600 px-4 py-2 hover:underline"
+            className="text-gray-600 px-4 py-2 hover:text-[#db4444] transition-all"
           >
             Huỷ
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-[#db4444] text-white px-4 py-3 rounded-lg hover:bg-[#c23333] transition-all"
           >
             Xác nhận
           </button>
         </div>
       </div>
+
+      
     </div>
   );
 }
