@@ -391,6 +391,7 @@ const Header = () => {
             </Link>
 
             {/* 🛒 Giỏ hàng */}
+            {/* 🛒 Giỏ hàng */}
             <div className="relative group" onClick={() => router.push("/cart")}>
               <div className="relative w-5 h-5 cursor-pointer">
                 <AiOutlineShoppingCart className="w-5 h-5 text-black hover:text-red-500 transition" />
@@ -404,15 +405,14 @@ const Header = () => {
                 <div className="p-3 border-b text-base font-semibold">Sản Phẩm Mới Thêm</div>
                 <ul className="max-h-[300px] overflow-y-auto divide-y divide-gray-100">
                   {cartItems.slice(0, 5).map((item: any) => {
-                   
-                    const price = item.product?.sale_price ?? item.product?.price ?? 0; 
-                    const image = item.product?.image?.[0] ?? "default.jpg";  
-                    const name = item.product?.name ?? "Tên sản phẩm";  
+                    const price = item.product?.sale_price ?? item.product?.price ?? 0;
+                    const image = item.product?.image?.[0] ?? "default.jpg";
+                    const name = item.product?.name ?? "Tên sản phẩm";
                     return (
                       <li key={item.id} className="flex items-center p-3 hover:bg-gray-100 transition">
                         <div className="w-[48px] h-[48px] flex-shrink-0 overflow-hidden rounded border">
                           <Image
-                            src={formatImageUrl(item.product?.image)}  // Đảm bảo gọi hàm formatImageUrl để xử lý ảnh
+                            src={formatImageUrl(item.product?.image)} // Đảm bảo gọi hàm formatImageUrl để xử lý ảnh
                             alt={item.product?.name || 'Tên sản phẩm'}
                             width={48}
                             height={48}
@@ -434,7 +434,6 @@ const Header = () => {
                   )}
                 </ul>
 
-
                 <div className="p-3 border-t flex justify-between items-center">
                   <span className="text-sm text-gray-700">{cartItems.length} sản phẩm</span>
                   <Link href="/cart" className="bg-red-500 text-white px-4 py-1.5 rounded text-sm hover:bg-red-600 transition">
@@ -443,6 +442,7 @@ const Header = () => {
                 </div>
               </div>
             </div>
+
 
             {/* 👤 Avatar + dropdown */}
             {user && (
