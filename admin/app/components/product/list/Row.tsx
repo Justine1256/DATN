@@ -4,6 +4,7 @@ import { AiFillStar } from "react-icons/ai"; // ✅ Thêm icon sao
 import { Product } from "@/types/product";
 import { Category } from "@/types/category";
 import { STATIC_BASE_URL } from "@/utils/api";
+import { useRouter } from 'next/navigation';
 
 type ProductRowProps = {
   product: Product;
@@ -11,12 +12,13 @@ type ProductRowProps = {
   categoriesMap: Map<number, Category>;
 };
 
+
 const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
 const imageSrc = product.image?.[0]
   ? `${STATIC_BASE_URL}/${product.image[0]}`
   : `${STATIC_BASE_URL}/default-image.jpg`;
 
-
+const router = useRouter();
   let parentCategoryName = "Không rõ";
   let subcategoryName = "Không rõ";
 
@@ -89,7 +91,7 @@ const imageSrc = product.image?.[0]
       <button className="bg-gray-100 p-2 rounded hover:bg-gray-200" title="View">
         <FiEye />
       </button>
-      <button className="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200" title="Edit">
+      <button onClick={() => router.push(`/product/${product.id}/edit`)} className="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200" title="Edit">
         <FiEdit />
       </button>
       <button

@@ -1,121 +1,104 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import Cookies from "js-cookie";
+import { API_BASE_URL } from "@/utils/api";
 import PreviewCard from "@/app/components/product/edit/PreviewCard";
 import ImageDrop from "@/app/components/product/edit/ImageDrop";
 import Form from "@/app/components/product/edit/Form";
-import Options from "@/app/components/product/edit/Options";
-
 import ActionButtons from "@/app/components/product/edit/ActionButtons";
+import { Product } from "@/types/product";
 
-const mockProducts = [
-  {
-    id: "1",
-    name: "Váy Suông Công Sở",
-    category: "fashion",
-    brand: "NEM",
-    image: "https://techzaa.in/venton/assets/images/product/p-1.png",
-    price: 300000,
-    discount: 0,
-    weight: "250g",
-    stock: 10,
-    sold: 1,
-    tag: "Váy",
-    size: ["M"],
-    color: ["#f472b6"],
-    description: "Váy suông công sở thanh lịch phù hợp môi trường làm việc."
-  },
-  {
-    id: "2",
-    name: "Điện thoại mẫu 1",
-    category: "phone",
-    brand: "Samsung",
-    image: "/phone.png",
-    price: 9931725,
-    discount: 0,
-    weight: "180g",
-    stock: 64,
-    sold: 28,
-    tag: "Điện thoại",
-    storage: "64GB",
-    manufacturer: "Samsung",
-    color: ["#60a5fa"],
-    description: "Smartphone mẫu với đầy đủ chức năng, thiết kế hiện đại."
-  }
-];
+export default function EditProductPage() {
+  const { id } = useParams();
+  const router = useRouter();
 
-export default function EditProductMockPage() {
-  const id = useParams()?.id as string;
-  const data = mockProducts.find((p) => p.id === id);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedImages, setSelectedImages] = useState<{ id: string; url: string }[]>([]);
+  const [category, setCategory] = useState("");
+  const [optionValues, setOptionValues] = useState({
+    option1: "",
+    value1: "",
+    option2: "",
+    value2: "",
+  });
 
-  const [category, setCategory] = useState(data?.category || "fashion");
-  const [selectedSizes, setSelectedSizes] = useState<string[]>(
-    data?.category === "phone"
-      ? data?.storage
-        ? [data.storage]
-        : []
-      : data?.size || []
-  );
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const token = Cookies.get("authToken");
+        const res = await fetch(`${API_BASE_URL}/shop/products/${id}/get`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
 
-  const [selectedColors, setSelectedColors] = useState<string[]>(data?.color || []);
+        if (!res.ok || !data) throw new Error("Không tìm thấy sản phẩm");
 
-  const toggleSize = (size: string) => {
-    setSelectedSizes((prev) =>
-      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
-    );
-  };
+        setProduct(data.product);
+        setCategory(data.product.category_id?.toString() || "");
+        setSelectedImages(
+          (Array.isArray(data.product.image) ? data.product.image : [data.product.image || ""]).map(
+            (url: string, idx: number) => ({ id: String(idx), url })
+          )
+        );
+        setOptionValues({
+          option1: data.product.option1 || "",
+          value1: data.product.value1 || "",
+          option2: data.product.option2 || "",
+          value2: data.product.value2 || "",
+        });
+      } catch (err) {
+        console.error("Lỗi khi tải sản phẩm:", err);
+        router.push("/product");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const toggleColor = (color: string) => {
-    setSelectedColors((prev) =>
-      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
-    );
-  };
+    if (id) fetchProduct();
+  }, [id]);
 
-  const isFashion = category === "fashion";
-  // const isPhone = category === "phone";
+  if (loading) return <div className="p-6">Đang tải sản phẩm...</div>;
+  if (!product) return <div className="p-6 text-red-500">Không tìm thấy sản phẩm.</div>;
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-xl font-bold text-gray-800 mb-4">
-        Product Edit (ID: {id})
-      </h1>
+      <h1 className="text-xl font-bold text-gray-800 mb-4">Chỉnh sửa sản phẩm (ID: {id})</h1>
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <PreviewCard
-          image={data?.image || "/placeholder.png"}
-          name={data?.name || ""}
+          image={selectedImages[0]?.url || "/placeholder.png"}
+          name={product.name}
           category={category}
-          price={data?.price || 0}
-          discount={data?.discount || 0}
-          sizes={selectedSizes}
-          colors={selectedColors}
-          isFashion={isFashion}
+          price={product.price}
+          discount={product.sale_price || 0}
+          sizes={product.size || []}
+          colors={[]}
+          isFashion={category === "fashion"}
         />
 
         <div className="xl:col-span-2 space-y-6">
-          <ImageDrop />
+          <ImageDrop
+            images={selectedImages}
+            setImages={setSelectedImages}
+          />
+
+
           <Form
-            data={data}
+            images={selectedImages}
+            defaultValues={product}
             category={category}
             setCategory={setCategory}
-            isFashion={isFashion}
+            onOptionsChange={setOptionValues}
           />
- <Options
-  selectedSizes={selectedSizes}
-  toggleSize={toggleSize}
-  selectedColors={selectedColors}
-  toggleColor={toggleColor}
-  setSelectedColors={setSelectedColors}
-  description={data?.description}
-  data={data}
-  category={category} 
-/>
 
-
-
-         
-         
-          <ActionButtons />
+          <ActionButtons
+            productId={product.id}
+            images={selectedImages}
+            optionValues={optionValues}
+          />
         </div>
       </div>
     </div>

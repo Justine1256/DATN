@@ -90,33 +90,33 @@ class ProductController extends Controller
             'shops' => $shops
         ]);
     }
-public function getShopProductsByCategorySlug($slug, $category_slug)
-{
-    $shop = Shop::where('slug', $slug)->first();
-    if (!$shop) {
-        return response()->json(['message' => 'Không tìm thấy shop'], 404);
+    public function getShopProductsByCategorySlug($slug, $category_slug)
+    {
+        $shop = Shop::where('slug', $slug)->first();
+        if (!$shop) {
+            return response()->json(['message' => 'Không tìm thấy shop'], 404);
+        }
+
+        $category = Category::where('slug', $category_slug)->first();
+        if (!$category) {
+            return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
+        }
+
+        $categoryIds = $this->getAllChildCategoryIds($category);
+        $categoryIds = array_map('intval', $categoryIds);
+
+        $products = Product::with('shop')
+            ->where('shop_id', $shop->id)
+            ->whereIn('category_id', $categoryIds)
+            ->where('status', 'activated')
+            ->get();
+
+        return response()->json([
+            'category' => $category,
+            'shop' => $shop,
+            'products' => $products,
+        ]);
     }
-
-    $category = Category::where('slug', $category_slug)->first();
-    if (!$category) {
-        return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
-    }
-
-    $categoryIds = $this->getAllChildCategoryIds($category);
-    $categoryIds = array_map('intval', $categoryIds);
-
-    $products = Product::with('shop')
-        ->where('shop_id', $shop->id)
-        ->whereIn('category_id', $categoryIds)
-        ->where('status', 'activated')
-        ->get();
-
-    return response()->json([
-        'category' => $category,
-        'shop' => $shop,
-        'products' => $products,
-    ]);
-}
 
 
 
@@ -136,104 +136,102 @@ public function getShopProductsByCategorySlug($slug, $category_slug)
     }
 
 
-// Tạo mới sản phẩm (Admin hoặc Seller)
-public function store(Request $request)
-{
-    $user = $request->user();
+    // Tạo mới sản phẩm (Admin hoặc Seller)
+    public function store(Request $request)
+    {
+        $user = $request->user();
 
-    if (!$user || !$user->shop) {
-        return response()->json(['error' => 'User chưa có shop.'], 403);
-    }
-
-    $validator = Validator::make($request->all(), [
-        'category_id' => 'required|exists:categories,id',
-        'name' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'price' => 'required|numeric|min:0',
-        'sale_price' => 'nullable|numeric|min:0|lt:price',
-        'stock' => 'required|integer|min:0',
-        'image' => 'nullable|array|min:1',
-        'image.*' => 'string',
-        'option1' => 'nullable|string|max:50',
-        'value1' => 'nullable|string|max:255',
-        'option2' => 'nullable|string|max:50',
-        'value2' => 'nullable|string|max:255',
-        'variants' => 'nullable|array',
-        'variants.*.value1' => 'required_with:variants|string|max:255',
-        'variants.*.value2' => 'nullable|string|max:255',
-        'variants.*.price' => 'required_with:variants|numeric|min:0',
-        'variants.*.sale_price' => 'nullable|numeric|min:0|lt:variants.*.price',
-        'variants.*.stock' => 'required_with:variants|integer|min:0',
-        'variants.*.image' => 'nullable|array',
-        'variants.*.image.*' => 'string'
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json(['errors' => $validator->errors()], 422);
-    }
-
-    // Nếu nhập option thì phải có value tương ứng
-    if (($request->filled('option1') && !$request->filled('value1')) ||
-        ($request->filled('option2') && !$request->filled('value2'))
-    ) {
-        return response()->json(['error' => 'Nếu nhập option thì phải nhập value tương ứng.'], 422);
-    }
-
-    // Nếu có variants thì phải có ít nhất một variant trùng value với sản phẩm gốc (nếu có option)
-    if ($request->filled('variants')) {
-        if (!$request->filled('option1') && !$request->filled('option2')) {
-            return response()->json(['error' => 'Phải có option nếu muốn thêm biến thể.'], 422);
+        if (!$user || !$user->shop) {
+            return response()->json(['error' => 'User chưa có shop.'], 403);
         }
 
-        $matchFound = collect($request->variants)->contains(function ($variant) use ($request) {
-            return ($request->value1 && $variant['value1'] === $request->value1) ||
-                   ($request->value2 && isset($variant['value2']) && $variant['value2'] === $request->value2);
-        });
+        $validator = Validator::make($request->all(), [
+            'category_id' => 'required|exists:categories,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'sale_price' => 'nullable|numeric|min:0|lt:price',
+            'stock' => 'required|integer|min:0',
+            'image' => 'nullable|array|min:1',
+            'image.*' => 'string',
+            'option1' => 'nullable|string|max:50',
+            'value1' => 'nullable|string|max:255',
+            'option2' => 'nullable|string|max:50',
+            'value2' => 'nullable|string|max:255',
+            'variants' => 'nullable|array',
+            'variants.*.value1' => 'required_with:variants|string|max:255',
+            'variants.*.value2' => 'nullable|string|max:255',
+            'variants.*.price' => 'required_with:variants|numeric|min:0',
+            'variants.*.sale_price' => 'nullable|numeric|min:0|lt:variants.*.price',
+            'variants.*.stock' => 'required_with:variants|integer|min:0',
+            'variants.*.image' => 'nullable|array',
+            'variants.*.image.*' => 'string'
+        ]);
 
-        if (!$matchFound) {
-            return response()->json(['error' => 'Phải có ít nhất một biến thể trùng giá trị với sản phẩm gốc.'], 422);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
-    }
 
-    // Tạo sản phẩm gốc
-    $product = Product::create([
-        'shop_id' => $user->shop->id,
-        'category_id' => $request->category_id,
-        'name' => $request->name,
-        'slug' => Str::slug($request->name),
-        'description' => $request->description,
-        'price' => $request->price,
-        'sale_price' => $request->sale_price,
-        'stock' => $request->stock,
-        'image' => $request->image,
-        'option1' => $request->option1,
-        'value1' => $request->value1,
-        'option2' => $request->option2,
-        'value2' => $request->value2,
-        'status' => 'activated',
-    ]);
-
-    // Nếu có biến thể thì tạo biến thể
-    if ($request->filled('variants')) {
-        foreach ($request->variants as $v) {
-            $product->variants()->create([
-                'value1' => $v['value1'],
-                'value2' => $v['value2'] ?? null,
-                'price' => $v['price'],
-                'sale_price' => $v['sale_price'] ?? null,
-                'stock' => $v['stock'],
-                'image' => $v['image'] ?? [],
-            ]);
+        // Nếu nhập option thì phải có value tương ứng
+        if (($request->filled('option1') && !$request->filled('value1')) ||
+            ($request->filled('option2') && !$request->filled('value2'))
+        ) {
+            return response()->json(['error' => 'Nếu nhập option thì phải nhập value tương ứng.'], 422);
         }
+
+        // Nếu có variants thì phải có ít nhất một variant trùng value với sản phẩm gốc (nếu có option)
+        if ($request->filled('variants')) {
+            if (!$request->filled('option1') && !$request->filled('option2')) {
+                return response()->json(['error' => 'Phải có option nếu muốn thêm biến thể.'], 422);
+            }
+
+            $matchFound = collect($request->variants)->contains(function ($variant) use ($request) {
+                return ($request->value1 && $variant['value1'] === $request->value1) ||
+                    ($request->value2 && isset($variant['value2']) && $variant['value2'] === $request->value2);
+            });
+
+            if (!$matchFound) {
+                return response()->json(['error' => 'Phải có ít nhất một biến thể trùng giá trị với sản phẩm gốc.'], 422);
+            }
+        }
+
+        // Tạo sản phẩm gốc
+        $product = Product::create([
+            'shop_id' => $user->shop->id,
+            'category_id' => $request->category_id,
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+            'description' => $request->description,
+            'price' => $request->price,
+            'sale_price' => $request->sale_price,
+            'stock' => $request->stock,
+            'image' => $request->image,
+            'option1' => $request->option1,
+            'value1' => $request->value1,
+            'option2' => $request->option2,
+            'value2' => $request->value2,
+            'status' => 'activated',
+        ]);
+
+        // Nếu có biến thể thì tạo biến thể
+        if ($request->filled('variants')) {
+            foreach ($request->variants as $v) {
+                $product->variants()->create([
+                    'value1' => $v['value1'],
+                    'value2' => $v['value2'] ?? null,
+                    'price' => $v['price'],
+                    'sale_price' => $v['sale_price'] ?? null,
+                    'stock' => $v['stock'],
+                    'image' => $v['image'] ?? [],
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Thêm sản phẩm thành công.',
+            'product' => $product->load('variants')
+        ], 201);
     }
-
-    return response()->json([
-        'message' => 'Thêm sản phẩm thành công.',
-        'product' => $product->load('variants')
-    ], 201);
-}
-
-
 
     // Xóa sản phẩm
     public function delete($id)
@@ -347,130 +345,165 @@ public function store(Request $request)
     }
 
     // Lấy danh sách sản phẩm theo shop của shop đã đăng nhập
-public function getProductByShop($shop_id)
-{
-    if (!$shop_id) {
-        return response()->json(['status' => false, 'message' => 'Thiếu shop_id.'], 400);
-    }
-
-    $shop = Shop::find($shop_id);
-
-    if (!$shop) {
-        return response()->json(['status' => false, 'message' => 'Shop không tồn tại.'], 404);
-    }
-
-    $products = Product::with('category')
-        ->where('shop_id', $shop_id)
-        ->latest()
-        ->paginate(6);
-
-    return response()->json([
-        'status' => true,
-        'products' => $products,
-    ]);
-}
-
-
-
-
-
-    // Cập nhật sản phẩm bởi shop
-    public function update(Request $request, $id)
+    public function getProductByShop($shop_id)
     {
-        $user = $request->user();
-
-        if (!$user || !$user->shop) {
-            return response()->json(['status' => false, 'message' => 'Bạn chưa đăng nhập hoặc chưa có cửa hàng.'], 403);
+        if (!$shop_id) {
+            return response()->json(['status' => false, 'message' => 'Thiếu shop_id.'], 400);
         }
 
-        $shopId = $user->shop->id;
+        $shop = Shop::find($shop_id);
 
+        if (!$shop) {
+            return response()->json(['status' => false, 'message' => 'Shop không tồn tại.'], 404);
+        }
+
+        $products = Product::with('category')
+            ->where('shop_id', $shop_id)
+            ->latest()
+            ->paginate(6);
+
+        return response()->json([
+            'status' => true,
+            'products' => $products,
+        ]);
+    }
+    public function getProductByIdShop($id)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $shopId = $user->shop_id; // Giả sử user có shop_id
+
+        if (!$shopId) {
+            return response()->json(['message' => 'User has no shop'], 403);
+        }
+
+        // Tìm sản phẩm thuộc shop của user
         $product = Product::where('id', $id)->where('shop_id', $shopId)->first();
 
         if (!$product) {
-            return response()->json(['status' => false, 'message' => 'Không tìm thấy sản phẩm trong cửa hàng của bạn.'], 404);
+            return response()->json(['message' => 'Product not found or not authorized'], 404);
         }
 
-        // Validation
-        $validator = Validator::make($request->all(), [
-            'category_id' => 'sometimes|exists:categories,id',
-            'name' => 'sometimes|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'sometimes|numeric|min:0',
-            'sale_price' => 'nullable|numeric|min:0|lte:price',
-            'stock' => 'nullable|integer|min:0',
-            'image' => 'nullable|array',
-            'image.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'option1' => 'nullable|string|max:255',
-            'value1' => 'nullable|string|max:255',
-            'option2' => 'nullable|string|max:255',
-            'value2' => 'nullable|string|max:255',
-            'status' => 'sometimes|in:activated,deleted',
-        ], [
-            'sale_price.lte' => 'Giá khuyến mãi phải nhỏ hơn hoặc bằng giá gốc.',
-            'image.*.image' => 'Mỗi tệp phải là hình ảnh hợp lệ.',
-            'image.*.max' => 'Kích thước ảnh không vượt quá 2MB.',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
-        }
-
-        $data = $validator->validated();
-
-        // Kiểm tra trùng tên trong shop (nếu đổi tên)
-        if (isset($data['name'])) {
-            $slug = Str::slug($data['name']);
-            $exists = Product::where('shop_id', $shopId)
-                ->where('slug', $slug)
-                ->where('id', '!=', $product->id)
-                ->exists();
-
-            if ($exists) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Tên sản phẩm đã tồn tại trong cửa hàng. Vui lòng chọn tên khác.'
-                ], 422);
-            }
-
-            $data['slug'] = $slug;
-        }
-
-        // Kiểm tra giá khuyến mãi < giá gốc (nếu có)
-        if (isset($data['sale_price'])) {
-            $price = $data['price'] ?? $product->price;
-            if ($data['sale_price'] > $price) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Giá khuyến mãi phải nhỏ hơn hoặc bằng giá gốc.',
-                ], 422);
-            }
-        }
-
-        // Xử lý ảnh mới nếu có
-        if ($request->hasFile('image')) {
-            $imagePaths = [];
-            foreach ($request->file('image') as $image) {
-                $path = $image->store('products', 'public');
-                $imagePaths[] = $path;
-            }
-
-            $data['image'] = $imagePaths;
-        }
-
-        // Cập nhật sản phẩm
-        $product->update($data);
-
-        // Trả về response
         return response()->json([
-            'status' => true,
-            'message' => 'Cập nhật sản phẩm thành công.',
-            'data' => [
-                ...$product->fresh()->toArray(),
-                'image' => is_string($product->image) ? json_decode($product->image) : $product->image,
-            ]
+            'product' => $product,
         ]);
     }
+
+    // Cập nhật sản phẩm bởi shop
+    public function update(Request $request, $id)
+{
+    $user = $request->user();
+
+    if (!$user || !$user->shop) {
+        return response()->json(['error' => 'Bạn chưa đăng nhập hoặc chưa có cửa hàng.'], 403);
+    }
+
+    $product = Product::where('id', $id)->where('shop_id', $user->shop->id)->first();
+    if (!$product) {
+        return response()->json(['error' => 'Không tìm thấy sản phẩm trong cửa hàng của bạn.'], 404);
+    }
+
+    $validator = Validator::make($request->all(), [
+        'category_id' => 'sometimes|exists:categories,id',
+        'name' => 'sometimes|string|max:255',
+        'description' => 'nullable|string',
+        'price' => 'sometimes|numeric|min:0',
+        'sale_price' => 'nullable|numeric|min:0|lte:price',
+        'stock' => 'nullable|integer|min:0',
+        'image' => 'nullable|array|min:1',
+        'image.*' => 'string',
+        'option1' => 'nullable|string|max:50',
+        'value1' => 'nullable|string|max:255',
+        'option2' => 'nullable|string|max:50',
+        'value2' => 'nullable|string|max:255',
+        'status' => 'sometimes|in:activated,deleted',
+
+        // Biến thể
+        'variants' => 'nullable|array',
+        'variants.*.value1' => 'required_with:variants|string|max:255',
+        'variants.*.value2' => 'nullable|string|max:255',
+        'variants.*.price' => 'required_with:variants|numeric|min:0',
+        'variants.*.sale_price' => 'nullable|numeric|min:0|lte:variants.*.price',
+        'variants.*.stock' => 'required_with:variants|integer|min:0',
+        'variants.*.image' => 'nullable|array',
+        'variants.*.image.*' => 'string',
+    ], [
+        'sale_price.lte' => 'Giá khuyến mãi phải nhỏ hơn hoặc bằng giá gốc.',
+        'variants.*.sale_price.lte' => 'Giá khuyến mãi của biến thể phải nhỏ hơn hoặc bằng giá gốc.',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
+
+    $data = $validator->validated();
+
+    // Nếu nhập option thì phải có value tương ứng
+    if (($request->filled('option1') && !$request->filled('value1')) ||
+        ($request->filled('option2') && !$request->filled('value2'))) {
+        return response()->json(['error' => 'Nếu nhập option thì phải nhập value tương ứng.'], 422);
+    }
+
+    // Nếu có biến thể thì phải có ít nhất một biến thể trùng với sản phẩm gốc
+    if ($request->filled('variants')) {
+        if (!$request->filled('option1') && !$request->filled('option2')) {
+            return response()->json(['error' => 'Phải có option nếu muốn thêm biến thể.'], 422);
+        }
+
+        $matchFound = collect($request->variants)->contains(function ($variant) use ($request) {
+            return ($request->value1 && $variant['value1'] === $request->value1) ||
+                   ($request->value2 && isset($variant['value2']) && $variant['value2'] === $request->value2);
+        });
+
+        if (!$matchFound) {
+            return response()->json(['error' => 'Phải có ít nhất một biến thể trùng giá trị với sản phẩm gốc.'], 422);
+        }
+    }
+
+    // Kiểm tra trùng tên nếu đổi tên
+    if (isset($data['name'])) {
+        $slug = Str::slug($data['name']);
+        $exists = Product::where('shop_id', $user->shop->id)
+            ->where('slug', $slug)
+            ->where('id', '!=', $product->id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['error' => 'Tên sản phẩm đã tồn tại trong cửa hàng.'], 422);
+        }
+
+        $data['slug'] = $slug;
+    }
+
+    // Cập nhật sản phẩm
+    $product->update($data);
+
+    // Cập nhật lại biến thể (xóa hết và thêm lại)
+    if ($request->filled('variants')) {
+        $product->variants()->delete(); // Xóa cũ
+
+        foreach ($request->variants as $v) {
+            $product->variants()->create([
+                'value1' => $v['value1'],
+                'value2' => $v['value2'] ?? null,
+                'price' => $v['price'],
+                'sale_price' => $v['sale_price'] ?? null,
+                'stock' => $v['stock'],
+                'image' => $v['image'] ?? [],
+            ]);
+        }
+    }
+
+    return response()->json([
+        'message' => 'Cập nhật sản phẩm thành công.',
+        'product' => $product->load('variants')
+    ]);
+}
+
 
     public function destroy(Request $request, $id)
     {
@@ -540,38 +573,37 @@ public function getProductByShop($shop_id)
             'message' => 'Khôi phục sản phẩm thành công.'
         ]);
     }
-public function search(Request $request)
-{
-    $query = $request->query('query');
+    public function search(Request $request)
+    {
+        $query = $request->query('query');
 
-    if (!$query) {
-        return response()->json(['message' => 'Thiếu từ khóa tìm kiếm'], 400);
+        if (!$query) {
+            return response()->json(['message' => 'Thiếu từ khóa tìm kiếm'], 400);
+        }
+
+        $products = Product::with('category', 'shop')
+            ->where('status', 1)
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', '%' . $query . '%')
+                    ->orWhere('description', 'like', '%' . $query . '%')
+                    ->orWhere('slug', 'like', '%' . $query . '%');
+            })
+            ->orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get();
+
+        // Rút gọn dữ liệu trả về
+        return response()->json($products->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'slug' => $product->slug,
+                'image' => $product->image,
+                'price' => $product->price,
+                'sale_price' => $product->sale_price,
+                'category' => $product->category->name ?? null,
+                'shop' => $product->shop->name ?? null,
+            ];
+        }));
     }
-
-    $products = Product::with('category', 'shop')
-        ->where('status', 1)
-        ->where(function ($q) use ($query) {
-            $q->where('name', 'like', '%' . $query . '%')
-              ->orWhere('description', 'like', '%' . $query . '%')
-              ->orWhere('slug', 'like', '%' . $query . '%');
-        })
-        ->orderBy('created_at', 'desc')
-        ->limit(20)
-        ->get();
-
-    // Rút gọn dữ liệu trả về
-    return response()->json($products->map(function ($product) {
-        return [
-            'id' => $product->id,
-            'name' => $product->name,
-            'slug' => $product->slug,
-            'image' => $product->image,
-            'price' => $product->price,
-            'sale_price' => $product->sale_price,
-            'category' => $product->category->name ?? null,
-            'shop' => $product->shop->name ?? null,
-        ];
-    }));
-
-}
 }
