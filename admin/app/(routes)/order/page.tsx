@@ -1,7 +1,7 @@
 "use client";
 
-import OrderStatusCard from "../components/order/card";
-import OrderListTable from "../components/order/list"; // 👈 bảng danh sách
+import OrderStatusCard from "../../components/order/card";
+import OrderListTable from "../../components/order/list"; // 👈 bảng danh sách
 import {
   BsCartX, BsBoxSeam, BsClipboardCheck,
   BsClock, BsBagCheckFill, BsInboxes,

@@ -91,7 +91,7 @@ export default function EditProductPage() {
 
   return (
     <div className="p-6 space-y-6 flex justify-center">
-      <div className="w-full max-w-4xl"> {/* Set max width for centering */}
+      <div className="w-full max-w-6xl"> {/* Changed from max-w-4xl to max-w-6xl */}
         <h1 className="text-xl font-bold text-gray-800 mb-4">Chỉnh sửa sản phẩm (ID: {id})</h1>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -118,5 +118,5 @@ export default function EditProductPage() {
         </div>
       </div>
     </div>
-  );
+      );
 }

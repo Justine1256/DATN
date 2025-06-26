@@ -54,8 +54,8 @@ export default function ActionButtons({
         option2: optionValues.option2 || null,
         value2: optionValues.value2 || null,
       };
-console.log("Images before submit", images);
-console.log("Mapped URLs", images.map(img => img.url));
+      console.log("Images before submit", images);
+      console.log("Mapped URLs", images.map(img => img.url));
 
       const res = await fetch(`${API_BASE_URL}/shop/products/${productId}/edit`, {
         method: "PATCH",
@@ -91,7 +91,7 @@ console.log("Mapped URLs", images.map(img => img.url));
       <button
         onClick={handleUpdate}
         disabled={loading}
-        className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+        className="bg-[#db4444] text-white px-5 py-2 rounded hover:bg-[#c0392b] disabled:opacity-50"
       >
         {loading ? "Đang cập nhật..." : "Cập nhật sản phẩm"}
       </button>

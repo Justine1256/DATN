@@ -1,9 +1,11 @@
+/* app/globals.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ================================
-   Biến hệ thống & chế độ nền
+   Biến hệ thống & chế độ nền (giữ nguyên)
 ================================ */
 :root {
   --background: #ffffff;
@@ -20,31 +22,68 @@
   /* Font monospace mặc định */
 }
 
-/* Định nghĩa chế độ tối */
+/* Định nghĩa chế độ tối (giữ nguyên) */
 @media (prefers-color-scheme: dark) {
   :root {
     /* --background: #0a0a0a; */
-    /* Màu nền trong chế độ tối */
     /* --foreground: #ededed; */
-    /* Màu chữ trong chế độ tối */
   }
 }
 
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-/* ✅ Scrollbar đẹp toàn trang */
+/* ================================
+   CẤU HÌNH LAYOUT TOÀN MÀN HÌNH VÀ CUỘN (PHẦN QUAN TRỌNG)
+================================ */
 html,
 body {
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: #cbd5e1 transparent; /* Firefox */
+  height: 100%;
+  /* RẤT QUAN TRỌNG: Đảm bảo html và body chiếm toàn bộ chiều cao viewport */
+  margin: 0;
+  /* Xóa margin mặc định */
+  padding: 0;
+  /* Xóa padding mặc định */
+  overflow: hidden;
+  /* QUAN TRỌNG: Ẩn thanh cuộn chính của trình duyệt. Các thành phần con sẽ tự cuộn. */
+  font-family: var(--font-sans);
+  /* Sử dụng biến font-sans của bạn */
+  background: var(--background);
+  /* Sử dụng biến background của bạn */
+  color: var(--foreground);
+  /* Sử dụng biến foreground của bạn */
 }
 
-/* ✅ Scrollbar cho Chrome, Safari, Edge */
+/* Đối với ứng dụng Next.js, #__next là phần tử gốc được render ra */
+#__next {
+  height: 100%;
+  /* RẤT QUAN TRỌNG: Đảm bảo #__next cũng chiếm toàn bộ chiều cao */
+  display: flex;
+  /* Biến #__next thành flex container để quản lý layout chính */
+  flex-direction: column;
+  /* Sắp xếp các phần tử con theo chiều dọc (nếu có) */
+}
+
+/* Đảm bảo flex-1 hoạt động đúng trong các flex container */
+.flex-1 {
+  flex: 1 1 0%;
+  /* flex-grow, flex-shrink, flex-basis: 0% */
+  min-height: 0;
+  /* QUAN TRỌNG: Cho phép phần tử flex-1 co lại về 0px nếu cần, để nó có thể cuộn nội dung bên trong */
+}
+
+/* ================================
+   Scrollbar đẹp toàn trang (giữ nguyên)
+================================ */
+html,
+body {
+  /* Các thuộc tính scrollbar-width và scrollbar-color không có tác dụng khi overflow: hidden */
+  /* Chúng chỉ áp dụng khi overflow là auto/scroll. Tuy nhiên, nếu bạn dùng .scrollbar-custom */
+  /* cho các div cuộn bên trong, các thuộc tính này sẽ hữu ích. */
+  scrollbar-width: thin;
+  /* Firefox */
+  scrollbar-color: #cbd5e1 transparent;
+  /* Firefox */
+}
+
+/* ✅ Scrollbar cho Chrome, Safari, Edge (giữ nguyên, nhưng chỉ áp dụng cho div cuộn bên trong) */
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   width: 6px;
@@ -69,7 +108,7 @@ body::-webkit-scrollbar-thumb:hover {
   background-color: #94a3b8;
 }
 
-/* ✅ Scrollbar đẹp và mảnh có thể tái sử dụng nội bộ */
+/* ✅ Scrollbar đẹp và mảnh có thể tái sử dụng nội bộ (giữ nguyên) */
 .scrollbar-custom {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
@@ -94,7 +133,33 @@ body::-webkit-scrollbar-thumb:hover {
 .scrollbar-custom::-webkit-scrollbar-thumb:hover {
   background-color: #94a3b8;
 }
+
+/* SweetAlert2 (giữ nguyên) */
 body.swal2-shown {
-  padding-right: 0 !important; /* Ngăn SweetAlert thêm margin khi hiện modal */
-  overflow-y: scroll !important; /* Ép giữ scrollbar để tránh dịch layout */
+  padding-right: 0 !important;
+  overflow-y: scroll !important;
 }
+
+/* CKEditor (giữ nguyên) */
+.ck-editor__editable {
+  min-height: 300px;
+  height: 400px;
+  width: 100%;
+  padding: 16px;
+}
+
+.ck-editor__editable_inline {
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* Loại bỏ các đoạn CSS ví dụ này nếu chúng không được sử dụng ở đâu khác */
+/* .main-content {
+  height: 80vh;
+  overflow-y: scroll;
+}
+
+.form-container {
+  max-height: 700px;
+  overflow-y: auto;
+} */
