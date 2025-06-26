@@ -107,11 +107,9 @@ export default function ModernAdminSidebar() {
         </div>
       </div>
 
-      {/* Main scrollable content area: This div now contains both navigation and quick actions */}
-      {/* Set a specific height if needed, otherwise flex-1 from parent is enough */}
-      <div className="flex-1 flex flex-col overflow-y-auto"> {/* Thêm flex flex-col ở đây */}
-        {/* Navigation Section: Will take available space and push Quick Actions down */}
-        <div className="px-4 py-6"> {/* Bỏ flex-1 ở đây, vì div cha đã là flex-col có overflow */}
+      {/* Main scrollable content area */}
+      <div className="flex-1 flex flex-col overflow-hidden"> {/* Thêm overflow-hidden vào đây */}
+        <div className="px-4 py-6"> {/* Đảm bảo phần này không có overflow */}
           <div className="mb-6">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 px-3">
               Navigation
@@ -132,8 +130,8 @@ export default function ModernAdminSidebar() {
                       <button
                         onClick={() => toggleDropdown(item.label)}
                         className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isOpen || isActive
-                            ? "bg-[#db4444] text-white"
-                            : "text-gray-700 hover:bg-[#db4444] hover:text-white"
+                          ? "bg-[#db4444] text-white"
+                          : "text-gray-700 hover:bg-[#db4444] hover:text-white"
                           }`}
                       >
                         <div className="flex items-center">
@@ -156,8 +154,8 @@ export default function ModernAdminSidebar() {
                       <Link
                         href={item.href || "#"}
                         className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isActive
-                            ? "bg-[#db4444] text-white"
-                            : "text-gray-700 hover:bg-[#db4444] hover:text-white"
+                          ? "bg-[#db4444] text-white"
+                          : "text-gray-700 hover:bg-[#db4444] hover:text-white"
                           }`}
                       >
                         <span
@@ -179,8 +177,8 @@ export default function ModernAdminSidebar() {
                               key={child.href}
                               href={child.href}
                               className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 mt-1 ${isChildActive
-                                  ? "bg-[#db4444]/10 text-[#db4444] border-l-2 border-[#db4444]"
-                                  : "text-gray-600 hover:bg-[#db4444] hover:text-white"
+                                ? "bg-[#db4444]/10 text-[#db4444] border-l-2 border-[#db4444]"
+                                : "text-gray-600 hover:bg-[#db4444] hover:text-white"
                                 }`}
                             >
                               <div
@@ -198,31 +196,9 @@ export default function ModernAdminSidebar() {
               })}
             </nav>
           </div>
-        </div> {/* Kết thúc div chứa Navigation */}
-
-        {/* Quick Actions - Đặt ở đây, bên trong div cuộn chính */}
-        {/* Nó sẽ nằm dưới Navigation, và navigation sẽ cuộn nếu vượt quá không gian */}
-        <div className="mt-auto px-4 py-6 border-t border-gray-50"> {/* Dùng mt-auto để đẩy xuống dưới */}
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
-            Quick Actions
-          </p>
-          <div className="space-y-2">
-            <Link
-              href="/product/create"
-              className="w-full flex items-center px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-[#db4444] transition-all duration-200"
-            >
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-              Add Product
-            </Link>
-            <Link
-              href="/order"
-              className="w-full flex items-center px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 hover:text-[#db4444] transition-all duration-200"
-            >
-              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-              View Orders
-            </Link>
-          </div>
         </div>
+
+       
       </div>
     </div>
   );

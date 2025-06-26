@@ -21,20 +21,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`bg-gray-50 text-gray-900 font-sans antialiased ${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
-          {/* Main container holding Sidebar and Main Content */}
-          <div className="flex h-screen overflow-hidden"> {/* full height, no overflow, flex layout */}
+          
+          <div className="flex h-screen overflow-hidden"> 
 
-            {/* Sidebar: Keeps its height, no need to adjust */}
+          
             <Sidebar />
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col overflow-hidden"> {/* Take remaining space, no overflow */}
+            <div className="flex-1 flex flex-col overflow-hidden"> 
 
               {/* Header: Fixed at the top */}
-              <Header className="flex-shrink-0 w-full fixed top-0 left-0 z-10" /> {/* Fixed header */}
+              <Header  /> {/* Fixed header */}
 
-              {/* Main Content: Scrolling area for content */}
-              <main className="flex-1 mt-20 p-6 overflow-y-auto"> {/* Add margin-top to avoid overlap with fixed header */}
+           
+              <main className="flex-1  overflow-y-auto"> 
                 <div className="max-w-7xl mx-auto">
                   {children}
                 </div>
