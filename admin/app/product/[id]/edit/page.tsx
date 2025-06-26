@@ -1,11 +1,10 @@
-// EditProductPage.tsx
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/utils/api";
-import PreviewCard from "@/app/components/product/edit/PreviewCard";
+
 import ImageDrop from "@/app/components/product/edit/ImageDrop";
 import Form from "@/app/components/product/edit/Form";
 import ActionButtons from "@/app/components/product/edit/ActionButtons";
@@ -91,40 +90,31 @@ export default function EditProductPage() {
   if (!product) return <div className="p-6 text-red-500">Không tìm thấy sản phẩm.</div>;
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-xl font-bold text-gray-800 mb-4">Chỉnh sửa sản phẩm (ID: {id})</h1>
+    <div className="p-6 space-y-6 flex justify-center">
+      <div className="w-full max-w-4xl"> {/* Set max width for centering */}
+        <h1 className="text-xl font-bold text-gray-800 mb-4">Chỉnh sửa sản phẩm (ID: {id})</h1>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <PreviewCard
-          image={selectedImages[0]?.url || "/placeholder.png"}
-          name={formValues.name}
-          category={category}
-          price={formValues.price}
-          discount={formValues.sale_price}
-          sizes={product.size || []}
-          colors={[]}
-          isFashion={category === "fashion"}
-        />
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 space-y-6">
+            <ImageDrop images={selectedImages} setImages={setSelectedImages} />
 
-        <div className="xl:col-span-2 space-y-6">
-          <ImageDrop images={selectedImages} setImages={setSelectedImages} />
+            <Form
+              images={selectedImages}
+              defaultValues={product}
+              category={category}
+              setCategory={setCategory}
+              onOptionsChange={setOptionValues}
+              onFormChange={setFormValues}
+            />
 
-          <Form
-            images={selectedImages}
-            defaultValues={product}
-            category={category}
-            setCategory={setCategory}
-            onOptionsChange={setOptionValues}
-            onFormChange={setFormValues}
-          />
-
-          <ActionButtons
-            productId={product.id}
-            images={selectedImages}
-            optionValues={optionValues}
-            categoryId={category}
-            formValues={formValues}
-          />
+            <ActionButtons
+              productId={product.id}
+              images={selectedImages}
+              optionValues={optionValues}
+              categoryId={category}
+              formValues={formValues}
+            />
+          </div>
         </div>
       </div>
     </div>
