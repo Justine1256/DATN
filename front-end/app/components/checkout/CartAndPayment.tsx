@@ -130,7 +130,15 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
                   <p className="text-sm font-medium">{product.name}</p>
                 </div>
               </div>
-              <div className="text-center text-sm">{quantity}</div>
+              <div className="text-center text-sm">
+                {quantity && !isNaN(quantity)
+                  ? new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND',
+                  }).format(Number(quantity))
+                  : 'Không có số lượng'}
+              </div>
+
               <div className="text-right text-sm">
                 {hasSale ? (
                   <div>
