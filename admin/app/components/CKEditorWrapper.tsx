@@ -1,12 +1,17 @@
 "use client";
 import dynamic from "next/dynamic";
 
-// CKEditor component phải dynamic (vì sử dụng window)
+// Dynamic import CKEditor (React component)
 export const CKEditor = dynamic(
     () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
     { ssr: false }
 );
 
-// ClassicEditor là object class nên import trực tiếp!
-import ClassicEditorBuild from "@ckeditor/ckeditor5-build-classic";
-export const ClassicEditor = ClassicEditorBuild;
+// Dynamic import cả ClassicEditor build để tránh lỗi window
+export const ClassicEditor = dynamic(
+    async () => {
+        const mod = await import("@ckeditor/ckeditor5-build-classic");
+        return mod.default;
+    },
+    { ssr: false }
+);
