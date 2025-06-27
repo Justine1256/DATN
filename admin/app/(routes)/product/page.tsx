@@ -11,7 +11,6 @@ import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/utils/api";
 import { useAuth } from "../../AuthContext";
 
-
 const ProductRowSkeleton = () => (
     <tr className="border-b border-gray-100 animate-pulse">
         <td className="py-4 px-3 flex items-center gap-3">
@@ -32,7 +31,6 @@ const ProductRowSkeleton = () => (
     </tr>
 );
 
-
 export default function ProductListPage() {
     const { user, isAuthReady } = useAuth();
 
@@ -42,6 +40,15 @@ export default function ProductListPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
+    const [showPopup, setShowPopup] = useState(false);
+    const [popupMessage, setPopupMessage] = useState("");
+
+    const handleShowPopup = (message: string) => {
+        setPopupMessage(message);
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 2000);
+    };
+
     const categoriesMap = new Map<number, Category>();
     categories.forEach((c) => {
         categoriesMap.set(c.id, c);
@@ -49,8 +56,7 @@ export default function ProductListPage() {
             categoriesMap.set(c.parent.id, c.parent);
         }
     });
-    console.log("User ID:", user?.id);
-    console.log("User Shop:", user?.shop);
+
     const fetchProducts = async (page = 1) => {
         if (!user?.shop?.id) {
             console.warn("Không có shop_id từ user");
@@ -110,7 +116,6 @@ export default function ProductListPage() {
         }
     };
 
-
     const fetchCategories = async () => {
         if (!user?.shop?.id) {
             console.warn("Không có shop_id từ user");
@@ -131,7 +136,6 @@ export default function ProductListPage() {
             console.error("Lỗi khi load categories:", error);
         }
     };
-
 
     const handleDelete = async (id: number) => {
         const result = await Swal.fire({
@@ -157,14 +161,14 @@ export default function ProductListPage() {
             });
 
             if (res.ok) {
-                Swal.fire("Đã xoá!", "Sản phẩm đã được xoá.", "success");
+                handleShowPopup("Sản phẩm đã được xoá.");
                 fetchProducts(currentPage);
             } else {
-                Swal.fire("Thất bại", "Không thể xoá sản phẩm.", "error");
+                handleShowPopup("Không thể xoá sản phẩm.");
             }
         } catch (err) {
             console.error("Lỗi xoá sản phẩm:", err);
-            Swal.fire("Lỗi", "Đã có lỗi khi xoá.", "error");
+            handleShowPopup("Đã có lỗi khi xoá.");
         }
     };
 
@@ -179,7 +183,6 @@ export default function ProductListPage() {
             fetchProducts(currentPage);
         }
     }, [isAuthReady, user, currentPage]);
-
 
     return (
         <div className="p-6 flex flex-col">
@@ -225,6 +228,20 @@ export default function ProductListPage() {
                     <Pagination currentPage={currentPage} totalPages={totalPages} setCurrentPage={setCurrentPage} />
                 </div>
             </div>
+
+            {showPopup && (
+                <div className="fixed top-6 right-6 bg-green-500 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-slide-in">
+                    <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-sm font-medium">{popupMessage}</span>
+                </div>
+            )}
         </div>
     );
 }

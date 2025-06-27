@@ -11,7 +11,8 @@ export default function ModernAdminHeader() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
 
   // Fetch user information from the API
   useEffect(() => {
@@ -117,7 +118,8 @@ export default function ModernAdminHeader() {
             >
               <div className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center">
                 <span className="text-white font-medium text-sm">
-                  {user ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'NA'}
+                  {user ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'NA'}
+
                 </span>
               </div>
               <div className="hidden md:block text-left">
@@ -142,7 +144,8 @@ export default function ModernAdminHeader() {
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center">
                       <span className="text-white font-medium">
-                        {user ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'NA'}
+                        {user ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'NA'}
+
                       </span>
                     </div>
                     <div>
