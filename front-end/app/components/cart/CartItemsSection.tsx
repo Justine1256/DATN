@@ -11,7 +11,6 @@ interface Props {
   setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }
 
-
 export default function CartItemsSection({
   cartItems: propsCartItems,
   setCartItems: propsSetCartItems,
@@ -22,54 +21,46 @@ export default function CartItemsSection({
   const fetchCartItems = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
 
-    // Nếu chưa đăng nhập => load từ localStorage
-    if (!token) {
-      const guestCart = localStorage.getItem('cart'); // Giỏ hàng khách vãng lai
+    const guestCart = localStorage.getItem('cart');
+    let localCartItems: CartItem[] = [];
 
-      if (guestCart) {
-        try {
-          const parsed = JSON.parse(guestCart);
-
-          // Biến đổi mỗi item về dạng CartItem chuẩn và xử lý ảnh
-          const formatted = parsed.map((item: any, index: number) => ({
-            id: index + 1, // tạo id tạm
-            quantity: item.quantity,
-            product: {
-              id: item.product_id,
-              name: item.name,
-              image: [formatImageUrl(item.image)], // Xử lý ảnh từ giỏ hàng khách
+    if (guestCart) {
+      try {
+        const parsed = JSON.parse(guestCart);
+        localCartItems = parsed.map((item: any, index: number) => ({
+          id: item.id || index + 1,
+          quantity: item.quantity,
+          product: {
+            id: item.product_id,
+            name: item.name,
+            image: [formatImageUrl(item.image)],
+            price: item.price,
+            sale_price: null,
+          },
+          variant: item.variant_id
+            ? {
+              id: item.variant_id,
+              option1: 'Phân loại 1',
+              option2: 'Phân loại 2',
+              value1: item.value1,
+              value2: item.value2,
               price: item.price,
               sale_price: null,
-            },
-            variant: item.variant_id
-              ? {
-                id: item.variant_id,
-                option1: 'Phân loại 1',
-                option2: 'Phân loại 2',
-                value1: item.value1,
-                value2: item.value2,
-                price: item.price,
-                sale_price: null,
-              }
-              : null,
-          }));
-
-          console.log('🛒 Đã load giỏ hàng từ localStorage:', formatted);
-
-          setCartItems(formatted);
-          propsSetCartItems(formatted);
-        } catch (err) {
-          console.error('❌ Lỗi đọc giỏ hàng khách:', err);
-        }
-      } else {
-        console.log('ℹ️ Không có giỏ hàng local');
+            }
+            : null,
+        }));
+      } catch (err) {
+        console.error('Lỗi khi đọc giỏ hàng từ localStorage:', err);
       }
+    }
 
+    if (!token) {
+      setCartItems(localCartItems);
+      propsSetCartItems(localCartItems);
       setLoading(false);
       return;
     }
 
-    // Nếu đã đăng nhập => gọi API
     try {
       const res = await fetch(`${API_BASE_URL}/cart`, {
         headers: {
@@ -78,52 +69,88 @@ export default function CartItemsSection({
         },
       });
 
-      if (!res.ok) throw new Error('Không thể tải giỏ hàng');
+      if (!res.ok) throw new Error('Không thể tải giỏ hàng từ API.');
 
-      const data = await res.json();
-      console.log('✅ Đã load giỏ hàng từ API:', data);
-
-      // Cập nhật giỏ hàng với ảnh đã xử lý
-      const updatedData = data.map((item: any) => ({
+      const apiCartData = await res.json();
+      const formattedApiCart = apiCartData.map((item: any) => ({
         ...item,
-        image: [formatImageUrl(item.product.image || 'default.jpg')], // Xử lý ảnh cho từng sản phẩm
+        product: {
+          ...item.product,
+          image: [formatImageUrl(item.product.image || 'default.jpg')],
+        },
       }));
 
-      setCartItems(updatedData);
-      propsSetCartItems(updatedData);
-      localStorage.setItem('cartItems', JSON.stringify(updatedData));
-    } catch (error) {
-      console.warn('⚠️ API thất bại, fallback localStorage');
+      const combinedCart: CartItem[] = [];
+      const apiProductMap = new Map<string, CartItem>();
 
-      const stored = localStorage.getItem('cartItems');
-      if (stored) {
-        try {
-          const data = JSON.parse(stored);
-          setCartItems(data);
-          propsSetCartItems(data);
-        } catch (err) {
-          console.error('❌ Lỗi đọc localStorage:', err);
+      formattedApiCart.forEach((item: CartItem) => {
+        const key = item.variant ? `${item.product.id}-${item.variant.id}` : `${item.product.id}-no_variant`;
+        apiProductMap.set(key, item);
+        combinedCart.push(item);
+      });
+
+      localCartItems.forEach((localItem) => {
+        const key = localItem.variant ? `${localItem.product.id}-${localItem.variant.id}` : `${localItem.product.id}-no_variant`;
+        if (!apiProductMap.has(key)) {
+          combinedCart.push(localItem);
         }
+      });
+
+      if (localCartItems.length > 0) {
+        await syncLocalCartToApi(localCartItems, token);
+        await fetchCartItems();
+      } else {
+        setCartItems(formattedApiCart);
+        propsSetCartItems(formattedApiCart);
+        localStorage.setItem('cart', JSON.stringify(formattedApiCart));
       }
+    } catch (error) {
+      console.warn('Lỗi khi tải giỏ hàng từ API. Đang sử dụng giỏ hàng từ localStorage làm fallback:', error);
+      setCartItems(localCartItems);
+      propsSetCartItems(localCartItems);
+      localStorage.setItem('cart', JSON.stringify(localCartItems));
     } finally {
       setLoading(false);
     }
   };
-  const formatImageUrl = (img: string | string[]): string => {
-    console.log('Đường dẫn ảnh:', img);  // In ra giá trị của img
-    if (Array.isArray(img)) img = img[0]; // Nếu là mảng, lấy ảnh đầu tiên
-    if (typeof img !== 'string' || !img.trim()) {
-      return `${STATIC_BASE_URL}/products/default-product.png`; // Sử dụng ảnh mặc định nếu không có ảnh
+
+  const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
+    for (const item of localItems) {
+      try {
+        const payload = {
+          product_id: item.product.id,
+          quantity: item.quantity,
+          ...(item.variant && { variant_id: item.variant.id }),
+        };
+        const res = await fetch(`${API_BASE_URL}/cart/add`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error(`Lỗi khi thêm sản phẩm ${item.product.name} vào giỏ API:`, errorData);
+        }
+      } catch (error) {
+        console.error(`Lỗi khi gọi API thêm sản phẩm ${item.product.name}:`, error);
+      }
     }
-    // Kiểm tra xem ảnh đã có URL hợp lệ chưa
-    if (img.startsWith('http')) return img; // Nếu đã có URL bắt đầu bằng 'http', giữ nguyên
-    // Đảm bảo rằng ảnh luôn có đường dẫn hợp lệ
-    return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
+    localStorage.removeItem('cart');
   };
 
-  
-  
-  
+  const formatImageUrl = (img: string | string[]): string => {
+    if (Array.isArray(img)) img = img[0];
+    if (typeof img !== 'string' || !img.trim()) {
+      return `${STATIC_BASE_URL}/products/default-product.png`;
+    }
+    if (img.startsWith('http')) return img;
+    return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
+  };
 
   useEffect(() => {
     fetchCartItems();
@@ -133,17 +160,14 @@ export default function CartItemsSection({
     const token = localStorage.getItem('token') || Cookies.get('authToken');
 
     if (!token) {
-      // Nếu không đăng nhập, xóa giỏ hàng từ localStorage
       const updatedCart = cartItems.filter((item) => item.id !== id);
-
-      setCartItems(updatedCart); // Cập nhật giỏ hàng trong state
-      propsSetCartItems(updatedCart); // Cập nhật giỏ hàng ở component cha
-      localStorage.setItem('cart', JSON.stringify(updatedCart)); // Cập nhật giỏ hàng trong localStorage
+      setCartItems(updatedCart);
+      propsSetCartItems(updatedCart);
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
       return;
     }
 
     try {
-      // Nếu đã đăng nhập, gọi API để xóa sản phẩm
       const res = await fetch(`${API_BASE_URL}/cart/${id}`, {
         method: 'DELETE',
         headers: {
@@ -154,46 +178,35 @@ export default function CartItemsSection({
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('API response error:', errorText);
-        throw new Error('Không thể xóa sản phẩm');
+        console.error('Lỗi phản hồi API khi xóa sản phẩm:', errorText);
+        throw new Error('Không thể xóa sản phẩm khỏi giỏ hàng.');
       }
 
-      // Cập nhật giỏ hàng trong state và localStorage sau khi xóa thành công từ API
       const updated = cartItems.filter((item) => item.id !== id);
       setCartItems(updated);
       propsSetCartItems(updated);
-      localStorage.setItem('cart', JSON.stringify(updated)); // Cập nhật lại localStorage
-
-      window.dispatchEvent(new Event('cartUpdated')); // Thông báo giỏ hàng đã thay đổi
+      localStorage.setItem('cart', JSON.stringify(updated));
+      window.dispatchEvent(new Event('cartUpdated'));
     } catch (error) {
-      console.error('Lỗi xoá sản phẩm khỏi giỏ:', error);
+      console.error('Lỗi khi xóa sản phẩm khỏi giỏ hàng:', error);
     }
   };
-  
-  
-  
-
-  
 
   const handleQuantityChange = async (id: number, value: number) => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
-
-    const quantity = Math.max(1, value); // Đảm bảo số lượng không nhỏ hơn 1
+    const quantity = Math.max(1, value);
 
     if (!token) {
-      // Nếu chưa đăng nhập, cập nhật giỏ hàng trong localStorage
       const updatedCart = cartItems.map((item) =>
         item.id === id ? { ...item, quantity } : item
       );
-
-      setCartItems(updatedCart); // Cập nhật giỏ hàng trong state
-      propsSetCartItems(updatedCart); // Cập nhật giỏ hàng trong component cha
-      localStorage.setItem('cart', JSON.stringify(updatedCart)); // Cập nhật giỏ hàng trong localStorage
+      setCartItems(updatedCart);
+      propsSetCartItems(updatedCart);
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
       return;
     }
 
     try {
-      // Nếu đã đăng nhập, gọi API để cập nhật giỏ hàng
       const res = await fetch(`${API_BASE_URL}/cart/${id}`, {
         method: 'PATCH',
         headers: {
@@ -204,23 +217,18 @@ export default function CartItemsSection({
         body: JSON.stringify({ quantity }),
       });
 
-      if (!res.ok) throw new Error('Không thể cập nhật số lượng');
+      if (!res.ok) throw new Error('Không thể cập nhật số lượng sản phẩm.');
 
-      // Cập nhật giỏ hàng trong state và localStorage sau khi gọi API thành công
       const updated = cartItems.map((item) =>
         item.id === id ? { ...item, quantity } : item
       );
       setCartItems(updated);
       propsSetCartItems(updated);
-      localStorage.setItem('cart', JSON.stringify(updated)); // Cập nhật lại localStorage
-
+      localStorage.setItem('cart', JSON.stringify(updated));
     } catch (error) {
-      console.error('Lỗi cập nhật số lượng:', error);
+      console.error('Lỗi khi cập nhật số lượng sản phẩm:', error);
     }
   };
-  
-  
-  
 
   const getPriceToUse = (item: CartItem) => {
     return (
@@ -272,7 +280,6 @@ export default function CartItemsSection({
       ) : (
         cartItems.map((item) => {
           const priceToUse = getPriceToUse(item);
-          const firstImage = item.product.image?.[0] || 'placeholder.jpg';
 
           return (
             <div
@@ -290,12 +297,11 @@ export default function CartItemsSection({
 
                 <div className="w-16 h-16 relative shrink-0 ml-3">
                   <Image
-                    src={formatImageUrl(item.product.image)} // Đảm bảo gọi hàm formatImageUrl để xử lý ảnh
+                    src={formatImageUrl(item.product.image)}
                     alt={item.product.name}
                     fill
                     className="object-contain"
                   />
-
                 </div>
 
                 <span className="text-sm font-medium text-black">
