@@ -6,14 +6,8 @@ import dynamic from "next/dynamic";
 import { API_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
 
-const CKEditor = dynamic(
-  () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
-  { ssr: false }
-);
-const ClassicEditor = dynamic(
-  () => import("@ckeditor/ckeditor5-build-classic").then((mod) => mod),
-  { ssr: false }
-);
+import { CKEditor, ClassicEditor } from "../../CKEditorWrapper";
+
 
 
 interface ProductFormProps {
@@ -298,7 +292,7 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
               <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
               Mô tả sản phẩm
             </h3>
-            <div className="border border-slate-300 rounded-lg overflow-hidden transition-all">
+            <div className="border border-slate-300 rounded-lg overflow-hidden transition-all min-h-[300px]">
               <CKEditor
                 editor={ClassicEditor}
                 data={description}
@@ -329,6 +323,8 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
                   placeholder: "Nhập mô tả chi tiết về sản phẩm...",
                 }}
               />
+
+
             </div>
             <p className="text-xs text-slate-500 mt-2">
               Mô tả chi tiết sẽ giúp khách hàng hiểu rõ hơn về sản phẩm của bạn
