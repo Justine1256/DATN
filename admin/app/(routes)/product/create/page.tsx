@@ -83,7 +83,7 @@ export default function AddProductPage() {
     return (
         <form
             onSubmit={handleSubmit}
-            className="p-6 space-y-9 flex justify-center relative"
+            className="space-y-9 flex justify-center relative"
         >
             <div className="w-full max-w-4xl">
                 <div className="space-y-6">

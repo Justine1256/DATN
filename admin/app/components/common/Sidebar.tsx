@@ -99,19 +99,18 @@ export default function ModernAdminSidebar() {
   };
 
   return (
-    <div className="h-screen w-72 bg-white border-r border-gray-100 flex flex-col">
-      {/* Logo Section */}
-      <div className="px-6 py-6 border-b border-gray-100">
-        <div className="flex items-center">
-          <img src="/logo.png" alt="MarketO Logo" className="w-32 h-auto" />
-        </div>
+    <div className="h-screen w-72 bg-[#1e293b] text-[#e2e8f0] border-r border-[#334155] flex flex-col">
+      {/* Logo */}
+      <div className="px-6 py-6 border-b border-[#334155] flex justify-center">
+        <img src="/logo.png" alt="MarketO Logo" className="w-32 h-auto" />
       </div>
 
-      {/* Main scrollable content area */}
-      <div className="flex-1 flex flex-col overflow-hidden"> {/* Thêm overflow-hidden vào đây */}
-        <div className="px-4 py-6"> {/* Đảm bảo phần này không có overflow */}
+
+      {/* Main scrollable */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-4 py-6">
           <div className="mb-6">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 px-3">
+            <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider mb-4 px-3">
               Navigation
             </p>
 
@@ -129,38 +128,35 @@ export default function ModernAdminSidebar() {
                     {hasChildren ? (
                       <button
                         onClick={() => toggleDropdown(item.label)}
-                        className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isOpen || isActive
-                          ? "bg-[#db4444] text-white"
-                          : "text-gray-700 hover:bg-[#db4444] hover:text-white"
+                        className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200
+                          ${isOpen || isActive
+                            ? "bg-[#db4444] text-white"
+                            : "hover:bg-[#7f1d1d] hover:text-white"
                           }`}
                       >
                         <div className="flex items-center">
                           <span
-                            className={`text-lg mr-3 ${isOpen || isActive ? "text-white" : "text-gray-500"
-                              }`}
+                            className={`text-lg mr-3 ${isOpen || isActive ? "text-white" : "text-[#9ca3af]"}`}
                           >
                             {item.icon}
                           </span>
                           <span>{item.label}</span>
                         </div>
-                        <span
-                          className={`transition-transform duration-200 ${isOpen ? "rotate-90" : ""
-                            }`}
-                        >
+                        <span className={`transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}>
                           <FaChevronRight className="text-xs" />
                         </span>
                       </button>
                     ) : (
                       <Link
                         href={item.href || "#"}
-                        className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isActive
-                          ? "bg-[#db4444] text-white"
-                          : "text-gray-700 hover:bg-[#db4444] hover:text-white"
+                        className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200
+                          ${isActive
+                            ? "bg-[#db4444] text-white"
+                            : "hover:bg-[#7f1d1d] hover:text-white"
                           }`}
                       >
                         <span
-                          className={`text-lg mr-3 ${isActive ? "text-white" : "text-gray-500"
-                            }`}
+                          className={`text-lg mr-3 ${isActive ? "text-white" : "text-[#9ca3af]"}`}
                         >
                           {item.icon}
                         </span>
@@ -169,21 +165,21 @@ export default function ModernAdminSidebar() {
                     )}
 
                     {hasChildren && isOpen && (
-                      <div className="mt-1 ml-4 pl-6 border-l-2 border-gray-100">
+                      <div className="mt-1 ml-4 pl-6 border-l-2 border-[#1f2937]">
                         {item.children.map((child) => {
                           const isChildActive = pathname === child.href;
                           return (
                             <Link
                               key={child.href}
                               href={child.href}
-                              className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 mt-1 ${isChildActive
-                                ? "bg-[#db4444]/10 text-[#db4444] border-l-2 border-[#db4444]"
-                                : "text-gray-600 hover:bg-[#db4444] hover:text-white"
+                              className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 mt-1
+                                ${isChildActive
+                                  ? "bg-[#db4444]/20 text-[#db4444] border-l-2 border-[#db4444]"
+                                  : "hover:bg-[#7f1d1d] hover:text-white"
                                 }`}
                             >
                               <div
-                                className={`w-2 h-2 rounded-full mr-3 ${isChildActive ? "bg-[#db4444]" : "bg-gray-300"
-                                  }`}
+                                className={`w-2 h-2 rounded-full mr-3 ${isChildActive ? "bg-[#db4444]" : "bg-[#9ca3af]"}`}
                               ></div>
                               <span>{child.label}</span>
                             </Link>
@@ -197,8 +193,6 @@ export default function ModernAdminSidebar() {
             </nav>
           </div>
         </div>
-
-       
       </div>
     </div>
   );

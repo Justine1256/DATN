@@ -102,7 +102,7 @@ export default function EditProductPage() {
   if (!product) return <div className="p-6 text-red-500">Không tìm thấy sản phẩm.</div>;
 
   return (
-    <form className="p-6 space-y-9 flex justify-center relative">
+    <form className="space-y-9 flex justify-center relative">
       <div className="w-full max-w-4xl">
         <h1 className="text-xl font-bold text-[#db4444] mb-4">
           Chỉnh sửa sản phẩm (ID: {id})

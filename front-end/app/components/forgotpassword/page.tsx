@@ -113,12 +113,6 @@ export default function LoginForm() {
             href="/signup"
             className="text-brand text-sm hover:underline hover:opacity-80"
           >
-            Đăng ký
-          </a>
-          <a
-            href="/forgotpassword"
-            className="text-brand text-sm hover:underline hover:opacity-80"
-          >
             Quên mật khẩu?
           </a>
         </div>

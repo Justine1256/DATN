@@ -185,7 +185,7 @@ export default function ProductListPage() {
     }, [isAuthReady, user, currentPage]);
 
     return (
-        <div className="p-6 flex flex-col">
+        <div className="flex flex-col">
             <ProductListHeader />
             <div className="flex-1 flex flex-col gap-8">
                 <div className="h-[600px] border border-gray-200 rounded-md overflow-x-auto">
@@ -224,7 +224,7 @@ export default function ProductListPage() {
                     </table>
                 </div>
 
-                <div className="pt-4 mt-auto">
+                <div className="">
                     <Pagination currentPage={currentPage} totalPages={totalPages} setCurrentPage={setCurrentPage} />
                 </div>
             </div>
