@@ -70,20 +70,27 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
 
       <td className="py-2 px-3 text-gray-700 whitespace-nowrap">
         <div className="flex items-center gap-1">
-          <span className="text-sm font-medium w-6 text-center">
-            {(product.rating / 2).toFixed(1)}
-          </span>
-          {[...Array(5)].map((_, i) => (
-            <AiFillStar
-              key={i}
-              className={`text-base ${i < Math.round(product.rating / 2)
-                  ? "text-yellow-400"
-                  : "text-gray-300"
-                }`}
-            />
-          ))}
+          {product.rating > 0 ? (
+            <>
+              <span className="text-sm font-medium w-6 text-center">
+                {(product.rating / 2).toFixed(1)}
+              </span>
+              {[...Array(5)].map((_, i) => (
+                <AiFillStar
+                  key={i}
+                  className={`text-base ${i < Math.round(product.rating / 2)
+                    ? "text-yellow-400"
+                    : "text-gray-300"
+                    }`}
+                />
+              ))}
+            </>
+          ) : (
+            <span className="text-sm text-[#db4444]">Chưa có đánh giá</span>
+          )}
         </div>
       </td>
+
 
       <td className="py-2 px-3">
         <div className="flex justify-center gap-2">
