@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { FiSearch, FiUser, FiLogOut, FiBell, FiSettings, FiMenu } from "react-icons/fi";
-import { API_BASE_URL } from "@/utils/api";
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 
 export default function ModernAdminHeader() {
   const [user, setUser] = useState<any>(null);
@@ -52,8 +52,7 @@ export default function ModernAdminHeader() {
   return (
     <header className="sticky top-0 z-50 bg-[#f9fafb] border-b border-[#e5e7eb] backdrop-blur-sm">
       <div className="flex items-center justify-between px-6 py-4">
-
-        {/* Left Section - Menu & Search */}
+        {/* Left Section */}
         <div className="flex items-center space-x-4 flex-1">
           <button className="lg:hidden p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors">
             <FiMenu className="w-5 h-5 text-gray-700" />
@@ -83,7 +82,7 @@ export default function ModernAdminHeader() {
           </div>
         </div>
 
-        {/* Right Section - Actions & Profile */}
+        {/* Right Section */}
         <div className="flex items-center space-x-3">
           <div className="relative">
             <button className="p-2.5 rounded-lg hover:bg-[#f3f4f6] transition-colors relative">
@@ -103,10 +102,18 @@ export default function ModernAdminHeader() {
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center space-x-3 p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors"
             >
-              <div className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center">
-                <span className="text-white font-medium text-sm">
-                  {user ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'NA'}
-                </span>
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300 bg-gray-100">
+                {user?.avatar ? (
+                  <img
+                    src={`${STATIC_BASE_URL}/${user.avatar}?t=${Date.now()}`}
+                    alt="avatar"
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full bg-gray-900 text-white font-medium text-sm">
+                    {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'NA'}
+                  </div>
+                )}
               </div>
               <div className="hidden md:block text-left">
                 <p className="text-sm font-medium text-gray-900">{user ? user.name : 'Loading...'}</p>
@@ -126,10 +133,18 @@ export default function ModernAdminHeader() {
               <div className="absolute right-0 mt-2 w-64 bg-[#f9fafb] rounded-xl shadow-lg border border-[#e5e7eb] py-2 z-50">
                 <div className="px-4 py-3 border-b border-[#e5e7eb]">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center">
-                      <span className="text-white font-medium">
-                        {user ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'NA'}
-                      </span>
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-300 bg-gray-100">
+                      {user?.avatar ? (
+                        <img
+                          src={`${STATIC_BASE_URL}/${user.avatar}?t=${Date.now()}`}
+                          alt="avatar"
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full bg-gray-900 text-white font-medium text-sm">
+                          {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'NA'}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">{user ? user.name : 'Loading...'}</p>
