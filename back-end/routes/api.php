@@ -95,6 +95,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [UserController::class, 'update']);
     Route::delete('/user', [UserController::class, 'destroy']);
     Route::post('/user/avatar', [UserController::class, 'updateAvatar']);
+    Route::post('/forgot-password/send-otp', [UserController::class, 'sendResetOtp']);
+    Route::post('/forgot-password/reset', [UserController::class, 'resetPasswordWithOtp']);
 
     // Cart
     Route::get('/cart', [CartController::class, 'index']);
