@@ -12,9 +12,6 @@ interface CartItem {
     price: number;
     sale_price?: number | null;
   };
-  variant?: {
-    id: number;
-  };
 }
 
 interface OrderRequestBody {
@@ -28,11 +25,6 @@ interface OrderRequestBody {
     phone: string;
     email: string;
   };
-  cart_items?: {
-    product_id: number;
-    quantity: number;
-    variant_id?: number | null;
-  }[];
 }
 
 interface Props {
@@ -91,12 +83,20 @@ export default function OrderSummary({
 
     try {
       const token = localStorage.getItem('token') || Cookies.get('authToken');
-      const isGuest = !token;
+      if (!token) {
+        setError('Bạn chưa đăng nhập.');
+        setPopupType('error');
+        setShowPopup(true);
+        setLoading(false);
+        return;
+      }
 
       const requestBody: OrderRequestBody = {
         payment_method: paymentMethod,
+        
         voucher_code: voucherCode || null,
       };
+console.log('paymentMethod gửi lên:', paymentMethod);
 
       if (manualAddressData && Object.values(manualAddressData).some((v) => v.trim() !== '')) {
         requestBody.address_manual = {
@@ -110,17 +110,10 @@ export default function OrderSummary({
         requestBody.address_id = addressId;
       }
 
-      // Nếu là khách vãng lai → gửi cart_items
-      if (isGuest) {
-        requestBody.cart_items = cartItems.map((item) => ({
-          product_id: item.id,
-          quantity: item.quantity,
-          variant_id: item.variant?.id ?? null,
-        }));
-      }
-
       const response = await axios.post(`${API_BASE_URL}/dathang`, requestBody, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       setSuccessMessage('Đặt hàng thành công!');
@@ -129,10 +122,6 @@ export default function OrderSummary({
 
       if (response.data.redirect_url) {
         window.location.href = response.data.redirect_url;
-      } else {
-        if (isGuest) {
-          localStorage.removeItem('cart'); // xoá local cart sau khi đặt hàng thành công
-        }
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Lỗi khi đặt hàng';
@@ -144,6 +133,7 @@ export default function OrderSummary({
     }
   };
 
+  // ✅ Auto close popup sau 4 giây
   useEffect(() => {
     if (showPopup) {
       const timer = setTimeout(() => {
@@ -154,6 +144,7 @@ export default function OrderSummary({
     }
   }, [showPopup]);
 
+  // ✅ Click ra ngoài để tắt popup
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
@@ -190,7 +181,8 @@ export default function OrderSummary({
           </div>
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Phí vận chuyển:</span>
-            <span>{shipping.toLocaleString('vi-VN')}đ</span>
+            <span>{shipping ? shipping.toLocaleString('vi-VN') : '0'}đ</span>
+
           </div>
           <div className="flex justify-between font-semibold text-lg text-brand pt-3">
             <span>Tổng thanh toán:</span>
@@ -209,6 +201,7 @@ export default function OrderSummary({
         </div>
       </div>
 
+      {/* ✅ Popup */}
       {showPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[9999]">
           <div
@@ -217,7 +210,8 @@ export default function OrderSummary({
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-16 w-16 mb-4 ${popupType === 'success' ? 'text-green-600' : 'text-red-600'}`}
+              className={`h-16 w-16 mb-4 ${popupType === 'success' ? 'text-green-600' : 'text-red-600'
+                }`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -233,12 +227,16 @@ export default function OrderSummary({
                 }
               />
             </svg>
-            <p className={`text-base font-semibold text-center ${popupType === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+            <p
+              className={`text-base font-semibold text-center ${popupType === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}
+            >
               {popupType === 'success' ? successMessage : error}
             </p>
           </div>
         </div>
       )}
+
     </div>
   );
 }
