@@ -20,7 +20,6 @@ export default function CartItemsSection({
 
   const fetchCartItems = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
-
     const guestCart = localStorage.getItem('cart');
     let localCartItems: CartItem[] = [];
 
@@ -50,10 +49,11 @@ export default function CartItemsSection({
             : null,
         }));
       } catch (err) {
-        console.error('Lỗi khi đọc giỏ hàng từ localStorage:', err);
+        console.error('Lỗi parse local cart:', err);
       }
     }
 
+    // Nếu chưa login => xài local
     if (!token) {
       setCartItems(localCartItems);
       propsSetCartItems(localCartItems);
@@ -62,6 +62,13 @@ export default function CartItemsSection({
     }
 
     try {
+      // Nếu có local, sync lên server trước
+      if (localCartItems.length > 0) {
+        await syncLocalCartToApi(localCartItems, token);
+        localStorage.removeItem('cart');
+      }
+
+      // Sau đó luôn tải giỏ từ server
       const res = await fetch(`${API_BASE_URL}/cart`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -69,10 +76,10 @@ export default function CartItemsSection({
         },
       });
 
-      if (!res.ok) throw new Error('Không thể tải giỏ hàng từ API.');
+      if (!res.ok) throw new Error('Không thể tải giỏ hàng từ API');
 
       const apiCartData = await res.json();
-      const formattedApiCart = apiCartData.map((item: any) => ({
+      const formatted = apiCartData.map((item: any) => ({
         ...item,
         product: {
           ...item.product,
@@ -80,32 +87,11 @@ export default function CartItemsSection({
         },
       }));
 
-      const combinedCart: CartItem[] = [];
-      const apiProductMap = new Map<string, CartItem>();
-
-      formattedApiCart.forEach((item: CartItem) => {
-        const key = item.variant ? `${item.product.id}-${item.variant.id}` : `${item.product.id}-no_variant`;
-        apiProductMap.set(key, item);
-        combinedCart.push(item);
-      });
-
-      localCartItems.forEach((localItem) => {
-        const key = localItem.variant ? `${localItem.product.id}-${localItem.variant.id}` : `${localItem.product.id}-no_variant`;
-        if (!apiProductMap.has(key)) {
-          combinedCart.push(localItem);
-        }
-      });
-
-      if (localCartItems.length > 0) {
-        await syncLocalCartToApi(localCartItems, token);
-        await fetchCartItems();
-      } else {
-        setCartItems(formattedApiCart);
-        propsSetCartItems(formattedApiCart);
-        localStorage.setItem('cart', JSON.stringify(formattedApiCart));
-      }
+      setCartItems(formatted);
+      propsSetCartItems(formatted);
+      localStorage.setItem('cart', JSON.stringify(formatted));
     } catch (error) {
-      console.warn('Lỗi khi tải giỏ hàng từ API. Đang sử dụng giỏ hàng từ localStorage làm fallback:', error);
+      console.warn('Lỗi API, fallback local:', error);
       setCartItems(localCartItems);
       propsSetCartItems(localCartItems);
       localStorage.setItem('cart', JSON.stringify(localCartItems));
@@ -133,15 +119,15 @@ export default function CartItemsSection({
         });
 
         if (!res.ok) {
-          const errorData = await res.json();
-          console.error(`Lỗi khi thêm sản phẩm ${item.product.name} vào giỏ API:`, errorData);
+          const err = await res.json();
+          console.error(`Sync ${item.product.name} lên API lỗi:`, err);
         }
-      } catch (error) {
-        console.error(`Lỗi khi gọi API thêm sản phẩm ${item.product.name}:`, error);
+      } catch (err) {
+        console.error(`Lỗi gọi API sync ${item.product.name}:`, err);
       }
     }
-    localStorage.removeItem('cart');
   };
+  
 
   const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];
