@@ -88,6 +88,9 @@ Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vn
 Route::get('/shop/{slug}/products', [ProductController::class, 'showShopProducts']);
 Route::get('/shop/{slug}/products-by-category/{category_slug}', [ProductController::class, 'getShopProductsByCategorySlug']);
 
+Route::post('/forgot-password/send-otp', [UserController::class, 'sendResetOtp']);
+Route::post('/forgot-password/reset', [UserController::class, 'resetPasswordWithOtp']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment']);
     // User
@@ -95,8 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [UserController::class, 'update']);
     Route::delete('/user', [UserController::class, 'destroy']);
     Route::post('/user/avatar', [UserController::class, 'updateAvatar']);
-    Route::post('/forgot-password/send-otp', [UserController::class, 'sendResetOtp']);
-    Route::post('/forgot-password/reset', [UserController::class, 'resetPasswordWithOtp']);
+
 
     // Cart
     Route::get('/cart', [CartController::class, 'index']);
@@ -154,8 +156,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/voucher-categories', [VoucherCategoryController::class, 'assignToCategory']);
     Route::get('/voucher-categories', [VoucherCategoryController::class, 'index']);
     Route::get('/voucher-categories/{voucher_id}', [VoucherCategoryController::class, 'showByVoucherId']);
-
-
 
     // bình luận
     Route::post('/{shopslug}/product/{productslug}/comment', [CommentController::class, 'addCommentIntoProduct']);
