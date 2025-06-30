@@ -132,9 +132,16 @@ export default function ForgotPasswordForm() {
             >
               Gửi mã OTP
             </button>
+
+            {/* Hai link bên dưới */}
+            <div className="flex justify-between mt-4 text-sm">
+              <a href="/login" className="text-brand hover:underline">Đăng nhập</a>
+              <a href="/signup" className="text-brand hover:underline">Đăng ký</a>
+            </div>
           </>
         )}
       </div>
+
 
       {/* Modal nhập OTP */}
       {step === "verify" && (
