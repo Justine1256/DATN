@@ -56,19 +56,20 @@ export default function ForgotPasswordForm() {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (!isValidOtp(otpCode)) {
-      setModalError("Mã OTP phải gồm đúng 6 chữ số.");
-      return;
-    }
-    try {
-      await axios.post(`${API_BASE_URL}/verify-otp`, { email, otp: otpCode });
-      setModalError("");
-      setStep("reset");
-    } catch (err: any) {
-      setModalError(err.response?.data?.message || "OTP không hợp lệ.");
-    }
-  };
+const handleVerifyOtp = async () => {
+  if (!isValidOtp(otpCode)) {
+    setModalError("Mã OTP phải gồm đúng 6 chữ số.");
+    return;
+  }
+  try {
+    await axios.post(`${API_BASE_URL}/forgot-password/verify-otp`, { email, otp: otpCode });
+    setModalError("");
+    setStep("reset");
+  } catch (err: any) {
+    setModalError(err.response?.data?.message || "OTP không hợp lệ.");
+  }
+};
+
 
   const handleResetPassword = async () => {
     if (!isValidPassword(newPassword)) {

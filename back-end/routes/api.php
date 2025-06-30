@@ -90,6 +90,7 @@ Route::get('/shop/{slug}/products-by-category/{category_slug}', [ProductControll
 
 Route::post('/forgot-password/send-otp', [UserController::class, 'sendResetOtp']);
 Route::post('/forgot-password/reset', [UserController::class, 'resetPasswordWithOtp']);
+Route::post('/forgot-password/verify-otp', [UserController::class, 'verifyOtpOnly']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment']);
