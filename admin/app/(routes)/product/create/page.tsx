@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-// import PreviewCard from "@/app/components/product/create/PreviewCard";
 import ImageDrop from "@/app/components/product/create/ImageDrop";
 import ProductInfoForm from "@/app/components/product/create/Form";
 import VariantModal from "@/app/components/product/create/VariantModal";
@@ -9,7 +8,6 @@ import ActionButtons from "@/app/components/product/create/ActionButtons";
 import { API_BASE_URL } from "@/utils/api";
 import { useAuth } from "@/app/AuthContext";
 import Cookies from "js-cookie";
-
 
 export default function AddProductPage() {
     const [images, setImages] = useState<{ id: string; url: string }[]>([]);
@@ -26,11 +24,18 @@ export default function AddProductPage() {
         value2: "",
     });
 
-    const [showPopup, setShowPopup] = useState(false);
     const [popupMessage, setPopupMessage] = useState("");
+    const [popupType, setPopupType] = useState<"success" | "error">("success");
+    const [showPopup, setShowPopup] = useState(false);
 
     const { user } = useAuth();
-    const isFashion = category === "fashion";
+
+    const handlePopup = (msg: string, type: "success" | "error") => {
+        setPopupMessage(msg);
+        setPopupType(type);
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 2000);
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -65,26 +70,23 @@ export default function AddProductPage() {
 
             if (!res.ok) {
                 const text = await res.text();
-                setPopupMessage("Lỗi: " + text);
-                setShowPopup(true);
+                handlePopup("Lỗi: " + text, "error");
                 return;
             }
 
-            const result = await res.json();
-            setPopupMessage("Thêm sản phẩm thành công!");
-            setShowPopup(true);
+            handlePopup("Thêm sản phẩm thành công!", "success");
         } catch (error) {
-            setPopupMessage("Gửi sản phẩm thất bại.");
-            setShowPopup(true);
+            handlePopup("Gửi sản phẩm thất bại.", "error");
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-6 space-y-9 flex justify-center"> {/* Added flex justify-center */}
-            <div className="w-full max-w-4xl"> {/* Added a max-width container */}
-                <h1 className="text-xl font-bold text-gray-800 mb-4">Add New Product</h1>
-
-                <div className="space-y-6 mt-8"> {/* Removed grid classes here */}
+        <form
+            onSubmit={handleSubmit}
+            className="space-y-9 flex justify-center relative"
+        >
+            <div className="w-full max-w-4xl">
+                <div className="space-y-6">
                     <ImageDrop images={images} setImages={setImages} />
                     <ProductInfoForm
                         images={images}
@@ -96,26 +98,18 @@ export default function AddProductPage() {
                             type="button"
                             onClick={() => {
                                 const { option1, value1, option2, value2 } = productOptions;
-                                const hasOption1 = option1.trim() !== "" && value1.trim() !== "";
-                                const hasValidOption2 =
-                                    option2.trim() === "" || value2.trim() !== "";
-
-                                if (!hasOption1) {
-                                    setPopupMessage("Vui lòng nhập Option 1 và Value 1 trước khi thêm biến thể.");
-                                    setShowPopup(true);
+                                if (!option1.trim() || !value1.trim()) {
+                                    handlePopup("Vui lòng nhập Option 1 và Value 1", "error");
                                     return;
                                 }
-
-                                if (!hasValidOption2) {
-                                    setPopupMessage("Bạn đã nhập Option 2 nhưng chưa có Value 2.");
-                                    setShowPopup(true);
+                                if (option2.trim() && !value2.trim()) {
+                                    handlePopup("Bạn đã nhập Option 2 nhưng thiếu Value 2", "error");
                                     return;
                                 }
-
                                 setShowVariantModal(true);
                                 setEditingIndex(null);
                             }}
-                            className="bg-[#db4444] text-white px-4 py-2 rounded hover:bg-[#c23333] transition-all"
+                            className="bg-[#db4444] text-white px-4 py-2 rounded hover:bg-[#c23333]"
                         >
                             Thêm biến thể
                         </button>
@@ -124,7 +118,6 @@ export default function AddProductPage() {
                             {variants.length === 0 && (
                                 <p className="text-sm text-gray-500">Chưa có biến thể nào.</p>
                             )}
-
                             {variants.map((variant, index) => (
                                 <div
                                     key={index}
@@ -142,7 +135,6 @@ export default function AddProductPage() {
                                             - SL: {variant.stock}
                                         </p>
                                     </div>
-
                                     {variant.image?.length > 0 && (
                                         <div className="flex gap-1 overflow-x-auto">
                                             {variant.image.slice(0, 3).map((img: string, i: number) => (
@@ -155,7 +147,6 @@ export default function AddProductPage() {
                                             ))}
                                         </div>
                                     )}
-
                                     <div className="flex gap-2 text-sm">
                                         <button
                                             type="button"
@@ -209,7 +200,31 @@ export default function AddProductPage() {
                 </div>
             </div>
 
-
+            {showPopup && (
+                <div
+                    className={`fixed top-6 right-6 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-slide-in ${popupType === "success" ? "bg-green-500" : "bg-red-500"
+                        }`}
+                >
+                    <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d={
+                                popupType === "success"
+                                    ? "M5 13l4 4L19 7"
+                                    : "M6 18L18 6M6 6l12 12"
+                            }
+                        />
+                    </svg>
+                    <span className="text-sm font-medium">{popupMessage}</span>
+                </div>
+            )}
         </form>
     );
 }

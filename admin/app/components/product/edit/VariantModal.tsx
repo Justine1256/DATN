@@ -51,7 +51,7 @@ export default function VariantModal({
   };
 
   const handleSubmit = () => {
-    if ((!value1 && !disableValue1) || (!value2 && !disableValue2) || price <= 0 || stock <= 0) {
+    if ((!value1 && !disableValue1) || (!value2 && !disableValue2) || price < 0 || stock < 0) {
       alert("Vui lòng nhập đầy đủ và hợp lệ.");
       return;
     }
@@ -70,99 +70,100 @@ export default function VariantModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md overflow-y-auto max-h-[90vh]">
-        <h2 className="text-lg font-semibold mb-4">Thêm biến thể</h2>
+      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-200">
+        <h2 className="text-lg font-semibold text-slate-800 mb-6">Thêm biến thể</h2>
 
         <div className="space-y-4">
+          {/* Value 1 */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
-              Giá trị 1 (VD: 256GB, M, L)
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Giá trị 1 <span className="text-[#db4444]">*</span>
             </label>
             <input
               type="text"
               value={value1}
               onChange={(e) => setValue1(e.target.value)}
-              placeholder="Nhập giá trị 1"
-              className="border rounded w-full px-3 py-2"
+              placeholder="VD: 256GB, Size M"
               disabled={disableValue1}
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444]"
             />
           </div>
 
+          {/* Value 2 */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
-              Giá trị 2 (VD: Màu đen, Titan xanh)
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Giá trị 2 <span className="text-[#db4444]">*</span>
             </label>
             <input
               type="text"
               value={value2}
               onChange={(e) => setValue2(e.target.value)}
-              placeholder="Nhập giá trị 2"
-              className="border rounded w-full px-3 py-2"
+              placeholder="VD: Màu đen, Chất liệu vải"
               disabled={disableValue2}
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444]"
             />
           </div>
 
+          {/* Giá gốc */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
-              Giá gốc
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Giá gốc (VNĐ) <span className="text-[#db4444]">*</span>
             </label>
             <input
               type="number"
-              value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
-              placeholder="Nhập giá gốc (VNĐ)"
-              className="border rounded w-full px-3 py-2"
+              value={price === 0 ? "" : price}
+              onChange={(e) => setPrice(Math.max(0, Number(e.target.value)))}
+              placeholder="Nhập giá gốc"
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444]"
             />
           </div>
 
+          {/* Giá khuyến mãi */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Giá khuyến mãi
             </label>
             <input
               type="number"
-              value={salePrice}
-              onChange={(e) => setSalePrice(Number(e.target.value))}
-              placeholder="Nhập giá khuyến mãi (nếu có)"
-              className="border rounded w-full px-3 py-2"
+              value={salePrice === 0 ? "" : salePrice}
+              onChange={(e) => setSalePrice(Math.max(0, Number(e.target.value)))}
+              placeholder="Nhập giá khuyến mãi"
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444]"
             />
           </div>
 
+          {/* Tồn kho */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">
-              Số lượng tồn
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Số lượng tồn kho <span className="text-[#db4444]">*</span>
             </label>
             <input
               type="number"
-              value={stock}
-              onChange={(e) => setStock(Number(e.target.value))}
-              placeholder="Nhập số lượng tồn"
-              className="border rounded w-full px-3 py-2"
+              value={stock === 0 ? "" : stock}
+              onChange={(e) => setStock(Math.max(0, Number(e.target.value)))}
+              placeholder="Số lượng tồn"
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444]"
             />
           </div>
 
+          {/* Hình ảnh */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Hình ảnh biến thể
             </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="mb-2"
-            />
-            <div className="flex flex-wrap gap-2">
+            <input type="file" accept="image/*" onChange={handleImageUpload} />
+            <div className="flex gap-2 mt-2 flex-wrap">
               {images.map((img, index) => (
                 <div key={index} className="relative">
                   <img
                     src={img}
-                    alt={`variant-${index}`}
                     className="w-20 h-20 object-cover rounded border"
+                    alt={`variant-${index}`}
                   />
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1"
+                    className="absolute -top-1 -right-1 bg-[#db4444] text-white text-xs rounded-full px-1"
                   >
                     ×
                   </button>
@@ -183,7 +184,7 @@ export default function VariantModal({
           <button
             type="button"
             onClick={handleSubmit}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-[#db4444] text-white px-4 py-2 rounded hover:bg-red-600 transition-all"
           >
             Xác nhận
           </button>

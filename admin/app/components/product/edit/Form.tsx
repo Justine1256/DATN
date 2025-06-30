@@ -143,19 +143,21 @@ export default function ProductForm({
                   </label>
                   <select
                     name="category_id"
-                    defaultValue=""
-                    required
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
+                    required
                     className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all bg-white"
                   >
-                    <option value="" disabled className="text-slate-400">Chọn danh mục</option>
+                    <option value="" disabled className="text-slate-400">
+                      Chọn danh mục
+                    </option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id.toString()}>
                         {cat.name}
                       </option>
                     ))}
                   </select>
+
                 </div>
               </div>
             </div>

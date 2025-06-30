@@ -24,25 +24,72 @@ interface Props {
 
 export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Props) {
   const [paymentMethod, setPaymentMethod] = useState('cod');
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]); // Cart items state
+  const [loading, setLoading] = useState(true); // Loading state
 
   const totalPrice = cartItems.reduce((sum, item) => {
     const finalPrice = item.product.sale_price ?? item.product.price;
     return sum + finalPrice * item.quantity;
   }, 0);
 
+  const formatImageUrl = (img: string | string[]): string => {
+    if (Array.isArray(img)) img = img[0];
+    if (typeof img !== 'string' || !img.trim()) {
+      return `${STATIC_BASE_URL}/products/default-product.png`;
+    }
+    if (img.startsWith('http')) return img;
+    return img.startsWith('/')
+      ? `${STATIC_BASE_URL}${img}`
+      : `${STATIC_BASE_URL}/${img}`;
+  };
+
+  // Fetching cart items from localStorage or API
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token) return;
+    if (!token) {
+      const guestCart = localStorage.getItem('cart');
+      if (guestCart) {
+        const parsed = JSON.parse(guestCart);
+        const formatted = parsed.map((item: any, index: number) => ({
+          id: index + 1,
+          quantity: item.quantity,
+          product: {
+            id: item.product_id,
+            name: item.name,
+            image: [item.image],
+            price: item.price,
+            sale_price: null,
+          },
+        }));
+        setCartItems(formatted);
+        onCartChange(formatted);
+      } else {
+        setCartItems([]);
+      }
+      setLoading(false);
+      return;
+    }
 
+    // Fetching cart data from API if the user is logged in
     axios
       .get(`${API_BASE_URL}/cart`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        setCartItems(res.data);
-        onCartChange(res.data);
+        const serverCartItems = res.data;
+        const guestCart = localStorage.getItem('cart');
+
+        // Nếu có giỏ hàng trong localStorage, kết hợp với giỏ hàng từ server
+        if (guestCart) {
+          const parsedGuestCart = JSON.parse(guestCart);
+          // Kết hợp sản phẩm từ giỏ hàng server và localStorage
+          const combinedCart = [...serverCartItems, ...parsedGuestCart];
+          setCartItems(combinedCart);
+          onCartChange(combinedCart);
+        } else {
+          setCartItems(serverCartItems);
+          onCartChange(serverCartItems);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -60,9 +107,9 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
       </div>
 
       {loading ? (
-        <p className="text-center text-gray-400 text-sm">Loading...</p>
+        <p className="text-center text-gray-400 text-sm">Đang tải...</p>
       ) : cartItems.length === 0 ? (
-        <p className="text-center text-sm">Your cart is empty.</p>
+        <p className="text-center text-sm">Giỏ hàng của bạn đang trống.</p>
       ) : (
         cartItems.map((item) => {
           const { product, quantity } = item;
@@ -74,11 +121,10 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
             <div key={item.id} className="grid grid-cols-4 items-center px-4 py-3 bg-white shadow">
               <div className="col-span-2 flex items-center gap-4">
                 <Image
-                  src={`${STATIC_BASE_URL}/${firstImage}`}
-                  alt={product.name}
+                  src={formatImageUrl(item.product?.image)}
+                  alt={item.product?.name || 'Product Image'}
                   width={50}
                   height={50}
-                  className="object-contain"
                 />
                 <div>
                   <p className="text-sm font-medium">{product.name}</p>

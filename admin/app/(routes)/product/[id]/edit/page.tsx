@@ -32,6 +32,17 @@ export default function EditProductPage() {
     description: "",
   });
 
+  // ✅ Popup state
+  const [popupMessage, setPopupMessage] = useState("");
+  const [popupType, setPopupType] = useState<"success" | "error">("success");
+
+  // ✅ Show popup with type
+  const handleShowPopup = (message: string, type: "success" | "error") => {
+    setPopupMessage(message);
+    setPopupType(type);
+    setTimeout(() => setPopupMessage(""), 2000);
+  };
+
   useEffect(() => {
     const fetchUserAndProduct = async () => {
       try {
@@ -58,9 +69,10 @@ export default function EditProductPage() {
         setProduct(p);
         setCategory(p.category_id?.toString() || "");
         setSelectedImages(
-          (Array.isArray(p.image) ? p.image : [p.image || ""]).map(
-            (url: string, idx: number) => ({ id: String(idx), url })
-          )
+          (Array.isArray(p.image) ? p.image : [p.image || ""]).map((url: string, idx: number) => ({
+            id: String(idx),
+            url,
+          }))
         );
         setOptionValues({
           option1: p.option1 || "",
@@ -90,33 +102,53 @@ export default function EditProductPage() {
   if (!product) return <div className="p-6 text-red-500">Không tìm thấy sản phẩm.</div>;
 
   return (
-    <div className="p-6 space-y-6 flex justify-center">
-      <div className="w-full max-w-6xl"> {/* Changed from max-w-4xl to max-w-6xl */}
-        <h1 className="text-xl font-bold text-gray-800 mb-4">Chỉnh sửa sản phẩm (ID: {id})</h1>
+    <form className="space-y-9 flex justify-center relative">
+      <div className="w-full max-w-4xl">
+        <h1 className="text-xl font-bold text-[#db4444] mb-4">
+          Chỉnh sửa sản phẩm (ID: {id})
+        </h1>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2 space-y-6">
-            <ImageDrop images={selectedImages} setImages={setSelectedImages} />
+        <div className="space-y-6">
+          <ImageDrop images={selectedImages} setImages={setSelectedImages} />
 
-            <Form
-              images={selectedImages}
-              defaultValues={product}
-              category={category}
-              setCategory={setCategory}
-              onOptionsChange={setOptionValues}
-              onFormChange={setFormValues}
-            />
+          <Form
+            images={selectedImages}
+            defaultValues={product}
+            category={category}
+            setCategory={setCategory}
+            onOptionsChange={setOptionValues}
+            onFormChange={setFormValues}
+          />
 
-            <ActionButtons
-              productId={product.id}
-              images={selectedImages}
-              optionValues={optionValues}
-              categoryId={category}
-              formValues={formValues}
-            />
-          </div>
+          <ActionButtons
+            productId={product.id}
+            images={selectedImages}
+            optionValues={optionValues}
+            categoryId={category}
+            formValues={formValues}
+            onPopup={handleShowPopup}
+          />
         </div>
       </div>
-    </div>
-      );
+
+      {/* ✅ Popup đẹp ở góc phải */}
+      {popupMessage && (
+        <div
+          className={`fixed top-6 right-6 px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-slide-in
+            ${popupType === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
+        >
+          {popupType === "success" ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
+          <span className="text-sm font-medium">{popupMessage}</span>
+        </div>
+      )}
+    </form>
+  );
 }

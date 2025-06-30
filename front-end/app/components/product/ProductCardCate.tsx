@@ -233,22 +233,29 @@ export default function ProductCardCate({
           )}
         </div>
 
-        <div className="flex items-center justify-between text-yellow-500 text-sm mt-2 flex-wrap">
+        <div className="flex items-center justify-between text-sm mt-2 flex-wrap">
           <div className="flex items-center gap-1">
-            {Array(5)
-              .fill(0)
-              .map((_, i) => (
-                <AiFillStar
-                  key={i}
-                  className={`w-4 h-4 ${i < Math.round(ratingValue / 2) ? "text-yellow-500" : "text-gray-300"}`}
-                />
-              ))}
-            <span className="text-gray-600 text-xs">({ratingValue})</span>
+            {ratingValue && ratingValue > 0 ? (
+              <>
+                {Array(5)
+                  .fill(0)
+                  .map((_, i) => (
+                    <AiFillStar
+                      key={i}
+                      className={`w-4 h-4 ${i < Math.round(ratingValue / 2) ? "text-yellow-500" : "text-gray-300"}`}
+                    />
+                  ))}
+                <span className="text-gray-600 text-xs">({ratingValue})</span>
+              </>
+            ) : (
+              <span className="text-[#db4444] text-xs font-semibold">Chưa đánh giá</span>
+            )}
           </div>
           <span className="text-gray-600 text-xs">
             {product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}
           </span>
         </div>
+
       </div>
     </div>
   );

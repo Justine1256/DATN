@@ -1,41 +1,37 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Roboto } from "next/font/google";
 import "./globals.css";
 import Header from "./components/common/Header";
 import Sidebar from "./components/common/Sidebar";
 import { AuthProvider } from "./AuthContext";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Khai báo font Roboto
+const roboto = Roboto({
+  weight: ["400", "500", "700"],
   subsets: ["latin"],
+  variable: "--font-roboto",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-interface HeaderProps {
-  className?: string; // Add className as an optional prop
-}
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`bg-gray-50 text-gray-900 font-sans antialiased ${geistSans.variable} ${geistMono.variable}`}>
+      <body
+        className={`bg-[#f9fafb] text-gray-900 font-sans antialiased ${roboto.variable}`}
+      >
         <AuthProvider>
-          
-          <div className="flex h-screen overflow-hidden"> 
+          <div className="flex h-screen overflow-hidden">
 
-          
+            {/* Sidebar */}
             <Sidebar />
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col overflow-hidden"> 
+            <div className="flex-1 flex flex-col overflow-hidden">
 
-              {/* Header: Fixed at the top */}
-              <Header  /> {/* Fixed header */}
+              {/* Header */}
+              <Header />
 
-           
-              <main className="flex-1  overflow-y-auto"> 
-                <div className="max-w-7xl mx-auto">
+              {/* Main content */}
+              <main className="flex-1 overflow-y-auto bg-[#f9fafb]">
+                <div className="max-w-7xl mx-auto px-6 py-8">
                   {children}
                 </div>
               </main>

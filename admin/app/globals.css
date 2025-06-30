@@ -5,68 +5,54 @@
 @tailwind utilities;
 
 /* ================================
-   Biến hệ thống & chế độ nền (giữ nguyên)
+   Biến hệ thống & chế độ nền (đã chỉnh lại)
 ================================ */
 :root {
-  --background: #ffffff;
-  /* Màu nền chính */
-  --foreground: rgb(31 41 55 / var(--tw-text-opacity, 1));
-  /* Màu chữ chính */
+  --background: #f9fafb;
+  /* đổi từ trắng tinh #ffffff sang gray-50 dịu hơn */
+  --foreground: #1f2937;
+  /* gray-800, thay vì rgba(...) */
+
   --color-background: var(--background);
-  /* Biến tiện ích cho màu nền */
   --color-foreground: var(--foreground);
-  /* Biến tiện ích cho màu chữ */
+
   --font-sans: 'Roboto', Arial, Helvetica, sans-serif;
-  /* Font sans-serif mặc định là Roboto */
   --font-mono: 'Courier New', Courier, monospace;
-  /* Font monospace mặc định */
 }
 
-/* Định nghĩa chế độ tối (giữ nguyên) */
+/* Định nghĩa chế độ tối nếu sau này cần */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* --background: #0a0a0a; */
-    /* --foreground: #ededed; */
+    /* Giữ nguyên để có thể kích hoạt dark mode sau */
+    /* --background: #0a0a0a;
+    --foreground: #ededed; */
   }
 }
 
 /* ================================
-   CẤU HÌNH LAYOUT TOÀN MÀN HÌNH VÀ CUỘN (PHẦN QUAN TRỌNG)
+   CẤU HÌNH LAYOUT TOÀN MÀN HÌNH & CUỘN
 ================================ */
 html,
 body {
   height: 100%;
-  /* RẤT QUAN TRỌNG: Đảm bảo html và body chiếm toàn bộ chiều cao viewport */
   margin: 0;
-  /* Xóa margin mặc định */
   padding: 0;
-  /* Xóa padding mặc định */
   overflow: hidden;
-  /* QUAN TRỌNG: Ẩn thanh cuộn chính của trình duyệt. Các thành phần con sẽ tự cuộn. */
   font-family: var(--font-sans);
-  /* Sử dụng biến font-sans của bạn */
   background: var(--background);
-  /* Sử dụng biến background của bạn */
   color: var(--foreground);
-  /* Sử dụng biến foreground của bạn */
 }
 
-/* Đối với ứng dụng Next.js, #__next là phần tử gốc được render ra */
 #__next {
   height: 100%;
-  /* RẤT QUAN TRỌNG: Đảm bảo #__next cũng chiếm toàn bộ chiều cao */
   display: flex;
-  /* Biến #__next thành flex container để quản lý layout chính */
   flex-direction: column;
-  /* Sắp xếp các phần tử con theo chiều dọc (nếu có) */
 }
 
-/* Đảm bảo flex-1 hoạt động đúng trong các flex container */
+/* Đảm bảo flex-1 hoạt động */
 .flex-1 {
   flex: 1 1 0%;
-  /* flex-grow, flex-shrink, flex-basis: 0% */
   min-height: 0;
-  /* QUAN TRỌNG: Cho phép phần tử flex-1 co lại về 0px nếu cần, để nó có thể cuộn nội dung bên trong */
 }
 
 /* ================================
@@ -74,16 +60,10 @@ body {
 ================================ */
 html,
 body {
-  /* Các thuộc tính scrollbar-width và scrollbar-color không có tác dụng khi overflow: hidden */
-  /* Chúng chỉ áp dụng khi overflow là auto/scroll. Tuy nhiên, nếu bạn dùng .scrollbar-custom */
-  /* cho các div cuộn bên trong, các thuộc tính này sẽ hữu ích. */
   scrollbar-width: thin;
-  /* Firefox */
   scrollbar-color: #cbd5e1 transparent;
-  /* Firefox */
 }
 
-/* ✅ Scrollbar cho Chrome, Safari, Edge (giữ nguyên, nhưng chỉ áp dụng cho div cuộn bên trong) */
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   width: 6px;
@@ -108,7 +88,7 @@ body::-webkit-scrollbar-thumb:hover {
   background-color: #94a3b8;
 }
 
-/* ✅ Scrollbar đẹp và mảnh có thể tái sử dụng nội bộ (giữ nguyên) */
+/* Scrollbar tùy chỉnh cho div bên trong */
 .scrollbar-custom {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
@@ -153,3 +133,21 @@ body.swal2-shown {
   margin-bottom: 20px;
 }
 
+/* ================================
+   Animation slide-in (giữ nguyên)
+================================ */
+@keyframes slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(50%);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.4s ease-out;
+}
