@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "@/utils/api";
 import { useRouter } from "next/navigation";
@@ -17,7 +17,19 @@ export default function ForgotPasswordForm() {
   const [message, setMessage] = useState("");
 
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+
   const router = useRouter();
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const isValidEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -44,17 +56,16 @@ export default function ForgotPasswordForm() {
       await axios.post(`${API_BASE_URL}/forgot-password/send-otp`, { email });
       setMessage("Đã gửi mã OTP đến email của bạn.");
       setError("");
+      setResendTimer(60); // ⏱ bắt đầu đếm ngược 60s
     } catch (err: any) {
       setError(err.response?.data?.message || "Không thể gửi OTP.");
     }
   };
 
-
   const handleResetPassword = async () => {
     setError("");
     setOtpError("");
     setMessage("");
-
 
     if (!isValidPassword(newPassword)) {
       setPassError("Mật khẩu phải có ít nhất 6 ký tự.");
@@ -113,8 +124,9 @@ export default function ForgotPasswordForm() {
           <button
             onClick={handleSendOtp}
             className="bg-brand hover:opacity-75 text-white px-3 rounded text-sm font-medium"
+            disabled={resendTimer > 0}
           >
-            Gửi mã
+            {resendTimer > 0 ? `Gửi lại (${resendTimer}s)` : "Gửi mã"}
           </button>
         </div>
 
