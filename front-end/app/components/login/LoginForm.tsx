@@ -15,34 +15,17 @@ export default function LoginForm() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ✅ Hàm kiểm tra định dạng email chuẩn
-  const isValidEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     const { email, password } = formData;
 
-    // ✅ VALIDATION
-    if (!email.trim()) {
-      return setError('Vui lòng nhập email.');
-    }
-
-    if (!isValidEmail(email.trim())) {
-      return setError('Email không đúng định dạng.');
-    }
-
-    if (!password.trim()) {
-      return setError('Vui lòng nhập mật khẩu.');
-    }
-
-    if (password.length < 6) {
-      return setError('Mật khẩu phải có ít nhất 6 ký tự.');
-    }
+    if (!email.trim()) return setError('Vui lòng nhập email.');
+    if (!isValidEmail(email.trim())) return setError('Email không đúng định dạng.');
+    if (!password.trim()) return setError('Vui lòng nhập mật khẩu.');
+    if (password.length < 6) return setError('Mật khẩu phải có ít nhất 6 ký tự.');
 
     setIsLoading(true);
 
@@ -52,7 +35,6 @@ export default function LoginForm() {
 
       Cookies.set('authToken', token, { expires: 7 });
       setShowPopup(true);
-
       window.location.href = 'http://localhost:3000';
     } catch (err: any) {
       const msg =
@@ -101,24 +83,20 @@ export default function LoginForm() {
           disabled={isLoading}
         />
 
-        <div className="flex items-center justify-between h-[56px] mt-4">
-          <button
-            type="submit"
-            className="bg-brand text-white w-[120px] h-full text-sm rounded hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-          </button>
-          <a
-            href="/signup"
-            className="text-brand text-sm hover:underline hover:opacity-80"
-          >
+        <button
+          type="submit"
+          className="bg-brand text-white w-full h-[48px] text-sm rounded hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+        </button>
+
+        {/* 2 link tách ra 2 bên */}
+        <div className="flex justify-between mt-4 text-sm">
+          <a href="/signup" className="text-brand hover:underline hover:opacity-80">
             Đăng ký
           </a>
-          <a
-            href="/forgotpassword"
-            className="text-brand text-sm hover:underline hover:opacity-80"
-          >
+          <a href="/forgotpassword" className="text-brand hover:underline hover:opacity-80">
             Quên mật khẩu?
           </a>
         </div>

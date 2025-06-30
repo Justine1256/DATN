@@ -241,6 +241,23 @@ public function resetPasswordWithOtp(Request $request)
 
     return response()->json(['message' => 'Mật khẩu đã được đặt lại thành công!']);
 }
+public function verifyOtpOnly(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email|exists:users,email',
+        'otp' => 'required|numeric|digits:6',
+    ]);
+
+    $user = User::where('email', $request->email)
+                ->where('verify_token', $request->otp)
+                ->first();
+
+    if (!$user) {
+        return response()->json(['error' => 'Mã OTP không chính xác hoặc đã hết hạn.'], 400);
+    }
+
+    return response()->json(['message' => 'Mã OTP chính xác.']);
+}
 
 public function updateAvatar(Request $request)
 {
