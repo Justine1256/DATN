@@ -116,7 +116,7 @@ export default function CreateCategoryPage() {
 
         setSubmitting(true);
         try {
-            await axios.post(`${API_BASE_URL}/shop/categories`, {
+            await axios.post(`${API_BASE_URL}/admin/categories`, {
                 ...formData,
                 shop_id: shopId,
             }, {
