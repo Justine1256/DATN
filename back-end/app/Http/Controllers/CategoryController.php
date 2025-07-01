@@ -198,35 +198,46 @@ public function addCategoryByShop(Request $request)
         'parent_id' => 'required|exists:categories,id',
         'name' => 'required|string|max:255',
         'description' => 'nullable|string',
-        'image' => 'nullable|string',
+        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
     ]);
 
     if ($validator->fails()) {
         return response()->json(['errors' => $validator->errors()], 422);
     }
 
-    // Chỉ chấp nhận danh mục cha từ admin
+    // Bắt buộc danh mục cha phải là của admin
     $parent = Category::where('id', $request->parent_id)
         ->whereNull('shop_id')
         ->first();
 
     if (!$parent) {
-        return response()->json(['error' => 'Danh mục cha không hợp lệ hoặc không phải của admin.'], 400);
+        return response()->json(['error' => 'Danh mục cha không hợp lệ hoặc không phải do admin tạo.'], 403);
     }
 
-    // Kiểm tra tên trùng trong cùng shop
-    $existing = Category::where('shop_id', $user->shop->id)
-        ->where('name', $request->name)
+    // Tạo slug từ name
+    $slug = Str::slug($request->name);
+
+    // Kiểm tra slug đã tồn tại trong shop
+    $slugExists = Category::where('shop_id', $user->shop->id)
+        ->where('slug', $slug)
         ->exists();
 
-    if ($existing) {
-        return response()->json(['error' => 'Tên danh mục đã tồn tại trong shop của bạn.'], 422);
+    if ($slugExists) {
+        return response()->json(['error' => 'Slug đã tồn tại trong shop của bạn. Vui lòng chọn tên khác.'], 422);
     }
 
+    // Xử lý upload ảnh
+    $imagePath = null;
+    if ($request->hasFile('image')) {
+        $imagePath = $request->file('image')->store('categories', 'public');
+    }
+
+    // Tạo danh mục
     $category = Category::create([
         'name' => $request->name,
+        'slug' => $slug,
         'description' => $request->description,
-        'image' => $request->image,
+        'image' => $imagePath,
         'parent_id' => $parent->id,
         'shop_id' => $user->shop->id,
         'status' => 'activated',
@@ -234,7 +245,15 @@ public function addCategoryByShop(Request $request)
 
     return response()->json([
         'message' => 'Tạo danh mục thành công.',
-        'category' => $category
+        'category' => [
+            'id' => $category->id,
+            'name' => $category->name,
+            'slug' => $category->slug,
+            'image_url' => $category->image ? asset('storage/' . $category->image) : null,
+            'parent_id' => $category->parent_id,
+            'shop_id' => $category->shop_id,
+            'status' => $category->status,
+        ]
     ], 201);
 }
 
