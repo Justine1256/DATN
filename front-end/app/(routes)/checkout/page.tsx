@@ -59,6 +59,7 @@ export default function CheckoutPage() {
           />
           <OrderSummary
             cartItems={cartItems}
+            setCartItems={setCartItems}
             paymentMethod={paymentMethod}
             addressId={addressId}
             voucherCode={voucherCode}

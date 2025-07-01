@@ -123,7 +123,7 @@ export default function OrderSummary({
           },
           cart_items: cartPayload,
         };
-
+console.log("GỬI LÊN BACKEND guestPayload:", JSON.stringify(guestPayload, null, 2));
         const res = await axios.post(`${API_BASE_URL}/nologin`, guestPayload, {
           headers: { Accept: 'application/json' },
         });
@@ -180,8 +180,8 @@ export default function OrderSummary({
         }
       }
     } catch (err: any) {
-      const msg =
-        err.response?.data?.message || 'Lỗi khi đặt hàng (ở phía FE)';
+      console.error('Lỗi FE:', err); 
+      const msg =err.response?.data?.message || 'Lỗi khi đặt hàng (ở phía FE)';
       setError(msg);
       setPopupType('error');
       setShowPopup(true);
