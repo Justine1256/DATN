@@ -64,18 +64,19 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                         {/* Left Section - Avatar, Buttons, Status */}
                         <div className="col-span-12 sm:col-span-4 flex flex-col items-center">
                             {/* Shop Avatar */}
-                            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden mb-4">
+                            <div className="w-14 h-14 sm:w-24 sm:h-24 rounded-full overflow-hidden mb-4 transition-transform duration-300 hover:scale-105">
+
                                 <Image
                                     src={`${API_BASE_URL}/image/${shop.logo}`}
                                     alt="Shop Logo"
-                                    width={96}
-                                    height={96}
+                                    width={56}
+                                    height={56}
                                     className="rounded-full object-cover w-full h-full"
                                 />
                             </div>
 
                             {/* Follow and Chat Buttons */}
-                            <div className="flex gap-2 w-[250px]">
+                            <div className="flex flex-col gap-2 w-[120px]">
                                 <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
                                     <User size={16} />
                                     <span>Theo Dõi</span>

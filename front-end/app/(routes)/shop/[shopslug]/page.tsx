@@ -11,8 +11,8 @@ export interface Product {
     image: string[];
     slug: string;
     price: number;
-    oldPrice: number; // Ensure oldPrice is always a number
-    rating: string; // rating is now a string
+    oldPrice: number;
+    rating: string;
     discount?: number;
     sale_price?: number;
     shop_slug?: string;
@@ -53,6 +53,7 @@ const ShopPage = () => {
     const [loading, setLoading] = useState(true);
     const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
     const [selectedPriceFilter, setSelectedPriceFilter] = useState<string | null>(null);
+    const [showAllCategories, setShowAllCategories] = useState(false);
 
     const fetchData = useCallback(async (categorySlug: string | null = null) => {
         const slug = window.location.pathname.split('/').pop();
@@ -68,21 +69,14 @@ const ShopPage = () => {
         try {
             const shopUrl = `${API_BASE_URL}/shop/${slug}`;
             const categoryUrl = `${API_BASE_URL}/shop/${slug}/categories`;
-            let productUrl = `${API_BASE_URL}/shop/${slug}/products`;
-            //  let productUrl = `${API_BASE_URL}/shop / ${ slug } /products-by-category/${ categorySlug }`api thật để fetch sp danh mục
-            if (categorySlug) {
-                productUrl += `?category=${categorySlug}`;
-            }
 
-            const [shopResponse, categoryResponse, productResponse] = await Promise.all([
+            const [shopRes, categoryRes] = await Promise.all([
                 fetch(shopUrl),
-                fetch(categoryUrl),
-                fetch(productUrl)
+                fetch(categoryUrl)
             ]);
 
-            const shopData = await shopResponse.json();
-            const categoryData = await categoryResponse.json();
-            const productData = await productResponse.json();
+            const shopData = await shopRes.json();
+            const categoryData = await categoryRes.json();
 
             if (shopData && shopData.shop) {
                 setShop(shopData.shop);
@@ -92,32 +86,33 @@ const ShopPage = () => {
                 return;
             }
 
-            if (categoryData && categoryData.categories) {
-                setCategories(categoryData.categories);
-            } else {
-                setCategories([]);
-            }
+            setCategories(categoryData.categories || []);
+
+            let productUrl = categorySlug
+                ? `${API_BASE_URL}/shop/${slug}/products-by-category/${categorySlug}`
+                : `${API_BASE_URL}/shop/${slug}/products`;
+
+            const productRes = await fetch(productUrl);
+            const productData = await productRes.json();
 
             let fetchedProducts: Product[] = [];
-
-            if (productData && productData.products && Array.isArray(productData.products.data)) {
+            if (Array.isArray(productData.products)) {
+                fetchedProducts = productData.products;
+            } else if (Array.isArray(productData.products?.data)) {
                 fetchedProducts = productData.products.data;
-            } else {
-                fetchedProducts = [];
             }
 
-            const productsWithTimestamp = fetchedProducts.map(p => ({
+            const productsWithTs = fetchedProducts.map(p => ({
                 ...p,
                 createdAt: p.updated_at ? new Date(p.updated_at).getTime() : 0,
-                rating: p.rating.toString(), // Ensure rating is a string
-                oldPrice: p.oldPrice ?? 0,   // Ensure oldPrice is a number (default to 0 if undefined)
+                rating: p.rating.toString(),
+                oldPrice: p.oldPrice ?? 0,
             }));
 
-            setProducts(productsWithTimestamp);
-            setInitialProducts(productsWithTimestamp);
+            setProducts(productsWithTs);
+            setInitialProducts(productsWithTs);
         } catch (err) {
-            console.error('Lỗi khi tải dữ liệu cửa hàng:', err);
-            setError('Đã xảy ra lỗi khi tải dữ liệu cửa hàng.');
+            setError('Đã xảy ra lỗi khi tải dữ liệu.');
             setShop(null);
             setCategories([]);
             setProducts([]);
@@ -131,33 +126,31 @@ const ShopPage = () => {
         fetchData();
     }, [fetchData]);
 
-    const handleCategorySelect = (categorySlug: string | null) => {
-        setSelectedCategory(categorySlug);
-        fetchData(categorySlug);
+    const handleCategorySelect = (slug: string | null) => {
+        setSelectedCategory(slug);
+        fetchData(slug);
     };
 
     const handleApplyFilters = () => {
-        let filteredProducts = [...initialProducts];
-
+        let filtered = [...initialProducts];
         if (selectedSort === "Mới Nhất") {
-            filteredProducts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         } else if (selectedSort === "Bán Chạy") {
-            filteredProducts.sort((a, b) => (b.sold || 0) - (a.sold || 0));
+            filtered.sort((a, b) => (b.sold || 0) - (a.sold || 0));
         } else {
-            filteredProducts.sort((a, b) => Number(b.rating) - Number(a.rating));  // Ep kiểu rating thành number
+            filtered.sort((a, b) => Number(b.rating) - Number(a.rating));
         }
 
         if (selectedPriceFilter === "asc") {
-            filteredProducts.sort((a, b) => (Number(a.sale_price) || Number(a.price) || 0) - (Number(b.sale_price) || Number(b.price) || 0));
+            filtered.sort((a, b) => (Number(a.sale_price) || Number(a.price)) - (Number(b.sale_price) || Number(b.price)));
         } else if (selectedPriceFilter === "desc") {
-            filteredProducts.sort((a, b) => (Number(b.sale_price) || Number(b.price) || 0) - (Number(a.sale_price) || Number(a.price) || 0));
+            filtered.sort((a, b) => (Number(b.sale_price) || Number(b.price)) - (Number(a.sale_price) || Number(a.price)));
         } else if (selectedPriceFilter === "discount") {
-            filteredProducts.sort((a, b) => (Number(b.discount) || 0) - (Number(a.discount) || 0));  // Ep kiểu discount thành number
+            filtered.sort((a, b) => (Number(b.discount) || 0) - (Number(a.discount) || 0));
         }
 
-        setProducts(filteredProducts);
+        setProducts(filtered);
     };
-    
 
     const handleResetFilters = () => {
         setSelectedSort("Phổ Biến");
@@ -167,158 +160,99 @@ const ShopPage = () => {
         fetchData();
     };
 
-    if (error) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                    <div className="text-xl" style={{ color: '#db4444' }}>{error}</div>
-                </div>
-            </div>
-        );
-    }
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4" style={{ borderColor: '#db4444' }}></div>
-                    <div className="text-lg" style={{ color: '#db4444' }}>Đang tải dữ liệu cửa hàng...</div>
-                </div>
-            </div>
-        );
-    }
-
-    if (!shop) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                    <div className="text-xl" style={{ color: '#db4444' }}>Không thể tải thông tin cửa hàng.</div>
-                </div>
-            </div>
-        );
-    }
+    if (error) return <div className="flex items-center justify-center min-h-screen text-xl text-red-600">{error}</div>;
+    if (loading) return <div className="flex items-center justify-center min-h-screen text-lg text-red-600">Đang tải dữ liệu...</div>;
+    if (!shop) return <div className="flex items-center justify-center min-h-screen text-xl text-red-600">Không thể tải thông tin.</div>;
 
     return (
         <div className="max-w-[1200px] mx-auto px-4 pb-10 text-black">
-            {/* Hiển thị thông tin cửa hàng */}
             <ShopCard shop={shop} />
 
-            <div className="flex flex-col lg:flex-row gap-10 justify-between mt-8">
-                {/* Sidebar cho Danh mục sản phẩm và Bộ lọc */}
-                <div className="w-full lg:w-1/5 flex flex-col gap-8 mb-8">
-                    <div className="mb-4">
-                        <h2 className="text-xs font-semibold text-brand">Danh mục sản phẩm</h2>
-                        <div className="space-y-1">
-                            {categories.map((cat) => (
-                                <button
-                                    key={cat.id}
-                                    onClick={() => handleCategorySelect(cat.slug)}
-                                    className={`w-full text-left px-4 py-2 rounded transition-colors text-xs 
-                                        ${cat.slug === selectedCategory ? "text-brand font-semibold" : "text-black hover:text-brand text-sm whitespace-nowrap"}`}
-                                    style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
-                                >
-                                    {cat.name}
-                                </button>
-                            ))}
-                        </div>
+            <div className="grid grid-cols-12 gap-6 mt-8">
+                <div className="col-span-12 lg:col-span-3 text-[15px] max-h-[1000px] overflow-auto pr-2 no-scrollbar">
+                    <h2 className="text-sm font-semibold text-brand mb-3 uppercase">Danh mục sản phẩm</h2>
+                    <div className="space-y-1">
+                        <button
+                            onClick={() => handleCategorySelect(null)}
+                            className={`w-full text-left px-3 py-1 rounded truncate 
+              ${!selectedCategory ? "text-brand font-semibold" : "hover:text-brand"}`}>
+                            Tất cả
+                        </button>
+
+                        {(showAllCategories ? categories : categories.slice(0, 6)).map(cat => (
+                            <button
+                                key={cat.id}
+                                onClick={() => handleCategorySelect(cat.slug)}
+                                className={`w-full text-left px-3 py-1 rounded truncate max-w-[180px]
+                  ${cat.slug === selectedCategory ? "text-brand font-semibold" : "hover:text-brand"}`}>
+                                {cat.name}
+                            </button>
+                        ))}
+
+                        {categories.length > 6 && (
+                            <button
+                                onClick={() => setShowAllCategories(!showAllCategories)}
+                                className="mt-2 text-sm text-[#db4444] hover:underline">
+                                {showAllCategories ? 'Ẩn bớt' : 'Xem thêm'}
+                            </button>
+                        )}
                     </div>
 
-                    <div className="mb-8">
-                        <h3 className="text-lg font-semibold mb-3">Bộ lọc & Sắp xếp</h3>
-                        <div className="space-y-3 mb-6">
-                            <h4 className="text-base font-medium mb-1">Sắp xếp</h4>
-                            {["Phổ Biến", "Mới Nhất", "Bán Chạy"].map((label) => (
-                                <label key={label} className="flex items-center space-x-2 text-black cursor-pointer w-full px-4 py-2 rounded transition-colors hover:text-brand">
+                    <div className="mt-6">
+                        <h3 className="text-base font-semibold mb-3">Bộ lọc & Sắp xếp</h3>
+                        {["Phổ Biến", "Mới Nhất", "Bán Chạy"].map(label => (
+                            <div key={label} className="px-3 py-1 hover:text-brand">
+                                <label className="flex items-center space-x-2 cursor-pointer">
                                     <input
                                         type="radio"
                                         name="sortOption"
-                                        className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
                                         checked={selectedSort === label}
-                                        onChange={() => {
-                                            setSelectedSort(label);
-                                            setSelectedPriceFilter(null);
-                                        }}
+                                        onChange={() => { setSelectedSort(label); setSelectedPriceFilter(null); }}
                                     />
-                                    <span className={`${selectedSort === label && !selectedPriceFilter ? "text-brand font-semibold" : ""}`}>
-                                        {label}
-                                    </span>
+                                    <span>{label}</span>
                                 </label>
-                            ))}
-                        </div>
-
-                        <div className="space-y-3">
-                            <h4 className="text-base font-medium mb-1">Giá</h4>
-                            <label className="flex items-center space-x-2 text-black cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="priceFilterOptions"
-                                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
-                                    checked={selectedPriceFilter === "asc"}
-                                    onChange={() => {
-                                        setSelectedPriceFilter("asc");
-                                        setSelectedSort("Phổ Biến");
-                                    }}
-                                />
-                                <span>Giá: thấp đến cao</span>
-                            </label>
-                            <label className="flex items-center space-x-2 text-black cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="priceFilterOptions"
-                                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
-                                    checked={selectedPriceFilter === "desc"}
-                                    onChange={() => {
-                                        setSelectedPriceFilter("desc");
-                                        setSelectedSort("Phổ Biến");
-                                    }}
-                                />
-                                <span>Giá: cao đến thấp</span>
-                            </label>
-                            <label className="flex items-center space-x-2 text-black cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="priceFilterOptions"
-                                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
-                                    checked={selectedPriceFilter === "discount"}
-                                    onChange={() => {
-                                        setSelectedPriceFilter("discount");
-                                        setSelectedSort("Phổ Biến");
-                                    }}
-                                />
-                                <span>Giảm giá nhiều nhất</span>
-                            </label>
-
-                            <button
-                                onClick={handleApplyFilters}
-                                className="w-[180px] py-2 bg-[#DB4444] text-white rounded-lg hover:bg-red-600 transition-colors mt-4"
-                            >
+                            </div>
+                        ))}
+                        <h4 className="text-[15px] font-medium mt-4 mb-2">Giá</h4>
+                        {[{ label: "Giá: thấp đến cao", value: "asc" },
+                        { label: "Giá: cao đến thấp", value: "desc" },
+                        { label: "Giảm giá nhiều nhất", value: "discount" }
+                        ].map(option => (
+                            <div key={option.value} className="px-3 py-1 hover:text-brand">
+                                <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="priceFilterOptions"
+                                        checked={selectedPriceFilter === option.value}
+                                        onChange={() => { setSelectedPriceFilter(option.value); setSelectedSort("Phổ Biến"); }}
+                                    />
+                                    <span>{option.label}</span>
+                                </label>
+                            </div>
+                        ))}
+                        <div className="flex flex-col gap-2 mt-4">
+                            <button onClick={handleApplyFilters}
+                                className="py-1.5 bg-[#DB4444] text-white rounded hover:bg-red-600 text-sm w-full">
                                 Lọc
                             </button>
-                            <button
-                                onClick={handleResetFilters}
-                                className="w-[180px] py-2 border border-gray-300 text-black rounded-lg hover:bg-gray-100 transition-colors mt-2"
-                            >
+                            <button onClick={handleResetFilters}
+                                className="py-1.5 border border-gray-300 text-black rounded hover:bg-gray-100 text-sm w-full">
                                 Đặt lại
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Khu vực hiển thị sản phẩm */}
-                <div className="flex flex-wrap gap-4 justify-start items-start">
-                    <div className="w-full lg:w-4/5 flex flex-wrap gap-4 justify-start items-start">
-                        {loading ? (
-                            Array(6).fill(0).map((_, idx) => (
-                                <div key={idx} className="h-[250px] bg-gray-100 rounded animate-pulse w-full sm:w-1/2 md:w-1/3 lg:w-1/4" />
-                            ))
-                        ) : products.length === 0 ? (
-                            <p className="text-gray-500 col-span-full text-center">Không có sản phẩm nào trong danh mục này. Vui lòng thử lại sau.</p>
-                        ) : (
-                            products.map((product) => (
-                                <ProductCardCate key={product.id} product={product} />
-                            ))
-                        )}
-                    </div>
+                <div className="col-span-12 lg:col-span-9 grid grid-cols-12 ">
+                    {products.length === 0 ? (
+                        <p className="col-span-12 text-gray-500 text-center">Không có sản phẩm nào.</p>
+                    ) : (
+                        products.map(product => (
+                            <div key={product.id} className="col-span-12 sm:col-span-6 md:col-span-4">
+                                <ProductCardCate product={product} />
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>

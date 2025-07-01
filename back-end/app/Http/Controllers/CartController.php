@@ -140,10 +140,6 @@ public function store(Request $request)
     }
 }
 
-
-
-
-
     public function update(Request $request, $id)
     {
         $cart = Cart::where('user_id', Auth::id())->findOrFail($id);
