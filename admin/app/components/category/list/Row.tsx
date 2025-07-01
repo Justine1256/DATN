@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FiEye, FiEyeOff, FiEdit, FiTrash2 } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiEdit } from "react-icons/fi";
 
-// ✅ Kiểu dữ liệu Category đầy đủ
+// ✅ Kiểu dữ liệu Category
 type Category = {
   id: string;
   name: string;
@@ -20,10 +20,10 @@ type Category = {
 
 type CategoryRowProps = {
   category: Category;
-  onDelete: (id: string) => void;
+  productCount: number;
 };
 
-const CategoryRow = ({ category, onDelete }: CategoryRowProps) => {
+const CategoryRow = ({ category, productCount }: CategoryRowProps) => {
   const [showDetail, setShowDetail] = useState(false);
 
   return (
@@ -45,7 +45,7 @@ const CategoryRow = ({ category, onDelete }: CategoryRowProps) => {
 
       {/* Số lượng sp */}
       <td className="py-3 px-4 min-w-[120px] text-center">
-        {category.productCount ?? 0}
+        {productCount}
       </td>
 
       {/* Trạng thái */}
@@ -85,14 +85,6 @@ const CategoryRow = ({ category, onDelete }: CategoryRowProps) => {
           >
             <FiEdit />
           </Link>
-
-          <button
-            onClick={() => onDelete(String(category.id))}
-            className="bg-red-100 text-red-600 p-2 rounded hover:bg-red-200"
-            title="Xoá"
-          >
-            <FiTrash2 />
-          </button>
         </div>
       </td>
     </tr>
