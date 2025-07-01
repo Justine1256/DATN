@@ -1,162 +1,97 @@
 "use client";
-
-import React from "react";
 import dynamic from "next/dynamic";
 
-// Load CKEditor chỉ khi client render (Next.js)
 const CKEditor = dynamic(
   () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
   { ssr: false }
 );
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 
-interface CategoryInfoFormProps {
-  data: any;
-  setData: (field: string, value: string) => void;
+interface Category {
+  id: string;
+  name: string;
 }
 
-export default function CategoryInfoForm({ data, setData }: CategoryInfoFormProps) {
+interface Props {
+  data: any;
+  setData: (field: string, value: string | null) => void;
+  categories: Category[];
+}
+
+export default function CategoryInfoForm({ data, setData, categories }: Props) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* THÔNG TIN DANH MỤC */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
+      <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg p-6">
+        <h3 className="text-base font-medium text-[#1e293b] mb-4 flex items-center">
+          <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
           Thông tin danh mục
-        </h2>
+        </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Tên danh mục */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tên danh mục
+            <label className="block text-sm font-medium text-[#334155] mb-2">
+              Tên danh mục <span className="text-[#db4444]">*</span>
             </label>
             <input
               type="text"
-              value={data.name || ""}
+              value={data.name}
               onChange={(e) => setData("name", e.target.value)}
-              className="w-full border border-gray-300 p-2 rounded text-gray-800"
               placeholder="Nhập tên danh mục"
+              className="w-full px-3 py-2.5 border border-[#cbd5e1] rounded-md text-sm 
+                        placeholder:text-[#94a3b8] focus:outline-none 
+                        focus:ring-2 focus:ring-[#db4444]/20 
+                        focus:border-[#db4444] transition-all"
             />
           </div>
 
-          {/* Người tạo */}
+          {/* Danh mục cha */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Người tạo
+            <label className="block text-sm font-medium text-[#334155] mb-2">
+              Danh mục cha (admin)
             </label>
             <select
-              value={data.createdBy || ""}
-              onChange={(e) => setData("createdBy", e.target.value)}
-              className="w-full border border-gray-300 p-2 rounded text-gray-800"
+              value={data.parent_id ?? ""}
+              onChange={(e) => setData("parent_id", e.target.value || null)}
+              className="w-full px-3 py-2.5 border border-[#cbd5e1] rounded-md text-sm 
+                        bg-[#f9fafb] focus:outline-none focus:ring-2 
+                        focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
             >
-              <option value="">Chọn</option>
-              <option value="Admin">Admin</option>
-              <option value="Seller">Seller</option>
+              <option value="">-- Không có --</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
             </select>
-          </div>
-
-          {/* Tồn kho */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tồn kho
-            </label>
-            <input
-              type="number"
-              value={data.stock || ""}
-              onChange={(e) => setData("stock", e.target.value)}
-              className="w-full border border-gray-300 p-2 rounded text-gray-800"
-              placeholder="VD: 1000"
-            />
-          </div>
-
-          {/* Tag ID */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tag ID
-            </label>
-            <input
-              type="text"
-              value={data.id || ""}
-              onChange={(e) => setData("id", e.target.value)}
-              className="w-full border border-gray-300 p-2 rounded text-gray-800"
-              placeholder="VD: FS1234"
-            />
-          </div>
-        </div>
-
-        {/* Mô tả - CKEditor */}
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Mô tả chi tiết
-          </label>
-          <div className="border border-gray-300 rounded bg-white p-2">
-            <CKEditor
-              editor={ClassicEditor}
-              data={data.description || ""}
-              config={{
-                toolbar: [
-                  "heading", "|",
-                  "bold", "italic", "underline", "|",
-                  "bulletedList", "numberedList", "|",
-                  "undo", "redo",
-                ],
-              }}
-              onChange={(_, editor) => {
-                const content = editor.getData();
-                setData("description", content);
-              }}
-            />
           </div>
         </div>
       </div>
 
-      {/* TỐI ƯU SEO */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          Tối ưu SEO
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Meta Title */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Meta Title
-            </label>
-            <input
-              type="text"
-              value={data.metaTitle || ""}
-              onChange={(e) => setData("metaTitle", e.target.value)}
-              className="w-full border border-gray-300 p-2 rounded text-gray-800"
-              placeholder="Tiêu đề SEO"
-            />
-          </div>
-
-          {/* Meta Keyword */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Meta Keyword
-            </label>
-            <input
-              type="text"
-              value={data.metaKeyword || ""}
-              onChange={(e) => setData("metaKeyword", e.target.value)}
-              className="w-full border border-gray-300 p-2 rounded text-gray-800"
-              placeholder="fashion, áo sơ mi..."
-            />
-          </div>
-        </div>
-
-        {/* Meta Description */}
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Meta Description
-          </label>
-          <textarea
-            value={data.metaDescription || ""}
-            onChange={(e) => setData("metaDescription", e.target.value)}
-            rows={3}
-            className="w-full border border-gray-300 p-2 rounded text-gray-800"
-            placeholder="Mô tả xuất hiện trên Google"
+      {/* MÔ TẢ */}
+      <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg p-6">
+        <h3 className="text-base font-medium text-[#1e293b] mb-4 flex items-center">
+          <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
+          Mô tả danh mục
+        </h3>
+        <div className="border border-[#cbd5e1] rounded-lg overflow-hidden">
+          <CKEditor
+            editor={ClassicEditor}
+            data={data.description}
+            onChange={(_, editor) => {
+              const value = editor.getData();
+              setData("description", value);
+            }}
+            config={{
+              toolbar: [
+                "heading", "|",
+                "bold", "italic", "underline", "|",
+                "bulletedList", "numberedList", "|",
+                "undo", "redo",
+              ],
+              placeholder: "Nhập mô tả danh mục...",
+            }}
           />
         </div>
       </div>

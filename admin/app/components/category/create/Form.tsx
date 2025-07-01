@@ -45,25 +45,9 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
                 onChange={(e) => setData("name", e.target.value)}
                 placeholder="Nhập tên danh mục"
                 className="w-full px-3 py-2.5 border border-[#cbd5e1] rounded-md text-sm 
-                                  placeholder:text-[#94a3b8] focus:outline-none 
-                                  focus:ring-2 focus:ring-[#db4444]/20 
-                                  focus:border-[#db4444] transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#334155] mb-2">
-                Slug
-              </label>
-              <input
-                type="text"
-                value={data.slug}
-                onChange={(e) => setData("slug", e.target.value)}
-                placeholder="Ví dụ: ao-thun"
-                className="w-full px-3 py-2.5 border border-[#cbd5e1] rounded-md text-sm 
-                                  placeholder:text-[#94a3b8] focus:outline-none 
-                                  focus:ring-2 focus:ring-[#db4444]/20 
-                                  focus:border-[#db4444] transition-all"
+                          placeholder:text-[#94a3b8] focus:outline-none 
+                          focus:ring-2 focus:ring-[#db4444]/20 
+                          focus:border-[#db4444] transition-all"
               />
             </div>
 
@@ -75,8 +59,8 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
                 value={data.parent_id ?? ""}
                 onChange={(e) => setData("parent_id", e.target.value || null)}
                 className="w-full px-3 py-2.5 border border-[#cbd5e1] rounded-md text-sm 
-                                  bg-[#f9fafb] focus:outline-none focus:ring-2 
-                                  focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
+                          bg-[#f9fafb] focus:outline-none focus:ring-2 
+                          focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
               >
                 <option value="">-- Không có --</option>
                 {categories.map(c => (
