@@ -44,6 +44,7 @@ Route::post('/upload-image', [ImageController::class, 'store']);
 Route::post('/upload-product-image', [ImageController::class, 'uploadProductImage']);
 
 Route::get('/category', [CategoryController::class, 'index']);
+Route::get('/admin/category', [CategoryController::class, 'showDefaultCategory']);
 Route::get('/category/{id}', [CategoryController::class, 'show']);
 Route::post('/category', [CategoryController::class, 'store']);
 Route::patch('/category/{id}', [CategoryController::class, 'update']);
