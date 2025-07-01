@@ -9,7 +9,13 @@ interface CartItem {
   id: number;
   quantity: number;
   product: {
+    id: number;
     price: number;
+    sale_price?: number | null;
+  };
+  variant?: {
+    id: number;
+    price?: number;
     sale_price?: number | null;
   };
 }
@@ -40,6 +46,7 @@ interface Props {
     phone: string;
     email: string;
   };
+  setCartItems: (items: CartItem[]) => void;
 }
 
 export default function OrderSummary({
@@ -48,6 +55,7 @@ export default function OrderSummary({
   addressId,
   voucherCode = null,
   manualAddressData,
+  setCartItems,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,10 +65,15 @@ export default function OrderSummary({
 
   const popupRef = useRef<HTMLDivElement | null>(null);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0
+  );
   const promotionDiscount = cartItems.reduce((sum, item) => {
     const { price, sale_price } = item.product;
-    return sale_price && sale_price < price ? sum + (price - sale_price) * item.quantity : sum;
+    return sale_price && sale_price < price
+      ? sum + (price - sale_price) * item.quantity
+      : sum;
   }, 0);
   const discountedSubtotal = subtotal - promotionDiscount;
   const shipping = 20000;
@@ -83,48 +96,92 @@ export default function OrderSummary({
 
     try {
       const token = localStorage.getItem('token') || Cookies.get('authToken');
-      if (!token) {
-        setError('Bạn chưa đăng nhập.');
-        setPopupType('error');
-        setShowPopup(true);
-        setLoading(false);
-        return;
-      }
+      const isGuest = !token;
 
-      const requestBody: OrderRequestBody = {
-        payment_method: paymentMethod,
-        
-        voucher_code: voucherCode || null,
-      };
-console.log('paymentMethod gửi lên:', paymentMethod);
+      const cartPayload = cartItems.map((item) => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price,
+        sale_price: item.product.sale_price ?? null,
+        variant_id: item.variant?.id ?? null,
+      }));
 
-      if (manualAddressData && Object.values(manualAddressData).some((v) => v.trim() !== '')) {
-        requestBody.address_manual = {
-          full_name: manualAddressData.full_name,
-          address: `${manualAddressData.address}${manualAddressData.apartment ? ', ' + manualAddressData.apartment : ''}`,
-          city: manualAddressData.city,
-          phone: manualAddressData.phone,
-          email: manualAddressData.email,
+      if (isGuest) {
+        // Guest checkout
+        const guestPayload = {
+          payment_method: paymentMethod,
+          address_manual: {
+            full_name: manualAddressData?.full_name || '',
+            address: `${manualAddressData?.address ?? ''}${
+              manualAddressData?.apartment
+                ? ', ' + manualAddressData.apartment
+                : ''
+            }`,
+            city: manualAddressData?.city || '',
+            phone: manualAddressData?.phone || '',
+            email: manualAddressData?.email || '',
+          },
+          cart_items: cartPayload,
         };
-      } else if (addressId) {
-        requestBody.address_id = addressId;
-      }
 
-      const response = await axios.post(`${API_BASE_URL}/dathang`, requestBody, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+        const res = await axios.post(`${API_BASE_URL}/nologin`, guestPayload, {
+          headers: { Accept: 'application/json' },
+        });
 
-      setSuccessMessage('Đặt hàng thành công!');
-      setPopupType('success');
-      setShowPopup(true);
+        setSuccessMessage('Đặt hàng thành công!');
+        setPopupType('success');
+        setShowPopup(true);
 
-      if (response.data.redirect_url) {
-        window.location.href = response.data.redirect_url;
+        // Xoá local cart
+        localStorage.removeItem('cart');
+        setCartItems([]);
+      } else {
+        // Logged-in user checkout
+        const requestBody: OrderRequestBody = {
+          payment_method: paymentMethod,
+          voucher_code: voucherCode || null,
+        };
+
+        if (
+          manualAddressData &&
+          Object.values(manualAddressData).some((v) => v.trim() !== '')
+        ) {
+          requestBody.address_manual = {
+            full_name: manualAddressData.full_name,
+            address: `${manualAddressData.address}${
+              manualAddressData.apartment
+                ? ', ' + manualAddressData.apartment
+                : ''
+            }`,
+            city: manualAddressData.city,
+            phone: manualAddressData.phone,
+            email: manualAddressData.email,
+          };
+        } else if (addressId) {
+          requestBody.address_id = addressId;
+        }
+
+        const response = await axios.post(
+          `${API_BASE_URL}/dathang`,
+          requestBody,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        setSuccessMessage('Đặt hàng thành công!');
+        setPopupType('success');
+        setShowPopup(true);
+
+        if (response.data.redirect_url) {
+          window.location.href = response.data.redirect_url;
+        }
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Lỗi khi đặt hàng';
+      const msg =
+        err.response?.data?.message || 'Lỗi khi đặt hàng (ở phía FE)';
       setError(msg);
       setPopupType('error');
       setShowPopup(true);
@@ -173,16 +230,19 @@ console.log('paymentMethod gửi lên:', paymentMethod);
           </div>
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Khuyến mãi (giảm giá sản phẩm):</span>
-            <span className="text-green-700">-{promotionDiscount.toLocaleString()}đ</span>
+            <span className="text-green-700">
+              -{promotionDiscount.toLocaleString()}đ
+            </span>
           </div>
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Giảm giá từ voucher:</span>
-            <span className="text-green-700">-{voucherDiscount.toLocaleString()}đ</span>
+            <span className="text-green-700">
+              -{voucherDiscount.toLocaleString()}đ
+            </span>
           </div>
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Phí vận chuyển:</span>
-            <span>{shipping ? shipping.toLocaleString('vi-VN') : '0'}đ</span>
-
+            <span>{shipping.toLocaleString('vi-VN')}đ</span>
           </div>
           <div className="flex justify-between font-semibold text-lg text-brand pt-3">
             <span>Tổng thanh toán:</span>
@@ -201,7 +261,6 @@ console.log('paymentMethod gửi lên:', paymentMethod);
         </div>
       </div>
 
-      {/* ✅ Popup */}
       {showPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[9999]">
           <div
@@ -210,8 +269,11 @@ console.log('paymentMethod gửi lên:', paymentMethod);
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-16 w-16 mb-4 ${popupType === 'success' ? 'text-green-600' : 'text-red-600'
-                }`}
+              className={`h-16 w-16 mb-4 ${
+                popupType === 'success'
+                  ? 'text-green-600'
+                  : 'text-red-600'
+              }`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -228,15 +290,17 @@ console.log('paymentMethod gửi lên:', paymentMethod);
               />
             </svg>
             <p
-              className={`text-base font-semibold text-center ${popupType === 'success' ? 'text-green-700' : 'text-red-700'
-                }`}
+              className={`text-base font-semibold text-center ${
+                popupType === 'success'
+                  ? 'text-green-700'
+                  : 'text-red-700'
+              }`}
             >
               {popupType === 'success' ? successMessage : error}
             </p>
           </div>
         </div>
       )}
-
     </div>
   );
 }

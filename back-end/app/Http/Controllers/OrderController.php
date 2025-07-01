@@ -374,4 +374,120 @@ public function checkout(Request $request)
             'redirect_url'  => '/cart'
         ]);
     }
+    public function guestCheckout(Request $request)
+{
+    $validated = $request->validate([
+        'cart_items' => 'required|array|min:1',
+        'cart_items.*.product_id' => 'required|integer|exists:products,id',
+        'cart_items.*.quantity' => 'required|integer|min:1',
+        'cart_items.*.price' => 'required|numeric|min:0',
+        'cart_items.*.sale_price' => 'nullable|numeric|min:0',
+        'cart_items.*.variant_id' => 'nullable|integer|exists:product_variants,id',
+        'address_manual' => 'required|array',
+        'address_manual.full_name' => 'required|string',
+        'address_manual.address' => 'required|string',
+        'address_manual.city' => 'required|string',
+        'address_manual.phone' => 'required|string',
+        'address_manual.email' => 'required|email',
+        'payment_method' => 'required|in:cod,vnpay',
+    ]);
+
+    $cartItems = $validated['cart_items'];
+    $manual = $validated['address_manual'];
+
+    $fullAddress = "{$manual['address']}, {$manual['city']} ({$manual['full_name']} - {$manual['phone']})";
+
+    DB::beginTransaction();
+
+    try {
+        // Group cart items by shop
+        $shopGrouped = collect($cartItems)->groupBy(function ($item) {
+            $product = \App\Models\Product::find($item['product_id']);
+            return $product->shop_id ?? 0;
+        });
+
+        $orders = [];
+        $totalFinalAmount = 0;
+
+        foreach ($shopGrouped as $shopId => $items) {
+            $totalAmount = 0;
+            $finalAmount = 0;
+
+            foreach ($items as $item) {
+                $originalPrice = $item['price'];
+                $salePrice = $item['sale_price'] ?? $originalPrice;
+                $quantity = $item['quantity'];
+
+                $totalAmount += $quantity * $originalPrice;
+                $finalAmount += $quantity * $salePrice;
+            }
+
+            $order = Order::create([
+                'user_id' => null, // guest
+                'shop_id' => $shopId,
+                'total_amount' => $totalAmount,
+                'final_amount' => $finalAmount,
+                'payment_method' => $validated['payment_method'],
+                'payment_status' => 'Pending',
+                'order_status' => 'Pending',
+                'shipping_status' => 'Pending',
+                'shipping_address' => $fullAddress,
+            ]);
+
+            foreach ($items as $item) {
+                $product = \App\Models\Product::find($item['product_id']);
+                if (!$product) throw new \Exception('Sản phẩm không tồn tại');
+
+                $quantity = $item['quantity'];
+                $salePrice = $item['sale_price'] ?? $item['price'];
+
+                if ($item['variant_id']) {
+                    $variant = \App\Models\ProductVariant::find($item['variant_id']);
+                    if (!$variant) throw new \Exception('Biến thể không tồn tại');
+                    if ($quantity > $variant->stock) throw new \Exception("Biến thể '{$variant->value1}' không đủ hàng ({$variant->stock})");
+
+                    $variant->decrement('stock', $quantity);
+                    OrderDetail::create([
+                        'order_id' => $order->id,
+                        'product_id' => $item['product_id'],
+                        'variant_id' => $item['variant_id'],
+                        'price_at_time' => $salePrice,
+                        'quantity' => $quantity,
+                        'subtotal' => $quantity * $salePrice,
+                    ]);
+                } else {
+                    if ($quantity > $product->stock) throw new \Exception("Sản phẩm '{$product->name}' không đủ hàng ({$product->stock})");
+
+                    $product->decrement('stock', $quantity);
+                    OrderDetail::create([
+                        'order_id' => $order->id,
+                        'product_id' => $item['product_id'],
+                        'variant_id' => null,
+                        'price_at_time' => $salePrice,
+                        'quantity' => $quantity,
+                        'subtotal' => $quantity * $salePrice,
+                    ]);
+                }
+            }
+
+            $orders[] = $order;
+            $totalFinalAmount += $finalAmount;
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'message' => 'Đặt hàng thành công',
+            'order_ids' => collect($orders)->pluck('id'),
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Guest checkout error', [
+            'error' => $e->getMessage(),
+            'request' => $request->all()
+        ]);
+        return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
+    }
+}
+
 }
