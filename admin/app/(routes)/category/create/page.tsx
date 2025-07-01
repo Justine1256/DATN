@@ -69,7 +69,7 @@ export default function CreateCategoryPage() {
                     axios.get(`${API_BASE_URL}/shop/categories/${shopId}`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }),
-                    axios.get(`${API_BASE_URL}/category`, {
+                    axios.get(`${API_BASE_URL}/admin/categories`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }),
                 ]);

@@ -11,7 +11,6 @@ interface Category {
   id: string;
   name: string;
 }
-
 interface Props {
   data: any;
   setData: (field: string, value: string | null) => void;
@@ -19,6 +18,8 @@ interface Props {
 }
 
 export default function CategoryInfoForm({ data, setData, categories }: Props) {
+  console.log("cate", categories)
+
   return (
     <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg overflow-hidden">
       <div className="px-6 py-4 border-b border-[#e5e7eb]">
