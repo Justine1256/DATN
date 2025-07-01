@@ -209,7 +209,6 @@ public function showShopCategoriesByUser($slug)
     ]);
 }
 
-// Thêm danh mục của shop
 public function addCategoryByShop(Request $request)
 {
     $user = $request->user();
@@ -229,19 +228,23 @@ public function addCategoryByShop(Request $request)
         return response()->json(['errors' => $validator->errors()], 422);
     }
 
-    // Bắt buộc danh mục cha phải là của admin
+    // Danh mục cha phải đang kích hoạt và thuộc admin hoặc shop hiện tại
     $parent = Category::where('id', $request->parent_id)
-        ->whereNull('shop_id')
+        ->where('status', 'activated')
+        ->where(function ($query) use ($user) {
+            $query->whereNull('shop_id') // danh mục do admin tạo
+                  ->orWhere('shop_id', $user->shop->id); // hoặc danh mục shop hiện tại
+        })
         ->first();
 
     if (!$parent) {
-        return response()->json(['error' => 'Danh mục cha không hợp lệ hoặc không phải do admin tạo.'], 403);
+        return response()->json(['error' => 'Danh mục cha không hợp lệ, không hoạt động hoặc không thuộc quyền quản lý.'], 403);
     }
 
     // Tạo slug từ name
     $slug = Str::slug($request->name);
 
-    // Kiểm tra slug đã tồn tại trong shop
+    // Kiểm tra trùng slug trong shop
     $slugExists = Category::where('shop_id', $user->shop->id)
         ->where('slug', $slug)
         ->exists();
@@ -250,13 +253,13 @@ public function addCategoryByShop(Request $request)
         return response()->json(['error' => 'Slug đã tồn tại trong shop của bạn. Vui lòng chọn tên khác.'], 422);
     }
 
-    // Xử lý upload ảnh
+    // Xử lý upload ảnh nếu có
     $imagePath = null;
     if ($request->hasFile('image')) {
         $imagePath = $request->file('image')->store('categories', 'public');
     }
 
-    // Tạo danh mục
+    // Tạo danh mục mới
     $category = Category::create([
         'name' => $request->name,
         'slug' => $slug,
@@ -280,6 +283,7 @@ public function addCategoryByShop(Request $request)
         ]
     ], 201);
 }
+
 
 // Cập nhật danh mục của shop
 public function updateCategoryByShop(Request $request, $id)
