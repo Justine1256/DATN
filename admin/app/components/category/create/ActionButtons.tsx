@@ -2,28 +2,21 @@
 
 import React from "react";
 
-interface Props {
-  loading: boolean;
-  success: boolean;
-  submitLabel: string;
-}
-
-export default function ActionButtons({ loading, success, submitLabel }: Props) {
+export default function ActionButtons() {
   return (
-    <div className="flex justify-end gap-2">
+    <div className="flex justify-end gap-4 mt-6">
+      {/* Nút Reset */}
       <button
-        type="reset"
-        className="px-4 py-2 rounded border border-gray-300 font-medium text-gray-700 hover:bg-gray-100"
+        className="px-4 py-2 rounded border border-[#db4444] text-[#db4444] font-medium hover:bg-[#ffeaea] transition-colors duration-200"
       >
-        Đặt lại
+        Reset
       </button>
+
+      {/* Nút Save */}
       <button
-        type="submit"
-        disabled={loading}
-        className={`px-4 py-2 rounded bg-[#db4444] text-white hover:bg-[#c63a3a] transition 
-          ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+        className="px-4 py-2 rounded bg-[#db4444] text-white font-medium hover:bg-[#c23333] transition-colors duration-200"
       >
-        {loading ? "Đang xử lý..." : success ? "Thành công!" : submitLabel}
+        Save
       </button>
     </div>
   );
