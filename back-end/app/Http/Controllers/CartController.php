@@ -34,8 +34,8 @@ class CartController extends Controller
 
             // Lấy thông tin biến thể nếu có
             $query = ProductVariant::where('product_id', $cart->product_id);
-            if (isset($values[0])) $query->where('value1', $values[0]);
-            if (isset($values[1])) $query->where('value2', $values[1]);
+            if (!empty($values[0])) $query->where('value1', $values[0]);
+            if (!empty($values[1])) $query->where('value2', $values[1]);
 
             $matched = $query->first();
             if ($matched) {
