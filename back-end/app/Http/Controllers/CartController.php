@@ -65,6 +65,7 @@ public function store(Request $request)
         }
 
         $quantity = $validated['quantity'] ?? 1;
+        $replaceQuantity = $request->boolean('replace_quantity', false);
 
         $product = Product::where('id', $validated['product_id'])
             ->where('status', 'activated')
@@ -115,7 +116,7 @@ public function store(Request $request)
             ->first();
 
         if ($cart) {
-            $cart->quantity += $quantity;
+            $cart->quantity = $replaceQuantity ? $quantity : $cart->quantity + $quantity;
             $cart->save();
         } else {
             $cart = Cart::create([
