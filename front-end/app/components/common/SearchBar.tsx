@@ -60,11 +60,11 @@ export default function SearchBar() {
     };
 
     return (
-        <div className="relative w-[240px]">
+        <div className="relative w-[200px]">
             <input
                 type="text"
                 placeholder="Tìm kiếm sản phẩm..."
-                className="w-full px-4 py-2 rounded border border-gray-300"
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:border-[#db4444] focus:ring-2 focus:ring-[#db4444] transition outline-none"
                 value={searchQuery}
                 onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -74,43 +74,46 @@ export default function SearchBar() {
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
             />
             <AiOutlineSearch
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-black cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2  cursor-pointer hover:scale-110 transition"
+                size={20}
+                onClick={() => console.log('Search Click')}
             />
 
             {showDropdown && results.length > 0 && (
-                <div className="absolute mt-1 w-full bg-white shadow-lg rounded z-50 max-h-[300px] overflow-y-auto">
-                    {results.map(product => {
-                        console.log("DEBUG PRODUCT ITEM:", product);
-                        return (
-                            <div
-                                key={product.id}
-                                className="flex items-center p-2 hover:bg-gray-100 cursor-pointer"
-                                onClick={() => handleSelect(product.id)}
-                            >
-                                <Image
-                                    src={formatImageUrl(product.image)}
-                                    alt={product.name}
-                                    width={36}
-                                    height={36}
-                                    className="rounded object-cover"
-                                />
-                                <div className="ml-3">
-                                    <div className="text-sm font-medium">{product.name}</div>
-                                    <div className="text-xs text-gray-500">
-                                        {Number(product.price).toLocaleString('vi-VN')} VND
-                                    </div>
+                <div className="absolute mt-1 w-full bg-white shadow-lg rounded-xl z-50 max-h-[300px] overflow-y-auto">
+                    {results.map(product => (
+                        <div
+                            key={product.id}
+                            className="flex items-center p-3 hover:bg-[#db4444]/10 cursor-pointer transition"
+                            onClick={() => handleSelect(product.id)}
+                        >
+                            <Image
+                                src={formatImageUrl(product.image)}
+                                alt={product.name}
+                                width={36}
+                                height={36}
+                                className="rounded object-cover flex-shrink-0"
+                            />
+                            <div className="ml-3">
+                                <div className="text-sm font-semibold">{product.name}</div>
+                                <div className="text-xs text-gray-500">
+                                    {Number(product.price).toLocaleString('vi-VN')} VND
                                 </div>
                             </div>
-                        );
-                    })}
+                        </div>
+                    ))}
                 </div>
             )}
 
             {showDropdown && searchQuery.trim() !== "" && results.length === 0 && (
-                <div className="absolute mt-1 w-full bg-white shadow-lg rounded z-50 p-3 text-sm text-gray-500">
+                <div className="absolute mt-1 w-full bg-white shadow-lg rounded-xl z-50 p-4 text-sm text-gray-500">
                     Không tìm thấy kết quả.
                 </div>
             )}
         </div>
+    
     );
+    
+    
+    
 }
