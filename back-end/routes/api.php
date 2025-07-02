@@ -109,7 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/cart/{id}', [CartController::class, 'update']);
     Route::delete('/cart/{id}', [CartController::class, 'destroy']);
     Route::get('/cart/total', [CartController::class, 'getTotal']);
-
+    Route::post('/cart/add', [CartController::class, 'store']);
     // Shop
     Route::post('/shopregister', [ShopController::class, 'sendOtp']);
     Route::post('/shopotp', [ShopController::class, 'confirmOtp']);
