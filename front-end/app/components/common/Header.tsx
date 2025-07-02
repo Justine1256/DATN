@@ -409,7 +409,8 @@ const Header = () => {
                     const image = item.product?.image?.[0] ?? "default.jpg";
                     const name = item.product?.name ?? "Tên sản phẩm";
                     return (
-                      <li key={item.id} className="flex items-center p-3 hover:bg-gray-100 transition">
+                      <li key={`${item.product?.id}-${item.variant?.id ?? 'no-variant'}`} className="flex items-center p-3 hover:bg-gray-100 transition">
+
                         <div className="w-[48px] h-[48px] flex-shrink-0 overflow-hidden rounded border">
                           <Image
                             src={formatImageUrl(item.product?.image)} // Đảm bảo gọi hàm formatImageUrl để xử lý ảnh

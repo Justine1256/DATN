@@ -55,16 +55,17 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
               value={data.parent_id ?? ""}
               onChange={(e) => setData("parent_id", e.target.value || null)}
               className="w-full px-3 py-2.5 border border-[#cbd5e1] rounded-md text-sm 
-                        bg-[#f9fafb] focus:outline-none focus:ring-2 
-                        focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
+            bg-[#f9fafb] focus:outline-none focus:ring-2 
+            focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
             >
               <option value="">-- Không có --</option>
-              {categories.map(c => (
+              {(categories || []).map(c => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
+
           </div>
         </div>
       </div>
