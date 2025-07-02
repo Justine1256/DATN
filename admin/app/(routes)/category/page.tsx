@@ -81,7 +81,7 @@ export default function CategoryListPage() {
             const res = await fetch(`${API_BASE_URL}/shop/products`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            if (!res.ok) throw new Error("Lỗi khi lấy sản phẩm");
+            
             const data = await res.json();
             setProducts(data.products || []);
         } catch (error) {
