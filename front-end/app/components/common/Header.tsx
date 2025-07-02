@@ -10,6 +10,7 @@ import logoImage from "../../../public/logo.png";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
+import SearchBar from "../SearchBar"; // tuỳ đường dẫn
 
 
 // Định nghĩa kiểu dữ liệu thông báo
@@ -314,20 +315,8 @@ const Header = () => {
           {/* Mobile menu: ẩn menu bên phải */}
           <div className="col-span-6 sm:col-span-9 lg:col-span-4 flex items-center justify-end space-x-4 ml-[2px]">
             {/* 🔍 Tìm kiếm */}
-            <div className="relative w-[200px]">
-              <input
-                type="text"
-                placeholder="Tìm kiếm sản phẩm..."
-                className="w-full px-4 py-1.5 pr-10 rounded-md bg-white border border-gray-300 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DB4444] focus:border-[#DB4444]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit(e)}
-              />
-              <AiOutlineSearch
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-black cursor-pointer h-5 w-5"
-                onClick={handleSearchSubmit}
-              />
-            </div>
+            <SearchBar />
+
 
             {/* 🔔 Thông báo */}
             <div className="relative group">
