@@ -10,7 +10,7 @@ import logoImage from "../../../public/logo.png";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
-import SearchBar from "../SearchBar"; // tuỳ đường dẫn
+import SearchBar from "./SearchBar"; // tuỳ đường dẫn
 
 
 // Định nghĩa kiểu dữ liệu thông báo
