@@ -11,6 +11,10 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import SearchBar from "./SearchBar"; // tuỳ đường dẫn
+import NotificationDropdown from "./NotificationDropdown";
+import CartDropdown from "./CartDropdown";
+
+
 
 
 // Định nghĩa kiểu dữ liệu thông báo
@@ -261,7 +265,7 @@ const Header = () => {
 
       {/* 🔲 Thanh điều hướng chính */}
       <div className="py-0 px-2">
-        <div className="grid grid-cols-12 items-center py-4 px-4 md:px-16 max-w-[1280px] mx-auto w-full">
+        <div className="grid grid-cols-12 items-center py-4  md:px-16 max-w-[1280px] mx-auto w-full">
           {/* 🅰️ Logo */}
           <div className="col-span-6 sm:col-span-3 lg:col-span-2">
             <Link href="/">
@@ -313,66 +317,19 @@ const Header = () => {
           </nav>
 
           {/* Mobile menu: ẩn menu bên phải */}
-          <div className="col-span-6 sm:col-span-9 lg:col-span-4 flex items-center justify-end space-x-4 ml-[2px]">
-            {/* 🔍 Tìm kiếm */}
-            <SearchBar />
+          <div className="col-span-6 sm:col-span-9 lg:col-span-4 flex items-center justify-end space-x-4 ml-[px]">
+            <div className="hidden md:block col-span-8 lg:col-span-5 ml-2">
+              <SearchBar />
+            </div>
 
 
             {/* 🔔 Thông báo */}
-            <div className="relative group">
-              <div className="relative w-5 h-5 flex items-center justify-center cursor-pointer scale-[0.9]">
-                <FaRegBell className="text-black group-hover:text-brand w-5 h-5 transition duration-200" />
-                {unreadNotificationCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
-                    {unreadNotificationCount}
-                  </span>
-                )}
-              </div>
+            <NotificationDropdown
+              notifications={notifications}
+              unreadCount={unreadNotificationCount}
+              onNotificationClick={handleNotificationClick}
+            />
 
-              <div className="absolute top-full mt-2 right-0 w-[320px] bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
-                <div className="px-4 py-2 border-b text-base font-semibold text-black">Thông báo mới nhận</div>
-                <ul className="divide-y divide-gray-100">
-                  {notifications.slice(0, 5).map((note) => (
-                    <li
-                      key={note.id}
-                      className="flex gap-3 p-3 hover:bg-gray-100 transition cursor-pointer"
-                      onClick={() => handleNotificationClick(note.id, note.link)}
-                    >
-                      <div className="w-[56px] h-[56px] flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                        <Image
-                          src={note.image_url ? `${STATIC_BASE_URL}${note.image_url}` : `${STATIC_BASE_URL}/products/default-product.png`}
-                          alt={note.title}
-                          width={56}
-                          height={56}
-                          className="object-cover w-full h-full"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className={`text-sm font-semibold ${note.is_read === 0 ? "text-black" : "text-gray-700"}`}>{note.title}</h4>
-                        <p className="text-xs text-gray-600 line-clamp-2">{note.content}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(note.created_at).toLocaleString('vi-VN', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                          })}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                  {notifications.length === 0 && (
-                    <li className="p-3 text-center text-gray-500">Không có thông báo nào.</li>
-                  )}
-                </ul>
-                <div className="text-center p-2">
-                  <button onClick={() => router.push("/account")} className="text-sm text-brand font-medium hover:underline transition">
-                    Xem tất cả
-                  </button>
-                </div>
-              </div>
-            </div>
 
             {/* ❤️ Wishlist */}
             <Link href="/wishlist">
@@ -380,58 +337,10 @@ const Header = () => {
             </Link>
 
             {/* 🛒 Giỏ hàng */}
-            {/* 🛒 Giỏ hàng */}
-            <div className="relative group" onClick={() => router.push("/cart")}>
-              <div className="relative w-5 h-5 cursor-pointer">
-                <AiOutlineShoppingCart className="w-5 h-5 text-black hover:text-red-500 transition" />
-                {cartItems.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
-                    {cartItems.length}
-                  </span>
-                )}
-              </div>
-              <div className="absolute top-full right-0 mt-2 w-[360px] bg-white border border-gray-200 shadow-xl rounded-lg opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
-                <div className="p-3 border-b text-base font-semibold">Sản Phẩm Mới Thêm</div>
-                <ul className="max-h-[300px] overflow-y-auto divide-y divide-gray-100">
-                  {cartItems.slice(0, 5).map((item: any) => {
-                    const price = item.product?.sale_price ?? item.product?.price ?? 0;
-                    const image = item.product?.image?.[0] ?? "default.jpg";
-                    const name = item.product?.name ?? "Tên sản phẩm";
-                    return (
-                      <li key={`${item.product?.id}-${item.variant?.id ?? 'no-variant'}`} className="flex items-center p-3 hover:bg-gray-100 transition">
-
-                        <div className="w-[48px] h-[48px] flex-shrink-0 overflow-hidden rounded border">
-                          <Image
-                            src={formatImageUrl(item.product?.image)} // Đảm bảo gọi hàm formatImageUrl để xử lý ảnh
-                            alt={item.product?.name || 'Tên sản phẩm'}
-                            width={48}
-                            height={48}
-                            className="object-cover w-full h-full"
-                          />
-                        </div>
-
-                        <div className="ml-3 flex-1">
-                          <div className="text-sm font-medium line-clamp-1">{name}</div>
-                          <div className="text-sm text-red-500">
-                            {Number(price).toLocaleString('vi-VN')}đ
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                  {cartItems.length === 0 && (
-                    <li className="p-3 text-center text-gray-500">Giỏ hàng trống.</li>
-                  )}
-                </ul>
-
-                <div className="p-3 border-t flex justify-between items-center">
-                  <span className="text-sm text-gray-700">{cartItems.length} sản phẩm</span>
-                  <Link href="/cart" className="bg-red-500 text-white px-4 py-1.5 rounded text-sm hover:bg-red-600 transition">
-                    Xem Giỏ Hàng
-                  </Link>
-                </div>
-              </div>
+            <div onClick={() => router.push("/cart")}>
+              <CartDropdown cartItems={cartItems} formatImageUrl={formatImageUrl} />
             </div>
+
 
 
             {/* 👤 Avatar + dropdown */}
