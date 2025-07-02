@@ -121,7 +121,7 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
                   />
                 </div>
                 <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
-                  Main image
+                  Ảnh chính
                 </span>
                 <button
                   type="button"
@@ -182,13 +182,13 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               <p className="text-gray-600">
-                Drop your images here, or{" "}
+                Kéo thả hình ảnh vào đây, hoặc{" "}
                 <span className="text-blue-600 font-medium cursor-pointer">
-                  click to browse
+                  nhấn để chọn
                 </span>
               </p>
               <p className="text-xs text-gray-400">
-                1600x1200 (4:3) recommended. PNG, JPG, GIF.
+                Khuyến nghị 1600x1200 (4:3). Hỗ trợ PNG, JPG, GIF.
               </p>
             </div>
           )}
@@ -196,4 +196,5 @@ export default function ImageDrop({ images, setImages }: ImageDropProps) {
       </div>
     </>
   );
+  
 }

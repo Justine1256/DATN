@@ -140,13 +140,13 @@ export default function ProductListPage() {
                     <table className="w-full text-sm text-left">
                         <thead className="sticky top-0 bg-white z-10">
                             <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
-                                <th className="py-2 px-3">Product Name & Size</th>
-                                <th className="py-2 px-3">Price</th>
-                                <th className="py-2 px-3">Stock</th>
-                                <th className="py-2 px-3">Category</th>
-                                <th className="py-2 px-3">Subcategory</th>
-                                <th className="py-2 px-3">Rating</th>
-                                <th className="py-2 px-3 text-center">Action</th>
+                                <th className="py-2 px-3">Tên sản phẩm & Kích thước</th>
+                                <th className="py-2 px-3">Giá</th>
+                                <th className="py-2 px-3">Kho</th>
+                                <th className="py-2 px-3">Danh mục</th>
+                                <th className="py-2 px-3">Danh mục con</th>
+                                <th className="py-2 px-3">Đánh giá</th>
+                                <th className="py-2 px-3 text-center">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody key={currentPage}>
@@ -190,4 +190,5 @@ export default function ProductListPage() {
             )}
         </div>
     );
+    
 }
