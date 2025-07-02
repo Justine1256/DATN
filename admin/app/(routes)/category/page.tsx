@@ -110,11 +110,11 @@ export default function CategoryListPage() {
             <table className="w-full text-sm text-left table-fixed">
                 <thead>
                     <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
-                        <th className="py-2 px-3 w-1/5">Categories</th>
-                        <th className="py-2 px-3 w-1/5">Description</th>
-                        <th className="py-2 px-3 w-1/5 text-center">Product Count</th>
-                        <th className="py-2 px-3 w-1/5 text-center">Status</th>
-                        <th className="py-2 px-3 w-1/5">Action</th>
+                        <th className="py-2 px-3 w-1/5">Danh mục</th>
+                        <th className="py-2 px-3 w-1/5">Mô tả</th>
+                        <th className="py-2 px-3 w-1/5 text-center">Số SP</th>
+                        <th className="py-2 px-3 w-1/5 text-center">Trạng thái</th>
+                        <th className="py-2 px-3 w-1/5">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -139,4 +139,5 @@ export default function CategoryListPage() {
             />
         </div>
     );
+    
 }

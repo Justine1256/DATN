@@ -17,51 +17,51 @@ import {
 
 const menu = [
   {
-    label: "Dashboard",
+    label: "Bảng điều khiển",
     href: "/dashboard",
     icon: <FaClipboardList />,
   },
   {
-    label: "Products",
+    label: "Sản phẩm",
     icon: <FaTshirt />,
     children: [
-      { label: "List", href: "/product" },
-      { label: "Create", href: "/product/create" },
+      { label: "Danh sách", href: "/product" },
+      { label: "Thêm mới", href: "/product/create" },
     ],
   },
   {
-    label: "Category",
+    label: "Danh mục",
     icon: <FaTags />,
     children: [
-      { label: "List", href: "/category" },
-      { label: "Create", href: "/category/create" },
+      { label: "Danh sách", href: "/category" },
+      { label: "Thêm mới", href: "/category/create" },
     ],
   },
   {
-    label: "Inventory",
+    label: "Kho hàng",
     icon: <FaBoxOpen />,
     href: "/inventory",
     children: [],
   },
   {
-    label: "Order",
+    label: "Đơn hàng",
     icon: <FaTruck />,
-    children: [{ label: "List", href: "/order" }],
+    children: [{ label: "Danh sách", href: "/order" }],
   },
   {
-    label: "Purchases",
+    label: "Nhập hàng",
     icon: <FaShoppingCart />,
     href: "/purchases",
     children: [],
   },
   {
-    label: "Attributes",
+    label: "Thuộc tính",
     icon: <FaMagic />,
     href: "/attributes",
     children: [],
   },
   {
-    label: "Users",
+    label: "Người dùng",
     icon: <FaUsers />,
     href: "/admin/users",
   },
@@ -105,13 +105,12 @@ export default function ModernAdminSidebar() {
         <img src="/logo.png" alt="MarketO Logo" className="w-32 h-auto" />
       </div>
 
-
       {/* Main scrollable */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="px-4 py-6">
           <div className="mb-6">
             <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider mb-4 px-3">
-              Navigation
+              Điều hướng
             </p>
 
             <nav className="space-y-1">

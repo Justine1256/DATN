@@ -14,7 +14,7 @@ import {
 interface SummaryCardProps {
   icon: React.ElementType;
   label: string;
-  value: number; // Số cụ thể
+  value: number;
   color: string;
   trend: boolean;
   trendValue: number;
@@ -30,7 +30,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
   trend,
   trendValue,
   isPositive,
-  period = "vs last month"
+  period = "so với tháng trước"
 }) => {
   const [animatedValue, setAnimatedValue] = useState(0);
 
@@ -60,13 +60,13 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
         transition-all duration-300 ease-out cursor-pointer overflow-hidden
       `}
     >
-      {/* Background decoration */}
+      {/* Nền mờ decor */}
       <div
         className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-[0.03] -mr-16 -mt-16 transition-all duration-500"
         style={{ backgroundColor: color }}
       />
 
-      {/* Floating action button */}
+      {/* Nút tuỳ chọn */}
       <button className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110">
         <MoreHorizontal className="w-4 h-4 text-gray-600" />
       </button>
@@ -118,15 +118,15 @@ const SummaryCard: React.FC<SummaryCardProps> = ({
         </div>
       </div>
 
-      {/* Bottom info */}
+      {/* Footer */}
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-          <span className="text-xs text-gray-500">Active</span>
+          <span className="text-xs text-gray-500">Đang hoạt động</span>
         </div>
 
         <button className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 group">
-          <span>Details</span>
+          <span>Chi tiết</span>
           <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
         </button>
       </div>
@@ -138,7 +138,7 @@ export default function SummaryCards() {
   const cardData = [
     {
       icon: ShoppingCart,
-      label: "Total Orders",
+      label: "Tổng đơn hàng",
       value: 15432,
       color: "#2563eb",
       trend: true,
@@ -147,7 +147,7 @@ export default function SummaryCards() {
     },
     {
       icon: Sprout,
-      label: "New Leads",
+      label: "Khách hàng mới",
       value: 12983,
       color: "#16a34a",
       trend: true,
@@ -156,7 +156,7 @@ export default function SummaryCards() {
     },
     {
       icon: Handshake,
-      label: "Deals",
+      label: "Giao dịch",
       value: 1283,
       color: "#7e22ce",
       trend: true,
@@ -165,7 +165,7 @@ export default function SummaryCards() {
     },
     {
       icon: Wallet,
-      label: "Booked Revenue",
+      label: "Doanh thu đặt chỗ",
       value: 234800,
       color: "#9333ea",
       trend: true,

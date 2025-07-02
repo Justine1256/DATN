@@ -51,7 +51,7 @@ useEffect(() => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-4">Dashboard</h1>
+      {/* <h1 className="text-2xl font-bold text-gray-800 mb-4">Bảng điều khiển</h1> */}
       <SummaryCards />
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         

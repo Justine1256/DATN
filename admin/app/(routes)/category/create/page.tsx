@@ -164,9 +164,9 @@ export default function CreateCategoryPage() {
             className="p-6 space-y-9 flex justify-center"
         >
             <div className="w-full max-w-4xl">
-                <h1 className="text-xl font-bold text-gray-800 mb-4">
+                {/* <h1 className="text-xl font-bold text-gray-800 mb-4">
                     Tạo mới danh mục
-                </h1>
+                </h1> */}
 
                 <div className="space-y-6 mt-8">
                     {/* ✅ Thêm lại ảnh */}
