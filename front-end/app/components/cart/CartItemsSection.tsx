@@ -100,33 +100,38 @@ export default function CartItemsSection({
     }
   };
 
-  const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
-    for (const item of localItems) {
-      try {
-        const payload = {
-          product_id: item.product.id,
-          quantity: item.quantity,
-          ...(item.variant && { variant_id: item.variant.id }),
-        };
-        const res = await fetch(`${API_BASE_URL}/cart/add`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        });
+const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
+  for (const item of localItems) {
+    try {
+      const payload = {
+        product_id: item.product.id,
+        quantity: item.quantity,
+        ...(item.variant && { variant_id: item.variant.id }),
+      };
 
-        if (!res.ok) {
-          const err = await res.json();
-          console.error(`Sync ${item.product.name} lên API lỗi:`, err);
-        }
-      } catch (err) {
-        console.error(`Lỗi gọi API sync ${item.product.name}:`, err);
+      const res = await fetch(`${API_BASE_URL}/cart/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error(`Sync ${item.product.name} lên API lỗi:`, err);
       }
+    } catch (err) {
+      console.error(`Lỗi khi sync ${item.product.name}:`, err);
     }
-  };
+  }
+
+  // Xoá cart local sau khi sync xong
+  localStorage.removeItem('cart');
+};
+
   
 
   const formatImageUrl = (img: string | string[]): string => {
