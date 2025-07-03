@@ -168,7 +168,7 @@ const ShopPage = () => {
         <div className="max-w-[1200px] mx-auto px-4 pb-10 text-black">
             <ShopCard shop={shop} />
 
-            <div className="grid grid-cols-12 gap-6 mt-8">
+            <div className="grid grid-cols-12 gap-6 mt-8 ">
                 <div className="col-span-12 lg:col-span-3 text-[15px] max-h-[1000px] overflow-auto pr-2 no-scrollbar">
                     <h2 className="text-sm font-semibold text-brand mb-3 uppercase">Danh mục sản phẩm</h2>
                     <div className="space-y-1">
@@ -243,12 +243,12 @@ const ShopPage = () => {
                     </div>
                 </div>
 
-                <div className="col-span-12 lg:col-span-9 grid grid-cols-12 ">
+                <div className="col-span-12 lg:col-span-9 grid grid-cols-12 items-start md:gap-y-[50px] h-fit">
                     {products.length === 0 ? (
                         <p className="col-span-12 text-gray-500 text-center">Không có sản phẩm nào.</p>
                     ) : (
                         products.map(product => (
-                            <div key={product.id} className="col-span-12 sm:col-span-6 md:col-span-4">
+                            <div key={product.id} className="col-span-12 sm:col-span-6 md:col-span-4 max-h-fit">
                                 <ProductCardCate product={product} />
                             </div>
                         ))
