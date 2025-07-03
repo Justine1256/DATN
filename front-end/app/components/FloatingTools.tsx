@@ -11,6 +11,7 @@ interface User {
   id: number;
   name: string;
   avatar: string | null;
+  role: string;
   last_message?: string;
   last_time?: string;
 }
@@ -121,10 +122,9 @@ useEffect(() => {
   const formData = new FormData();
   formData.append('receiver_id', receiver.id.toString());
   formData.append('message', input);
-  images.forEach((file, index) => {
-  formData.append(`images[${index}]`, file);
-});
-
+  if (images.length > 0) {
+    formData.append('image', images[0]); // chỉ gửi 1 ảnh
+  }
 
   try {
     const res = await axios.post(`${API_BASE_URL}/messages`, formData, {
@@ -191,12 +191,14 @@ useEffect(() => {
   const handleOpenChatBox = (e: Event) => {
     const detail = (e as CustomEvent).detail;
     if (detail && detail.receiverId) {
-      const { receiverId, receiverName, avatar } = detail;
-      setReceiver({
-        id: receiverId,
-        name: receiverName,
-        avatar,
-      });
+      const { receiverId, receiverName, avatar, role } = detail;
+setReceiver({
+  id: receiverId,
+  name: receiverName,
+  avatar,
+  role,
+});
+
       setShowList(true);
       setActiveChat(true);
     }
@@ -279,11 +281,18 @@ useEffect(() => {
                   className="w-8 h-8 rounded-full object-cover"
                 />
                 <div>
-                  <p className="font-semibold text-sm">
-                    {receiver?.name || 'Chưa chọn người'}
-                  </p>
-                  <p className="text-xs">Hỗ trợ khách hàng</p>
-                </div>
+  <p className="font-semibold text-sm">
+    {receiver?.name || 'Chưa chọn người'}
+  </p>
+  <p className="text-xs">
+    {receiver?.role === 'seller'
+      ? 'Cửa hàng'
+      : receiver?.role === 'admin'
+      ? 'Admin'
+      : 'Người dùng'}
+  </p>
+</div>
+
               </div>
               <button onClick={() => setShowList(false)}>×</button>
             </div>
