@@ -65,28 +65,31 @@ public function getRecentContacts(Request $request)
 }
 
     // POST /messages → Gửi tin nhắn mới
-    public function store(Request $request)
-    {
-        $user = Auth::user();
+public function store(Request $request)
+{
+    $user = Auth::user();
 
-        $validated = $request->validate([
-            'receiver_id' => 'required|integer|exists:users,id',
-            'message' => 'nullable|string',
-            'image' => 'nullable|string',
-        ]);
+    $validated = $request->validate([
+        'receiver_id' => 'required|integer|exists:users,id',
+        'message' => 'nullable|string',
+        'image' => 'nullable|file|image|max:5120', // max 5MB
+    ]);
 
-        $message = Message::create([
-            'sender_id' => $user->id,
-            'receiver_id' => $validated['receiver_id'],
-            'message' => $validated['message'] ?? null,
-            'image' => $validated['image'] ?? null,
-        ]);
-
-        // Load lại sender/receiver để trả về dữ liệu đầy đủ
-        $message->load('sender:id,name,email,avatar', 'receiver:id,name,email,avatar');
-
-        return response()->json($message, 201);
+    $imagePath = null;
+    if ($request->hasFile('image')) {
+        $imagePath = $request->file('image')->store('chat_images', 'public');
     }
+
+    $message = Message::create([
+        'sender_id' => $user->id,
+        'receiver_id' => $validated['receiver_id'],
+        'message' => $validated['message'] ?? null,
+        'image' => $imagePath,
+    ]);
+
+    return $message->load(['sender', 'receiver']);
+}
+
 
     // (Có thể có thêm hàm xóa hoặc đánh dấu đã đọc nếu cần)
 }
