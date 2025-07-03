@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { API_BASE_URL } from '@/utils/api';
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Link from 'next/link'; // Import the Link component
 
 interface Shop {
@@ -66,7 +66,7 @@ export default function ShopInfo({
             {/* Add a Link around the logo to navigate to the shop page */}
             <Link href={`/shop/${shop.slug}`}>
               <Image
-                src={`${API_BASE_URL}/image/${shop.logo}`}
+                src={`${STATIC_BASE_URL}/avatars/${shop.logo}`}
                 alt="Logo"
                 width={60}
                 height={60}

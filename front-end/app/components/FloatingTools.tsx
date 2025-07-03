@@ -179,7 +179,7 @@ useEffect(() => {
       : `${STATIC_BASE_URL}/${user.avatar}`;
     return (
       <Image
-        src={avatarUrl || '/default-avatar.jpg'}
+        src={avatarUrl || `${STATIC_BASE_URL}/avatars/default-avatar.jpg`}
         alt={user.name}
         width={24}
         height={24}
@@ -273,7 +273,7 @@ setReceiver({
                       ? receiver.avatar.startsWith('http') || receiver.avatar.startsWith('/')
                         ? receiver.avatar
                         : `${STATIC_BASE_URL}/${receiver.avatar}`
-                      : '/default-avatar.jpg'
+                      : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
                   }
                   alt="avatar"
                   width={32}
