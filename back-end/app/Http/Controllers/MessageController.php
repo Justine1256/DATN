@@ -52,17 +52,31 @@ public function getRecentContacts(Request $request)
             continue;
         }
 
+        // Nếu là shop, lấy thêm thông tin shop
+        $name = $otherUser->name;
+        $avatar = $otherUser->avatar;
+
+        if ($otherUser->role === 'seller') {
+            $shop = \App\Models\Shop::where('user_id', $otherUser->id)->first();
+            if ($shop) {
+                $name = $shop->name ?? $otherUser->name;
+                $avatar = $shop->logo ?? $otherUser->avatar;
+            }
+        }
+
         $contacts[] = [
             'id' => $otherUser->id,
-            'name' => $otherUser->name,
-            'avatar' => $otherUser->avatar,
+            'name' => $name,
+            'avatar' => $avatar,
+            'role' => $otherUser->role,
             'last_message' => $msg->message ?? 'Hình ảnh',
-            'last_time' => $msg->created_at->toDateTimeString()
+            'last_time' => $msg->created_at->toDateTimeString(),
         ];
     }
 
     return response()->json(array_values($contacts));
 }
+
 
     // POST /messages → Gửi tin nhắn mới
 public function store(Request $request)
