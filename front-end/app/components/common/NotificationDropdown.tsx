@@ -25,6 +25,16 @@ interface Props {
 export default function NotificationDropdown({ notifications, unreadCount, onNotificationClick }: Props) {
     const router = useRouter();
 
+    // ✅ Hàm format ảnh nội bộ component
+    const formatImageUrl = (img: string | string[]): string => {
+        if (Array.isArray(img)) img = img[0];
+        if (typeof img !== 'string' || !img.trim()) {
+            return `${STATIC_BASE_URL}/products/default-product.png`;
+        }
+        if (img.startsWith('http')) return img;
+        return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
+    };
+
     return (
         <div className="relative group">
             <div className="relative w-5 h-5 flex items-center justify-center cursor-pointer scale-[0.9]">
@@ -47,7 +57,7 @@ export default function NotificationDropdown({ notifications, unreadCount, onNot
                         >
                             <div className="w-[56px] h-[56px] flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
                                 <Image
-                                    src={note.image_url ? `${STATIC_BASE_URL}${note.image_url}` : `${STATIC_BASE_URL}/products/default-product.png`}
+                                    src={formatImageUrl(note.image_url)}
                                     alt={note.title}
                                     width={56}
                                     height={56}
