@@ -23,150 +23,136 @@ export default function CartItemsSection({
     const guestCart = localStorage.getItem('cart');
     let localCartItems: CartItem[] = [];
 
-  if (guestCart) {
-    try {
-      const parsed = JSON.parse(guestCart);
-      localCartItems = parsed.map((item: any, index: number) => ({
-        id: item.id || index + 1,
-        quantity: item.quantity,
-        product: {
-          id: item.product_id,
-          name: item.name,
-          image: [formatImageUrl(item.image)],
-          price: item.price,
-          sale_price: null,
-        },
-        variant: item.variant_id
-          ? {
-              id: item.variant_id,
-              option1: 'Phân loại 1',
-              option2: 'Phân loại 2',
-              value1: item.value1,
-              value2: item.value2,
-              price: item.price,
-              sale_price: null,
-            }
-          : null,
-      }));
-    } catch (err) {
-      console.error('Lỗi parse local cart:', err);
-    }
-  }
-
-  // 👉 Nếu chưa login → dùng local
-  if (!token) {
-    setCartItems(localCartItems);
-    propsSetCartItems(localCartItems);
-    setLoading(false);
-    return;
-  }
-
-  try {
-    // 👉 Nếu có local cart, sync lên API
-    if (localCartItems.length > 0) {
-      await syncLocalCartToApi(localCartItems, token);
-      localStorage.removeItem('cart');
-    }
-
-    // 👉 Fetch giỏ hàng từ server sau khi sync
-    const res = await fetch(`${API_BASE_URL}/cart`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    });
-
-    if (!res.ok) throw new Error('Không thể tải giỏ hàng từ API');
-
-    const apiCartData = await res.json();
-    const formatted = apiCartData.map((item: any) => ({
-      ...item,
-      product: {
-        ...item.product,
-        image: [formatImageUrl(item.product.image || 'default.jpg')],
-      },
-    }));
-
-    setCartItems(formatted);
-    propsSetCartItems(formatted);
-    localStorage.removeItem('cart'); // 🔥 đảm bảo xoá sau sync
-  } catch (error) {
-    console.warn('Lỗi API, fallback local:', error);
-    setCartItems(localCartItems);
-    propsSetCartItems(localCartItems);
-  } finally {
-    setLoading(false);
-  }
-};
-
-const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
-  try {
-    // 1. Lấy giỏ hàng từ server
-    const serverRes = await fetch(`${API_BASE_URL}/cart`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    });
-
-    const serverItems: CartItem[] = serverRes.ok ? await serverRes.json() : [];
-
-    const isSameItem = (local: CartItem, server: CartItem) => {
-      const localOption = `${local.variant?.option1 ?? ''}-${local.variant?.option2 ?? ''}`.toLowerCase().trim();
-      const localValue = `${local.variant?.value1 ?? ''}-${local.variant?.value2 ?? ''}`.toLowerCase().trim();
-
-      const serverOption = `${server.variant?.option1 ?? ''}-${server.variant?.option2 ?? ''}`.toLowerCase().trim();
-      const serverValue = `${server.variant?.value1 ?? ''}-${server.variant?.value2 ?? ''}`.toLowerCase().trim();
-
-      return (
-        local.product.id === server.product.id &&
-        localOption === serverOption &&
-        localValue === serverValue
-      );
-    };
-
-    // 2. Lọc ra các item chưa tồn tại trên server
-    const itemsToSync = localItems.filter((localItem) => {
-      return !serverItems.some((serverItem) => isSameItem(localItem, serverItem));
-    });
-
-    // 3. Gửi từng item cần sync
-    for (const item of itemsToSync) {
+    if (guestCart) {
       try {
-        const payload = {
-          product_id: item.product.id,
+        const parsed = JSON.parse(guestCart);
+        localCartItems = parsed.map((item: any, index: number) => ({
+          id: item.id || index + 1,
           quantity: item.quantity,
-          replace_quantity: true,
-          ...(item.variant && { variant_id: item.variant.id }),
-        };
-
-        const res = await fetch(`${API_BASE_URL}/cart/add`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
+          product: {
+            id: item.product_id,
+            name: item.name,
+            image: [formatImageUrl(item.image)],
+            price: item.price,
+            sale_price: null,
           },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          console.error(`Sync ${item.product.name} lên API lỗi:`, err);
-        }
+          variant: item.variant_id
+            ? {
+                id: item.variant_id,
+                option1: 'Phân loại 1',
+                option2: 'Phân loại 2',
+                value1: item.value1,
+                value2: item.value2,
+                price: item.price,
+                sale_price: null,
+              }
+            : null,
+        }));
       } catch (err) {
-        console.error(`Lỗi khi sync ${item.product.name}:`, err);
+        console.error('Lỗi parse local cart:', err);
       }
     }
 
-    localStorage.removeItem('cart');
-  } catch (err) {
-    console.error('Lỗi khi đồng bộ giỏ hàng:', err);
-  }
-};
+    if (!token) {
+      setCartItems(localCartItems);
+      propsSetCartItems(localCartItems);
+      setLoading(false);
+      return;
+    }
 
+    try {
+      if (localCartItems.length > 0) {
+        await syncLocalCartToApi(localCartItems, token);
+        localStorage.removeItem('cart');
+      }
 
-  
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+
+      if (!res.ok) throw new Error('Không thể tải giỏ hàng từ API');
+
+      const apiCartData = await res.json();
+
+      const formatted = apiCartData.map((item: any) => ({
+        ...item,
+        product: {
+          ...item.product,
+          image: [formatImageUrl(item.product.image || 'default.jpg')],
+        },
+        variant: item.variant ?? null, // ✅ chính xác từ BE
+      }));
+
+      setCartItems(formatted);
+      propsSetCartItems(formatted);
+      localStorage.removeItem('cart');
+    } catch (error) {
+      console.warn('Lỗi API, fallback local:', error);
+      setCartItems(localCartItems);
+      propsSetCartItems(localCartItems);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
+    try {
+      const serverRes = await fetch(`${API_BASE_URL}/cart`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+
+      const serverItems: CartItem[] = serverRes.ok ? await serverRes.json() : [];
+
+      const isSameItem = (local: CartItem, server: CartItem) => {
+        return (
+          local.product.id === server.product.id &&
+          local.variant?.id === server.variant?.id
+        );
+      };
+
+      const itemsToSync = localItems.filter((localItem) => {
+        return !serverItems.some((serverItem) => isSameItem(localItem, serverItem));
+      });
+
+      for (const item of itemsToSync) {
+        try {
+          const payload = {
+            product_id: item.product.id,
+            quantity: item.quantity,
+            replace_quantity: true,
+            ...(item.variant && { variant_id: item.variant.id }),
+          };
+
+          const res = await fetch(`${API_BASE_URL}/cart/add`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) {
+            const err = await res.json();
+            console.error(`Sync ${item.product.name} lỗi:`, err);
+          }
+        } catch (err) {
+          console.error(`Lỗi khi sync ${item.product.name}:`, err);
+        }
+      }
+
+      localStorage.removeItem('cart');
+    } catch (err) {
+      console.error('Lỗi khi đồng bộ giỏ hàng:', err);
+    }
+  };
 
   const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];
@@ -344,10 +330,7 @@ const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
                     </span>
                     <br />
                     <span className="line-through text-gray-400 text-xs">
-                      {formatPrice(
-                        item.variant?.price ?? item.product?.price
-                      )}{' '}
-                      đ
+                      {formatPrice(item.variant?.price ?? item.product?.price)} đ
                     </span>
                   </div>
                 ) : (
@@ -363,10 +346,7 @@ const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
                   min={1}
                   value={item.quantity}
                   onChange={(e) =>
-                    handleQuantityChange(
-                      item.id,
-                      parseInt(e.target.value || '1')
-                    )
+                    handleQuantityChange(item.id, parseInt(e.target.value || '1'))
                   }
                   className="w-20 px-3 py-2 border rounded-md text-center text-black"
                 />

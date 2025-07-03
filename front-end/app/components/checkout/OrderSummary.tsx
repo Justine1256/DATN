@@ -65,16 +65,18 @@ export default function OrderSummary({
 
   const popupRef = useRef<HTMLDivElement | null>(null);
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
-  const promotionDiscount = cartItems.reduce((sum, item) => {
-    const { price, sale_price } = item.product;
-    return sale_price && sale_price < price
-      ? sum + (price - sale_price) * item.quantity
-      : sum;
-  }, 0);
+  const subtotal = cartItems.reduce((sum, item) => {
+  const price = item.variant?.price ?? item.product.price;
+  return sum + price * item.quantity;
+}, 0);
+
+const promotionDiscount = cartItems.reduce((sum, item) => {
+  const originalPrice = item.variant?.price ?? item.product.price;
+  const salePrice = item.variant?.sale_price ?? item.product.sale_price ?? originalPrice;
+
+  return sum + (originalPrice - salePrice) * item.quantity;
+}, 0);
+
   const discountedSubtotal = subtotal - promotionDiscount;
   const shipping = 20000;
   const voucherDiscount = 0;

@@ -7,34 +7,63 @@ import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Cookies from 'js-cookie';
 
 interface CartItem {
-  id: number;
+  id: string | number;
   quantity: number;
   product: {
     name: string;
-    image: string[]; // ✅ CHỈNH image thành mảng
+    image: string[];
     price: number;
+    sale_price?: number | null;
+  };
+  variant?: {
+    price?: number | null;
     sale_price?: number | null;
   };
 }
 
 interface Props {
-  onPaymentInfoChange: (info: { paymentMethod: string; totalPrice: number }) => void;
+  onPaymentInfoChange: (info: {
+    paymentMethod: string;
+    subtotal: number;
+    promotionDiscount: number;
+    shipping: number;
+    total: number;
+  }) => void;
   onCartChange: (items: CartItem[]) => void;
 }
 
 export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Props) {
-  const [paymentMethod, setPaymentMethod] = useState('cod');
-  const [cartItems, setCartItems] = useState<CartItem[]>([]); // Cart items state
-  const [loading, setLoading] = useState(true); // Loading state
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const totalPrice = cartItems.reduce((sum, item) => {
-    const finalPrice = item.product.sale_price ?? item.product.price;
-    return sum + finalPrice * item.quantity;
-  }, 0);
+  const getPriceToUse = (item: CartItem) => {
+    return (
+      item.variant?.sale_price ??
+      item.variant?.price ??
+      item.product.sale_price ??
+      item.product.price ??
+      0
+    );
+  };
+
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + (item.product.price * item.quantity), 0
+  );
+
+  const discountedSubtotal = cartItems.reduce(
+    (sum, item) => sum + (getPriceToUse(item) * item.quantity), 0
+  );
+
+  const promotionDiscount = subtotal - discountedSubtotal;
+
+  const shipping = cartItems.length > 0 ? 20000 : 0;
+
+  const total = discountedSubtotal + shipping;
 
   const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];
-    if (typeof img !== 'string' || !img.trim()) {
+    if (!img || !img.trim()) {
       return `${STATIC_BASE_URL}/products/default-product.png`;
     }
     if (img.startsWith('http')) return img;
@@ -43,60 +72,72 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
       : `${STATIC_BASE_URL}/${img}`;
   };
 
-  // Fetching cart items from localStorage or API
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token) {
-      const guestCart = localStorage.getItem('cart');
-      if (guestCart) {
-        const parsed = JSON.parse(guestCart);
-        const formatted = parsed.map((item: any, index: number) => ({
-          id: index + 1,
+
+    const fetchCart = async () => {
+      try {
+        if (!token) {
+          const guestCart = localStorage.getItem('cart');
+          const parsed = guestCart ? JSON.parse(guestCart) : [];
+          const formatted = parsed.map((item: any, index: number) => ({
+            id: `guest-${index}`,
+            quantity: item.quantity,
+            product: {
+              name: item.name,
+              image: [item.image],
+              price: item.price,
+              sale_price: item.sale_price ?? null,
+            },
+            variant: item.variant ?? null
+          }));
+          setCartItems(formatted);
+          onCartChange(formatted);
+          return;
+        }
+
+        const res = await axios.get(`${API_BASE_URL}/cart`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const serverCart = (res.data || []).map((item: any) => ({
+          id: item.id,
           quantity: item.quantity,
           product: {
-            id: item.product_id,
-            name: item.name,
-            image: [item.image],
-            price: item.price,
-            sale_price: null,
+            name: item.product?.name || 'Sản phẩm',
+            image: Array.isArray(item.product?.image)
+              ? item.product.image
+              : [item.product?.image],
+            price: item.product?.price || 0,
+            sale_price: item.product?.sale_price ?? null,
           },
+          variant: item.variant ?? null
         }));
-        setCartItems(formatted);
-        onCartChange(formatted);
-      } else {
+
+        setCartItems(serverCart);
+        onCartChange(serverCart);
+        localStorage.removeItem('cart');
+      } catch (err) {
+        console.error('Lỗi khi lấy giỏ hàng:', err);
         setCartItems([]);
+        onCartChange([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-      return;
-    }
+    };
 
-    // Fetching cart data from API if the user is logged in
-    axios
-      .get(`${API_BASE_URL}/cart`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        const serverCartItems = res.data;
-        const guestCart = localStorage.getItem('cart');
-
-        // Nếu có giỏ hàng trong localStorage, kết hợp với giỏ hàng từ server
-        if (guestCart) {
-          const parsedGuestCart = JSON.parse(guestCart);
-          // Kết hợp sản phẩm từ giỏ hàng server và localStorage
-          const combinedCart = [...serverCartItems, ...parsedGuestCart];
-          setCartItems(combinedCart);
-          onCartChange(combinedCart);
-        } else {
-          setCartItems(serverCartItems);
-          onCartChange(serverCartItems);
-        }
-      })
-      .finally(() => setLoading(false));
+    fetchCart();
   }, []);
 
   useEffect(() => {
-    onPaymentInfoChange({ paymentMethod, totalPrice });
-  }, [paymentMethod, totalPrice]);
+    onPaymentInfoChange({
+      paymentMethod,
+      subtotal,
+      promotionDiscount,
+      shipping,
+      total
+    });
+  }, [paymentMethod, subtotal, promotionDiscount, shipping, total]);
 
   return (
     <div className="space-y-4">
@@ -112,17 +153,21 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
         <p className="text-center text-sm">Giỏ hàng của bạn đang trống.</p>
       ) : (
         cartItems.map((item) => {
-          const { product, quantity } = item;
-          const hasSale = product.sale_price && product.sale_price < product.price;
-          const displayPrice = hasSale ? product.sale_price! : product.price;
-          const firstImage = product.image?.[0] || 'placeholder.jpg';
+          const { product, quantity, variant } = item;
+          const price = getPriceToUse(item);
+          const originalTotal = product.price * quantity;
+          const finalTotal = price * quantity;
+          const hasDiscount = price < product.price;
 
           return (
-            <div key={item.id} className="grid grid-cols-4 items-center px-4 py-3 bg-white shadow">
+            <div
+              key={`cart-item-${item.id}`}
+              className="grid grid-cols-4 items-center px-4 py-3 bg-white shadow"
+            >
               <div className="col-span-2 flex items-center gap-4">
                 <Image
-                  src={formatImageUrl(item.product?.image)}
-                  alt={item.product?.name || 'Product Image'}
+                  src={formatImageUrl(product.image)}
+                  alt={product.name || 'Product Image'}
                   width={50}
                   height={50}
                 />
@@ -130,20 +175,22 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
                   <p className="text-sm font-medium">{product.name}</p>
                 </div>
               </div>
+
               <div className="text-center text-sm">{quantity}</div>
+
               <div className="text-right text-sm">
-                {hasSale ? (
+                {hasDiscount ? (
                   <div>
                     <p className="line-through text-gray-400 text-xs">
-                      {(product.price * quantity).toLocaleString()}đ
+                      {originalTotal.toLocaleString()}đ
                     </p>
                     <p className="font-semibold text-red-600">
-                      {(product.sale_price! * quantity).toLocaleString()}đ
+                      {finalTotal.toLocaleString()}đ
                     </p>
                   </div>
                 ) : (
                   <p className="font-semibold">
-                    {(product.price * quantity).toLocaleString()}đ
+                    {finalTotal.toLocaleString()}đ
                   </p>
                 )}
               </div>
