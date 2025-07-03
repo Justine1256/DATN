@@ -90,47 +90,49 @@ export default function AccountProfileView() {
       {/* Content */}
       <div className="p-6 space-y-6">
         {/* Loyalty Points Card */}
-        <div className="bg-gray-50 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-600">Thẻ thành viên của bạn</h3>
-            <div className="flex items-center gap-2">
-              <div className="inline-flex items-center gap-1 bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-medium">
-                <User className="w-3 h-3" />
-                <span className="capitalize">{user.rank}</span>
-              </div>
+        <div className="bg-gradient-to-br from-[#fdf6ec] via-[#fef9f4] to-[#fffaf0] 
+    border border-[#e7d4b8] rounded-xl p-5 
+    shadow-[0_4px_20px_rgba(230,206,172,0.2)]">
+
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-700">Thẻ thành viên</h3>
+            <div className={`inline-flex items-center gap-1 
+        ${user.rank === 'member' ? 'bg-blue-100 text-blue-600' :
+                user.rank === 'seller' ? 'bg-orange-100 text-orange-600' :
+                  user.rank === 'admin' ? 'bg-red-100 text-red-600' :
+                    'bg-gray-100 text-gray-600'}
+        px-3 py-1 rounded-full text-xs font-medium`}>
+              <User className="w-3 h-3" />
+              <span className="capitalize">{user.rank}</span>
             </div>
           </div>
 
-          {/* Đơn hàng & Chi tiêu */}
-          <div className="flex divide-x divide-gray-200 text-center">
+          <div className="flex divide-x divide-[#e7d4b8]/50 text-center">
             <div className="flex-1 px-4">
               <p className="text-xs text-gray-500 mb-1">Đơn hàng</p>
-              <p className="text-lg font-bold text-[#DB4444]">
+              <p className="text-lg font-bold text-[#d4a94e]">
                 0<span className="text-sm text-gray-500">/75</span>
               </p>
-              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-[#DB4444] h-2 rounded-full"
-                  style={{ width: "0%" }}
-                ></div>
+              <div className="mt-2 w-full bg-[#f2e8d6] rounded-full h-2">
+                <div className="bg-[#d4a94e] h-2 rounded-full" style={{ width: "0%" }}></div>
               </div>
             </div>
             <div className="flex-1 px-4">
               <p className="text-xs text-gray-500 mb-1">Chi tiêu</p>
-              <p className="text-lg font-bold text-[#DB4444]">
+              <p className="text-lg font-bold text-[#d4a94e]">
                 đ0<span className="text-sm text-gray-500">/15tr</span>
               </p>
-              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-[#DB4444] h-2 rounded-full"
-                  style={{ width: "0%" }}
-                ></div>
+              <div className="mt-2 w-full bg-[#f2e8d6] rounded-full h-2">
+                <div className="bg-[#d4a94e] h-2 rounded-full" style={{ width: "0%" }}></div>
               </div>
             </div>
           </div>
 
-        
+          <div className="mt-4 text-xs text-gray-500 text-center">
+            Thứ hạng sẽ được cập nhật lại sau 31.12.2025.
+          </div>
         </div>
+
 
         {/* User Details in 2 columns */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
