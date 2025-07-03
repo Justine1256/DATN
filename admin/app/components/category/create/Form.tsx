@@ -65,7 +65,13 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
               >
                 <option value="">-- Không có --</option>
                 {categories.map(c => (
-                  <option key={c.id} value={c.id}>
+                  <option
+                    key={c.id}
+                    value={c.id}
+                    style={{
+                      color: c.name.startsWith("(Mặc định)") ? "#db4444" : "inherit",
+                    }}
+                  >
                     {c.name}
                   </option>
                 ))}

@@ -84,7 +84,7 @@ export default function ChangePassword() {
   return (
     <div className="w-full flex justify-center">
       <div className="container mx-auto px-4 mt-8">
-        <div className="w-full max-w-[600px] mx-auto pt-10 text-black">
+        <div className="w-full max-w-[400px] mx-auto pt-10 text-black">
           <form className="rounded-lg shadow-md overflow-hidden bg-white" onSubmit={handleSubmit}>
             {/* 🔴 Header đỏ chữ trắng căn giữa */}
             <div className="bg-[#DB4444] text-white text-center py-3 px-4">
