@@ -1,17 +1,19 @@
-/** @type {import('next').Config} */
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
 
   images: {
-    domains: [
-      'localhost',
-      'api.marketo.info.vn',
-      'duynhan.id.vn',
-      'your-static-base-url.com'
-    ],
     remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.marketo.info.vn',
+      },
       {
         protocol: 'https',
         hostname: 'salt.tikicdn.com',
@@ -22,15 +24,19 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'img4.thuthuatphanmem.vn', // Added this hostname
+        hostname: 'img4.thuthuatphanmem.vn',
       },
       {
         protocol: 'https',
-        hostname: 'thietbidiengiadung.io.vn', // Added this hostname
+        hostname: 'thietbidiengiadung.io.vn',
       },
       {
         protocol: 'https',
-        hostname: 'shop.nagakawa.com.vn', // Added this hostname
+        hostname: 'shop.nagakawa.com.vn',
+      },
+      {
+        protocol: 'https',
+        hostname: 'duynhan.id.vn', // ✅ Đã thêm domain cần thiết
       },
     ],
   },

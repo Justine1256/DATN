@@ -2,14 +2,33 @@
 
 import React from "react";
 
-export default function ActionButtons() {
+interface ActionButtonsProps {
+  loading: boolean;
+  success: boolean;
+  submitLabel: string;
+}
+
+export default function ActionButtons({
+  loading,
+  success,
+  submitLabel,
+}: ActionButtonsProps) {
   return (
-    <div className="flex justify-end gap-2">
-      <button className="px-4 py-2 rounded border border-gray-300 font-medium text-gray-700 hover:bg-gray-100">
+    <div className="flex justify-end gap-4 mt-6">
+      {/* Nút Reset */}
+      <button
+        type="reset"
+        className="px-4 py-2 rounded border border-[#db4444] text-[#db4444] font-medium hover:bg-[#ffeaea] transition-colors duration-200"
+      >
         Reset
       </button>
-      <button className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
-        Save
+
+      {/* Nút Save */}
+      <button
+        type="submit"
+        className="px-4 py-2 rounded bg-[#db4444] text-white font-medium hover:bg-[#c23333] transition-colors duration-200"
+      >
+        {submitLabel}
       </button>
     </div>
   );

@@ -7,20 +7,23 @@ import { LoadingSkeleton } from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import Cookies from "js-cookie";
 
+// Ensure `rating` is always a string
 export interface Product {
   id: number;
   name: string;
   image: string[];
   slug: string;
   price: number;
-  oldPrice: number;
-  rating: number;
-  sold?: number;
-  discount: number;
-  option1?: string;
-  value1?: string;
+  oldPrice?: number;
+  rating: string|number;  // Ensure rating is a string
+  discount?: number;
   sale_price?: number;
-  shop_slug: string;
+  shop_slug?: string;
+  shop_id?: number;
+  category_id?: number;
+  createdAt?: number;
+  updated_at?: string;
+  sold?: number;
 }
 
 const formatImageUrl = (img: unknown): string => {
@@ -167,6 +170,7 @@ export default function ProductCardCate({
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
+  const ratingValue = typeof product.rating === "string" ? parseFloat(product.rating) : product.rating;
 
   const handleViewDetail = () => {
     const shopSlug = product.shop_slug || (product as any)?.shop?.slug;
@@ -178,7 +182,7 @@ export default function ProductCardCate({
     <div
       onClick={handleViewDetail}
       className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[240px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
-      style={{ minHeight: '250px' }}
+      style={{ minHeight: "250px" }}
     >
       {showPopup && (
         <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
@@ -203,7 +207,7 @@ export default function ProductCardCate({
         )}
       </button>
 
-      <div className="w-full h-[150px] mt-8 flex items-center justify-center overflow-hidden">
+      <div className="w-full h-[150px] mt-4 flex items-center justify-center overflow-hidden">
         <Image
           src={mainImage}
           alt={product.name}
@@ -213,8 +217,8 @@ export default function ProductCardCate({
         />
       </div>
 
-      <div className="flex flex-col mt-8 w-full px-1 pb-4">
-        <h4 className="text-base font-semibold text-black leading-tight capitalize pointer-events-none overflow-hidden whitespace-nowrap text-ellipsis">
+      <div className="flex flex-col mt-4 w-full px-1 pb-4">
+        <h4 className="text-sm font-semibold text-black leading-tight capitalize pointer-events-none overflow-hidden whitespace-nowrap text-ellipsis">
           {product.name}
         </h4>
 
@@ -229,20 +233,29 @@ export default function ProductCardCate({
           )}
         </div>
 
-        <div className="flex items-center justify-between text-yellow-500 text-sm mt-2">
-          <div className="flex items-center">
-            {Array(5)
-              .fill(0)
-              .map((_, i) => (
-                <AiFillStar
-                  key={i}
-                  className={`w-4 h-4 ${i < Math.round(product.rating) ? "text-yellow-500" : "text-gray-300"}`}
-                />
-              ))}
-            <span className="text-gray-600">({product.rating})</span>
+        <div className="flex items-center justify-between text-sm mt-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            {ratingValue && ratingValue > 0 ? (
+              <>
+                {Array(5)
+                  .fill(0)
+                  .map((_, i) => (
+                    <AiFillStar
+                      key={i}
+                      className={`w-4 h-4 ${i < Math.round(ratingValue / 2) ? "text-yellow-500" : "text-gray-300"}`}
+                    />
+                  ))}
+                <span className="text-gray-600 text-xs">({ratingValue})</span>
+              </>
+            ) : (
+              <span className="text-[#db4444] text-xs font-semibold">Chưa đánh giá</span>
+            )}
           </div>
-          <span className="text-gray-600 text-sm">{product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}</span>
+          <span className="text-gray-600 text-xs">
+            {product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}
+          </span>
         </div>
+
       </div>
     </div>
   );

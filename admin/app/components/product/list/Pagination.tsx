@@ -19,7 +19,7 @@ const Pagination = ({ currentPage, totalPages, setCurrentPage }: PaginationProps
         <button
           onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
           disabled={currentPage === 1}
-          className="px-2 py-1 rounded hover:bg-gray-100 disabled:text-gray-400"
+          className="px-3 py-1 rounded text-[#db4444] border border-transparent hover:border-[#db4444]/30 disabled:text-gray-400 disabled:border-none"
         >
           Trang trước
         </button>
@@ -29,9 +29,10 @@ const Pagination = ({ currentPage, totalPages, setCurrentPage }: PaginationProps
           <button
             key={page}
             onClick={() => setCurrentPage(page)}
-            className={`px-3 py-1 rounded text-sm font-medium ${
-              currentPage === page ? "bg-blue-600 text-white" : "hover:bg-gray-100"
-            }`}
+            className={`px-3 py-1 rounded text-sm font-medium transition-all ${currentPage === page
+                ? "bg-[#db4444] text-white"
+                : "text-[#db4444] border border-transparent hover:border-[#db4444]/30"
+              }`}
           >
             {page}
           </button>
@@ -41,7 +42,7 @@ const Pagination = ({ currentPage, totalPages, setCurrentPage }: PaginationProps
         <button
           onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
           disabled={currentPage === totalPages}
-          className="px-2 py-1 rounded hover:bg-gray-100 disabled:text-gray-400"
+          className="px-3 py-1 rounded text-[#db4444] border border-transparent hover:border-[#db4444]/30 disabled:text-gray-400 disabled:border-none"
         >
           Trang sau
         </button>

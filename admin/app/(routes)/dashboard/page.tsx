@@ -1,0 +1,65 @@
+"use client";
+import React, { useEffect } from "react";
+import PerformanceChart from "../../components/dashboard/PerformanceChart";
+
+import SummaryCards from "../../components/dashboard/SummaryCards";
+
+import Swal from "sweetalert2";
+import Cookies from 'js-cookie';
+
+export default function DashboardPage() {
+useEffect(() => {
+  const token = Cookies.get('authToken');
+  if (!token) {
+    // Chưa login, redirect về trang login hoặc show message
+    window.location.href = '/login';
+    return;
+  }
+
+    // ✅ Tùy chỉnh style SweetAlert2: hover nút đóng thành đỏ, không viền
+    const style = document.createElement("style");
+    style.innerHTML = `
+      .swal2-close {
+        color: #999 !important;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+      .swal2-close:hover {
+        color: red !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // ✅ Hiển thị popup khi truy cập dashboard
+    Swal.fire({
+      title: "Chào mừng trở lại!",
+      text: "Bạn đang xem bảng điều khiển tổng quan.",
+      icon: "info",
+      showCloseButton: true,
+      showConfirmButton: false,
+      timer: 4000,
+      timerProgressBar: true,
+      allowOutsideClick: true,
+    });
+
+    // ✅ Cleanup khi component unmount
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      {/* <h1 className="text-2xl font-bold text-gray-800 mb-4">Bảng điều khiển</h1> */}
+      <SummaryCards />
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        
+          <PerformanceChart />
+     
+       
+      </div>
+      {/* <RecentOrders /> */}
+    </div>
+  );
+}

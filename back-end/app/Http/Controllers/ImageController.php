@@ -40,8 +40,28 @@ public function show($path)
     }
     return response()->file($filePath);
 }
+public function uploadProductImage(Request $request)
+{
+    if (!$request->hasFile('file')) {
+        return response()->json(['error' => 'No file provided'], 400);
+    }
 
-    public function store($request){
+    $file = $request->file('file');
+
+    if (!$file->isValid()) {
+        return response()->json(['error' => 'Invalid file upload'], 400);
+    }
+
+    // Lưu file vào thư mục public/storage/products
+    $path = $file->store('products', 'public'); // returns "products/filename.ext"
+
+    // ✅ Trả về chỉ đường dẫn nội bộ
+    return response()->json(['path' => $path]);
+}
+
+
+
+public function store(Request $request){
         if (!$request->hasFile('file')) {
         return response()->json(['error' => 'No file provided'], 400);
     }

@@ -191,6 +191,73 @@ public function update(Request $request)
         'user' => $user
     ]);
 }
+public function sendResetOtp(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email|exists:users,email',
+    ], [
+        'email.exists' => 'Email này không tồn tại trong hệ thống.',
+    ]);
+
+    $otp = rand(100000, 999999);
+
+    $user = User::where('email', $request->email)->first();
+    $user->verify_token = $otp;
+    $user->save();
+
+    try {
+        Mail::raw("Mã OTP đặt lại mật khẩu của bạn là: $otp", function ($message) use ($user) {
+            $message->to($user->email)->subject('Đặt lại mật khẩu - OTP');
+        });
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Không thể gửi email: ' . $e->getMessage()], 500);
+    }
+
+    return response()->json(['message' => 'Mã OTP đã được gửi tới email của bạn.']);
+}
+
+public function resetPasswordWithOtp(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email|exists:users,email',
+        'otp' => 'required|numeric|digits:6',
+        'password' => 'required|string|min:6|confirmed', // sử dụng password_confirmation
+    ], [
+        'otp.required' => 'Vui lòng nhập mã OTP.',
+        'password.confirmed' => 'Mật khẩu xác nhận không khớp.',
+    ]);
+
+    $user = User::where('email', $request->email)
+                ->where('verify_token', $request->otp)
+                ->first();
+
+    if (!$user) {
+        return response()->json(['error' => 'Mã OTP không chính xác hoặc đã hết hạn.'], 400);
+    }
+
+    $user->password = Hash::make($request->password);
+    $user->verify_token = null; // xóa mã OTP sau khi đặt lại mật khẩu
+    $user->save();
+
+    return response()->json(['message' => 'Mật khẩu đã được đặt lại thành công!']);
+}
+public function verifyOtpOnly(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email|exists:users,email',
+        'otp' => 'required|numeric|digits:6',
+    ]);
+
+    $user = User::where('email', $request->email)
+                ->where('verify_token', $request->otp)
+                ->first();
+
+    if (!$user) {
+        return response()->json(['error' => 'Mã OTP không chính xác hoặc đã hết hạn.'], 400);
+    }
+
+    return response()->json(['message' => 'Mã OTP chính xác.']);
+}
 
 public function updateAvatar(Request $request)
 {

@@ -47,17 +47,17 @@ class Category extends Model
     }
 
     protected static function generateUniqueSlug($name, $shopId)
-    {
-        $slug = Str::slug($name);
-        $originalSlug = $slug;
-        $i = 1;
+{
+    $slug = Str::slug($name);
 
-        while (self::where('shop_id', $shopId)->where('slug', $slug)->exists()) {
-            $slug = $originalSlug . '-' . $i++;
-        }
+    $exists = self::where('shop_id', $shopId)->where('slug', $slug)->exists();
 
-        return $slug;
+    if ($exists) {
+        throw new \Exception("Slug đã tồn tại trong shop. Vui lòng chọn tên khác.");
     }
+
+    return $slug;
+}
     public function products()
 {
     return $this->hasMany(Product::class, 'category_id');
