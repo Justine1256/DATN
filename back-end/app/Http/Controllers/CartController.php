@@ -44,7 +44,6 @@ class CartController extends Controller
             }
 
             $cart->variant = $variant;
-            $cart->variant_id = $matched->id ?? null;
             return $cart;
         });
 
@@ -123,7 +122,6 @@ public function store(Request $request)
             $cart = Cart::create([
                 'user_id'        => $userId,
                 'product_id'     => $product->id,
-                'variant_id'     => $validated['variant_id'] ?? null,
                 'quantity'       => $quantity,
                 'product_option' => $productOption,
                 'product_value'  => $productValue,
@@ -182,23 +180,16 @@ public function getTotal()
         ->where('is_active', true)
         ->get();
 
-    $subtotal = 0;
-    $discount = 0;
-    $voucher  = 0;      // tạm thời, sau này lấy từ DB hoặc request
-    $shipping = 20000;  // giả định, sau này tính động
-
-    $carts->transform(function ($cart) use (&$subtotal, &$discount) {
+    // Gắn variant giống logic ở index()
+    $carts->transform(function ($cart) {
         $options = explode(' - ', $cart->product_option ?? '');
         $values = explode(' - ', $cart->product_value ?? '');
 
         $query = ProductVariant::where('product_id', $cart->product_id);
-        if (!empty($values[0])) $query->where('value1', $values[0]);
-        if (!empty($values[1])) $query->where('value2', $values[1]);
+        if (isset($values[0])) $query->where('value1', $values[0]);
+        if (isset($values[1])) $query->where('value2', $values[1]);
 
         $matched = $query->first();
-
-        $basePrice = $cart->product->price;
-        $salePrice = $cart->product->sale_price ?? $basePrice;
 
         if ($matched) {
             $cart->variant = [
@@ -211,35 +202,25 @@ public function getTotal()
                 'sale_price' => $matched->sale_price,
                 'stock'      => $matched->stock,
             ];
-
-            $basePrice = $matched->price;
-            $salePrice = $matched->sale_price ?? $basePrice;
         } else {
             $cart->variant = null;
-            $cart->variant_id = $matched->id;
         }
-
-        $lineSubtotal = $cart->quantity * $basePrice;
-        $lineDiscount = $cart->quantity * ($basePrice - $salePrice);
-
-        $subtotal += $lineSubtotal;
-        $discount += $lineDiscount;
 
         return $cart;
     });
 
-    $total = $subtotal - $discount - $voucher + $shipping;
+    $total = 0;
+    foreach ($carts as $cart) {
+        $price = $cart->variant['sale_price']
+            ?? $cart->variant['price']
+            ?? $cart->product->sale_price
+            ?? $cart->product->price;
 
-    return response()->json([
-        'items'     => $carts,
-        'subtotal'  => $subtotal,
-        'discount'  => $discount,
-        'voucher'   => $voucher,
-        'shipping'  => $shipping,
-        'total'     => $total,
-    ]);
+        $total += $cart->quantity * $price;
+    }
+
+    return response()->json(['total' => $total]);
 }
-
 
 
     public function destroy($id)
