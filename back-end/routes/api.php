@@ -187,6 +187,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // tin nhắn
     Route::get('/messages', [MessageController::class, 'index']);         // Lấy tin nhắn giữa 2 user
+    Route::get('/recent-contacts', [MessageController::class, 'getRecentContacts']);         // Lấy toàn người nhận trong 1 user
     Route::post('/messages', [MessageController::class, 'store']);        // Gửi tin nhắn mới
     Route::patch('/messages/{id}/hide', [MessageController::class, 'hide']);   // Ẩn tin nhắn (status = hidden)
     Route::delete('/messages/{id}', [MessageController::class, 'destroy']);    // Xoá mềm tin nhắn
