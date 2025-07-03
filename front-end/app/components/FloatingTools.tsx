@@ -60,13 +60,24 @@ export default function ModernFloatingTools() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+useEffect(() => {
+  const token = localStorage.getItem('token') || Cookies.get('authToken');
+  if (token) {
+    axios
+      .get(`${API_BASE_URL}/user`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => console.log('✅ User login:', res.data))
+      .catch((err) => console.error('❌ Lỗi auth:', err));
+  }
+}, []);
 
   const fetchRecentContacts = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) return;
 
     try {
-      const res = await axios.get(`${API_BASE_URL}/messages/contacts`, {
+      const res = await axios.get(`${API_BASE_URL}/recent-contacts`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setRecentContacts(res.data);
@@ -100,34 +111,41 @@ export default function ModernFloatingTools() {
   };
 
   const sendMessage = async () => {
-    if (!receiver?.id || (!input.trim() && images.length === 0)) return;
-    const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token) return;
+  if (!receiver?.id || (!input.trim() && images.length === 0)) return;
 
-    setLoading(true);
-    const formData = new FormData();
-    formData.append('receiver_id', receiver.id.toString());
-    formData.append('message', input);
-    images.forEach((img) => formData.append('images[]', img));
+  const token = localStorage.getItem('token') || Cookies.get('authToken');
+  if (!token) return;
 
-    try {
-      const res = await axios.post(`${API_BASE_URL}/messages`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setMessages((prev) => [...prev, res.data]);
-      setInput('');
-      setImages([]);
-      setImagePreviews([]);
-      fetchRecentContacts();
-    } catch (error) {
-      console.error('Lỗi khi gửi tin nhắn:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+
+  const formData = new FormData();
+  formData.append('receiver_id', receiver.id.toString());
+  formData.append('message', input);
+  images.forEach((file, index) => {
+  formData.append(`images[${index}]`, file);
+});
+
+
+  try {
+    const res = await axios.post(`${API_BASE_URL}/messages`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    setMessages((prev) => [...prev, res.data]);
+    setInput('');
+    setImages([]);
+    setImagePreviews([]);
+    fetchRecentContacts(); // cập nhật danh sách gần đây
+  } catch (error) {
+    console.error('Lỗi khi gửi tin nhắn:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -169,6 +187,27 @@ export default function ModernFloatingTools() {
       />
     );
   };
+useEffect(() => {
+  const handleOpenChatBox = (e: Event) => {
+    const detail = (e as CustomEvent).detail;
+    if (detail && detail.receiverId) {
+      const { receiverId, receiverName, avatar } = detail;
+      setReceiver({
+        id: receiverId,
+        name: receiverName,
+        avatar,
+      });
+      setShowList(true);
+      setActiveChat(true);
+    }
+  };
+
+  window.addEventListener('open-chat-box', handleOpenChatBox);
+
+  return () => {
+    window.removeEventListener('open-chat-box', handleOpenChatBox);
+  };
+}, []);
 
   return (
     <>
