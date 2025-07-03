@@ -6,6 +6,7 @@ import Image from 'next/image';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
+import { useChatSocket } from '../hooks/useChatSocket';
 
 interface User {
   id: number;
@@ -38,6 +39,8 @@ export default function ModernFloatingTools() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -64,14 +67,30 @@ export default function ModernFloatingTools() {
 useEffect(() => {
   const token = localStorage.getItem('token') || Cookies.get('authToken');
   if (token) {
+    setToken(token); // ✅ FIX HERE
     axios
       .get(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => console.log('✅ User login:', res.data))
+      .then((res) => {
+        setCurrentUser(res.data);
+        console.log('✅ User login:', res.data);
+      })
       .catch((err) => console.error('❌ Lỗi auth:', err));
   }
 }, []);
+
+useChatSocket(
+  currentUser?.id,
+  token || '',
+  
+  (data) => {
+    
+    setMessages((prev) => [...prev, data.message]);
+  }
+  
+);
+
 
   const fetchRecentContacts = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
