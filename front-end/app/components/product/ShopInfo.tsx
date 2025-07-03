@@ -18,6 +18,7 @@ interface Shop {
   status: 'activated' | 'pending' | 'suspended';
   email: string;
   slug: string;
+  user_id: number;
 }
 
 interface ShopInfoProps {
@@ -127,12 +128,27 @@ export default function ShopInfo({
             </p>
 
             <div className="flex flex-wrap gap-2 mt-2">
-              <button className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M2 3v18l4-4h14V3H2zm2 2h14v10H6l-2 2V5z" />
-                </svg>
-                Chat Ngay
-              </button>
+<button
+  onClick={() => {
+    const receiverId = shop.user_id;
+    const receiverName = shop.name;
+    const avatar = shop.logo || '';
+    
+    // Gọi tới chat box bằng custom event
+    window.dispatchEvent(new CustomEvent('open-chat-box', {
+      detail: { receiverId, receiverName, avatar }
+    }));
+  }}
+  className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1"
+>
+  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M2 3v18l4-4h14V3H2zm2 2h14v10H6l-2 2V5z" />
+  </svg>
+  Chat Ngay
+</button>
+
+
+
               <button
                 onClick={() => router.push(`/shop/${shop.slug}`)}
                 className="text-sm px-3 py-1 border border-[#DC4B47] text-[#DC4B47] rounded hover:bg-[#DC4B47] hover:text-white transition flex items-center gap-1"
