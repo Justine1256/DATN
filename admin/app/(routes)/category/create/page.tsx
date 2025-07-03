@@ -60,6 +60,7 @@ export default function CreateCategoryPage() {
     }, [token]);
 
     // ✅ Lấy danh mục cha shop + admin
+    // ✅ Lấy danh mục cha shop + admin
     useEffect(() => {
         if (!token || !shopId) return;
 
@@ -77,9 +78,16 @@ export default function CreateCategoryPage() {
                 const shopData = Array.isArray(shopRes.data.categories)
                     ? shopRes.data.categories
                     : [];
-                const adminData = Array.isArray(adminRes.data)
+
+                const adminRawData = Array.isArray(adminRes.data)
                     ? adminRes.data
                     : adminRes.data.data || [];
+
+                // ✅ Thêm "(Mặc định)" cho danh mục admin có parent_id = null
+                const adminData = adminRawData.map((cate: Category) => ({
+                    ...cate,
+                    name: cate.parent_id === null ? `(Mặc định) ${cate.name}` : cate.name
+                }));
 
                 setParentCategories([...shopData, ...adminData]);
             } catch (err) {
@@ -91,6 +99,7 @@ export default function CreateCategoryPage() {
 
         fetchAllCategories();
     }, [token, shopId]);
+
 
     // ✅ Xử lý thay đổi form
     const handleSetData = (field: string, value: any) => {
