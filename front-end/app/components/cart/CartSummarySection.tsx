@@ -11,7 +11,6 @@ const discounts = [
   { id: 4, code: 'SALE10', label: 'Giảm đến 10% – Đơn hàng tối thiểu 100K', time: '01 Tháng 7 – 31 Tháng 7', left: 12 },
 ];
 
-
 interface Props {
   cartItems: CartItem[];
 }
@@ -35,24 +34,34 @@ export default function CartSummarySection({ cartItems }: Props) {
     return () => el.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 🚀 Dùng useMemo: tự tính khi cartItems thay đổi
+  const getPriceToUse = (item: CartItem) => {
+    return (
+      item.variant?.sale_price ??
+      item.variant?.price ??
+      item.product.sale_price ??
+      item.product.price ??
+      0
+    );
+  };
+
   const subtotal = useMemo(() => {
-    return cartItems.reduce((acc, item) => acc + item.quantity * Number(item.product?.price || 0), 0);
+    return cartItems.reduce(
+      (acc, item) => acc + item.quantity * (item.product?.price || 0), 0
+    );
   }, [cartItems]);
 
-  const promotionDiscount = useMemo(() => {
-    return cartItems.reduce((acc, item) => {
-      const { price, sale_price } = item.product;
-      if (sale_price && sale_price < price) {
-        return acc + (price - sale_price) * item.quantity;
-      }
-      return acc;
-    }, 0);
+  const discountedSubtotal = useMemo(() => {
+    return cartItems.reduce(
+      (acc, item) => acc + item.quantity * getPriceToUse(item), 0
+    );
   }, [cartItems]);
 
-  const discountedSubtotal = subtotal - promotionDiscount;
+  const promotionDiscount = subtotal - discountedSubtotal;
+
   const shipping = cartItems.length > 0 ? 20000 : 0;
-  const voucherDiscount = 0; // có thể set theo selectedDiscountId sau
+
+  const voucherDiscount = 0; // Có thể tính theo selectedDiscountId nếu muốn
+
   const total = discountedSubtotal + shipping - voucherDiscount;
 
   return (
