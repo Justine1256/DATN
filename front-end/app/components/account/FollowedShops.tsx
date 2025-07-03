@@ -135,7 +135,7 @@ export default function FollowedShopsSection() {
                                             <div className="relative">
                                                 <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100">
                                                     <Image
-                                                        src={shop.logo ? `${STATIC_BASE_URL}/${shop.logo}` : "/default-avatar.jpg"}
+                                                        src={shop.logo ? `${STATIC_BASE_URL}/${shop.logo}` : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`}
                                                         alt={shop.name}
                                                         width={48}
                                                         height={48}

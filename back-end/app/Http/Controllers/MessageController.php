@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MessageSent;
 use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -100,6 +101,9 @@ public function store(Request $request)
         'message' => $validated['message'] ?? null,
         'image' => $imagePath,
     ]);
+
+    // ✅ Gửi sự kiện sau khi tạo tin nhắn
+    event(new MessageSent($message));
 
     return $message->load(['sender', 'receiver']);
 }

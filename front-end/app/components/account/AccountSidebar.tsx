@@ -27,6 +27,7 @@ interface UserProps {
   profilePicture?: string;
   avatar?: string;
   status: string;
+  rank: string;
 }
 
 interface AccountSidebarProps {
@@ -127,8 +128,10 @@ export default function AccountSidebar({
   return (
     <div className="w-[253px] ">
       {/* 🔹 Thông tin người dùng + ảnh đại diện */}
+     
+      {/* 🔹 Thông tin người dùng + ảnh đại diện */}
       {user && (
-        <div className="bg-white rounded-2xl p-6 mb-6 border border-gray-100 ">
+        <div className="bg-white rounded-2xl p-6 mb-6 border border-gray-100">
           <div className="flex items-center space-x-4">
             {/* Ảnh đại diện */}
             <div className="relative group">
@@ -163,27 +166,33 @@ export default function AccountSidebar({
               />
             </div>
 
-            {/* Tên người dùng + xem hồ sơ */}
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">{user.name}</h3>
+            {/* Tên người dùng + Rank + Trạng thái */}
+            <div className="flex-1 space-y-1">
+              {/* Tên */}
+              <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
 
-              {/* Circular Status Indicator with Text */}
-              <div className="flex items-center gap-2">
+              {/* Rank badge */}
+              <div className="inline-flex items-center gap-1 bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-medium">
+                <User className="w-3 h-3" />
+                <span className="capitalize">{user.rank}</span>
+              </div>
+
+              {/* Trạng thái */}
+              <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                 <div
                   className={`w-3 h-3 rounded-full ${user.status === 'activated' ? 'bg-green-500' :
-                    user.status === 'deactivated' ? 'bg-yellow-500' :
-                      user.status === 'locked' ? 'bg-red-500' :
-                        user.status === 'hidden' ? 'bg-gray-500' :
-                          'bg-blue-500'}`}
-
-                  title={user.status === 'activated' ? 'Đang hoạt động' :
-                    user.status === 'deactivated' ? 'Đã hủy kích hoạt' :
-                      user.status === 'locked' ? 'Đã khóa' :
-                        user.status === 'hidden' ? 'Ẩn' : 'Trạng thái khác'}
+                      user.status === 'deactivated' ? 'bg-yellow-500' :
+                        user.status === 'locked' ? 'bg-red-500' :
+                          user.status === 'hidden' ? 'bg-gray-500' : 'bg-blue-500'
+                    }`}
+                  title={
+                    user.status === 'activated' ? 'Đang hoạt động' :
+                      user.status === 'deactivated' ? 'Đã hủy kích hoạt' :
+                        user.status === 'locked' ? 'Đã khóa' :
+                          user.status === 'hidden' ? 'Ẩn' : 'Trạng thái khác'
+                  }
                 ></div>
-
-                {/* Status Text */}
-                <span className="text-sm text-gray-600">
+                <span>
                   {user.status === 'activated' ? 'Đang hoạt động' :
                     user.status === 'deactivated' ? 'Đã hủy kích hoạt' :
                       user.status === 'locked' ? 'Đã khóa' :
@@ -191,10 +200,10 @@ export default function AccountSidebar({
                 </span>
               </div>
             </div>
-
           </div>
         </div>
       )}
+
 
       {/* 🔹 Menu chính */}
       <nav className="space-y-2">
