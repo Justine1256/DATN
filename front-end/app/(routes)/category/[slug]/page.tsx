@@ -140,12 +140,11 @@ export default function CategoryPage() {
 
       <div className="mt-8 flex flex-col lg:flex-row gap-6">
         <div className="w-full lg:w-1/4 flex flex-col gap-8">
-
-
+          {/* Bộ lọc và sắp xếp */}
           <div className="pt-4 flex flex-col space-y-4">
             <h3 className="text-lg font-semibold pb-4 border-b">Bộ lọc & Sắp xếp</h3>
 
-            {/* Danh sách danh mục */}
+            {/* Danh mục */}
             <div className="flex flex-col space-y-4">
               <h3 className="font-semibold">Danh mục</h3>
 
@@ -194,6 +193,7 @@ export default function CategoryPage() {
               </div>
             </div>
 
+            {/* Sắp xếp giá */}
             <div className="flex flex-col space-y-4">
               <h4 className="font-semibold">Giá</h4>
               <div className="flex flex-col">
