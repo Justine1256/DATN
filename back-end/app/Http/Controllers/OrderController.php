@@ -143,98 +143,53 @@ public function checkout(Request $request)
         $orders = [];
         $totalFinalAmount = 0;
 
-        foreach ($cartsByShop as $shopId => $shopCarts) {
+foreach ($cartsByShop as $shopId => $shopCarts) {
             $shopTotalAmount = 0;
-            $shopFinalAmount = 0;
-            $shopApplicableTotal = 0;
 
             foreach ($shopCarts as $cart) {
-                $originalPrice = $cart->product->price;
-                $salePrice = $cart->product->sale_price ?? $originalPrice;
-                $quantity = $cart->quantity;
+                $product = $cart->product;
+                $variant = $cart->variant;
 
-                $shopTotalAmount += $quantity * $originalPrice;
-                $shopFinalAmount += $quantity * $salePrice;
-
-                if (!$voucher || empty($applicableCategoryIds) || in_array($cart->product->category_id, $applicableCategoryIds)) {
-                    $shopApplicableTotal += $quantity * $originalPrice;
-                }
-            }
-
-            $shopDiscount = $voucher && $subtotalApplicable > 0
-                ? ($shopApplicableTotal / $subtotalApplicable) * $discountAmount
-                : 0;
-
-            $finalAmount = max(0, $shopFinalAmount - $shopDiscount);
-            $totalFinalAmount += $finalAmount;
-
-            $order = Order::create([
-                'user_id' => $userId,
-                'shop_id' => $shopId,
-                'total_amount' => $shopTotalAmount,
-                'final_amount' => $finalAmount,
-                'payment_method' => $validated['payment_method'],
-                'payment_status' => 'Pending',
-                'order_status' => 'Pending',
-                'shipping_status' => 'Pending',
-                'shipping_address' => $fullAddress,
-            ]);
-
-            foreach ($shopCarts as $cart) {
-                $originalPrice = $cart->product->price;
-                $salePrice = $cart->product->sale_price ?? $originalPrice;
-                $quantity = $cart->quantity;
-
-                $values = explode(' - ', $cart->product_value ?? '');
-                $value1 = $values[0] ?? null;
-                $value2 = $values[1] ?? null;
-
-                $variant = ProductVariant::where('product_id', $cart->product_id)
-                    ->when($value1, fn($q) => $q->where('value1', $value1))
-                    ->when($value2, fn($q) => $q->where('value2', $value2))
-                    ->first();
+                $priceAtTime = $variant
+                    ? ($variant->sale_price ?? $variant->price)
+                    : ($product->sale_price ?? $product->price);
 
                 if ($variant) {
-                    if ($quantity > $variant->stock) {
-                        DB::rollBack();
-                        return response()->json(['message' => "Biến thể '{$variant->value1}' không đủ hàng trong kho ({$variant->stock})"], 400);
-                    }
-
-                    $variant->decrement('stock', $quantity);
-
-                    OrderDetail::create([
-                        'order_id' => $order->id,
-                        'product_id' => $cart->product_id,
-                        'variant_id' => $variant->id,
-                        'price_at_time' => $salePrice,
-                        'quantity' => $quantity,
-                        'subtotal' => $quantity * $salePrice,
-                    ]);
+                    if ($cart->quantity > $variant->stock) throw new \Exception("Biến thể {$variant->value1}-{$variant->value2} không đủ kho");
+                    $variant->decrement('stock', $cart->quantity);
                 } else {
-                    if ($quantity > $cart->product->stock) {
-                        DB::rollBack();
-                        return response()->json(['message' => "Sản phẩm '{$cart->product->name}' không đủ hàng trong kho ({$cart->product->stock})"], 400);
-                    }
-
-                    $cart->product->decrement('stock', $quantity);
-
-                    OrderDetail::create([
-                        'order_id' => $order->id,
-                        'product_id' => $cart->product_id,
-                        'variant_id' => null,
-                        'price_at_time' => $salePrice,
-                        'quantity' => $quantity,
-                        'subtotal' => $quantity * $salePrice,
-                    ]);
+                    if ($cart->quantity > $product->stock) throw new \Exception("Sản phẩm {$product->name} không đủ kho");
+                    $product->decrement('stock', $cart->quantity);
                 }
-            }
 
-            $orders[] = $order;
+                $shopTotalAmount += $cart->quantity * $priceAtTime;
+
+                $order = Order::create([
+                    'user_id' => $userId,
+                    'shop_id' => $shopId,
+                    'total_amount' => $shopTotalAmount,
+                    'final_amount' => $shopTotalAmount, // cộng voucher nếu cần
+                    'payment_method' => $validated['payment_method'],
+                    'payment_status' => 'Pending',
+                    'order_status' => 'Pending',
+                    'shipping_status' => 'Pending',
+                    'shipping_address' => $fullAddress,
+                ]);
+
+                OrderDetail::create([
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'variant_id' => $variant->id ?? null,
+                    'price_at_time' => $priceAtTime,
+                    'quantity' => $cart->quantity,
+                    'subtotal' => $cart->quantity * $priceAtTime,
+                ]);
+
+                $orders[] = $order;
+            }
         }
 
-        if ($voucher) $voucher->increment('usage_count');
-
-        Cart::where('user_id', $userId)->where('is_active', true)->delete();
+        Cart::where('user_id', $userId)->delete();
         DB::commit();
 
         $redirectUrl = null;
@@ -253,7 +208,8 @@ public function checkout(Request $request)
             'payment_method' => $validated['payment_method'],
             'redirect_url' => $redirectUrl
         ]);
-    } catch (\Exception $e) {
+
+    } catch (\Throwable $e) {
         DB::rollBack();
         Log::error('Checkout Error: ' . $e->getMessage(), [
             'user_id' => $userId,
@@ -262,6 +218,7 @@ public function checkout(Request $request)
         return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
     }
 }
+
     public function show($id)
     {
         $order = Order::find($id);
