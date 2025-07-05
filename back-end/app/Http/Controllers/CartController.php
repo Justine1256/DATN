@@ -10,45 +10,47 @@ use App\Models\ProductVariant;
 
 class CartController extends Controller
 {
-    public function index()
-    {
-        $userId = Auth::id();
-        $carts = Cart::with('product')
-            ->where('user_id', $userId)
-            ->where('is_active', true)
-            ->get();
+ public function index()
+{
+    $userId = Auth::id();
 
-        $carts->transform(function ($cart) {
-            // Tách option và value
-            $options = explode(' - ', $cart->product_option ?? '');
-            $values = explode(' - ', $cart->product_value ?? '');
+    $carts = Cart::with('product')
+        ->where('user_id', $userId)
+        ->where('is_active', true)
+        ->get();
 
+    $carts->transform(function ($cart) {
+        // Tách option và value từ cột text
+        $options = explode(' - ', $cart->product_option ?? '');
+        $values = explode(' - ', $cart->product_value ?? '');
+
+        $query = ProductVariant::where('product_id', $cart->product_id);
+        if (!empty($values[0])) $query->where('value1', $values[0]);
+        if (!empty($values[1])) $query->where('value2', $values[1]);
+
+        $matched = $query->first();
+
+        $variant = null;
+        if ($matched) {
             $variant = [
-                'option1'     => $options[0] ?? null,
-                'value1'      => $values[0] ?? null,
-                'option2'     => $options[1] ?? null,
-                'value2'      => $values[1] ?? null,
-                'price'       => null,
-                'sale_price'  => null,
+                'id'         => $matched->id,
+                'option1'    => $matched->option1,
+                'value1'     => $matched->value1,
+                'option2'    => $matched->option2,
+                'value2'     => $matched->value2,
+                'price'      => $matched->price,
+                'sale_price' => $matched->sale_price,
+                'stock'      => $matched->stock,
             ];
+        }
 
-            // Lấy thông tin biến thể nếu có
-            $query = ProductVariant::where('product_id', $cart->product_id);
-            if (!empty($values[0])) $query->where('value1', $values[0]);
-            if (!empty($values[1])) $query->where('value2', $values[1]);
+        $cart->variant = $variant;
+        return $cart;
+    });
 
-            $matched = $query->first();
-            if ($matched) {
-                $variant['price'] = $matched->price;
-                $variant['sale_price'] = $matched->sale_price;
-            }
+    return response()->json($carts);
+}
 
-            $cart->variant = $variant;
-            return $cart;
-        });
-
-        return response()->json($carts);
-    }
 
 public function store(Request $request)
 {
