@@ -65,17 +65,23 @@ export default function OrderSummary({
 
   const popupRef = useRef<HTMLDivElement | null>(null);
 
-  const subtotal = cartItems.reduce((sum, item) => {
-  const price = item.variant?.price ?? item.product.price;
-  return sum + price * item.quantity;
+const subtotal = cartItems.reduce((sum, item) => {
+  // Lấy giá gốc đúng theo biến thể nếu có
+  const originalPrice = item.variant?.price ?? item.product.price;
+  return sum + originalPrice * item.quantity;
 }, 0);
 
 const promotionDiscount = cartItems.reduce((sum, item) => {
   const originalPrice = item.variant?.price ?? item.product.price;
-  const salePrice = item.variant?.sale_price ?? item.product.sale_price ?? originalPrice;
 
-  return sum + (originalPrice - salePrice) * item.quantity;
+  // ✅ Nếu có biến thể → chỉ lấy giảm giá từ biến thể thôi
+  const discountedPrice = item.variant
+    ? item.variant.sale_price ?? item.variant.price ?? 0
+    : item.product.sale_price ?? item.product.price ?? 0;  
+
+  return sum + (originalPrice - discountedPrice) * item.quantity;
 }, 0);
+
 
   const discountedSubtotal = subtotal - promotionDiscount;
   const shipping = 20000;

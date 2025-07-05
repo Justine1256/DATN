@@ -255,15 +255,13 @@ const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
     }
   };
 
-  const getPriceToUse = (item: CartItem) => {
-    return (
-      item.variant?.sale_price ??
-      item.variant?.price ??
-      item.product.sale_price ??
-      item.product.price ??
-      0
-    );
-  };
+const getPriceToUse = (item: CartItem) => {
+  if (item.variant) {
+    return item.variant.sale_price ?? item.variant.price ?? 0;
+  }
+  return item.product.sale_price ?? item.product.price ?? 0;
+};
+
 
   const renderVariant = (item: CartItem) => {
     const variants: string[] = [];
