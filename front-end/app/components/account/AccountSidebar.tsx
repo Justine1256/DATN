@@ -180,10 +180,10 @@ export default function AccountSidebar({
               {/* Nút chọn ảnh */}
               <label
                 htmlFor="avatarUpload"
-                className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#DB4444] rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#DB4444] rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
                 title="Chọn ảnh đại diện"
               >
-                <Edit3 className="w-4 h-4 text-white" />
+                <Edit3 className="w-3 h-3 text-white" />
               </label>
               <input
                 id="avatarUpload"
