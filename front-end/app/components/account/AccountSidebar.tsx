@@ -20,6 +20,7 @@ import { STATIC_BASE_URL, API_BASE_URL } from '@/utils/api';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 import Image from 'next/image';
+import { useUser } from "../../context/UserContext";
 
 interface UserProps {
   name: string;
@@ -35,6 +36,7 @@ interface AccountSidebarProps {
   onChangeSection: (section: string) => void;
   user: UserProps | null;
 }
+
 const getRankBg = (rank: string) => {
   switch (rank) {
     case 'bronze': return 'bg-[#fff7f0] border-[#e7d4b8] text-[#c27a33]';
@@ -60,6 +62,7 @@ export default function AccountSidebar({
   onChangeSection,
   user,
 }: AccountSidebarProps) {
+  const { setUser } = useUser();
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [popup, setPopup] = useState<{
@@ -106,6 +109,12 @@ export default function AccountSidebar({
         },
       });
 
+      // Fetch updated user info and update context
+      const res = await axios.get(`${API_BASE_URL}/user`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUser(res.data);
+
       setPopup({
         message: 'Thay đổi ảnh đại diện thành công!',
         visible: true,
@@ -147,7 +156,7 @@ export default function AccountSidebar({
   return (
     <div className="w-[253px] ">
 
-     
+
       {/* 🔹 Thông tin người dùng + ảnh đại diện */}
       {user && (
         <div className="bg-white rounded-2xl p-6 mb-6 border border-gray-100">
@@ -201,9 +210,9 @@ export default function AccountSidebar({
               <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                 <div
                   className={`w-3 h-3 rounded-full ${user.status === 'activated' ? 'bg-green-500' :
-                      user.status === 'deactivated' ? 'bg-yellow-500' :
-                        user.status === 'locked' ? 'bg-red-500' :
-                          user.status === 'hidden' ? 'bg-gray-500' : 'bg-blue-500'
+                    user.status === 'deactivated' ? 'bg-yellow-500' :
+                      user.status === 'locked' ? 'bg-red-500' :
+                        user.status === 'hidden' ? 'bg-gray-500' : 'bg-blue-500'
                     }`}
                   title={
                     user.status === 'activated' ? 'Đang hoạt động' :

@@ -3,10 +3,11 @@
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useUser } from "../../context/UserContext";
 
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { Crown, Gem, Medal, User } from "lucide-react";
-interface UserData {
+interface user {
   name: string;
   username: string;
   email: string;
@@ -17,15 +18,9 @@ interface UserData {
 }
 
 export default function AccountPage() {
-  const [userData, setUserData] = useState<UserData>({
-    name: "",
-    username: "",
-    email: "",
-    phone: "",
-    role: "",
-    avatar: "",
-    rank: "",
-  });
+
+  const { user, setUser } = useUser();
+
   const [previewAvatar, setPreviewAvatar] = useState<string>("");
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
 
@@ -76,8 +71,7 @@ export default function AccountPage() {
       const res = await axios.get(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUserData(res.data);
-      setPreviewAvatar(res.data.avatar ? `${STATIC_BASE_URL}/${res.data.avatar}` : "");
+      setUser(res.data); // Update user context
     } catch {
       showPopupMessage("Không thể tải thông tin người dùng.", "error");
     } finally {
@@ -108,16 +102,16 @@ export default function AccountPage() {
     const token = Cookies.get("authToken");
     if (!token) return showPopupMessage("Chưa xác thực.", "error");
 
-    if (!userData.name.trim()) return showPopupMessage("Vui lòng nhập tên.", "error");
+    if (!user.name.trim()) return showPopupMessage("Vui lòng nhập tên.", "error");
     const phoneRegex = /^(0|\+84)[1-9][0-9]{8}$/;
-    if (!phoneRegex.test(userData.phone.trim())) {
+    if (!phoneRegex.test(user.phone.trim())) {
       return showPopupMessage("Số điện thoại không hợp lệ.", "error");
     }
 
     try {
       await axios.put(`${API_BASE_URL}/user`, {
-        name: userData.name,
-        phone: userData.phone,
+        name: user.name,
+        phone: user.phone,
       }, { headers: { Authorization: `Bearer ${token}` } });
 
       if (selectedAvatarFile) {
@@ -135,16 +129,19 @@ export default function AccountPage() {
       showPopupMessage("Đã cập nhật thành công!", "success");
       setIsEditing(false);
       fetchUser();
+      setPreviewAvatar(""); // Reset preview after update
     } catch (err: any) {
       showPopupMessage(err?.response?.data?.message || "Lỗi cập nhật!", "error");
     }
   };
 
-  const avatarUrl = previewAvatar || "/default-avatar.jpg";
+  const avatarUrl =
+  previewAvatar ||
+  (user?.avatar ? `${STATIC_BASE_URL}/${user.avatar}` : "/default-avatar.jpg");
 
   return (
     <div className="w-full flex justify-center py-10 text-[15px] text-gray-800">
-      <div className="w-full max-w-xl bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="w-full max-w-full bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <div className="bg-[#DB4444] px-6 py-4 text-center text-red-50 text-xl">
           {isEditing ? "Tùy chỉnh hồ sơ" : "Tài khoản của tôi"}
         </div>
@@ -168,29 +165,29 @@ export default function AccountPage() {
                 <input
                   type="text"
                   placeholder="Tên"
-                  value={userData.name}
-                  onChange={(e) => setUserData({ ...userData, name: e.target.value })}
+                  value={user.name}
+                  onChange={(e) => setUser({ ...user, name: e.target.value })}
                   className="p-3 border rounded text-sm"
                 />
                 <input
                   type="text"
                   placeholder="Số điện thoại"
-                  value={userData.phone}
-                  onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
+                  value={user.phone}
+                  onChange={(e) => setUser({ ...user, phone: e.target.value })}
                   className="p-3 border rounded text-sm"
                 />
                 <input
                   type="text"
                   disabled
                   placeholder="Email"
-                  value={userData.email}
+                  value={user.email}
                   className="p-3 border rounded text-sm bg-gray-50 text-gray-500"
                 />
                 <input
                   type="text"
                   disabled
                   placeholder="Tên đăng nhập"
-                  value={userData.username}
+                  value={user.username}
                   className="p-3 border rounded text-sm bg-gray-50 text-gray-500"
                 />
               </div>
@@ -212,11 +209,11 @@ export default function AccountPage() {
                   className="w-24 h-24 rounded-full object-cover"
                 />
                 <div className="space-y-1">
-                  <p className="font-bold text-lg">{userData.name}</p>
-                  <p className="text-sm text-[#DB4444]">{userData.username}</p>
-                  <p className="text-sm text-gray-700">Email: {userData.email}</p>
-                  <p className="text-sm text-gray-700">Số điện thoại: {userData.phone}</p>
-                  <p className="text-sm text-gray-700 capitalize">Vai trò: {userData.role}</p>
+                  <p className="font-bold text-lg">{user.name}</p>
+                  <p className="text-sm text-[#DB4444]">{user.username}</p>
+                  <p className="text-sm text-gray-700">Email: {user.email}</p>
+                  <p className="text-sm text-gray-700">Số điện thoại: {user.phone}</p>
+                  <p className="text-sm text-gray-700 capitalize">Vai trò: {user.role}</p>
                 </div>
               </div>
               <button
@@ -233,50 +230,49 @@ export default function AccountPage() {
             className="relative rounded-xl p-5 overflow-hidden"
             style={{
               backgroundColor:
-                userData.rank === 'diamond'
+                user.rank === 'diamond'
                   ? "#E0F0FF33"
-                  : userData.rank === 'gold'
+                  : user.rank === 'gold'
                     ? "#FFD7000A"
-                    : userData.rank === 'silver'
+                    : user.rank === 'silver'
                       ? "#A9B8C90A"
-                      : userData.rank === 'bronze'
+                      : user.rank === 'bronze'
                         ? "#CD7F320A"
                         : "#80AAFA0A",
             }}
           >
             <div className="relative z-10 flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold">Thẻ thành viên</h3>
-              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium  text-white ${getRankBg(userData.rank)}`}>
-                {getRankIcon(userData.rank)}
-                <span className="capitalize">{userData.rank}</span>
+              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium  text-white ${getRankBg(user.rank)}`}>
+                {getRankIcon(user.rank)}
+                <span className="capitalize">{user.rank}</span>
               </div>
             </div>
 
             {/* progress */}
             <div
-              className={`relative z-10 flex divide-x text-center ${
-              userData.rank === 'diamond'
-                ? 'divide-[#DB4444]'
-                : userData.rank === 'gold'
-                ? 'divide-[#C9A602]'
-                : userData.rank === 'silver'
-                ? 'divide-[#A9B8C9]'
-                : userData.rank === 'bronze'
-                ? 'divide-[#CD7F32]'
-                : 'divide-[#80AAFA]'
-              }`}>
+              className={`relative z-10 flex divide-x text-center ${user.rank === 'diamond'
+                  ? 'divide-[#DB4444]'
+                  : user.rank === 'gold'
+                    ? 'divide-[#C9A602]'
+                    : user.rank === 'silver'
+                      ? 'divide-[#A9B8C9]'
+                      : user.rank === 'bronze'
+                        ? 'divide-[#CD7F32]'
+                        : 'divide-[#80AAFA]'
+                }`}>
               <div className="flex-1 px-4">
                 <p className="text-xs mb-1">Đơn hàng</p>
                 <p className="text-lg font-bold">
                   <span style={{
                     color:
-                      userData.rank === 'diamond'
+                      user.rank === 'diamond'
                         ? "#DB4444"
-                        : userData.rank === 'gold'
+                        : user.rank === 'gold'
                           ? "#C9A602"
-                          : userData.rank === 'silver'
+                          : user.rank === 'silver'
                             ? "#8BA0B7"
-                            : userData.rank === 'bronze'
+                            : user.rank === 'bronze'
                               ? "#CD7F32"
                               : "#80AAFA",
                   }}>0</span><span className="text-sm">/75</span>
@@ -286,13 +282,13 @@ export default function AccountPage() {
                     style={{
                       width: "0%",
                       backgroundColor:
-                        userData.rank === 'diamond'
+                        user.rank === 'diamond'
                           ? "#DB4444"
-                          : userData.rank === 'gold'
+                          : user.rank === 'gold'
                             ? "#C9A602"
-                            : userData.rank === 'silver'
+                            : user.rank === 'silver'
                               ? "#A9B8C9"
-                              : userData.rank === 'bronze'
+                              : user.rank === 'bronze'
                                 ? "#CD7F32"
                                 : "#80AAFA",
                     }}></div>
@@ -302,28 +298,28 @@ export default function AccountPage() {
                 <p className="text-xs mb-1">Chi tiêu</p>
                 <p className="text-lg font-bold">
                   <span style={{
-                      color:
-                      userData.rank === 'diamond'
+                    color:
+                      user.rank === 'diamond'
                         ? "#DB4444"
-                        : userData.rank === 'gold'
+                        : user.rank === 'gold'
                           ? "#C9A602"
-                          : userData.rank === 'silver'
+                          : user.rank === 'silver'
                             ? "#8BA0B7"
-                            : userData.rank === 'bronze'
+                            : user.rank === 'bronze'
                               ? "#CD7F32"
                               : "#80AAFA",
-                    }}>0đ</span><span className="text-sm">/15tr</span>
+                  }}>0đ</span><span className="text-sm">/15tr</span>
                 </p>
                 <div className="mt-2 w-full bg-[#DDDDDD] rounded-full h-2">
                   <div className="bg-[#DDDDDD] h-2 rounded-full" style={{
                     width: "50%", backgroundColor:
-                      userData.rank === 'diamond'
+                      user.rank === 'diamond'
                         ? "#DB4444"
-                        : userData.rank === 'gold'
+                        : user.rank === 'gold'
                           ? "#C9A602"
-                          : userData.rank === 'silver'
+                          : user.rank === 'silver'
                             ? "#A9B8C9"
-                            : userData.rank === 'bronze'
+                            : user.rank === 'bronze'
                               ? "#CD7F32"
                               : "#80AAFA",
                   }}></div>

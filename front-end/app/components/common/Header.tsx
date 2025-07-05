@@ -11,6 +11,7 @@ import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import SearchBar from "./SearchBar";
 import NotificationDropdown from "./NotificationDropdown";
 import CartDropdown from "./CartDropdown";
+import { useUser } from "../../context/UserContext";
 
 // Kiểu dữ liệu thông báo
 interface Notification {
@@ -29,7 +30,8 @@ const Header = () => {
   const categoryRef = useRef<HTMLDivElement>(null);
 
   // State người dùng
-  const [user, setUser] = useState<{ name: string; role: string; avatar?: string } | null>(null);
+  // const [user, setUser] = useState<{ name: string; role: string; avatar?: string } | null>(null);
+  const { user, setUser } = useUser();
   // State các danh mục
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
   // State giỏ hàng
@@ -343,7 +345,7 @@ const Header = () => {
       <div className="bg-gray-200 h-[1px] w-full" />
     </header>
   );
-  
+
 };
 
 export default Header;
