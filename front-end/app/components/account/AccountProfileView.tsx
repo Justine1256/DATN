@@ -153,7 +153,7 @@ export default function AccountPage() {
                 <img
                   src={avatarUrl}
                   alt="avatar"
-                  className="w-[30%] h-[50%] rounded-full object-cover"
+                  className="w-1/4 h-1/4 rounded-full object-cover"
                 />
                 <label className="text-xs text-[#DB4444] cursor-pointer border border-[#DB4444] px-3 py-1 rounded hover:bg-[#DB4444] hover:text-white transition">
                   Đổi ảnh đại diện
