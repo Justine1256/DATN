@@ -211,9 +211,9 @@ export default function AccountPage() {
                 <div className="space-y-1">
                   <p className="font-bold text-lg">{user.name}</p>
                   <p className="text-sm text-[#DB4444]">{user.username}</p>
-                  <p className="text-sm text-gray-700">Email: {user.email}</p>
-                  <p className="text-sm text-gray-700">Số điện thoại: {user.phone}</p>
-                  <p className="text-sm text-gray-700 capitalize">Vai trò: {user.role}</p>
+                  <p className="text-sm text-gray-700"><strong>Email:</strong> {user.email}</p>
+                  <p className="text-sm text-gray-700"><strong>Số điện thoại:</strong> {user.phone}</p>
+                  <p className="text-sm text-gray-700 capitalize"><strong>Vai trò:</strong> {user.role}</p>
                 </div>
               </div>
               <button
