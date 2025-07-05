@@ -38,11 +38,11 @@ export default function AccountPage() {
 
   const getRankBg = (rank: string) => {
     switch (rank) {
-      case 'bronze': return 'bg-[#fff7f0] border-[#e7d4b8] text-[#c27a33]';
-      case 'silver': return 'bg-[#f9f9f9] border-[#c0c0c0] text-[#a0a0a0]';
-      case 'gold': return 'bg-[#fff9dc] border-[#ffd700] text-[#c59d00]';
-      case 'diamond': return 'bg-[#e0f7fa] border-[#00ffff] text-[#00bcd4]';
-      default: return 'bg-[#fdf6ec] border-[#e7d4b8] text-gray-700';
+      case 'bronze': return 'bg-[#CD7F32]';
+      case 'silver': return 'bg-[#A9B8C9]';
+      case 'gold': return 'bg-[#C9A602]';
+      case 'diamond': return 'bg-[#FAEAEA] text-[#363738]';
+      default: return 'bg-[#DDE9FF] text-[#517191]';
     }
   }
   const getRankIcon = (rank: string) => {
@@ -54,7 +54,7 @@ export default function AccountPage() {
       default: return <User className="w-3 h-3" />;
     }
   };
-  
+
   const showPopupMessage = useCallback((msg: string, type: "success" | "error") => {
     setPopupMessage(msg);
     setPopupType(type);
@@ -230,56 +230,109 @@ export default function AccountPage() {
 
           {/* Thẻ thành viên */}
           <div
-            className="relative rounded-xl p-5 border shadow-[0_4px_20px_rgba(230,206,172,0.2)] overflow-hidden"
+            className="relative rounded-xl p-5 overflow-hidden"
             style={{
-              backgroundImage:
+              backgroundColor:
                 userData.rank === 'diamond'
-                  ? "url('/diamond-bg.png')"
+                  ? "#E0F0FF33"
                   : userData.rank === 'gold'
-                    ? "url('/gold-bg.png')"
+                    ? "#FFD7000A"
                     : userData.rank === 'silver'
-                      ? "url('/silver-bg.png')"
+                      ? "#A9B8C90A"
                       : userData.rank === 'bronze'
-                        ? "url('/bronze-bg.png')"
-                        : "url('/member-bg.png')",
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
+                        ? "#CD7F320A"
+                        : "#80AAFA0A",
             }}
           >
-            <div className="absolute inset-0 bg-black/5 rounded-xl"></div> {/* overlay nhẹ */}
-
             <div className="relative z-10 flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold">Thẻ thành viên</h3>
-              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${getRankBg(userData.rank)}`}>
+              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium  text-white ${getRankBg(userData.rank)}`}>
                 {getRankIcon(userData.rank)}
                 <span className="capitalize">{userData.rank}</span>
               </div>
             </div>
 
             {/* progress */}
-            <div className="relative z-10 flex divide-x divide-[#e7d4b8]/50 text-center">
+            <div
+              className={`relative z-10 flex divide-x text-center ${
+              userData.rank === 'diamond'
+                ? 'divide-[#DB4444]'
+                : userData.rank === 'gold'
+                ? 'divide-[#C9A602]'
+                : userData.rank === 'silver'
+                ? 'divide-[#A9B8C9]'
+                : userData.rank === 'bronze'
+                ? 'divide-[#CD7F32]'
+                : 'divide-[#80AAFA]'
+              }`}>
               <div className="flex-1 px-4">
                 <p className="text-xs mb-1">Đơn hàng</p>
                 <p className="text-lg font-bold">
-                  0<span className="text-sm">/75</span>
+                  <span style={{
+                    color:
+                      userData.rank === 'diamond'
+                        ? "#DB4444"
+                        : userData.rank === 'gold'
+                          ? "#C9A602"
+                          : userData.rank === 'silver'
+                            ? "#8BA0B7"
+                            : userData.rank === 'bronze'
+                              ? "#CD7F32"
+                              : "#80AAFA",
+                  }}>0</span><span className="text-sm">/75</span>
                 </p>
-                <div className="mt-2 w-full bg-[#f2e8d6] rounded-full h-2">
-                  <div className="bg-[#d4a94e] h-2 rounded-full" style={{ width: "0%" }}></div>
+                <div className="mt-2 w-full bg-[#DDDDDD] rounded-full h-2">
+                  <div className="bg-[#d4a94e] h-2 rounded-full"
+                    style={{
+                      width: "0%",
+                      backgroundColor:
+                        userData.rank === 'diamond'
+                          ? "#DB4444"
+                          : userData.rank === 'gold'
+                            ? "#C9A602"
+                            : userData.rank === 'silver'
+                              ? "#A9B8C9"
+                              : userData.rank === 'bronze'
+                                ? "#CD7F32"
+                                : "#80AAFA",
+                    }}></div>
                 </div>
               </div>
               <div className="flex-1 px-4">
                 <p className="text-xs mb-1">Chi tiêu</p>
                 <p className="text-lg font-bold">
-                  đ0<span className="text-sm">/15tr</span>
+                  <span style={{
+                      color:
+                      userData.rank === 'diamond'
+                        ? "#DB4444"
+                        : userData.rank === 'gold'
+                          ? "#C9A602"
+                          : userData.rank === 'silver'
+                            ? "#8BA0B7"
+                            : userData.rank === 'bronze'
+                              ? "#CD7F32"
+                              : "#80AAFA",
+                    }}>0đ</span><span className="text-sm">/15tr</span>
                 </p>
-                <div className="mt-2 w-full bg-[#f2e8d6] rounded-full h-2">
-                  <div className="bg-[#d4a94e] h-2 rounded-full" style={{ width: "0%" }}></div>
+                <div className="mt-2 w-full bg-[#DDDDDD] rounded-full h-2">
+                  <div className="bg-[#DDDDDD] h-2 rounded-full" style={{
+                    width: "50%", backgroundColor:
+                      userData.rank === 'diamond'
+                        ? "#DB4444"
+                        : userData.rank === 'gold'
+                          ? "#C9A602"
+                          : userData.rank === 'silver'
+                            ? "#A9B8C9"
+                            : userData.rank === 'bronze'
+                              ? "#CD7F32"
+                              : "#80AAFA",
+                  }}></div>
                 </div>
               </div>
             </div>
 
             <div className="mt-4 text-xs text-center relative z-10">
-              Thứ hạng sẽ được cập nhật lại sau 31.12.2025.
+              Thứ hạng sẽ được cập nhật lại sau 31/12/2025
             </div>
           </div>
 
