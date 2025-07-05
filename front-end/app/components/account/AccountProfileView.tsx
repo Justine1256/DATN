@@ -146,14 +146,14 @@ export default function AccountPage() {
           {isEditing ? "Tùy chỉnh hồ sơ" : "Tài khoản của tôi"}
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-7 space-y-7">
           {isEditing ? (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="flex flex-col items-center gap-3">
                 <img
                   src={avatarUrl}
                   alt="avatar"
-                  className="w-24 h-24 rounded-full object-cover"
+                  className="w-[30%] h-[50%] rounded-full object-cover"
                 />
                 <label className="text-xs text-[#DB4444] cursor-pointer border border-[#DB4444] px-3 py-1 rounded hover:bg-[#DB4444] hover:text-white transition">
                   Đổi ảnh đại diện
@@ -202,13 +202,13 @@ export default function AccountPage() {
             </form>
           ) : (
             <div className="flex items-start justify-between">
-              <div className="flex gap-6">
+              <div className="flex gap-9">
                 <img
                   src={avatarUrl}
                   alt="avatar"
-                  className="w-24 h-24 rounded-full object-cover"
+                  className="w-1/4 h-1/4 rounded-full object-cover"
                 />
-                <div className="space-y-1">
+                <div className="flex flex-col justify-between">
                   <p className="font-bold text-lg">{user.name}</p>
                   <p className="text-sm text-[#DB4444]">{user.username}</p>
                   <p className="text-sm text-gray-700"><strong>Email:</strong> {user.email}</p>
@@ -218,7 +218,7 @@ export default function AccountPage() {
               </div>
               <button
                 onClick={() => setIsEditing(true)}
-                className="border border-gray-300 px-4 py-1.5 rounded hover:bg-[#DB4444] hover:text-white transition"
+                className="whitespace-nowrap border border-gray-300 px-4 py-1.5 rounded hover:bg-[#DB4444] hover:text-white transition"
               >
                 Chỉnh sửa
               </button>
@@ -312,7 +312,7 @@ export default function AccountPage() {
                 </p>
                 <div className="mt-2 w-full bg-[#DDDDDD] rounded-full h-2">
                   <div className="bg-[#DDDDDD] h-2 rounded-full" style={{
-                    width: "50%", backgroundColor:
+                    width: "0%", backgroundColor:
                       user.rank === 'diamond'
                         ? "#DB4444"
                         : user.rank === 'gold'
