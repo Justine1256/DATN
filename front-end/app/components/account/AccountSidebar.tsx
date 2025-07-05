@@ -1,5 +1,5 @@
 'use client';
-
+import { Medal, Crown, Gem } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import {
@@ -35,7 +35,26 @@ interface AccountSidebarProps {
   onChangeSection: (section: string) => void;
   user: UserProps | null;
 }
+const getRankBg = (rank: string) => {
+  switch (rank) {
+    case 'bronze': return 'bg-[#fff7f0] border-[#e7d4b8] text-[#c27a33]';
+    case 'silver': return 'bg-[#f9f9f9] border-[#c0c0c0] text-[#a0a0a0]';
+    case 'gold': return 'bg-[#fff9dc] border-[#ffd700] text-[#c59d00]';
+    case 'diamond': return 'bg-[#e0f7fa] border-[#00ffff] text-[#00bcd4]';
+    default: return 'bg-[#fdf6ec] border-[#e7d4b8] text-gray-700';
+  }
+}
 
+
+const getRankIcon = (rank: string) => {
+  switch (rank) {
+    case 'bronze': return <Medal className="w-3 h-3" />;
+    case 'silver': return <Medal className="w-3 h-3" />;
+    case 'gold': return <Crown className="w-3 h-3" />;
+    case 'diamond': return <Gem className="w-3 h-3" />;
+    default: return <User className="w-3 h-3" />;
+  }
+};
 export default function AccountSidebar({
   currentSection,
   onChangeSection,
@@ -127,7 +146,7 @@ export default function AccountSidebar({
 
   return (
     <div className="w-[253px] ">
-      {/* 🔹 Thông tin người dùng + ảnh đại diện */}
+
      
       {/* 🔹 Thông tin người dùng + ảnh đại diện */}
       {user && (
@@ -172,10 +191,11 @@ export default function AccountSidebar({
               <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
 
               {/* Rank badge */}
-              <div className="inline-flex items-center gap-1 bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-medium">
-                <User className="w-3 h-3" />
+              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRankBg(user.rank)}`}>
+                {getRankIcon(user.rank)}
                 <span className="capitalize">{user.rank}</span>
               </div>
+
 
               {/* Trạng thái */}
               <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
@@ -252,7 +272,7 @@ export default function AccountSidebar({
                     getActiveClass('profile')
                   )}
                 >
-                  <Settings className="w-4 h-4" />
+                  {/* <Settings className="w-4 h-4" />
                   <span>Quản Lý Hồ Sơ</span>
                 </button>
                 <button
@@ -262,7 +282,7 @@ export default function AccountSidebar({
                     'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors',
                     getActiveClass('changepassword')
                   )}
-                >
+                > */}
                   <Lock className="w-4 h-4" />
                   <span>Đổi Mật Khẩu</span>
                 </button>
