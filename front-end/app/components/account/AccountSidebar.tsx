@@ -39,11 +39,11 @@ interface AccountSidebarProps {
 
 const getRankBg = (rank: string) => {
   switch (rank) {
-    case 'bronze': return 'bg-[#fff7f0] border-[#e7d4b8] text-[#c27a33]';
-    case 'silver': return 'bg-[#f9f9f9] border-[#c0c0c0] text-[#a0a0a0]';
-    case 'gold': return 'bg-[#fff9dc] border-[#ffd700] text-[#c59d00]';
-    case 'diamond': return 'bg-[#e0f7fa] border-[#00ffff] text-[#00bcd4]';
-    default: return 'bg-[#fdf6ec] border-[#e7d4b8] text-gray-700';
+    case 'bronze': return 'bg-[#CD7F32]';
+    case 'silver': return 'bg-[#A9B8C9]';
+    case 'gold': return 'bg-[#C9A602]';
+    case 'diamond': return 'bg-[#FAEAEA] text-[#363738]';
+    default: return 'bg-[#DDE9FF] text-[#517191]';
   }
 }
 
@@ -180,10 +180,10 @@ export default function AccountSidebar({
               {/* Nút chọn ảnh */}
               <label
                 htmlFor="avatarUpload"
-                className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#DB4444] rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#DB4444] rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
                 title="Chọn ảnh đại diện"
               >
-                <Edit3 className="w-4 h-4 text-white" />
+                <Edit3 className="w-3 h-3 text-white" />
               </label>
               <input
                 id="avatarUpload"
@@ -202,7 +202,7 @@ export default function AccountSidebar({
               {/* Rank badge */}
               <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRankBg(user.rank)}`}>
                 {getRankIcon(user.rank)}
-                <span className="capitalize">{user.rank}</span>
+                <span className="capitalize text white">{user.rank}</span>
               </div>
 
 
