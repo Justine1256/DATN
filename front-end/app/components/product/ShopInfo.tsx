@@ -20,7 +20,16 @@ interface Shop {
   slug: string;
   user_id: number;
 }
-
+const formatImageUrl = (img: unknown): string => {
+  if (Array.isArray(img)) img = img[0];
+  if (typeof img !== "string" || !img.trim()) {
+    return `${STATIC_BASE_URL}/products/default-product.png`;
+  }
+  if (img.startsWith("http")) return img;
+  return img.startsWith("/")
+    ? `${STATIC_BASE_URL}${img}`
+    : `${STATIC_BASE_URL}/${img}`;
+};
 interface ShopInfoProps {
   shop: Shop | undefined;
   followed: boolean;
@@ -66,7 +75,7 @@ export default function ShopInfo({
             {/* Add a Link around the logo to navigate to the shop page */}
             <Link href={`/shop/${shop.slug}`}>
               <Image
-                src={`${STATIC_BASE_URL}/avatars/${shop.logo}`}
+                src={shop.logo ? formatImageUrl(shop.logo) : `${STATIC_BASE_URL}/avatars/default-avatar.png`}
                 alt="Logo"
                 width={60}
                 height={60}
