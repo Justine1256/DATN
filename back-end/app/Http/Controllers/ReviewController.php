@@ -39,21 +39,28 @@ class ReviewController extends Controller
             'status' => 'in:pending,approved,rejected',
         ]);
 
-        // Kiểm tra đơn hàng có thuộc về user và đã giao chưa
+        // Lấy thông tin order_detail và order
         $orderDetail = \App\Models\OrderDetail::with('order')->find($validated['order_detail_id']);
 
         if (!$orderDetail || $orderDetail->order->user_id !== $validated['user_id']) {
             return response()->json(['message' => 'Bạn không có quyền đánh giá sản phẩm này'], 403);
         }
 
-        if ($orderDetail->order->order_status !== 'Delivered') {
+        // Kiểm tra trạng thái đơn hàng đã giao
+        if (strtolower($orderDetail->order->order_status) !== 'delivered') {
             return response()->json(['message' => 'Chỉ được đánh giá sau khi nhận hàng'], 403);
+        }
+
+        // Kiểm tra đã tồn tại review cho order_detail này chưa
+        if (Review::where('order_detail_id', $validated['order_detail_id'])->exists()) {
+            return response()->json(['message' => 'Sản phẩm này đã được đánh giá rồi'], 403);
         }
 
         $review = Review::create($validated);
 
         return response()->json(['message' => 'Thêm đánh giá thành công', 'data' => $review], 201);
     }
+
 
     public function show($id)
     {
