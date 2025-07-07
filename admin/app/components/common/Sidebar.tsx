@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { HiOutlineChat } from "react-icons/hi";
+
 import {
   FaTshirt,
   FaClipboardList,
@@ -64,6 +66,11 @@ const menu = [
     label: "Người dùng",
     icon: <FaUsers />,
     href: "/admin/users",
+  },
+  {
+    label: "Tin nhắn",
+    icon: <HiOutlineChat />,
+    href: "/chat",
   },
 ];
 
