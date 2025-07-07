@@ -9,6 +9,23 @@ interface OrderDetailModalProps {
     onShowConfirmCancel: (orderId: number) => void;
     isCancelling: boolean;
 }
+const getStatusColor = (status: string) => {
+    const cleanStatus = status?.toString().trim();
+
+    switch (cleanStatus) {
+        case "Pending":
+        case "order confirmation":
+            return "bg-yellow-100 text-yellow-800";
+        case "Shipped":
+            return "bg-blue-100 text-blue-800";
+        case "Delivered":
+            return "bg-green-100 text-green-800";
+        case "Canceled":
+            return "bg-red-100 text-red-800";
+        default:
+            return "bg-gray-200 text-gray-800";
+    }
+};
 
 export default function OrderDetailModal({
     order,
@@ -22,22 +39,7 @@ export default function OrderDetailModal({
     console.log("Trạng thái đơn hàng: ", order.order_status);
     console.log("Trạng thái giao hàng: ", order.shipping_status);
 
-    // Hàm lấy màu trạng thái với xử lý case-insensitive (giống code thứ 2)
-    const getStatusColor = (status: string) => {
-        const cleanStatus = status?.toString().trim().toLowerCase();
-
-        const matchingKey = Object.keys(statusColors).find(
-            key => key.toLowerCase() === cleanStatus
-        );
-
-        if (matchingKey) {
-            const color = statusColors[matchingKey as OrderStatus];
-            return color;
-        }
-
-        return 'bg-gray-200 text-gray-800'; // Default color
-    };
-    
+   
 
     return (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50 p-4 overflow-hidden">
@@ -243,7 +245,8 @@ export default function OrderDetailModal({
 
                 <div className="p-6 border-t border-gray-200 bg-gray-50">
                     <div className="flex justify-end gap-4">
-                        {order.order_status.toLowerCase() === "processing" && (
+                        {(order.order_status === "Pending" || order.order_status === "order confirmation") && (
+
                             <button
                                 className={`px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium ${isCancelling ? "opacity-50 cursor-not-allowed" : ""}`}
                                 onClick={() => onShowConfirmCancel(order.id)}

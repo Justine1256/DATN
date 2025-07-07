@@ -2,8 +2,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Order, OrderStatus } from "../../../types/oder";
-import { formatImageUrl, statusColors, translateOrderStatus, groupByShop } from "../../../types/utils";
+import { Order } from "../../../types/oder";
+import { formatImageUrl, translateOrderStatus, groupByShop } from "../../../types/utils";
 import ReviewModal from "./ReviewModal";
 
 interface OrderListItemProps {
@@ -19,11 +19,28 @@ export default function OrderListItem({
 }: OrderListItemProps) {
     const [addToCartSuccess, setAddToCartSuccess] = useState(false);
     const [showReview, setShowReview] = useState(false);
-
     const router = useRouter();
 
+    // Hàm gán màu trực tiếp cho trạng thái
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case "Pending":
+                return { bg: "#FEF3C7", text: "#92400E" };
+            case "order confirmation":
+                return { bg: "#DBEAFE", text: "#1E40AF" };
+            case "Shipped":
+                return { bg: "#E0F2FE", text: "#0369A1" };
+            case "Delivered":
+                return { bg: "#DCFCE7", text: "#166534" };
+            case "Canceled":
+                return { bg: "#FECACA", text: "#991B1B" };
+            default:
+                return { bg: "#E5E7EB", text: "#374151" };
+        }
+    };
+
     const handleReorder = (order: Order) => {
-        if (order.order_status.toLowerCase() === "canceled") {
+        if (order.order_status === "Canceled") {
             onReorder(order);
             setAddToCartSuccess(true);
             const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -38,18 +55,22 @@ export default function OrderListItem({
         }
     };
 
+    const statusColor = getStatusColor(order.order_status);
+
     return (
         <div className="border rounded-lg p-6 shadow-lg bg-white hover:shadow-xl transition-shadow mb-6">
             <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                         <h3 className="font-bold text-lg text-black">Mã đơn hàng: #{order.id}</h3>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium"
+                        <span
+                            className="px-3 py-1 rounded-full text-xs font-medium"
                             style={{
-                                backgroundColor: order.order_status.toLowerCase() === 'canceled' ? '#fecaca' : '#e5e7eb',
-                                color: order.order_status.toLowerCase() === 'canceled' ? '#991b1b' : '#374151'
-                            }}>
-                            {translateOrderStatus(order.order_status as OrderStatus)}
+                                backgroundColor: statusColor.bg,
+                                color: statusColor.text
+                            }}
+                        >
+                            {translateOrderStatus(order.order_status)}
                         </span>
                     </div>
 
@@ -63,7 +84,7 @@ export default function OrderListItem({
                         <div className="flex flex-col">
                             <span className="text-gray-500 text-xs font-medium">Trạng thái</span>
                             <span className="font-semibold text-black">
-                                {translateOrderStatus(order.order_status as OrderStatus)}
+                                {translateOrderStatus(order.order_status)}
                             </span>
                         </div>
                         <div className="flex flex-col">
@@ -130,7 +151,7 @@ export default function OrderListItem({
                     >
                         Xem chi tiết
                     </button>
-                    {order.order_status.toLowerCase() === "delivered" && (
+                    {order.order_status === "Delivered" && (
                         <button
                             className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838]"
                             onClick={() => setShowReview(true)}
@@ -138,8 +159,7 @@ export default function OrderListItem({
                             Đánh giá
                         </button>
                     )}
-
-                    {order.order_status.toLowerCase() === "canceled" && (
+                    {order.order_status === "Canceled" && (
                         <button
                             className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838]"
                             onClick={() => handleReorder(order)}
