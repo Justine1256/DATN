@@ -243,7 +243,7 @@ export default function OrderDetailModal({
 
                 <div className="p-6 border-t border-gray-200 bg-gray-50">
                     <div className="flex justify-end gap-4">
-                        {order.order_status.toLowerCase() !== "canceled" && (
+                        {order.order_status.toLowerCase() === "processing" && (
                             <button
                                 className={`px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium ${isCancelling ? "opacity-50 cursor-not-allowed" : ""}`}
                                 onClick={() => onShowConfirmCancel(order.id)}
@@ -260,6 +260,7 @@ export default function OrderDetailModal({
                             Đóng
                         </button>
                     </div>
+
                 </div>
             </div>
         </div>
