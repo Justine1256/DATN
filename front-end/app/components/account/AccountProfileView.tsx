@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useUser } from "../../context/UserContext";
-
+import Image from "next/image"; // Thêm import Image
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { Crown, Gem, Medal, User } from "lucide-react";
 interface user {
@@ -136,8 +136,14 @@ export default function AccountPage() {
   };
 
   const avatarUrl =
-  previewAvatar ||
-  (user?.avatar ? `${STATIC_BASE_URL}/${user.avatar}` : "/default-avatar.jpg");
+    previewAvatar ||
+    (user?.avatar
+      ? user.avatar.startsWith("http")
+        ? user.avatar
+        : `${STATIC_BASE_URL}${user.avatar.startsWith("/") ? "" : "/"}${user.avatar}`
+      : "/default-avatar.jpg");
+
+
 
   return (
     <div className="w-full flex justify-center py-10 text-[15px] text-gray-800">
@@ -203,11 +209,15 @@ export default function AccountPage() {
           ) : (
             <div className="flex items-start justify-between">
               <div className="flex gap-9">
-                <img
-                  src={avatarUrl}
-                  alt="avatar"
-                  className="w-1/4 h-1/4 rounded-full object-cover"
-                />
+                  <Image
+                    src={avatarUrl}
+                    alt="avatar"
+                    width={150}
+                    height={150}
+                    className="w-1/4 h-1/4 rounded-full object-cover"
+                    unoptimized
+                  />
+
                 <div className="flex flex-col justify-between">
                   <p className="font-bold text-lg">{user.name}</p>
                   <p className="text-sm text-[#DB4444]">{user.username}</p>
