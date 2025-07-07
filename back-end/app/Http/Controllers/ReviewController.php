@@ -35,23 +35,20 @@ class ReviewController extends Controller
             'order_detail_id' => 'required|exists:order_details,id',
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'required|string',
-            'image' => 'nullable|string',
+            'image' => 'nullable|string|starts_with:http,https', // FE gửi URL ảnh
             'status' => 'in:pending,approved,rejected',
         ]);
 
-        // Lấy thông tin order_detail và order
         $orderDetail = \App\Models\OrderDetail::with('order')->find($validated['order_detail_id']);
 
         if (!$orderDetail || $orderDetail->order->user_id !== $validated['user_id']) {
             return response()->json(['message' => 'Bạn không có quyền đánh giá sản phẩm này'], 403);
         }
 
-        // Kiểm tra trạng thái đơn hàng đã giao
         if (strtolower($orderDetail->order->order_status) !== 'delivered') {
             return response()->json(['message' => 'Chỉ được đánh giá sau khi nhận hàng'], 403);
         }
 
-        // Kiểm tra đã tồn tại review cho order_detail này chưa
         if (Review::where('order_detail_id', $validated['order_detail_id'])->exists()) {
             return response()->json(['message' => 'Sản phẩm này đã được đánh giá rồi'], 403);
         }
@@ -60,7 +57,6 @@ class ReviewController extends Controller
 
         return response()->json(['message' => 'Thêm đánh giá thành công', 'data' => $review], 201);
     }
-
 
     public function show($id)
     {
@@ -84,7 +80,7 @@ class ReviewController extends Controller
         $validated = $request->validate([
             'rating' => 'nullable|integer|min:1|max:5',
             'comment' => 'nullable|string',
-            'image' => 'nullable|string',
+            'image' => 'nullable|string|starts_with:http,https', // FE gửi URL ảnh
             'status' => 'nullable|in:pending,approved,rejected',
         ]);
 
