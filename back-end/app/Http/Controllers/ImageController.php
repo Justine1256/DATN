@@ -80,4 +80,24 @@ public function store(Request $request){
 
     return response()->json(['url' => $url]);
     }
+    public function uploadReviewImage(Request $request)
+{
+    $request->validate([
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
+    ]);
+
+    $file = $request->file('image');
+
+    // Lưu file vào thư mục public/storage/reviews
+    $path = $file->store('reviews', 'public');
+
+    // Tạo URL đầy đủ theo domain CDN của bạn
+    $url = str_replace(config('app.url'), 'https://files.marketo.info.vn', asset('storage/' . $path));
+
+    return response()->json([
+        'message' => 'Tải ảnh review thành công',
+        'url' => $url
+    ], 201);
+}
+
 }

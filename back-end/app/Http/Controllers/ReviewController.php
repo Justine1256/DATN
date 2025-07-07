@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\OrderDetail;
 
 
 class ReviewController extends Controller
@@ -30,47 +31,44 @@ class ReviewController extends Controller
         return response()->json($reviews);
     }
 
-public function store(Request $request)
-{
-    // Lấy user_id từ Auth
-    $userId = Auth::id();
-    if (!$userId) {
-        return response()->json(['message' => 'Bạn chưa đăng nhập'], 401);
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'order_detail_id' => 'required|exists:order_details,id',
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'required|string|min:10',
+            'image' => 'nullable|url', // link ảnh
+        ]);
+
+        $user = Auth::user();
+        $orderDetail = OrderDetail::with('order')->find($validated['order_detail_id']);
+
+        if (!$orderDetail || $orderDetail->order->user_id !== $user->id) {
+            return response()->json(['message' => 'Bạn không có quyền đánh giá sản phẩm này'], 403);
+        }
+
+        if (strtolower($orderDetail->order->order_status) !== 'delivered') {
+            return response()->json(['message' => 'Chỉ được đánh giá sau khi nhận hàng'], 403);
+        }
+
+        if (Review::where('order_detail_id', $validated['order_detail_id'])->exists()) {
+            return response()->json(['message' => 'Sản phẩm này đã được đánh giá rồi'], 403);
+        }
+
+        $review = Review::create([
+            'user_id'          => $user->id,
+            'order_detail_id'  => $validated['order_detail_id'],
+            'rating'           => $validated['rating'],
+            'comment'          => $validated['comment'],
+            'image'            => $validated['image'] ?? null,
+            'status'           => 'pending', 
+        ]);
+
+        return response()->json([
+            'message' => 'Thêm đánh giá thành công',
+            'data'    => $review
+        ], 201);
     }
-
-    $validated = $request->validate([
-        'order_detail_id' => 'required|exists:order_details,id',
-        'rating' => 'required|integer|min:1|max:5',
-        'comment' => 'required|string',
-        'image' => 'nullable|string', // URL ảnh do FE tự upload xử lý trước
-    ]);
-
-    // Tìm chi tiết đơn hàng
-    $orderDetail = \App\Models\OrderDetail::with('order')->find($validated['order_detail_id']);
-
-    if (!$orderDetail || $orderDetail->order->user_id !== $userId) {
-        return response()->json(['message' => 'Bạn không có quyền đánh giá sản phẩm này'], 403);
-    }
-
-    if (strtolower($orderDetail->order->order_status) !== 'delivered') {
-        return response()->json(['message' => 'Chỉ được đánh giá sau khi nhận hàng'], 403);
-    }
-
-    if (Review::where('order_detail_id', $validated['order_detail_id'])->exists()) {
-        return response()->json(['message' => 'Sản phẩm này đã được đánh giá rồi'], 403);
-    }
-
-    // Thêm user_id vào validated để lưu
-    $validated['user_id'] = $userId;
-
-    $review = Review::create($validated);
-
-    return response()->json([
-        'message' => 'Thêm đánh giá thành công',
-        'data' => $review
-    ], 201);
-}
-
 
     public function show($id)
     {
