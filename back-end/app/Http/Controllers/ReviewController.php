@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Review;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
 
 class ReviewController extends Controller
 {
@@ -30,18 +32,23 @@ class ReviewController extends Controller
 
 public function store(Request $request)
 {
+    // Lấy user_id từ Auth
+    $userId = Auth::id();
+    if (!$userId) {
+        return response()->json(['message' => 'Bạn chưa đăng nhập'], 401);
+    }
+
     $validated = $request->validate([
-        'user_id' => 'required|exists:users,id',
         'order_detail_id' => 'required|exists:order_details,id',
         'rating' => 'required|integer|min:1|max:5',
         'comment' => 'required|string',
-        'image' => 'nullable|string', // chỉ nhận URL
-        'status' => 'in:pending,approved,rejected',
+        'image' => 'nullable|string', // URL ảnh do FE tự upload xử lý trước
     ]);
 
+    // Tìm chi tiết đơn hàng
     $orderDetail = \App\Models\OrderDetail::with('order')->find($validated['order_detail_id']);
 
-    if (!$orderDetail || $orderDetail->order->user_id !== $validated['user_id']) {
+    if (!$orderDetail || $orderDetail->order->user_id !== $userId) {
         return response()->json(['message' => 'Bạn không có quyền đánh giá sản phẩm này'], 403);
     }
 
@@ -53,10 +60,17 @@ public function store(Request $request)
         return response()->json(['message' => 'Sản phẩm này đã được đánh giá rồi'], 403);
     }
 
+    // Thêm user_id vào validated để lưu
+    $validated['user_id'] = $userId;
+
     $review = Review::create($validated);
 
-    return response()->json(['message' => 'Thêm đánh giá thành công', 'data' => $review], 201);
+    return response()->json([
+        'message' => 'Thêm đánh giá thành công',
+        'data' => $review
+    ], 201);
 }
+
 
     public function show($id)
     {
