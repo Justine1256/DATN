@@ -1,20 +1,17 @@
-import type { Product } from "./product"; // đường dẫn đúng đến file định nghĩa Product
+import type { Product } from "./product";
 
 export enum OrderStatus {
-    Processing = "processing",
-    Shipping = "shipping",
-    Delivered = "delivered",
-    Canceled = "canceled",
-    Pending = "pending"
+    Pending = "Pending",
+    OrderConfirmation = "order confirmation",
+    Shipped = "Shipped",
+    Delivered = "Delivered",
+    Canceled = "Canceled"
 }
 
 export enum ShippingStatus {
-    Pending = "pending",
-    Preparing = "preparing",
-    Shipping = "shipping",
-    Delivered = "delivered",
-    Failed = "failed",
-    Returned = "returned"
+    Pending = "Pending",
+    Shipping = "Shipping",
+    Delivered = "Delivered"
 }
 
 export interface OrderDetail {
@@ -23,7 +20,7 @@ export interface OrderDetail {
     price_at_time: string;
     quantity: number;
     subtotal: string;
-    product: Product; // ✅ Sử dụng Product có variants
+    product: Product;
 }
 
 export interface Order {
@@ -36,5 +33,5 @@ export interface Order {
     created_at: string;
     shipping_address: string;
     order_details: OrderDetail[];
-    shop_name: string; // Add shop_name here
+    shop_name: string;
 }

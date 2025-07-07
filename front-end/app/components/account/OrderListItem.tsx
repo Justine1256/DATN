@@ -1,7 +1,10 @@
+'use client';
 import { useState } from "react";
 import Image from "next/image";
-import { Order, OrderStatus } from "../../../types/oder";
-import { formatImageUrl, statusColors, translateOrderStatus, groupByShop } from "../../../types/utils";
+import { useRouter } from "next/navigation";
+import { Order } from "../../../types/oder";
+import { formatImageUrl, translateOrderStatus, groupByShop } from "../../../types/utils";
+import ReviewModal from "./ReviewModal";
 
 interface OrderListItemProps {
     order: Order;
@@ -15,42 +18,47 @@ export default function OrderListItem({
     onReorder,
 }: OrderListItemProps) {
     const [addToCartSuccess, setAddToCartSuccess] = useState(false);
+    const [showReview, setShowReview] = useState(false);
+    const router = useRouter();
+
+    // Hàm gán màu trực tiếp cho trạng thái
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case "Pending":
+                return { bg: "#FEF3C7", text: "#92400E" };
+            case "order confirmation":
+                return { bg: "#DBEAFE", text: "#1E40AF" };
+            case "Shipped":
+                return { bg: "#E0F2FE", text: "#0369A1" };
+            case "Delivered":
+                return { bg: "#DCFCE7", text: "#166534" };
+            case "Canceled":
+                return { bg: "#FECACA", text: "#991B1B" };
+            default:
+                return { bg: "#E5E7EB", text: "#374151" };
+        }
+    };
 
     const handleReorder = (order: Order) => {
-        if (order.order_status.toLowerCase() === "canceled") {
+        if (order.order_status === "Canceled") {
             onReorder(order);
             setAddToCartSuccess(true);
-
-            // Lưu thông tin giỏ hàng vào localStorage
             const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
-            cartItems.push(...order.order_details); // Thêm sản phẩm vào giỏ hàng
-            localStorage.setItem("cart", JSON.stringify(cartItems)); // Cập nhật giỏ hàng trong localStorage
-
+            cartItems.push(...order.order_details);
+            localStorage.setItem("cart", JSON.stringify(cartItems));
             setTimeout(() => {
-                setAddToCartSuccess(false); // Ẩn thông báo thành công sau 1.5 giây
-                window.location.href = "/cart"; // Điều hướng đến giỏ hàng mà không reload trang
+                setAddToCartSuccess(false);
+                router.push("/cart");
             }, 1500);
         } else {
             alert("Đơn hàng này không thể đặt lại.");
         }
     };
 
-    // Hàm lấy màu trạng thái với xử lý case-insensitive
-    const getStatusColor = (status: string) => {
-        const cleanStatus = status?.toString().trim().toLowerCase();
-        const matchingKey = Object.keys(statusColors).find(
-            key => key.toLowerCase() === cleanStatus
-        );
-
-        if (matchingKey) {
-            return statusColors[matchingKey as OrderStatus];
-        }
-
-        return 'bg-gray-200 text-gray-800'; // Fallback color
-    };
+    const statusColor = getStatusColor(order.order_status);
 
     return (
-        <div className="border rounded-lg p-6 shadow-lg bg-white hover:shadow-xl transition-shadow">
+        <div className="border rounded-lg p-6 shadow-lg bg-white hover:shadow-xl transition-shadow mb-6">
             <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
@@ -58,11 +66,11 @@ export default function OrderListItem({
                         <span
                             className="px-3 py-1 rounded-full text-xs font-medium"
                             style={{
-                                backgroundColor: order.order_status.toLowerCase() === 'canceled' ? '#fecaca' : '#e5e7eb',
-                                color: order.order_status.toLowerCase() === 'canceled' ? '#991b1b' : '#374151'
+                                backgroundColor: statusColor.bg,
+                                color: statusColor.text
                             }}
                         >
-                            {translateOrderStatus(order.order_status as OrderStatus)}
+                            {translateOrderStatus(order.order_status)}
                         </span>
                     </div>
 
@@ -76,10 +84,9 @@ export default function OrderListItem({
                         <div className="flex flex-col">
                             <span className="text-gray-500 text-xs font-medium">Trạng thái</span>
                             <span className="font-semibold text-black">
-                                {translateOrderStatus(order.order_status as OrderStatus)}
+                                {translateOrderStatus(order.order_status)}
                             </span>
                         </div>
-
                         <div className="flex flex-col">
                             <span className="text-gray-500 text-xs font-medium">Thanh toán</span>
                             <span className="font-semibold text-black">{order.payment_method}</span>
@@ -92,46 +99,40 @@ export default function OrderListItem({
                 </div>
             </div>
 
-            {/* Products by Shop */}
             {Object.entries(groupByShop(order.order_details)).map(([shopId, details]) => (
                 <div key={shopId} className="mb-6 last:mb-0">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-2 h-6 bg-[#db4444] rounded-full"></div>
-                        {/* Hiển thị tên cửa hàng từ order.shop_name */}
                         <h4 className="font-semibold text-black text-lg">Cửa hàng {order.shop_name || "Chưa xác định"}</h4>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="space-y-4">
-                            {details.map((detail) => (
-                                <div key={detail.id} className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
-                                    <div className="flex items-center space-x-4 flex-1">
-                                        <Image
-                                            src={formatImageUrl(detail.product.image)}
-                                            alt={detail.product.name}
-                                            width={80}
-                                            height={80}
-                                            className="rounded-lg border border-gray-200 object-cover"
-                                        />
-                                        <div className="flex flex-col flex-1">
-                                            <h5 className="font-medium text-black text-base mb-2">{detail.product.name}</h5>
-                                            <div className="flex items-center gap-4 text-sm text-gray-600">
-                                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                                                    Số lượng: {detail.quantity}
-                                                </span>
-                                                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                                                    {parseFloat(detail.price_at_time).toLocaleString()} ₫/sp
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-lg font-bold text-red-600">
-                                            {parseFloat(detail.subtotal).toLocaleString()}₫
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                        {details.map((detail) => (
+                            <div key={detail.id} className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
+                                <div className="flex items-center gap-4 flex-1">
+                                    <Image
+                                        src={formatImageUrl(detail.product.image)}
+                                        alt={detail.product.name}
+                                        width={80}
+                                        height={80}
+                                        className="rounded-lg border object-cover"
+                                    />
+                                    <div className="flex flex-col flex-1">
+                                        <h5 className="font-medium text-base mb-2">{detail.product.name}</h5>
+                                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                                Số lượng: {detail.quantity}
+                                            </span>
+                                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                                {parseFloat(detail.price_at_time).toLocaleString()} ₫/sp
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
+                                <div className="text-lg font-bold text-red-600">
+                                    {parseFloat(detail.subtotal).toLocaleString()}₫
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             ))}
@@ -145,14 +146,22 @@ export default function OrderListItem({
                 </div>
                 <div className="flex gap-3">
                     <button
-                        className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838] transition-colors font-medium"
+                        className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838]"
                         onClick={() => onViewDetails(order)}
                     >
                         Xem chi tiết
                     </button>
-                    {order.order_status.toLowerCase() === "canceled" && (
+                    {order.order_status === "Delivered" && (
                         <button
-                            className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838] transition-colors font-medium"
+                            className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838]"
+                            onClick={() => setShowReview(true)}
+                        >
+                            Đánh giá
+                        </button>
+                    )}
+                    {order.order_status === "Canceled" && (
+                        <button
+                            className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838]"
                             onClick={() => handleReorder(order)}
                         >
                             Đặt lại
@@ -166,6 +175,12 @@ export default function OrderListItem({
                     ✔ Đã thêm vào giỏ hàng!
                 </div>
             )}
+
+            <ReviewModal
+                order={order}
+                isVisible={showReview}
+                onClose={() => setShowReview(false)}
+            />
         </div>
     );
 }
