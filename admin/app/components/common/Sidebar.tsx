@@ -3,73 +3,72 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HiOutlineChat } from "react-icons/hi";
+import { FaChevronRight } from "react-icons/fa";
 
 import {
-  FaTshirt,
-  FaClipboardList,
-  FaTags,
-  FaBoxOpen,
-  FaTruck,
-  FaUsers,
-  FaChevronRight,
-  FaShoppingCart,
-  FaMagic,
-} from "react-icons/fa";
+  Home,
+  Package,
+  Tags,
+  Warehouse,
+  Truck,
+  ShoppingCart,
+  Settings,
+  Users,
+  MessageSquare,
+  LayoutDashboard,
+  PlusCircle,
+} from "lucide-react";
 
 const menu = [
   {
     label: "Bảng điều khiển",
     href: "/dashboard",
-    icon: <FaClipboardList />,
+    icon: <LayoutDashboard size={18} />,
   },
   {
     label: "Sản phẩm",
-    icon: <FaTshirt />,
+    icon: <Package size={18} />,
     children: [
       { label: "Danh sách", href: "/product" },
-      { label: "Thêm mới", href: "/product/create" },
+      { label: "Thêm mới", href: "/product/create", icon: <PlusCircle size={14} /> },
     ],
   },
   {
     label: "Danh mục",
-    icon: <FaTags />,
+    icon: <Tags size={18} />,
     children: [
       { label: "Danh sách", href: "/category" },
-      { label: "Thêm mới", href: "/category/create" },
+      { label: "Thêm mới", href: "/category/create", icon: <PlusCircle size={14} /> },
     ],
   },
   {
     label: "Kho hàng",
-    icon: <FaBoxOpen />,
+    icon: <Warehouse size={18} />,
     href: "/inventory",
-    children: [],
   },
   {
     label: "Đơn hàng",
-    icon: <FaTruck />,
+    icon: <Truck size={18} />,
     children: [{ label: "Danh sách", href: "/order" }],
   },
   {
     label: "Nhập hàng",
-    icon: <FaShoppingCart />,
+    icon: <ShoppingCart size={18} />,
     href: "/purchases",
-    children: [],
   },
   {
     label: "Thuộc tính",
-    icon: <FaMagic />,
+    icon: <Settings size={18} />,
     href: "/attributes",
-    children: [],
   },
   {
     label: "Người dùng",
-    icon: <FaUsers />,
+    icon: <Users size={18} />,
     href: "/admin/users",
   },
   {
     label: "Tin nhắn",
-    icon: <HiOutlineChat />,
+    icon: <MessageSquare size={18} />,
     href: "/chat",
   },
 ];
