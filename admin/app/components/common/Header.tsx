@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { FiSearch, FiUser, FiLogOut, FiBell, FiSettings, FiMenu } from "react-icons/fi";
+import { FiSearch, FiLogOut, FiBell, FiSettings, FiMenu, FiShoppingBag } from "react-icons/fi";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 
 export default function ModernAdminHeader() {
@@ -14,6 +14,8 @@ export default function ModernAdminHeader() {
 
   useEffect(() => {
     const token = Cookies.get("authToken");
+    console.log("Token lấy từ cookie:", token);
+
     if (!token) return;
 
     axios
@@ -21,8 +23,12 @@ export default function ModernAdminHeader() {
         withCredentials: true,
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => setUser(res.data))
-      .catch(() => {
+      .then((res) => {
+        console.log("Kết quả API /user:", res.data);
+        setUser(res.data);
+      })
+      .catch((err) => {
+        console.error("Lỗi gọi API /user:", err);
         Cookies.remove("authToken");
         setUser(null);
       });
@@ -91,8 +97,6 @@ export default function ModernAdminHeader() {
             </button>
           </div>
 
-         
-
           <div className="w-px h-8 bg-[#e5e7eb]"></div>
 
           <div className="relative" ref={dropdownRef}>
@@ -101,21 +105,21 @@ export default function ModernAdminHeader() {
               className="flex items-center space-x-3 p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors"
             >
               <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-300 bg-gray-100">
-                {user?.avatar ? (
+                {user?.shop?.logo ? (
                   <img
-                    src={`${STATIC_BASE_URL}/${user.avatar}?t=${Date.now()}`}
-                    alt="avatar"
+                    src={`${STATIC_BASE_URL}/${user.shop.logo}?t=${Date.now()}`}
+                    alt="shop-logo"
                     className="object-cover w-full h-full"
                   />
                 ) : (
                   <div className="flex items-center justify-center w-full h-full bg-gray-900 text-white font-medium text-sm">
-                    {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'NA'}
+                    {user?.shop?.name ? user.shop.name[0].toUpperCase() : "S"}
                   </div>
                 )}
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-sm font-medium text-gray-900">{user ? user.name : 'Đang tải...'}</p>
-                <p className="text-xs text-gray-500">{user ? user.email : ''}</p>
+                <p className="text-sm font-medium text-gray-900">{user?.shop?.name || "Shop của bạn"}</p>
+                <p className="text-xs text-gray-500">{user?.shop?.email || ""}</p>
               </div>
               <svg
                 className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
@@ -128,33 +132,34 @@ export default function ModernAdminHeader() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-[#f9fafb] rounded-xl shadow-lg border border-[#e5e7eb] py-2 z-50">
+              <div className="absolute right-0 mt-2 w-72 bg-[#f9fafb] rounded-xl shadow-lg border border-[#e5e7eb] py-2 z-50">
                 <div className="px-4 py-3 border-b border-[#e5e7eb]">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-300 bg-gray-100">
-                      {user?.avatar ? (
+                      {user?.shop?.logo ? (
                         <img
-                          src={`${STATIC_BASE_URL}/${user.avatar}?t=${Date.now()}`}
-                          alt="avatar"
+                          src={`${STATIC_BASE_URL}/${user.shop.logo}?t=${Date.now()}`}
+                          alt="shop-logo"
                           className="object-cover w-full h-full"
                         />
                       ) : (
                         <div className="flex items-center justify-center w-full h-full bg-gray-900 text-white font-medium text-sm">
-                          {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'NA'}
+                          {user?.shop?.name ? user.shop.name[0].toUpperCase() : "S"}
                         </div>
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{user ? user.name : 'Đang tải...'}</p>
-                      <p className="text-xs text-gray-500">{user ? user.email : ''}</p>
+                      <p className="text-sm font-medium text-gray-900">{user?.shop?.name || "Shop của bạn"}</p>
+                      <p className="text-xs text-gray-500">{user?.shop?.email || ""}</p>
+                      <p className="text-xs text-gray-500">{user?.shop?.phone || ""}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="py-2">
                   <button className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-[#f3f4f6] transition-colors">
-                    <FiUser className="w-4 h-4" />
-                    <span>Cài đặt hồ sơ</span>
+                    <FiShoppingBag className="w-4 h-4" />
+                    <span>Quản lý shop</span>
                   </button>
                   <button className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-[#f3f4f6] transition-colors">
                     <FiSettings className="w-4 h-4" />
