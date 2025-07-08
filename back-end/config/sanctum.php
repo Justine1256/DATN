@@ -30,7 +30,7 @@ return [
     |
     */
 
-    'guard' => ['web', 'sanctum'],
+    'guard' => ['web'],
 
 
     /*
