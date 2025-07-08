@@ -4,28 +4,31 @@ import Pusher from 'pusher-js';
 export const useChatSocket = (
   userId?: number,
   token?: string,
+  receiverId?: number,
   onMessage?: (data: any) => void
 ) => {
   useEffect(() => {
-    console.log('🟢 useChatSocket chạy với:', userId, token, typeof onMessage);
-    if (!userId || !token || !onMessage) return;
+    console.log('🟢 useChatSocket chạy với:', userId, token, receiverId);
+    if (!userId || !token || !receiverId || !onMessage) return;
 
     Pusher.logToConsole = true;
 
- const pusher = new Pusher('d13455038dedab3f3d3e', {
-  cluster: 'ap1',
-  forceTLS: true,
-  authEndpoint: 'https://api.marketo.info.vn/broadcasting/auth',
-  auth: {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  },
-});
+    const pusher = new Pusher('d13455038dedab3f3d3e', {
+      cluster: 'ap1',
+      forceTLS: true,
+      authEndpoint: 'https://api.marketo.info.vn/broadcasting/auth',
+      auth: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
 
+    const participants = [userId, receiverId].sort((a, b) => a - b);
+    const channelName = `private-chat.${participants[0]}.${participants[1]}`;
+    const channel = pusher.subscribe(channelName);
 
-    const channel = pusher.subscribe(`private-chat.${userId}`);
-    channel.bind('MessageSent', (data: any) => {
+    channel.bind('message.sent', (data: any) => {
       console.log('📥 Realtime received:', data);
       onMessage(data);
     });
@@ -35,5 +38,5 @@ export const useChatSocket = (
       channel.unsubscribe();
       pusher.disconnect();
     };
-  }, [userId, token, onMessage]);
+  }, [userId, token, receiverId, onMessage]);
 };

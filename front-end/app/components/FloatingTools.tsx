@@ -83,13 +83,12 @@ useEffect(() => {
 useChatSocket(
   currentUser?.id,
   token || '',
-  
+  receiver?.id,
   (data) => {
-    
     setMessages((prev) => [...prev, data.message]);
   }
-  
 );
+
 
 
   const fetchRecentContacts = async () => {
