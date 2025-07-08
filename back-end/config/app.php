@@ -104,6 +104,10 @@ return [
             explode(',', env('APP_PREVIOUS_KEYS', ''))
         ),
     ],
+    'providers' => [
+    // Các provider khác
+    Illuminate\Broadcasting\BroadcastServiceProvider::class,
+],
 
     /*
     |--------------------------------------------------------------------------
