@@ -151,14 +151,21 @@ export default function OrderListItem({
                     >
                         Xem chi tiết
                     </button>
-                    {order.order_status === "Delivered" && (
-                        <button
-                            className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838]"
-                            onClick={() => setShowReview(true)}
-                        >
-                            Đánh giá
-                        </button>
-                    )}
+{order.order_status === "Delivered" && (
+  order.order_details.every(detail => detail.reviewed) ? (
+    <span className="text-green-600 font-medium self-center">
+      Đơn hàng này đã được đánh giá
+    </span>
+  ) : (
+    <button
+      className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838]"
+      onClick={() => setShowReview(true)}
+    >
+      Đánh giá
+    </button>
+  )
+)}
+
                     {order.order_status === "Canceled" && (
                         <button
                             className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838]"
