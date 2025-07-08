@@ -12,13 +12,9 @@ export const useChatSocket = (
 
     Pusher.logToConsole = true;
 
-const pusher = new Pusher('key-0b14c3b7df414a209cf9f13e', {
-  cluster: 'mt1',
+ const pusher = new Pusher('d13455038dedab3f3d3e', {
+  cluster: 'ap1',
   forceTLS: true,
-  wsHost: 'api.marketo.info.vn',
-  wsPort: 443,
-  wssPort: 443,
-  enabledTransports: ['ws', 'wss'],
   authEndpoint: 'https://api.marketo.info.vn/broadcasting/auth',
   auth: {
     headers: {
@@ -28,8 +24,8 @@ const pusher = new Pusher('key-0b14c3b7df414a209cf9f13e', {
 });
 
 
-    const channel = pusher.subscribe(`private-chat.chat.${userId}`);
-    channel.bind('App\\Events\\MessageSent', (data: any) => {
+    const channel = pusher.subscribe(`private-chat.${userId}`);
+    channel.bind('MessageSent', (data: any) => {
       console.log('📥 Realtime received:', data);
       onMessage(data);
     });
