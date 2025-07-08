@@ -80,21 +80,26 @@ public function store(Request $request){
 
     return response()->json(['url' => $url]);
     }
-    public function uploadReviewImage(Request $request)
+ public function uploadReviewImage(Request $request)
 {
     $request->validate([
         'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
     ]);
 
     $file = $request->file('image');
-    $path = $file->store('reviews', 'public');
-    $url = str_replace(config('app.url'), 'https://files.marketo.info.vn', asset('storage/' . $path));
+
+    // Lưu file vào storage/app/public/reviews
+    $path = $file->store('reviews', 'public'); // kết quả: reviews/abc.jpg
+
+    // Build URL đúng với hạ tầng server
+    $url = 'https://files.marketo.info.vn/files/public/' . $path;
 
     return response()->json([
         'message' => 'Tải ảnh review thành công',
         'images' => [$url] // trả về dạng mảng
     ], 201);
 }
+
 
 
 }
