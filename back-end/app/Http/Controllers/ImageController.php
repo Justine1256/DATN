@@ -87,17 +87,14 @@ public function store(Request $request){
     ]);
 
     $file = $request->file('image');
-
-    // Lưu file vào thư mục public/storage/reviews
     $path = $file->store('reviews', 'public');
-
-    // Tạo URL đầy đủ theo domain CDN của bạn
     $url = str_replace(config('app.url'), 'https://files.marketo.info.vn', asset('storage/' . $path));
 
     return response()->json([
         'message' => 'Tải ảnh review thành công',
-        'url' => $url
+        'images' => [$url] // trả về dạng mảng
     ], 201);
 }
+
 
 }
