@@ -8,6 +8,7 @@ export const useChatSocket = (
   onMessage?: (data: any) => void
 ) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  let pusher: Pusher | null = null; // Explicitly declare the type of 'pusher'
 
   useEffect(() => {
     if (!token || !userId || !receiverId || !onMessage) {
@@ -20,7 +21,10 @@ export const useChatSocket = (
         'Authorization': `Bearer ${token}`,
       },
     })
-    .then(res => res.json())
+    .then(res => {
+      console.log("Response:", res);
+      return res.json();
+    })
     .then(data => {
       if (data && data.id === userId) {
         setIsAuthenticated(true);
@@ -36,8 +40,13 @@ export const useChatSocket = (
   useEffect(() => {
     if (!isAuthenticated || !userId || !receiverId) return;
 
-    // Kết nối với Pusher sau khi xác thực thành công
-    const pusher = new Pusher('d13455038dedab3f3d3e', {
+    // Kiểm tra kết nối trước
+    if (pusher && pusher.connection.state !== 'connected') {
+      pusher.disconnect();
+    }
+
+    // Kết nối lại
+    pusher = new Pusher('d13455038dedab3f3d3e', {
       cluster: 'ap1',
       forceTLS: true,
       authEndpoint: 'https://api.marketo.info.vn/api/broadcasting/auth',
@@ -62,7 +71,10 @@ export const useChatSocket = (
     return () => {
       channel.unbind_all();
       channel.unsubscribe();
-      pusher.disconnect();
+      if (pusher) {
+        pusher.disconnect();
+      }
     };
   }, [isAuthenticated, token, userId, receiverId, onMessage]);
+
 };

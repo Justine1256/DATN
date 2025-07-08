@@ -40,7 +40,7 @@ Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
 
     // Kiểm tra token qua Sanctum
     if ($token) {
-        $user = Auth::guard('sanctum')->user();
+        $user = Auth::guard('web')->user();
 
         if ($user) {
             // Kiểm tra quyền truy cập vào channel
