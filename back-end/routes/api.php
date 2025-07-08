@@ -29,11 +29,12 @@ use Illuminate\Support\Facades\Broadcast;
 
 // test api
 // Route::get('/userall', [UserController::class, 'index']);
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return response()->json($request->user()->load('shop'));
-});
+// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+//     return response()->json($request->user()->load('shop'));
+// });
 Route::middleware('auth:sanctum')->get('/test-auth', function (Request $request) {
-    return response()->json(['message' => 'ok']);
+    $user = $request->user(); // đây là method có sẵn
+    return response()->json(['user' => $user]);
 });
 
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
