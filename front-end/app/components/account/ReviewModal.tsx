@@ -44,77 +44,73 @@ export default function ReviewModal({ order, isVisible, onClose }: ReviewModalPr
         handleChange(orderDetailId, "images", newImages);
     };
 
-const handleSubmit = async (orderDetailId: number) => {
-  const review = reviews[orderDetailId];
-  if (!review) return;
-
-  if (!review.rating || review.rating < 1) {
-    showPopup("error", "Vui lòng chọn ít nhất 1 sao.");
-    return;
-  }
-
-  if (!review.comment || review.comment.length < 10) {
-    showPopup("error", "Vui lòng nhập ít nhất 10 ký tự.");
-    return;
-  }
-
-  if ((review.images?.length || 0) > 3) {
-    showPopup("error", "Chỉ được chọn tối đa 3 ảnh.");
-    return;
-  }
-
-  handleChange(orderDetailId, "submitting", true);
-
-  try {
-    const token = Cookies.get("authToken");
-    let uploadedImages: string[] = [];
-
-    // upload từng ảnh trước
-    if (review.images && review.images.length > 0) {
-      const uploadPromises = review.images.map(file => {
+const uploadImages = async (files: File[], token: string) => {
+    const urls: string[] = [];
+    for (const file of files) {
         const formData = new FormData();
         formData.append("image", file);
 
-        return axios.post(`${API_BASE_URL}/upload-review-image`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          transformRequest: [(data, headers) => {
-            delete headers['Content-Type'];
-            return data;
-          }]
-        });
-      });
+        const res = await axios.post(
+            `${API_BASE_URL}/upload-review-image`,
+            formData,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data",
+                }
+            }
+        );
 
-      const results = await Promise.all(uploadPromises);
-      uploadedImages = results.map(res => res.data.images[0]); // LẤY ĐÚNG KEY
+        urls.push(...res.data.images);
+    }
+    return urls;
+};
+
+const handleSubmit = async (orderDetailId: number) => {
+    const review = reviews[orderDetailId];
+    if (!review?.rating || review?.rating < 1) {
+        showPopup("error", "Vui lòng chọn ít nhất 1 sao.");
+        return;
+    }
+    if (!review?.comment || review?.comment.length < 10) {
+        showPopup("error", "Vui lòng nhập ít nhất 10 ký tự.");
+        return;
     }
 
-    // gửi review + link ảnh
-    await axios.post(`${API_BASE_URL}/reviews`, {
-      order_detail_id: orderDetailId,
-      comment: review.comment,
-      rating: review.rating,
-      images: uploadedImages
-    }, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      }
-    });
+    handleChange(orderDetailId, "submitting", true);
 
-    showPopup("success", "Gửi đánh giá thành công!");
-    setReviews(prev => ({
-      ...prev,
-      [orderDetailId]: { rating: 0, comment: "", images: [], submitting: false }
-    }));
+    try {
+        const token = Cookies.get("authToken");
 
-  } catch (err: any) {
-    console.error(err);
-    const msg = err?.response?.data?.message || "Lỗi gửi đánh giá";
-    showPopup("error", msg);
-  } finally {
-    handleChange(orderDetailId, "submitting", false);
-  }
+        let imageUrls: string[] = [];
+        if (review.images && review.images.length > 0) {
+            imageUrls = await uploadImages(review.images, token);
+        }
+
+        await axios.post(`${API_BASE_URL}/reviews`, {
+            order_detail_id: orderDetailId,
+            rating: review.rating,
+            comment: review.comment,
+            images: imageUrls
+        }, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        showPopup("success", "Đánh giá thành công!");
+
+        setReviews(prev => ({
+            ...prev,
+            [orderDetailId]: { rating: 0, comment: "", images: [], submitting: false }
+        }));
+
+    } catch (err: any) {
+        console.error("❌", err);
+        showPopup("error", err?.response?.data?.message || "Lỗi gửi đánh giá.");
+    } finally {
+        handleChange(orderDetailId, "submitting", false);
+    }
 };
 
 
