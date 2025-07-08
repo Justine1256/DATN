@@ -38,67 +38,71 @@ export default function ReviewModal({ order, isVisible, onClose }: ReviewModalPr
     };
 
 const handleSubmit = async (orderDetailId: number) => {
-    const review = reviews[orderDetailId];
+  const review = reviews[orderDetailId];
+  if (!review) return;
 
-    if (!review?.rating || review.rating < 1) {
-        showPopup("error", "Vui lòng chọn ít nhất 1 sao.");
-        return;
-    }
+  // validate
+  if (!review.rating || review.rating < 1) {
+    showPopup("error", "Vui lòng chọn ít nhất 1 sao.");
+    return;
+  }
 
-    if (!review?.comment || review.comment.length < 10) {
-        showPopup("error", "Vui lòng nhập ít nhất 10 ký tự.");
-        return;
-    }
+  if (!review.comment || review.comment.length < 10) {
+    showPopup("error", "Vui lòng nhập ít nhất 10 ký tự.");
+    return;
+  }
 
-    handleChange(orderDetailId, "submitting", true);
+  handleChange(orderDetailId, "submitting", true);
 
-    try {
-        const token = Cookies.get("authToken");
-        let imageUrl: string | null = null;
+  try {
+    const token = Cookies.get("authToken");
+    let imageUrl: string | null = null;
 
-        // Nếu có file ảnh thì upload trước
-        if (review.image) {
-            const imageFormData = new FormData();
-            imageFormData.append("image", review.image);
+    // 🚀 Nếu có ảnh thì upload trước
+    if (review.image) {
+      const formData = new FormData();
+      formData.append("image", review.image);
 
-            const uploadRes = await axios.post(`${API_BASE_URL}/upload-review-image`, imageFormData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data",
-                },
-            });
-
-            imageUrl = uploadRes.data.url;
+      const uploadRes = await axios.post(`${API_BASE_URL}/upload-review-image`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data"
         }
+      });
 
-        // Gửi đánh giá
-        const payload = {
-            order_detail_id: orderDetailId,
-            comment: review.comment,
-            rating: review.rating,
-            image: imageUrl, // có thể null
-        };
-
-        const res = await axios.post(`${API_BASE_URL}/reviews`, payload, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-
-        showPopup("success", "Gửi đánh giá thành công!");
-        setReviews(prev => ({
-            ...prev,
-            [orderDetailId]: { rating: 0, comment: "", image: null, submitting: false }
-        }));
-
-    } catch (err: any) {
-        console.error("❌ Error:", err);
-        const msg = err?.response?.data?.message || "Lỗi gửi đánh giá. Vui lòng thử lại!";
-        showPopup("error", msg);
-    } finally {
-        handleChange(orderDetailId, "submitting", false);
+      imageUrl = uploadRes.data.url; // Lấy URL ảnh sau upload
     }
+
+    // 🚀 Gửi review + url ảnh (nếu có)
+    await axios.post(`${API_BASE_URL}/reviews`, {
+      order_detail_id: orderDetailId,
+      comment: review.comment,
+      rating: review.rating,
+      image: imageUrl
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    showPopup("success", "Gửi đánh giá thành công!");
+
+    // reset form cho sản phẩm đó
+    setReviews(prev => ({
+      ...prev,
+      [orderDetailId]: { rating: 0, comment: "", image: null, submitting: false }
+    }));
+
+  } catch (err: any) {
+    console.error("❌ Error:", err);
+    const msg = err?.response?.data?.message || "Lỗi gửi đánh giá. Vui lòng thử lại!";
+    showPopup("error", msg);
+  } finally {
+    handleChange(orderDetailId, "submitting", false);
+  }
 };
+
 
 
     const showPopup = (type: "success" | "error", message: string) => {
