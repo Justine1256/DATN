@@ -15,7 +15,7 @@ import Breadcrumb from '../cart/CartBreadcrumb';
 import { AiFillHeart, AiOutlineHeart } from 'react-icons/ai';
 import ProductGallery from './ProductGallery';
 import { Product, ProductDetailProps, Variant } from './hooks/Product';
-
+import ProductReviews from './review';
 const formatImageUrl = (img: string | string[]): string => {
   if (Array.isArray(img)) img = img[0];
   if (typeof img !== 'string' || !img.trim()) {
@@ -417,16 +417,14 @@ const handleSelectB = (b: string) => {
       </div>
 
       {/* Shop Info & Description */}
-      <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} />
-      <ProductDescription html={product.description} />
-
-      {/* Related */}
-      <div className="mt-16">
+      <div className="max-w-screen-xl mx-auto px-4 mt-16 space-y-16">
+        <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} />
+        <ProductDescription html={product.description} />
+        <ProductReviews productId={product.id} />
         <ShopProductSlider shopSlug={product.shop.slug} />
-      </div>
-      <div className="mt-6">
         <BestSellingSlider />
       </div>
+
 
       {/* Popup */}
       {showPopup && (

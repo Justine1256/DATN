@@ -71,17 +71,20 @@ export default function ShopInfo({
       <div className="flex flex-col md:flex-row md:justify-between gap-6">
         {/* Left: logo + name + follow button */}
         <div className="flex gap-4 flex-shrink-0">
-          <div className="cursor-pointer relative w-20 h-20">
+          <div className="cursor-pointer relative w-21 h-20">
             {/* Add a Link around the logo to navigate to the shop page */}
             <Link href={`/shop/${shop.slug}`}>
-              <Image
-                src={shop.logo ? formatImageUrl(shop.logo) : `${STATIC_BASE_URL}/avatars/default-avatar.png`}
-                alt="Logo"
-                width={60}
-                height={60}
-                className="rounded-full object-cover"
-              />
+              <div className="w-[60px] h-[60px] rounded-full overflow-hidden">
+                <Image
+                  src={shop.logo ? formatImageUrl(shop.logo) : `${STATIC_BASE_URL}/avatars/default-avatar.png`}
+                  alt="Logo"
+                  width={60}
+                  height={60}
+                  className="object-cover w-full h-full"
+                />
+              </div>
             </Link>
+
             <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
               {!followed ? (
                 <button

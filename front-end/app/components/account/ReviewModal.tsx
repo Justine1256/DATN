@@ -64,39 +64,39 @@ export default function ReviewModal({ order, isVisible, onClose }: ReviewModalPr
             let uploadedImages: string[] = [];
 
             if (review.images && review.images.length > 0) {
-                // Upload từng file và nhận mảng images
-                for (const file of review.images) {
+                console.log("Uploading multiple files:", review.images);
+
+                // Upload song song
+                const uploadPromises = review.images.map(file => {
                     const formData = new FormData();
-                    formData.append("image", file, file.name);
+                    formData.append("image", file);
 
-                    console.log("Uploading file:", file.name);
-
-                    const res = await axios.post(`${API_BASE_URL}/upload-review-image`, formData, {
+                    return axios.post(`${API_BASE_URL}/upload-review-image`, formData, {
                         headers: {
                             Authorization: `Bearer ${token}`
-                            // không tự đặt Content-Type
                         },
+                        transformRequest: [(data, headers) => {
+                            delete headers['Content-Type'];
+                            return data;
+                        }],
                     });
+                });
 
-                    console.log("Response from upload:", res.data);
-
-                    if (Array.isArray(res.data.images)) {
-                        uploadedImages.push(...res.data.images);
-                    }
-                }
+                const uploadResults = await Promise.all(uploadPromises);
+                uploadedImages = uploadResults.map(res => res.data.url);
             }
 
             const payload = {
                 order_detail_id: orderDetailId,
                 comment: review.comment,
                 rating: review.rating,
-                images: uploadedImages, // giờ images là array từ Laravel
+                images: uploadedImages
             };
 
-            console.log("Review payload:", payload);
+            console.log("Final review payload:", payload);
 
             await axios.post(`${API_BASE_URL}/reviews`, payload, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             showPopup("success", "Gửi đánh giá thành công!");
@@ -113,6 +113,8 @@ export default function ReviewModal({ order, isVisible, onClose }: ReviewModalPr
             handleChange(orderDetailId, "submitting", false);
         }
     };
+    
+    
     
     
 
