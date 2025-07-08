@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Pusher from 'pusher-js';
 
 export const useChatSocket = (
@@ -7,12 +7,36 @@ export const useChatSocket = (
   receiverId?: number,
   onMessage?: (data: any) => void
 ) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   useEffect(() => {
-    console.log('🟢 useChatSocket chạy với:', userId, token, receiverId);
-    if (!userId || !token || !receiverId || !onMessage) return;
+    if (!token || !userId || !receiverId || !onMessage) {
+      return;
+    }
 
-    Pusher.logToConsole = true;
+    // Kiểm tra token bằng API /api/user
+    fetch('https://api.marketo.info.vn/api/user', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.id === userId) {
+        setIsAuthenticated(true);
+      } else {
+        console.error('Token không hợp lệ hoặc không phải người dùng này');
+      }
+    })
+    .catch(error => {
+      console.error('Lỗi xác minh token:', error);
+    });
+  }, [token, userId, receiverId, onMessage]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !userId || !receiverId) return;
+
+    // Kết nối với Pusher sau khi xác thực thành công
     const pusher = new Pusher('d13455038dedab3f3d3e', {
       cluster: 'ap1',
       forceTLS: true,
@@ -29,8 +53,10 @@ export const useChatSocket = (
     const channel = pusher.subscribe(channelName);
 
     channel.bind('message.sent', (data: any) => {
-      console.log('📥 Realtime received:', data);
-      onMessage(data);
+      if (onMessage) {
+        console.log('📥 Realtime received:', data);
+        onMessage(data);
+      }
     });
 
     return () => {
@@ -38,5 +64,5 @@ export const useChatSocket = (
       channel.unsubscribe();
       pusher.disconnect();
     };
-  }, [userId, token, receiverId, onMessage]);
+  }, [isAuthenticated, token, userId, receiverId, onMessage]);
 };
