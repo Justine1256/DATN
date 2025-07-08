@@ -21,6 +21,7 @@ export interface OrderDetail {
     quantity: number;
     subtotal: string;
     product: Product;
+    reviewed?: boolean;
 }
 
 export interface Order {
