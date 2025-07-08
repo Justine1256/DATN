@@ -1,35 +1,35 @@
 <?php
-
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
-use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
+use App\Models\Message;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 class MessageSent implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use SerializesModels;
 
     public $message;
 
-    public function __construct($message)
+    public function __construct(Message $message)
     {
-        $this->message = $message;
+        $this->message = $message->load(['sender', 'receiver']); // rất quan trọng để frontend có đủ data
     }
 
-    public function broadcastOn(): Channel
-    {
-        return new PrivateChannel('chat.' . $this->message->receiver_id);
-    }
+    public function broadcastOn()
+{
+    $user1 = min($this->message->sender_id, $this->message->receiver_id);
+    $user2 = max($this->message->sender_id, $this->message->receiver_id);
 
-    public function broadcastWith()
-    {
-        return [
-            'message' => $this->message,
-        ];
-    }
+    return new PrivateChannel("private-chat.{$user1}.{$user2}");
 }
+
+
+    public function broadcastAs()
+{
+    return 'message.sent';
+}
+
+}
+

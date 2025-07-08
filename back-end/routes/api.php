@@ -25,12 +25,35 @@ use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
-
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Broadcast;
 
 // test api
 // Route::get('/userall', [UserController::class, 'index']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return response()->json($request->user()->load('shop'));
+});
+// routes/api.php
+Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
+    // Lấy token từ header
+    $token = $request->bearerToken();
+
+    // Kiểm tra token qua Sanctum
+    if ($token) {
+        $user = Auth::guard('web')->user();
+
+        if ($user) {
+            // Kiểm tra quyền truy cập vào channel
+            $user1 = $request->route('user1');
+            $user2 = $request->route('user2');
+
+            if (in_array($user->id, [(int)$user1, (int)$user2])) {
+                return Broadcast::auth($request);
+            }
+        }
+    }
+
+    return response()->json(['message' => 'Unauthorized'], 403);
 });
 
 Route::get('/banner', [BannerController::class, 'index']);

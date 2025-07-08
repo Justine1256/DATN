@@ -60,11 +60,9 @@ const getRankIcon = (rank: string) => {
 export default function AccountSidebar({
   currentSection,
   onChangeSection,
-  user,
 }: AccountSidebarProps) {
-  const { setUser } = useUser();
+  const { user, setUser } = useUser();
   const [isAccountOpen, setIsAccountOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [popup, setPopup] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -90,10 +88,9 @@ export default function AccountSidebar({
   };
 
   const avatarUrl =
-    previewImage ||
-    (user?.avatar
+    user?.avatar
       ? `${STATIC_BASE_URL}/${user.avatar}`
-      : user?.profilePicture || `${STATIC_BASE_URL}/avatars/default-avatar.jpg`);
+      : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
 
   // ✅ Hàm upload ảnh
   const handleUploadAvatar = async (file: File) => {
@@ -146,7 +143,6 @@ export default function AccountSidebar({
 
     const reader = new FileReader();
     reader.onload = () => {
-      setPreviewImage(reader.result as string);
       setSelectedFile(file);
       handleUploadAvatar(file); // Gọi hàm upload ảnh ngay sau khi chọn ảnh
     };
