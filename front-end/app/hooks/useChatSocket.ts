@@ -16,7 +16,7 @@ export const useChatSocket = (
     const pusher = new Pusher('d13455038dedab3f3d3e', {
       cluster: 'ap1',
       forceTLS: true,
-      authEndpoint: 'https://api.marketo.info.vn/api/broadcasting/auth',
+      authEndpoint: 'https://api.marketo.info.vn/broadcasting/auth',
       auth: {
         headers: {
           Authorization: `Bearer ${token}`,
