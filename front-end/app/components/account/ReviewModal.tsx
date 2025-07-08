@@ -46,13 +46,14 @@ export default function ReviewModal({ order, isVisible, onClose }: ReviewModalPr
 
     const handleSubmit = async (orderDetailId: number) => {
         const review = reviews[orderDetailId];
+        if (!review) return;
 
-        if (!review?.rating || review.rating < 1) {
+        if (!review.rating || review.rating < 1) {
             showPopup("error", "Vui lòng chọn ít nhất 1 sao.");
             return;
         }
 
-        if (!review?.comment || review.comment.length < 10) {
+        if (!review.comment || review.comment.length < 10) {
             showPopup("error", "Vui lòng nhập ít nhất 10 ký tự.");
             return;
         }
@@ -64,16 +65,13 @@ export default function ReviewModal({ order, isVisible, onClose }: ReviewModalPr
             let uploadedImages: string[] = [];
 
             if (review.images && review.images.length > 0) {
-                console.log("Uploading multiple files:", review.images);
-
-                // Upload song song
                 const uploadPromises = review.images.map(file => {
                     const formData = new FormData();
                     formData.append("image", file);
 
                     return axios.post(`${API_BASE_URL}/upload-review-image`, formData, {
                         headers: {
-                            Authorization: `Bearer ${token}`
+                            Authorization: `Bearer ${token}`,
                         },
                         transformRequest: [(data, headers) => {
                             delete headers['Content-Type'];
@@ -86,37 +84,32 @@ export default function ReviewModal({ order, isVisible, onClose }: ReviewModalPr
                 uploadedImages = uploadResults.map(res => res.data.url);
             }
 
-            const payload = {
+            await axios.post(`${API_BASE_URL}/reviews`, {
                 order_detail_id: orderDetailId,
                 comment: review.comment,
                 rating: review.rating,
-                images: uploadedImages
-            };
-
-            console.log("Final review payload:", payload);
-
-            await axios.post(`${API_BASE_URL}/reviews`, payload, {
-                headers: { Authorization: `Bearer ${token}` }
+                image: uploadedImages[0] || null, // nếu backend chỉ nhận 1 ảnh, lấy ảnh đầu tiên
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }
             });
 
             showPopup("success", "Gửi đánh giá thành công!");
+
             setReviews(prev => ({
                 ...prev,
                 [orderDetailId]: { rating: 0, comment: "", images: [], submitting: false }
             }));
 
         } catch (err: any) {
-            console.error("❌ Upload error:", err);
+            console.error("❌ Error:", err);
             const msg = err?.response?.data?.message || "Lỗi gửi đánh giá. Vui lòng thử lại!";
             showPopup("error", msg);
         } finally {
             handleChange(orderDetailId, "submitting", false);
         }
     };
-    
-    
-    
-    
 
     const showPopup = (type: "success" | "error", message: string) => {
         setPopup({ type, message });
