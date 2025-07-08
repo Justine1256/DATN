@@ -25,14 +25,14 @@ use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
-
+use Illuminate\Support\Facades\Broadcast;
 
 // test api
 // Route::get('/userall', [UserController::class, 'index']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return response()->json($request->user()->load('shop'));
 });
-
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 Route::get('/banner', [BannerController::class, 'index']);
 Route::post('/banner', [BannerController::class, 'store']);
 Route::put('/banner/{id}', [BannerController::class, 'update']);
