@@ -37,7 +37,8 @@ class ReviewController extends Controller
             'order_detail_id' => 'required|exists:order_details,id',
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'required|string|min:10',
-            'image' => 'nullable|url', // link ảnh
+            'images' => 'nullable|array|max:3',
+            'images.*' => 'string|url'
         ]);
 
         $user = Auth::user();
@@ -60,8 +61,8 @@ class ReviewController extends Controller
             'order_detail_id'  => $validated['order_detail_id'],
             'rating'           => $validated['rating'],
             'comment'          => $validated['comment'],
-            'image'            => $validated['image'] ?? null,
-            'status'           => 'pending', 
+            'images' => !empty($validated['images']) ? json_encode($validated['images']) : null,
+            'status'           => 'pending',
         ]);
 
         return response()->json([
