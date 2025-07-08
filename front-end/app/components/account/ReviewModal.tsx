@@ -44,72 +44,79 @@ export default function ReviewModal({ order, isVisible, onClose }: ReviewModalPr
         handleChange(orderDetailId, "images", newImages);
     };
 
-    const handleSubmit = async (orderDetailId: number) => {
-        const review = reviews[orderDetailId];
-        if (!review) return;
+const handleSubmit = async (orderDetailId: number) => {
+  const review = reviews[orderDetailId];
+  if (!review) return;
 
-        if (!review.rating || review.rating < 1) {
-            showPopup("error", "Vui lòng chọn ít nhất 1 sao.");
-            return;
-        }
+  if (!review.rating || review.rating < 1) {
+    showPopup("error", "Vui lòng chọn ít nhất 1 sao.");
+    return;
+  }
 
-        if (!review.comment || review.comment.length < 10) {
-            showPopup("error", "Vui lòng nhập ít nhất 10 ký tự.");
-            return;
-        }
+  if (!review.comment || review.comment.length < 10) {
+    showPopup("error", "Vui lòng nhập ít nhất 10 ký tự.");
+    return;
+  }
 
-        handleChange(orderDetailId, "submitting", true);
+  if ((review.images?.length || 0) > 3) {
+    showPopup("error", "Chỉ được chọn tối đa 3 ảnh.");
+    return;
+  }
 
-        try {
-            const token = Cookies.get("authToken");
-            let uploadedImages: string[] = [];
+  handleChange(orderDetailId, "submitting", true);
 
-            if (review.images && review.images.length > 0) {
-                const uploadPromises = review.images.map(file => {
-                    const formData = new FormData();
-                    formData.append("image", file);
+  try {
+    const token = Cookies.get("authToken");
+    let uploadedImages: string[] = [];
 
-                    return axios.post(`${API_BASE_URL}/upload-review-image`, formData, {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                        transformRequest: [(data, headers) => {
-                            delete headers['Content-Type'];
-                            return data;
-                        }],
-                    });
-                });
+    // upload từng ảnh trước
+    if (review.images && review.images.length > 0) {
+      const uploadPromises = review.images.map(file => {
+        const formData = new FormData();
+        formData.append("image", file);
 
-                const uploadResults = await Promise.all(uploadPromises);
-                uploadedImages = uploadResults.map(res => res.data.url);
-            }
+        return axios.post(`${API_BASE_URL}/upload-review-image`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          transformRequest: [(data, headers) => {
+            delete headers['Content-Type'];
+            return data;
+          }]
+        });
+      });
 
-            await axios.post(`${API_BASE_URL}/reviews`, {
-                order_detail_id: orderDetailId,
-                comment: review.comment,
-                rating: review.rating,
-                image: uploadedImages[0] || null, // nếu backend chỉ nhận 1 ảnh, lấy ảnh đầu tiên
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                }
-            });
+      const results = await Promise.all(uploadPromises);
+      uploadedImages = results.map(res => res.data.images[0]); // LẤY ĐÚNG KEY
+    }
 
-            showPopup("success", "Gửi đánh giá thành công!");
+    // gửi review + link ảnh
+    await axios.post(`${API_BASE_URL}/reviews`, {
+      order_detail_id: orderDetailId,
+      comment: review.comment,
+      rating: review.rating,
+      images: uploadedImages
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
 
-            setReviews(prev => ({
-                ...prev,
-                [orderDetailId]: { rating: 0, comment: "", images: [], submitting: false }
-            }));
+    showPopup("success", "Gửi đánh giá thành công!");
+    setReviews(prev => ({
+      ...prev,
+      [orderDetailId]: { rating: 0, comment: "", images: [], submitting: false }
+    }));
 
-        } catch (err: any) {
-            console.error("❌ Error:", err);
-            const msg = err?.response?.data?.message || "Lỗi gửi đánh giá. Vui lòng thử lại!";
-            showPopup("error", msg);
-        } finally {
-            handleChange(orderDetailId, "submitting", false);
-        }
-    };
+  } catch (err: any) {
+    console.error(err);
+    const msg = err?.response?.data?.message || "Lỗi gửi đánh giá";
+    showPopup("error", msg);
+  } finally {
+    handleChange(orderDetailId, "submitting", false);
+  }
+};
+
 
     const showPopup = (type: "success" | "error", message: string) => {
         setPopup({ type, message });
