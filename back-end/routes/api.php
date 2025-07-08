@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\Broadcast;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return response()->json($request->user()->load('shop'));
 });
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 Route::get('/banner', [BannerController::class, 'index']);
 Route::post('/banner', [BannerController::class, 'store']);
 Route::put('/banner/{id}', [BannerController::class, 'update']);
