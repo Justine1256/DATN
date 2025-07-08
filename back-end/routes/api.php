@@ -32,14 +32,6 @@ use Illuminate\Support\Facades\Broadcast;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return response()->json($request->user()->load('shop'));
 });
-Route::get('/user', function (Request $request) {
-    $user = $request->user(); // đây là method có sẵn
-    return response()->json(['user' => $user]);
-});
-Route::middleware('auth:sanctum')->get('/test-auth', function (Request $request) {
-    return response()->json(['message' => 'ok']);
-});
-
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
 Route::get('/banner', [BannerController::class, 'index']);
 Route::post('/banner', [BannerController::class, 'store']);
