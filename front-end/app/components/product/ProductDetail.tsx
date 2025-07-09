@@ -48,6 +48,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     async function fetchData() {
       const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
       const { data } = await res.json();
+      console.log("🚀 Product data:", data);
 
       const gocA = parseOptionValues(data.value1);
       const gocB = parseOptionValues(data.value2);

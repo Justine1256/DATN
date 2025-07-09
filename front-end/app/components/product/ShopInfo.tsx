@@ -114,9 +114,11 @@ export default function ShopInfo({
           <div className="text-black max-w-[200px] sm:max-w-none">
             <h3 className="text-xl font-semibold mb-1 flex items-center gap-2 flex-wrap">
               {/* Wrap the shop name in a Link component */}
-              <Link href={`/shop/${shop.slug}`} className="hover:underline">
-                {shop.name}
+              <Link href={`/shop/${shop.slug}`} className="relative group text-black hover:text-[#DC4B47] transition-colors duration-300">
+                <span>{shop.name}</span>
+                <span className="absolute left-0 bottom-0 w-0 h-[2px] bg-[#DC4B47] transition-all duration-300 group-hover:w-full"></span>
               </Link>
+
               {followed && (
                 <button
                   onClick={handleUnfollowClick}
