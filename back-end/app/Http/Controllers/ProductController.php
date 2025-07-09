@@ -34,58 +34,37 @@ class ProductController extends Controller
 
     // Chi tiết 1 sản phẩm
     public function show($shopslug, $productslug)
-{
-    $product = Product::with([
-        'shop',
-        'category.parent',
-        'variants'
-    ])
-        ->where('slug', $productslug)
-        ->whereHas('shop', function ($query) use ($shopslug) {
-            $query->where('slug', $shopslug);
-        })
-        ->first();
+    {
+        $product = Product::with([
+            'shop',
+            'category.parent',    // Load category + parent
+            'variants'            // Load danh sách các variant của sp
+        ])
+            ->where('slug', $productslug)
+            ->whereHas('shop', function ($query) use ($shopslug) {
+                $query->where('slug', $shopslug);
+            })
+            ->first();
 
-    if (!$product) {
-        return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
-    }
+        if (!$product) {
+            return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
+        }
 
-    // log sản phẩm
-    logger()->info('🔍 Product loaded:', [
-        'id' => $product->id,
-        'name' => $product->name
-    ]);
-
-    $reviewStats = DB::table('reviews')
+     $reviewStats = DB::table('reviews')
         ->join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
         ->where('order_details.product_id', $product->id)
         ->where('reviews.status', 'approved')
         ->selectRaw('AVG(reviews.rating) as avg_rating, COUNT(reviews.id) as total_reviews')
         ->first();
 
-    logger()->info('📊 Review Stats:', [
-        'product_id' => $product->id,
-        'avg_rating' => $reviewStats->avg_rating,
-        'total_reviews' => $reviewStats->total_reviews
-    ]);
+     $product->rating_avg = round($reviewStats->avg_rating ?? 0, 1); // Ví dụ: 4.5
+     $product->review_count = $reviewStats->total_reviews ?? 0;
 
-    $product->rating_avg = round($reviewStats->avg_rating ?? 0, 1);
-    $product->review_count = $reviewStats->total_reviews ?? 0;
-
-    logger()->info('✅ Final product data:', [
-        'rating_avg' => $product->rating_avg,
-        'review_count' => $product->review_count
-    ]);
-
-    // 👉 Nếu muốn dừng hẳn và xem kết quả ngay:
-    // dd($product);
-
-    return response()->json([
-        'status' => true,
-        'data' => $product
-    ]);
-}
-
+        return response()->json([
+            'status' => true,
+            'data' => $product
+        ]);
+    }
 
 
     public function getCategoryAndProductsBySlug($slug)
