@@ -87,5 +87,16 @@ protected $casts = [
 {
     return $this->hasMany(ProductVariant::class, 'product_id');
 }
+public function reviews()
+{
+    return $this->hasManyThrough(
+        \App\Models\Review::class,
+        \App\Models\OrderDetail::class,
+        'product_id',        // OrderDetail -> product_id
+        'order_detail_id',   // Review -> order_detail_id
+        'id',                // Product -> id
+        'id'                 // OrderDetail -> id
+    );
+}
 
 }
