@@ -143,7 +143,10 @@ export default function CreateCategoryPage() {
                 title: "Tạo thành công!",
                 text: "Danh mục đã được thêm.",
                 confirmButtonColor: "#db4444",
+                timer: 2000, // tự tắt sau 2 giây
+                timerProgressBar: true,
             });
+            
         } catch (err: any) {
             if (axios.isAxiosError(err)) {
                 console.error("❌ Axios error:", err.response?.data || err.message);

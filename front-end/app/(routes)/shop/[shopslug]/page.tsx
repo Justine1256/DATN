@@ -161,7 +161,29 @@ const ShopPage = () => {
     };
 
     if (error) return <div className="flex items-center justify-center min-h-screen text-xl text-red-600">{error}</div>;
-    if (loading) return <div className="flex items-center justify-center min-h-screen text-lg text-red-600">Đang tải dữ liệu...</div>;
+    if (loading) return (
+        <div className="max-w-[1200px] mx-auto px-4 pb-10 text-black">
+            <div className="animate-pulse space-y-6">
+                {/* Fake ShopCard */}
+                <div className="h-[150px] bg-gray-200 rounded-xl"></div>
+
+                <div className="grid grid-cols-12 gap-6">
+                    {Array.from({ length: 9 }).map((_, idx) => (
+                        <div key={idx} className="col-span-12 sm:col-span-6 md:col-span-4 space-y-3">
+                            <div className="bg-gray-200 h-[200px] w-full rounded-xl"></div>
+                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Footer fake */}
+                <div className="h-[50px] bg-gray-100 rounded w-full mt-6"></div>
+            </div>
+        </div>
+    );
+      
+      
     if (!shop) return <div className="flex items-center justify-center min-h-screen text-xl text-red-600">Không thể tải thông tin.</div>;
 
     return (
