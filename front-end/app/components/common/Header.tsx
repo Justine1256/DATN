@@ -12,7 +12,8 @@ import SearchBar from "./SearchBar";
 import NotificationDropdown from "./NotificationDropdown";
 import CartDropdown from "./CartDropdown";
 import { useUser } from "../../context/UserContext";
-
+import { TbBuildingStore } from "react-icons/tb";
+import { FiSettings } from "react-icons/fi";
 // Kiểu dữ liệu thông báo
 interface Notification {
   id: number;
@@ -29,9 +30,11 @@ const Header = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
 
+
   // State người dùng
   // const [user, setUser] = useState<{ name: string; role: string; avatar?: string } | null>(null);
   const { user, setUser } = useUser();
+  const shopSlug = user?.shop?.slug;
   // State các danh mục
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
   // State giỏ hàng
@@ -320,15 +323,19 @@ const Header = () => {
                         </Link>
                       </li>
                       <li>
-                        <Link href="/shop/open" className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
-                          🏪 Cửa Hàng
+                        <Link href={shopSlug ? `/shop/${shopSlug}` : "/shop/open"}
+                          className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
+                          <TbBuildingStore className="w-5 h-5" /> Cửa Hàng
                         </Link>
+
                       </li>
                       {(user.role === "admin" || user.role === "seller") && (
                         <li>
-                          <Link href="http://localhost:3001/dashboard" className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
-                            🛠️ Trang quản trị
+                          <Link href="http://localhost:3001/dashboard"
+                            className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
+                            <FiSettings className="w-5 h-5" /> Trang Quản Trị
                           </Link>
+
                         </li>
                       )}
                       <li
