@@ -11,13 +11,24 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Models\Review;
 
 class ProductController extends Controller
 {
     // Danh sách sản phẩm
     public function index()
     {
-        return response()->json(Product::all());
+    $products = Product::with('category', 'shop')
+        ->withCount(['reviews as review_count' => function ($query) {
+            $query->where('status', 'approved');
+        }])
+        ->withAvg(['reviews as rating_avg' => function ($query) {
+            $query->where('status', 'approved');
+        }], 'rating')
+        ->where('status', 'activated')
+        ->get();
+
+    return response()->json($products);
     }
 
     // Chi tiết 1 sản phẩm
