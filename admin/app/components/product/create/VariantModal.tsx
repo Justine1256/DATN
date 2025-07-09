@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-// Assuming NotificationPopup is created
 
 interface Variant {
   value1: string;
@@ -29,14 +28,28 @@ export default function VariantModal({
 }: VariantModalProps) {
   const [value1, setValue1] = useState(initialData?.value1 || "");
   const [value2, setValue2] = useState(initialData?.value2 || "");
-  const [price, setPrice] = useState<number>(initialData?.price || 0);
-  const [salePrice, setSalePrice] = useState<number>(initialData?.sale_price || 0);
+
+  // price & salePrice chuyển thành string để format
+  const [price, setPrice] = useState<string>(
+    initialData?.price ? initialData.price.toString() : ""
+  );
+  const [salePrice, setSalePrice] = useState<string>(
+    initialData?.sale_price ? initialData.sale_price.toString() : ""
+  );
   const [stock, setStock] = useState<number>(initialData?.stock || 1);
   const [images, setImages] = useState<string[]>(initialData?.image || []);
 
   // Popup state
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
+
+  // format 12.345.678
+  const formatCurrency = (value: string) => {
+    const num = parseInt(value.replace(/[^\d]/g, ""));
+    if (isNaN(num)) return "";
+    return num.toLocaleString("vi-VN") + " đ";
+  };
+  
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -56,42 +69,31 @@ export default function VariantModal({
   };
 
   const handleSubmit = () => {
-    // Validate inputs
-    if ((!value1 && !disableValue1) || (!value2 && !disableValue2) || price <= 0 || stock <= 0) {
+    const parsedPrice = parseInt(price.replace(/[^\d]/g, ""), 10) || 0;
+    const parsedSalePrice = parseInt(salePrice.replace(/[^\d]/g, ""), 10) || 0;
+
+    if ((!value1 && !disableValue1) || (!value2 && !disableValue2) || parsedPrice <= 0 || stock <= 0) {
       setPopupMessage("Vui lòng nhập đầy đủ và hợp lệ.");
       setShowPopup(true);
       return;
     }
 
-    // Save the variant
     onSave({
       value1,
       value2,
-      price,
-      sale_price: salePrice,
+      price: parsedPrice,
+      sale_price: parsedSalePrice,
       stock,
       image: images,
     });
 
     setPopupMessage("Biến thể đã được lưu thành công!");
     setShowPopup(true);
-
     onClose();
   };
 
-  // Handle price, sale price, and stock input to only allow valid positive numbers
-  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.max(0, Number(e.target.value)); // Ensures positive number
-    setPrice(value);
-  };
-
-  const handleSalePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.max(0, Number(e.target.value)); // Ensures positive number
-    setSalePrice(value);
-  };
-
   const handleStockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.max(0, Number(e.target.value)); // Ensures positive integer
+    const value = Math.max(0, Number(e.target.value));
     setStock(value);
   };
 
@@ -101,7 +103,6 @@ export default function VariantModal({
         <h2 className="text-2xl font-semibold text-gray-800 mb-6">Thêm biến thể</h2>
 
         <div className="space-y-6">
-          {/* Value 1 */}
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">
               Giá trị 1 (VD: 256GB, M, L)
@@ -116,7 +117,6 @@ export default function VariantModal({
             />
           </div>
 
-          {/* Value 2 */}
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">
               Giá trị 2 (VD: Màu đen, Titan xanh)
@@ -131,35 +131,45 @@ export default function VariantModal({
             />
           </div>
 
-          {/* Price */}
+          {/* Giá gốc */}
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">
               Giá gốc
             </label>
             <input
-              type="number"
+              type="text"
               value={price}
-              onChange={handlePriceChange}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^\d]/g, "");
+                setPrice(raw);
+              }}
+              onBlur={() => setPrice((prev) => formatCurrency(prev))}
+              onFocus={() => setPrice(price.replace(/[^\d]/g, ""))}
               placeholder="Nhập giá gốc (VNĐ)"
               className="border border-gray-300 focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] rounded-lg w-full px-4 py-3 transition-all"
             />
+
           </div>
 
-          {/* Sale Price */}
+          {/* Giá khuyến mãi */}
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">
               Giá khuyến mãi
             </label>
             <input
-              type="number"
+              type="text"
               value={salePrice}
-              onChange={handleSalePriceChange}
-              placeholder="Nhập giá khuyến mãi (nếu có)"
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^\d]/g, "");
+                setSalePrice(raw);
+              }}
+              onBlur={() => setSalePrice((prev) => formatCurrency(prev))}
+              onFocus={() => setSalePrice(salePrice.replace(/[^\d]/g, ""))}
+              placeholder="Nhập giá khuyến mãi (VNĐ)"
               className="border border-gray-300 focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] rounded-lg w-full px-4 py-3 transition-all"
             />
           </div>
 
-          {/* Stock */}
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">
               Số lượng tồn
@@ -173,7 +183,7 @@ export default function VariantModal({
             />
           </div>
 
-          {/* Image Upload */}
+          {/* Upload */}
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">
               Hình ảnh biến thể
@@ -205,7 +215,6 @@ export default function VariantModal({
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex justify-end gap-4 mt-6">
           <button
             type="button"
@@ -223,8 +232,6 @@ export default function VariantModal({
           </button>
         </div>
       </div>
-
-      
     </div>
   );
 }
