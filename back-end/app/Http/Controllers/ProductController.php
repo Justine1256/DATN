@@ -57,8 +57,8 @@ class ProductController extends Controller
         ->selectRaw('AVG(reviews.rating) as avg_rating, COUNT(reviews.id) as total_reviews')
         ->first();
 
-    $product->rating = round($reviewStats->avg_rating ?? 0, 1); // Ví dụ: 4.5
-    $product->total_reviews = $reviewStats->total_reviews ?? 0;
+    $product->rating_avg = round($reviewStats->avg_rating ?? 0, 1); // Ví dụ: 4.5
+    $product->review_count = $reviewStats->total_reviews ?? 0;
 
         return response()->json([
             'status' => true,
