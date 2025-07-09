@@ -181,25 +181,12 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
                   Giá khuyến mãi (VND)
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   name="sale_price"
                   placeholder="0"
-                  value={salePrice}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^\d]/g, ""); // chỉ lấy số
-                    setSalePrice(raw);
-                  }}
-                  onBlur={() => {
-                    setSalePrice((prev) => formatCurrency(prev));
-                  }}
-                  onFocus={() => {
-                    const raw = salePrice.replace(/[^\d]/g, "");
-                    setSalePrice(raw);
-                  }}
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
                 />
               </div>
-
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
