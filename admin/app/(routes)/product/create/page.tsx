@@ -128,13 +128,12 @@ export default function AddProductPage() {
                                             {variant.value1} / {variant.value2}
                                         </p>
                                         <p className="text-sm text-gray-600">
-                                            Giá: {variant.price}đ
+                                            Giá: {variant.price.toLocaleString()}đ
                                             {variant.sale_price > 0 && (
-                                                <> - KM: {variant.sale_price.toLocaleString('vi-VN')}đ</>
+                                                <> - KM: {variant.sale_price.toLocaleString()}đ</>
                                             )}{" "}
                                             - SL: {variant.stock}
                                         </p>
-
                                     </div>
                                     {variant.image?.length > 0 && (
                                         <div className="flex gap-1 overflow-x-auto">
