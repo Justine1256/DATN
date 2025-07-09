@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Models\Review;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -49,10 +50,15 @@ class ProductController extends Controller
             return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
         }
 
-        // Nếu trong variants có image dạng json cũng decode luôn
-        // foreach ($product->variants as $variant) {
-        //     $variant->image = json_decode($variant->image, true);
-        // }
+    $reviewStats = DB::table('reviews')
+        ->join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
+        ->where('order_details.product_id', $product->id)
+        ->where('reviews.status', 'approved')
+        ->selectRaw('AVG(reviews.rating) as avg_rating, COUNT(reviews.id) as total_reviews')
+        ->first();
+
+    $product->rating = round($reviewStats->avg_rating ?? 0, 1); // Ví dụ: 4.5
+    $product->total_reviews = $reviewStats->total_reviews ?? 0;
 
         return response()->json([
             'status' => true,
