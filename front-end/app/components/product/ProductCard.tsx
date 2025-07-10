@@ -82,9 +82,6 @@ export default function ProductCard({
   const ratingValue = Number(product.rating_avg ?? 0);
   const reviewCount = product.review_count ?? 0;
 
-  console.log("⭐ product.rating_avg =", product.rating_avg, " => ratingValue =", ratingValue);
-
-
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const newLiked = !liked;
