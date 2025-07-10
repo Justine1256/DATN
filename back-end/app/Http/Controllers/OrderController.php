@@ -189,7 +189,7 @@ class OrderController extends Controller
                         'quantity' => $cart->quantity,
                         'subtotal' => $cart->quantity * $priceAtTime,
                     ]);
-
+                    $product->increment('sold', $cart->quantity);
                     $orders[] = $order;
                 }
             }
@@ -429,6 +429,8 @@ class OrderController extends Controller
                             'subtotal' => $quantity * $salePrice,
                         ]);
                     }
+                    $product->increment('sold', $quantity);
+
                 }
 
                 $orders[] = $order;
