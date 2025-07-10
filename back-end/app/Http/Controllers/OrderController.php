@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\ProductVariant;
+use App\Models\Notification;
 
 class OrderController extends Controller
 {
@@ -452,4 +453,32 @@ class OrderController extends Controller
             return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
         }
     }
+    public function updateOrderStatus(Request $request, $orderId)
+{
+    $validated = $request->validate([
+        'order_status' => 'required|string|max:50',
+    ]);
+
+    $order = Order::find($orderId);
+
+    if (!$order) {
+        return response()->json(['message' => 'Order not found'], 404);
+    }
+
+    $order->order_status = $validated['order_status'];
+    $order->save();
+
+    // Nếu trạng thái mới là delivered => tạo thông báo
+    if (strtolower($validated['order_status']) === 'delivered') {
+        Notification::create([
+            'title'     => "Đơn hàng #{$order->id} đã giao",
+            'content'   => "Đơn hàng của bạn đã được giao thành công. Nhấn để xem chi tiết.",
+            'image_url' => '/images/order-delivered.png',
+            'link'      => "/account?section=orders&order_id={$order->id}",
+            'is_read'   => 0,
+        ]);
+    }
+
+    return response()->json(['message' => 'Order status updated successfully']);
+}
 }

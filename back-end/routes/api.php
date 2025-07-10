@@ -151,6 +151,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/dathang', [OrderController::class, 'checkout']);
     Route::get('/showdh/{id}', [OrderController::class, 'show']);
     Route::patch('/cancel/{id}', [OrderController::class, 'cancel']);
+    Route::put('/orders/{orderId}/status', [OrderController::class, 'updateOrderStatus']);
     Route::patch('/ordership/{id}', [OrderController::class, 'updateShippingStatus']);
     Route::post('/reorder/{orderId}', [OrderController::class, 'reorder']);
 

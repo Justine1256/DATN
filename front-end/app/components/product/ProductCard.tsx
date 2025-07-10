@@ -25,7 +25,7 @@ export interface Product {
   variants: any[];
   sold?: number;
   review_count?: number;
-  rating_avg?: number| string;
+  rating_avg?: number | string;
 }
 
 const formatImageUrl = (img: unknown): string => {
@@ -50,7 +50,7 @@ export default function ProductCard({
   onLiked?: (product: Product) => void;
   wishlistProductIds?: number[];
 }) {
-  
+
   const router = useRouter();
   const isInWishlist = product ? wishlistProductIds.includes(product.id) : false;
 
@@ -66,7 +66,7 @@ export default function ProductCard({
     if (product && Array.isArray(product.variants) && product.variants.length > 0) {
       setSelectedVariant(product.variants[0]);
     }
-    
+
   }, [isInWishlist, product?.id, product]);
 
   if (!product) return <LoadingSkeleton />;
@@ -190,7 +190,7 @@ export default function ProductCard({
     router.push(`/shop/${shopSlug}/product/${product.slug}`);
   };
 
-return (
+  return (
     <div
       onClick={handleViewDetail}
       className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[240px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
@@ -245,32 +245,32 @@ return (
           )}
         </div>
 
-      <div className="flex items-center justify-between text-sm mt-2 flex-wrap">
-<div className="flex items-center gap-1">
-  {ratingValue > 0 ? (
-    <>
-      {Array(5).fill(0).map((_, i) => (
-        <AiFillStar
-          key={i}
-          className={`w-4 h-4 ${i < Math.round(ratingValue) ? "text-yellow-500" : "text-gray-300"}`}
-        />
-      ))}
-      <span className="text-gray-600 text-xs">
-        {ratingValue.toFixed(1)} ⭐
-      </span>
-    </>
-  ) : (
-    <span className="text-[#db4444] text-xs font-semibold">Chưa đánh giá</span>
-  )}
-</div>
-        <span className="text-gray-600 text-xs">
-          {product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}
-        </span>
-      </div>
+        <div className="flex items-center justify-between text-sm mt-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            {ratingValue > 0 ? (
+              <>
+                {Array(5).fill(0).map((_, i) => (
+                  <AiFillStar
+                    key={i}
+                    className={`w-4 h-4 ${i < Math.round(ratingValue) ? "text-yellow-500" : "text-gray-300"}`}
+                  />
+                ))}
+                <span className="text-gray-600 text-xs">
+                  {ratingValue.toFixed(1)} ⭐
+                </span>
+              </>
+            ) : (
+              <span className="text-[#db4444] text-xs font-semibold">Chưa đánh giá</span>
+            )}
+          </div>
+          <span className="text-gray-600 text-xs">
+            {product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}
+          </span>
+        </div>
 
       </div>
     </div>
   );
-  
+
 }
 
