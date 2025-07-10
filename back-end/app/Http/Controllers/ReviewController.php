@@ -64,7 +64,7 @@ public function store(Request $request)
         'rating'           => $validated['rating'],
         'comment'          => $validated['comment'],
         'image'            => !empty($validated['images']) ? json_encode($validated['images']) : null,
-        'status'           => 'pending',
+        'status'           => 'approved',
     ]);
 
     return response()->json([

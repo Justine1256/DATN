@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { useState } from "react";
 import { FiEye, FiEdit, FiEyeOff } from "react-icons/fi";
@@ -5,7 +7,7 @@ import { AiFillStar } from "react-icons/ai";
 import { Product } from "@/types/product";
 import { Category } from "@/types/category";
 import { STATIC_BASE_URL } from "@/utils/api";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 
 type ProductRowProps = {
   product: Product;
@@ -13,7 +15,7 @@ type ProductRowProps = {
   categoriesMap: Map<number, Category>;
 };
 
-const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
+const ProductRow = ({ product, onDelete }: ProductRowProps) => {
   const [showDetail, setShowDetail] = useState(false);
   const router = useRouter();
 
@@ -21,18 +23,11 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
     ? `${STATIC_BASE_URL}/${product.image[0]}`
     : `${STATIC_BASE_URL}/default-image.jpg`;
 
-  let parentCategoryName = "Không rõ";
-  let subcategoryName = "Không rõ";
-
-  if (product.category && typeof product.category === "object") {
-    subcategoryName = product.category.name || "Không rõ";
-    if (product.category.parent_id) {
-      const parent = categoriesMap.get(product.category.parent_id);
-      parentCategoryName = parent?.name || `Không tìm thấy (#${product.category.parent_id})`;
-    } else {
-      parentCategoryName = "Không có cha";
-    }
-  }
+  // Chỉ lấy tên danh mục con
+  const subcategoryName =
+    typeof product.category === "object" && product.category?.name
+      ? product.category.name
+      : "Không rõ";
 
   return (
     <tr className="h-[100px] border-b border-gray-100 hover:bg-gray-50 text-gray-700 animate-fade-fast">
@@ -63,9 +58,10 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
         </div>
       </td>
 
-      <td className="py-2 px-3 text-gray-700 max-w-[100px] truncate">{product.price.toLocaleString()}</td>
+      <td className="py-2 px-3 text-gray-700 max-w-[100px] truncate">
+        {product.price.toLocaleString()}
+      </td>
       <td className="py-2 px-3 text-gray-700 max-w-[80px] truncate">{product.stock}</td>
-      <td className="py-2 px-3 text-gray-700 max-w-[120px] truncate">{parentCategoryName}</td>
       <td className="py-2 px-3 text-gray-700 max-w-[120px] truncate">{subcategoryName}</td>
 
       <td className="py-2 px-3 text-gray-700 whitespace-nowrap">
@@ -79,8 +75,8 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
                 <AiFillStar
                   key={i}
                   className={`text-base ${i < Math.round(product.rating / 2)
-                    ? "text-yellow-400"
-                    : "text-gray-300"
+                      ? "text-yellow-400"
+                      : "text-gray-300"
                     }`}
                 />
               ))}
@@ -90,7 +86,6 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
           )}
         </div>
       </td>
-
 
       <td className="py-2 px-3">
         <div className="flex justify-center gap-2">
@@ -118,8 +113,6 @@ const ProductRow = ({ product, onDelete, categoriesMap }: ProductRowProps) => {
           </button>
         </div>
       </td>
-
-
     </tr>
   );
 };

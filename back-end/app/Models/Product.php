@@ -87,5 +87,11 @@ protected $casts = [
 {
     return $this->hasMany(ProductVariant::class, 'product_id');
 }
+public function reviews()
+{
+    return $this->hasMany(Review::class, 'order_detail_id', 'id')
+        ->where('status', 'approved');
+}
+
 
 }

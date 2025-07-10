@@ -24,6 +24,8 @@ export interface Product {
   shop_slug: string;
   variants: any[];
   sold?: number;
+  review_count?: number;
+  rating_avg?: number;
 }
 
 const formatImageUrl = (img: unknown): string => {
@@ -77,7 +79,11 @@ export default function ProductCard({
   };
 
   const mainImage = formatImageUrl(product.image?.[0]);
-  const ratingValue = product.rating || 0;
+const ratingValue = typeof product.rating_avg === 'number'
+  ? product.rating_avg
+  : (typeof product.rating === 'number' ? product.rating : 0);
+
+const reviewCount = product.review_count || 0;
 
 
   const handleLike = async (e: React.MouseEvent) => {
@@ -244,23 +250,23 @@ return (
         </div>
 
       <div className="flex items-center justify-between text-sm mt-2 flex-wrap">
-        <div className="flex items-center gap-1">
-          {ratingValue && ratingValue > 0 ? (
-            <>
-              {Array(5)
-                .fill(0)
-                .map((_, i) => (
-                  <AiFillStar
-                    key={i}
-                    className={`w-4 h-4 ${i < Math.round(ratingValue / 2) ? "text-yellow-500" : "text-gray-300"}`}
-                  />
-                ))}
-              <span className="text-gray-600 text-xs">({ratingValue})</span>
-            </>
-          ) : (
-            <span className="text-[#db4444] text-xs font-semibold">Chưa đánh giá</span>
-          )}
-        </div>
+<div className="flex items-center gap-1">
+  {ratingValue > 0 ? (
+    <>
+      {Array(5).fill(0).map((_, i) => (
+        <AiFillStar
+          key={i}
+          className={`w-4 h-4 ${i < Math.round(ratingValue) ? "text-yellow-500" : "text-gray-300"}`}
+        />
+      ))}
+      <span className="text-gray-600 text-xs">
+        ({ratingValue.toFixed(1)} ⭐ từ {reviewCount} đánh giá)
+      </span>
+    </>
+  ) : (
+    <span className="text-[#db4444] text-xs font-semibold">Chưa đánh giá</span>
+  )}
+</div>
         <span className="text-gray-600 text-xs">
           {product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}
         </span>
