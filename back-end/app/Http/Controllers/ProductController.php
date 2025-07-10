@@ -269,6 +269,8 @@ class ProductController extends Controller
         $perPage = $request->query('per_page', 5);
 
         $products =  Product::where('shop_id', $shop->id)
+            ->withCount(['approvedReviews as review_count'])
+            ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('status', 'activated')
             ->with('category')
             ->orderBy('created_at', 'desc')
