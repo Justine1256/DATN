@@ -79,7 +79,7 @@ export default function ProductCard({
   };
 
   const mainImage = formatImageUrl(product.image?.[0]);
-  const ratingValue = Number(product.rating_avg || product.rating || 0);
+const ratingValue = Number(product.rating_avg ?? 0);
   const reviewCount = product.review_count ?? 0;
 
 

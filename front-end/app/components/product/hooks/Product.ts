@@ -29,6 +29,8 @@ export interface Product {
   option2?: string;
   value2?: string;
   rating: string;
+  rating_avg?: number;     // 👈 thêm
+  review_count?: number;   // 👈 thường đi kèm
   status: 'activated' | 'pending' | 'suspended';
   created_at: string;
   updated_at: string;
