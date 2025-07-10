@@ -79,11 +79,8 @@ export default function ProductCard({
   };
 
   const mainImage = formatImageUrl(product.image?.[0]);
-const ratingValue = typeof product.rating_avg === 'number'
-  ? product.rating_avg
-  : (typeof product.rating === 'number' ? product.rating : 0);
-
-const reviewCount = product.review_count || 0;
+  const ratingValue = Number(product.rating_avg || product.rating || 0);
+  const reviewCount = product.review_count ?? 0;
 
 
   const handleLike = async (e: React.MouseEvent) => {
@@ -260,7 +257,7 @@ return (
         />
       ))}
       <span className="text-gray-600 text-xs">
-        ({ratingValue.toFixed(1)} ⭐ từ {reviewCount} đánh giá)
+        {ratingValue.toFixed(1)} ⭐
       </span>
     </>
   ) : (
