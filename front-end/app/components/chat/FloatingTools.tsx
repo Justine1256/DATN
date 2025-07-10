@@ -6,7 +6,7 @@ import Image from 'next/image';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
-import { useChatSocket } from '../hooks/useChatSocket';
+import { useChatSocket } from '../../hooks/useChatSocket';
 
 interface User {
   id: number;
