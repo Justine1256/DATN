@@ -5,7 +5,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import LoadingBar from "./components/common/LoadingBar";
 import Header from "./components/common/Header";
 import Footer from "./components/common/Footer";
-import FloatingTools from "./components/FloatingTools";
+import FloatingTools from "./components/chat/FloatingTools";
 import { UserProvider } from "./context/UserContext";
 
 export const metadata: Metadata = {
