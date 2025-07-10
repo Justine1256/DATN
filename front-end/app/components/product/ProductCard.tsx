@@ -25,7 +25,7 @@ export interface Product {
   variants: any[];
   sold?: number;
   review_count?: number;
-  rating_avg?: number;
+  rating_avg?: number| string;
 }
 
 const formatImageUrl = (img: unknown): string => {
@@ -79,8 +79,10 @@ export default function ProductCard({
   };
 
   const mainImage = formatImageUrl(product.image?.[0]);
-const ratingValue = Number(product.rating_avg ?? 0);
+  const ratingValue = Number(product.rating_avg ?? 0);
   const reviewCount = product.review_count ?? 0;
+
+  console.log("⭐ product.rating_avg =", product.rating_avg, " => ratingValue =", ratingValue);
 
 
   const handleLike = async (e: React.MouseEvent) => {
