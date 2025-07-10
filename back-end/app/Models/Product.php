@@ -92,6 +92,16 @@ public function reviews()
     return $this->hasMany(Review::class, 'order_detail_id', 'id')
         ->where('status', 'approved');
 }
-
+public function approvedReviews()
+{
+    return $this->hasManyThrough(
+        Review::class,
+        OrderDetail::class,
+        'product_id',
+        'order_detail_id',
+        'id',
+        'id'
+    )->where('reviews.status', 'approved');
+}
 
 }

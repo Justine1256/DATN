@@ -73,6 +73,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   if (!product) return <LoadingProductDetail />;
 
+const ratingValue =
+  typeof product.rating_avg === 'number'
+    ? product.rating_avg
+    : typeof product.rating === 'number'
+      ? product.rating
+      : 0;
+
   const optsA = Array.from(new Set([
     ...product.variants.map(v => v.value1),
     ...parseOptionValues(product.value1)
@@ -182,11 +189,6 @@ const handleSelectB = (b: string) => {
       }
     }
   };
-  
-  
-  
-  
-
   const toggleLike = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
     if (!token) return commonPopup('Vui lòng đăng nhập để yêu thích sản phẩm');
@@ -244,36 +246,36 @@ const handleSelectB = (b: string) => {
           <div className="md:col-span-6 space-y-4">
             <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{product.name}</h1>
             {/* Rating, stock */}
-            <div className="flex items-center gap-3 text-sm">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="flex items-center gap-2 text-base">
-                  {parseFloat(product.rating) > 0 ? (
-                    <>
-                      <span className="text-gray-800 flex items-center">
-                        {(parseFloat(product.rating) / 2).toFixed(1)}
-                      </span>
-                      <div className="flex items-center">
-                        {Array.from({ length: 5 }).map((_, i) =>
-                          i < Math.round(parseFloat(product.rating) / 2) ? (
-                            <FaStar key={i} className="text-yellow-400" />
-                          ) : (
-                            <FaRegStar key={i} className="text-gray-300" />
-                          )
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-red-500 font-semibold">Chưa đánh giá</span>
-                  )}
-                </div>
-              </div>
+<div className="flex items-center gap-3 text-sm">
+  <div className="flex items-center gap-2 text-base">
+    {ratingValue > 0 ? (
+      <>
+        <span className="text-gray-800 flex items-center">
+          {ratingValue.toFixed(1)}
+        </span>
+        <div className="flex items-center">
+          {Array.from({ length: 5 }).map((_, i) =>
+            i < Math.round(ratingValue) ? (
+              <FaStar key={i} className="text-yellow-400" />
+            ) : (
+              <FaRegStar key={i} className="text-gray-300" />
+            )
+          )}
+        </div>
+      </>
+    ) : (
+      <span className="text-red-500 font-semibold">Chưa đánh giá</span>
+    )}
+  </div>
 
-              <span className="text-gray-500">(150 Lượt Xem)</span>
-              <span className="text-gray-300">|</span>
-              <span className="text-emerald-400 font-medium">
-                Hàng trong kho: {product.stock || 0} sản phẩm
-              </span>
-            </div>
+  <span className="text-gray-500">Đã bán: {product.sold || 0}</span>
+  <span className="text-gray-300">|</span>
+  <span className="text-emerald-400 font-medium">
+    Hàng trong kho: {product.stock || 0} sản phẩm
+  </span>
+</div>
+
+
 
             {/* Price */}
             <div className="flex items-center gap-3">
