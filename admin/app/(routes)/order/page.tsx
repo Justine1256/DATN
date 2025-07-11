@@ -75,7 +75,7 @@ export default function ModernOrderTable() {
     try {
       console.log(`🚀 Update shipping for order ${id} to "${value}"`);
 
-      // ánh xạ shipping -> order_status đúng
+      // ánh xạ shipping -> order_status
       let orderStatus = "Pending";
       if (value === "Shipping") orderStatus = "Shipped";
       else if (value === "Delivered") orderStatus = "Delivered";
@@ -84,7 +84,7 @@ export default function ModernOrderTable() {
 
       const token = Cookies.get("authToken");
       const res = await fetch(`${API_BASE_URL}/api/orders/${id}/status`, {
-        method: "PUT",
+        method: "POST",  // ✅ đổi PUT -> POST
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -93,9 +93,9 @@ export default function ModernOrderTable() {
         body: JSON.stringify({ order_status: orderStatus })
       });
 
-      console.log(`✅ PUT response status: ${res.status}`);
+      console.log(`✅ POST response status: ${res.status}`);
       const text = await res.text();
-      console.log("🔍 PUT response body:", text);
+      console.log("🔍 POST response body:", text);
 
       await fetchOrders();
 
@@ -103,6 +103,7 @@ export default function ModernOrderTable() {
       console.error("🚨 Failed to update order status:", err);
     }
   };
+  
   
 
   const filteredOrders = orders.filter(order => {
