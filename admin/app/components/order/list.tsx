@@ -187,7 +187,7 @@ export default function OrderListTable({
                       </select>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <Link href={`/orders/${order.id}`}>
+                      <Link href={`/order/${order.id}`}>
                         <button className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#db4444] hover:bg-[#db4444] hover:text-white transition-all group">
                           <Eye size={16} className="text-gray-600 group-hover:text-white" />
                         </button>
