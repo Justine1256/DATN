@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { API_BASE_URL } from "@/utils/api";
-import Cookies from "js-cookie";
 
 const statusLabel = {
     Pending: "Đang chờ xử lý",
@@ -15,28 +14,29 @@ async function getOrder(id: string) {
         console.log("🔍 Gọi API lấy order với id:", id);
         const res = await fetch(`${API_BASE_URL}/admin/order/${id}`, {
             headers: {
-                "Accept": "application/json"
-                // Nếu API yêu cầu token:
-                // "Authorization": `Bearer ${token}`
+                "Accept": "application/json",
+                "Authorization": `Bearer ${process.env.NEXT_PUBLIC_ADMIN_TOKEN}`
             },
-            // cache: "no-store"
+            cache: "no-store"
         });
 
         console.log("⚙️ Status API:", res.status);
         const contentType = res.headers.get("content-type");
         console.log("🔍 Content-Type:", contentType);
 
-        const text = await res.text();
-        console.log("📦 Raw API response:", text);
-
-        if (!res.ok) throw new Error("HTTP error");
+        if (!res.ok) {
+            const text = await res.text();
+            console.error("🚨 Response:", text);
+            throw new Error("HTTP error");
+        }
 
         if (!contentType?.includes("application/json")) {
+            const text = await res.text();
             console.error("🚨 Không phải JSON:", text);
             return null;
         }
 
-        const data = JSON.parse(text);
+        const data = await res.json();
         console.log("✅ JSON parsed:", data);
         return data;
     } catch (err) {
@@ -48,8 +48,6 @@ async function getOrder(id: string) {
 export default async function OrderDetailPage({ params }: { params: { id: string } }) {
     console.log("🆔 Nhận được params:", params);
     const order = await getOrder(params.id);
-
-    console.log("📊 Order sau khi fetch:", order);
 
     if (!order) {
         console.error("🚨 Không tìm thấy order hoặc lỗi API -> notFound()");
