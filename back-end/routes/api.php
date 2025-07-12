@@ -104,6 +104,7 @@ Route::get('/vouchers', [VoucherController::class, 'index']);
 Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::class, 'showVouchersByCategory']);
 Route::get('/search', [ProductController::class, 'search']);
 Route::post('/nologin', [OrderController::class, 'guestCheckout']);// đặt hàng ko cần đăng nhập
+Route::get('/admin/orders', [OrderController::class, 'adminOrderList']);
 
 
 Route::get('/vouchers', [VoucherController::class, 'index']);
@@ -150,7 +151,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orderall', [OrderController::class, 'index']);
     Route::post('/dathang', [OrderController::class, 'checkout']);
     Route::get('/showdh/{id}', [OrderController::class, 'show']);
-    Route::get('/admin/orders', [OrderController::class, 'adminOrderList']);
     Route::get('/admin/order/{id}', [OrderController::class, 'adminShow']);
     Route::patch('/cancel/{id}', [OrderController::class, 'cancel']);
     Route::post('/orders/{orderId}/status', [OrderController::class, 'updateOrderStatus']);
