@@ -73,7 +73,7 @@ public function store(Request $request)
         'id'        => $review->id,
         'comment'   => $review->comment,
         'rating'    => $review->rating,
-        'images'    => json_decode($review->image, true), // 👈
+        'images'       => json_decode($review->image, true) ?? [],
     ]
 ], 201);
 }
