@@ -34,7 +34,7 @@ export default function AccountPage() {
   const getRankBg = (rank: string) => {
     switch (rank) {
       case 'bronze': return 'bg-[#CD7F32]';
-      case 'silver': return 'bg-[#A9B8C9]';
+      case 'silver': return 'bg-[#8BA0B7]';
       case 'gold': return 'bg-[#C9A602]';
       case 'diamond': return 'bg-[#FFFFFF] text-[#4283FF]';
       default: return 'bg-[#DDE9FF] text-[#517191]';
@@ -243,19 +243,19 @@ export default function AccountPage() {
                 user.rank === 'diamond'
                   ? "url(/platinum-card-bg.jpg)"
                   : user.rank === 'gold'
-                    ? "#FFD7000A"
+                    ? "url(/gold-card-bg.jpg)"
                     : user.rank === 'silver'
-                      ? "#A9B8C90A"
+                      ? "url(/silver-card-bg.jpg)"
                       : user.rank === 'bronze'
-                        ? "#CD7F320A"
-                        : "#80AAFA0A",
+                        ? "url(/bronze-card-bg.jpg)"
+                        : "url(/default-card-bg.jpg)",
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              color: user.rank === 'diamond' ? '#CCCCCC' : 'inherit',
+              color: '#CCCCCC',
             }}
           >
             <div className="relative z-10 flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold" style={{ color: user.rank === 'diamond' ? 'white' : 'inherit' }}>Thẻ thành viên</h3>
+              <h3 className="text-sm font-semibold text-white">Thẻ thành viên</h3>
               <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium  text-white ${getRankBg(user.rank)}`}>
                 {getRankIcon(user.rank)}
                 <span className="capitalize">{user.rank}</span>
@@ -300,7 +300,7 @@ export default function AccountPage() {
                           : user.rank === 'gold'
                             ? "#C9A602"
                             : user.rank === 'silver'
-                              ? "#A9B8C9"
+                              ? "#8BA0B7"
                               : user.rank === 'bronze'
                                 ? "#CD7F32"
                                 : "#80AAFA",
@@ -331,7 +331,7 @@ export default function AccountPage() {
                         : user.rank === 'gold'
                           ? "#C9A602"
                           : user.rank === 'silver'
-                            ? "#A9B8C9"
+                            ? "#8BA0B7"
                             : user.rank === 'bronze'
                               ? "#CD7F32"
                               : "#80AAFA",

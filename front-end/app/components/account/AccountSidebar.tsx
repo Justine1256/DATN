@@ -39,14 +39,13 @@ interface AccountSidebarProps {
 
 const getRankBg = (rank: string) => {
   switch (rank) {
-    case 'bronze': return 'bg-[#CD7F32]';
-    case 'silver': return 'bg-[#A9B8C9]';
-    case 'gold': return 'bg-[#C9A602]';
-    case 'diamond': return 'bg-[#FAEAEA] text-[#363738]';
+    case 'bronze': return 'bg-[#CD7F32] text-[#FFFFFF]';
+    case 'silver': return 'bg-[#8BA0B7] text-[#FFFFFF]';
+    case 'gold': return 'bg-[#C9A602] text-[#FFFFFF]';
+    case 'diamond': return 'bg-[#ebf9ff] text-[#4283FF]';
     default: return 'bg-[#DDE9FF] text-[#517191]';
   }
 }
-
 
 const getRankIcon = (rank: string) => {
   switch (rank) {
