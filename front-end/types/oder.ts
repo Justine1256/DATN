@@ -1,17 +1,20 @@
 import type { Product } from "./product";
 
+// Trạng thái đơn hàng (order_status)
 export enum OrderStatus {
-    Pending = "Pending",
-    OrderConfirmation = "order confirmation",
-    Shipped = "Shipped",
-    Delivered = "Delivered",
-    Canceled = "Canceled"
+    Pending = "Pending",                  // Đang chờ
+    OrderConfirmation = "order confirmation", // Đang xác nhận
+    Shipped = "Shipped",                  // Đang giao
+    Delivered = "Delivered",              // Đã giao
+    Canceled = "Canceled"                 // Đã huỷ
 }
 
+// Trạng thái giao hàng (shipping_status)
 export enum ShippingStatus {
-    Pending = "Pending",
-    Shipping = "Shipping",
-    Delivered = "Delivered"
+    Pending = "Pending",      // Chờ giao
+    Shipping = "Shipping",    // Đang giao
+    Delivered = "Delivered",  // Đã giao
+    Failed = "Failed"         // Thất bại
 }
 
 export interface OrderDetail {
@@ -21,7 +24,7 @@ export interface OrderDetail {
     quantity: number;
     subtotal: string;
     product: Product;
-    reviewed?: boolean;
+    reviewed?: boolean;  // Đã đánh giá hay chưa
 }
 
 export interface Order {
