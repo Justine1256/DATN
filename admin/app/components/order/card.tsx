@@ -5,7 +5,7 @@ type OrderStatusCardProps = {
   count: number;
   icon: ReactNode;
   colorIndex?: number;
-  isAmount?: boolean; // To know if it's the total amount
+  isAmount?: boolean;
 };
 
 const colors = [
