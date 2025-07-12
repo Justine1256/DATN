@@ -36,7 +36,7 @@ export default function AccountPage() {
       case 'bronze': return 'bg-[#CD7F32]';
       case 'silver': return 'bg-[#A9B8C9]';
       case 'gold': return 'bg-[#C9A602]';
-      case 'diamond': return 'bg-[#FAEAEA] text-[#363738]';
+      case 'diamond': return 'bg-[#FFFFFF] text-[#4283FF]';
       default: return 'bg-[#DDE9FF] text-[#517191]';
     }
   }
@@ -209,14 +209,14 @@ export default function AccountPage() {
           ) : (
             <div className="flex items-start justify-between">
               <div className="flex gap-9">
-                  <Image
-                    src={avatarUrl}
-                    alt="avatar"
-                    width={150}
-                    height={150}
-                    className="w-1/4 h-1/4 rounded-full object-cover"
-                    unoptimized
-                  />
+                <Image
+                  src={avatarUrl}
+                  alt="avatar"
+                  width={150}
+                  height={150}
+                  className="w-1/4 h-1/4 rounded-full object-cover"
+                  unoptimized
+                />
 
                 <div className="flex flex-col justify-between">
                   <p className="font-bold text-lg">{user.name}</p>
@@ -239,9 +239,9 @@ export default function AccountPage() {
           <div
             className="relative rounded-xl p-5 overflow-hidden"
             style={{
-              backgroundColor:
+              background:
                 user.rank === 'diamond'
-                  ? "#E0F0FF33"
+                  ? "url(/platinum-card-bg.jpg)"
                   : user.rank === 'gold'
                     ? "#FFD7000A"
                     : user.rank === 'silver'
@@ -249,10 +249,13 @@ export default function AccountPage() {
                       : user.rank === 'bronze'
                         ? "#CD7F320A"
                         : "#80AAFA0A",
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              color: user.rank === 'diamond' ? '#CCCCCC' : 'inherit',
             }}
           >
             <div className="relative z-10 flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold">Thẻ thành viên</h3>
+              <h3 className="text-sm font-semibold" style={{ color: user.rank === 'diamond' ? 'white' : 'inherit' }}>Thẻ thành viên</h3>
               <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium  text-white ${getRankBg(user.rank)}`}>
                 {getRankIcon(user.rank)}
                 <span className="capitalize">{user.rank}</span>
@@ -262,14 +265,14 @@ export default function AccountPage() {
             {/* progress */}
             <div
               className={`relative z-10 flex divide-x text-center ${user.rank === 'diamond'
-                  ? 'divide-[#DB4444]'
-                  : user.rank === 'gold'
-                    ? 'divide-[#C9A602]'
-                    : user.rank === 'silver'
-                      ? 'divide-[#A9B8C9]'
-                      : user.rank === 'bronze'
-                        ? 'divide-[#CD7F32]'
-                        : 'divide-[#80AAFA]'
+                ? 'divide-[#CCCCCC]'
+                : user.rank === 'gold'
+                  ? 'divide-[#C9A602]'
+                  : user.rank === 'silver'
+                    ? 'divide-[#A9B8C9]'
+                    : user.rank === 'bronze'
+                      ? 'divide-[#CD7F32]'
+                      : 'divide-[#80AAFA]'
                 }`}>
               <div className="flex-1 px-4">
                 <p className="text-xs mb-1">Đơn hàng</p>
@@ -277,7 +280,7 @@ export default function AccountPage() {
                   <span style={{
                     color:
                       user.rank === 'diamond'
-                        ? "#DB4444"
+                        ? "#80AAFA"
                         : user.rank === 'gold'
                           ? "#C9A602"
                           : user.rank === 'silver'
@@ -293,7 +296,7 @@ export default function AccountPage() {
                       width: "0%",
                       backgroundColor:
                         user.rank === 'diamond'
-                          ? "#DB4444"
+                          ? "#80AAFA"
                           : user.rank === 'gold'
                             ? "#C9A602"
                             : user.rank === 'silver'
@@ -310,7 +313,7 @@ export default function AccountPage() {
                   <span style={{
                     color:
                       user.rank === 'diamond'
-                        ? "#DB4444"
+                        ? "#80AAFA"
                         : user.rank === 'gold'
                           ? "#C9A602"
                           : user.rank === 'silver'
@@ -322,9 +325,9 @@ export default function AccountPage() {
                 </p>
                 <div className="mt-2 w-full bg-[#DDDDDD] rounded-full h-2">
                   <div className="bg-[#DDDDDD] h-2 rounded-full" style={{
-                    width: "0%", backgroundColor:
+                    width: "50%", backgroundColor:
                       user.rank === 'diamond'
-                        ? "#DB4444"
+                        ? "#80AAFA"
                         : user.rank === 'gold'
                           ? "#C9A602"
                           : user.rank === 'silver'
