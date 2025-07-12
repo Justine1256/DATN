@@ -121,4 +121,15 @@ class ReviewController extends Controller
 
         return response()->json(['message' => 'Xoá đánh giá thành công']);
     }
+        public function getByProduct($id)
+{
+    $reviews = Review::with(['user', 'orderDetail'])
+                ->whereHas('orderDetail', function($q) use ($id) {
+                    $q->where('product_id', $id);
+                })
+                ->orderByDesc('created_at')
+                ->get();
+
+    return response()->json(['data' => $reviews]);
+}
 }
