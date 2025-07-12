@@ -75,7 +75,7 @@ export default function ShopProductSlider({ shopSlug }: { shopSlug: string }) {
 
     return (
         <section className="bg-white pt-10 pb-6">
-            <div className="max-w-[1170px] mx-auto px-4">
+            <div className="max-w-[1170px] mx-auto">
                 <div className="mb-6">
                     {/* <div className="border-t border-gray-200 mb-6" /> */}
                     <div className="flex items-center justify-between gap-10 mb-6">

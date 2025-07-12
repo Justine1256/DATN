@@ -55,7 +55,7 @@ interface Shop {
 
 const ShopCard = ({ shop }: { shop: Shop }) => {
     return (
-        <div className="min-h-screen bg-white py-4">
+        <div className="bg-white py-4">
             <div className="max-w-6xl mx-auto px-4">
                 {/* Main Shop Card */}
                 <div className="bg-gray-50 w-full rounded-2xl overflow-hidden">
