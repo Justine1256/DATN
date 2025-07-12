@@ -13,6 +13,7 @@ export interface Variant {
 }
 
 export interface Product {
+  [x: string]: Review[];
   id: number;
   category_id: number;
   shop_id: number;
