@@ -86,6 +86,8 @@ class ProductController extends Controller
 
         if (!empty($categoryIds)) {
             $products = Product::with('shop')
+                ->withCount(['approvedReviews as review_count'])
+                ->withAvg(['approvedReviews as rating_avg'], 'rating')
                 ->whereIn('category_id', $categoryIds)
                 ->where('status', 'activated')
                 ->get();
@@ -119,6 +121,8 @@ class ProductController extends Controller
         $categoryIds = array_map('intval', $categoryIds);
 
         $products = Product::with('shop')
+            ->withCount(['approvedReviews as review_count'])
+            ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('shop_id', $shop->id)
             ->whereIn('category_id', $categoryIds)
             ->where('status', 'activated')
@@ -130,10 +134,6 @@ class ProductController extends Controller
             'products' => $products,
         ]);
     }
-
-
-
-
 
     // Hàm đệ quy lấy tất cả danh mục con
     private function getAllChildCategoryIds(Category $category)
@@ -147,8 +147,6 @@ class ProductController extends Controller
 
         return $ids;
     }
-
-
     // Tạo mới sản phẩm (Admin hoặc Seller)
     public function store(Request $request)
     {
@@ -271,6 +269,8 @@ class ProductController extends Controller
         $perPage = $request->query('per_page', 5);
 
         $products =  Product::where('shop_id', $shop->id)
+            ->withCount(['approvedReviews as review_count'])
+            ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('status', 'activated')
             ->with('category')
             ->orderBy('created_at', 'desc')
@@ -288,16 +288,17 @@ class ProductController extends Controller
     {
         $limit = $request->input('limit', 8);
 
-        $products = Product::with(['shop:id,slug']) // chỉ lấy slug
+        $products = Product::with(['shop:id,slug'])
+            ->withCount(['approvedReviews as review_count'])
+            ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('status', 'activated')
             ->orderByDesc('sold')
             ->take($limit)
             ->get();
 
-        // Gắn thêm shop_slug vào từng product
         $products->each(function ($product) {
             $product->shop_slug = $product->shop->slug ?? null;
-            unset($product->shop); // xóa object shop nếu không cần
+            unset($product->shop);
         });
 
         return response()->json([
@@ -306,13 +307,14 @@ class ProductController extends Controller
         ]);
     }
 
-
     // Lấy danh sách sản phẩm giảm giá nhiều nhất
     public function topDiscountedProducts(Request $request)
     {
         $limit = $request->input('limit', 8);
 
-        $products = Product::with('shop') // 👈 Load quan hệ shop
+        $products = Product::with('shop')
+            ->withCount(['approvedReviews as review_count'])
+            ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->whereNotNull('sale_price')
             ->whereColumn('sale_price', '<', 'price')
             ->where('status', 'activated')
@@ -323,7 +325,6 @@ class ProductController extends Controller
             ->take($limit)
             ->values();
 
-        // Gắn thêm shop_slug vào từng sản phẩm
         $products->transform(function ($product) {
             $product->shop_slug = $product->shop->slug ?? null;
             return $product;
@@ -335,18 +336,20 @@ class ProductController extends Controller
         ]);
     }
 
+
     // Lấy danh sách sản phẩm mới nhất
     public function newProducts(Request $request)
     {
         $limit = $request->input('limit', 8);
 
-        $products = Product::with('shop') // Load quan hệ shop
+        $products = Product::with('shop')
+            ->withCount(['approvedReviews as review_count'])
+            ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('status', 'activated')
             ->orderBy('created_at', 'desc')
             ->take($limit)
             ->get();
 
-        // Gắn thêm shop_slug
         $products->transform(function ($product) {
             $product->shop_slug = $product->shop->slug ?? null;
             return $product;
@@ -357,6 +360,7 @@ class ProductController extends Controller
             'products' => $products
         ]);
     }
+
 
     // Lấy danh sách sản phẩm theo shop của shop đã đăng nhập
     public function getProductByShop($shop_id)
@@ -372,6 +376,8 @@ class ProductController extends Controller
         }
 
         $products = Product::with('category')
+            ->withCount(['approvedReviews as review_count'])
+            ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('shop_id', $shop_id)
             ->latest()
             ->paginate(6);
@@ -400,6 +406,8 @@ class ProductController extends Controller
         $product = Product::where('id', $id)
             ->where('shop_id', $shopId)
             ->with('category')
+            ->withCount(['approvedReviews as review_count'])
+            ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->first();
 
         if (!$product) {

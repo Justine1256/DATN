@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\ProductVariant;
+use App\Models\Notification;
 
 class OrderController extends Controller
 {
@@ -274,6 +275,89 @@ class OrderController extends Controller
 
         return response()->json(['message' => 'Không thể huỷ đơn ở trạng thái hiện tại'], 400);
     }
+    public function adminShow($id)
+    {
+        $order = Order::with(['user', 'shop', 'orderDetails.product'])
+            ->find($id);
+
+        if (!$order) {
+            return response()->json(['message' => 'Đơn hàng không tồn tại'], 404);
+        }
+
+        $response = [
+            'id' => $order->id,
+            'buyer' => [
+                'id' => $order->user?->id,
+                'name' => $order->user?->name,
+                'email' => $order->user?->email,
+            ],
+            'shop' => [
+                'id' => $order->shop?->id,
+                'name' => $order->shop?->name,
+            ],
+            'final_amount' => $order->final_amount,
+            'payment_method' => $order->payment_method,
+            'payment_status' => $order->payment_status,
+            'order_status' => $order->order_status,
+            'shipping_status' => $order->shipping_status,
+            'shipping_address' => $order->shipping_address,
+            'created_at' => $order->created_at,
+            'products' => $order->orderDetails->map(function ($detail) {
+                return [
+                    'id' => $detail->product->id ?? null,
+                    'name' => $detail->product->name ?? null,
+                    'price_at_time' => $detail->price_at_time,
+                    'quantity' => $detail->quantity,
+                    'subtotal' => $detail->subtotal,
+                ];
+            }),
+        ];
+
+        return response()->json([
+            'order' => $response
+        ]);
+    }
+    public function adminOrderList(Request $request)
+    {
+        $query = Order::with(['user', 'shop']);
+
+        if ($request->has('status')) {
+            $query->where('order_status', $request->status);
+        }
+
+        $orders = $query->latest()->paginate(20);
+
+        $data = $orders->map(function ($order) {
+            return [
+                'id' => $order->id,
+                'buyer' => [
+                    'id' => $order->user?->id,
+                    'name' => $order->user?->name,
+                ],
+                'shop' => [
+                    'id' => $order->shop?->id,
+                    'name' => $order->shop?->name,
+                ],
+                'final_amount' => $order->final_amount,
+                'payment_method' => $order->payment_method,
+                'order_status' => $order->order_status,
+                'shipping_status' => $order->shipping_status,
+                'shipping_address' => $order->shipping_address, // 👈 THÊM DÒNG NÀY
+                'created_at' => $order->created_at,
+            ];
+        });
+
+        return response()->json([
+            'orders' => $data,
+            'pagination' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'total' => $orders->total(),
+            ]
+        ]);
+    }
+
+
     public function updateShippingStatus($orderId, Request $request)
     {
         $order = Order::find($orderId);
@@ -430,7 +514,6 @@ class OrderController extends Controller
                         ]);
                     }
                     $product->increment('sold', $quantity);
-
                 }
 
                 $orders[] = $order;
@@ -451,5 +534,64 @@ class OrderController extends Controller
             ]);
             return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
         }
+    }
+    public function updateOrderStatus(Request $request, $orderId)
+    {
+        // Validate input
+        $validated = $request->validate([
+            'order_status' => 'required|string|max:50',
+        ]);
+
+        // Tìm đơn hàng
+        $order = Order::find($orderId);
+
+        if (!$order) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+
+        $orderStatus = strtolower($validated['order_status']);
+
+        // Ánh xạ order_status -> shipping_status
+        $statusMap = [
+            'pending'              => 'Pending',
+            'order confirmation'   => 'Pending',
+            'shipped'              => 'Shipping',
+            'delivered'            => 'Delivered',
+            'canceled'             => 'Failed',
+        ];
+
+        // Cập nhật order_status
+        $order->order_status = ucfirst($orderStatus);
+
+        // Cập nhật shipping_status nếu ánh xạ được
+        if (isset($statusMap[$orderStatus])) {
+            $order->shipping_status = $statusMap[$orderStatus];
+        }
+
+        $order->save();
+
+        // Tạo thông báo nếu Delivered
+        if ($orderStatus === 'delivered') {
+            Notification::create([
+                'title'     => "Đơn hàng #{$order->id} đã giao",
+                'content'   => "Đơn hàng của bạn đã được giao thành công. Nhấn để xem chi tiết.",
+                'image_url' => '/images/order-delivered.png',
+                'link'      => "/account?section=orders&order_id={$order->id}",
+                'is_read'   => 0,
+            ]);
+        }
+
+        // Tạo thông báo nếu Canceled
+        if ($orderStatus === 'canceled') {
+            Notification::create([
+                'title'     => "Đơn hàng #{$order->id} đã bị huỷ",
+                'content'   => "Đơn hàng của bạn đã bị huỷ do khách hàng không nhận. Liên hệ hỗ trợ nếu cần.",
+                'image_url' => '/images/order-cancelled.png',
+                'link'      => "/account?section=orders&order_id={$order->id}",
+                'is_read'   => 0,
+            ]);
+        }
+
+        return response()->json(['message' => 'Order status updated successfully']);
     }
 }
