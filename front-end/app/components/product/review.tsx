@@ -20,14 +20,11 @@ export default function ProductReviews({ productId }: { productId: number }) {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [lightbox, setLightbox] = useState<{ images: string[], index: number } | null>(null);
-
     useEffect(() => {
         const fetchReviews = async () => {
             try {
                 console.log("📝 Đang gọi API reviews với productId =", productId);
-                const res = await axios.get(`${API_BASE_URL}/products/${productId}/reviews`, {
-                    params: { page },
-                });
+                const res = await axios.get(`${API_BASE_URL}/products/${productId}/reviews`);
                 console.log("✅ Kết quả:", res.data);
 
                 let data = res.data.data ?? res.data;
@@ -42,7 +39,7 @@ export default function ProductReviews({ productId }: { productId: number }) {
                     rating: item.rating,
                     comment: item.comment,
                     created_at: item.created_at,
-                    images: item.images ?? [], // 👈 lấy trực tiếp mảng images
+                    images: convertImageToArray(item.image),
                 }));
 
                 setReviews(mapped);
@@ -54,6 +51,14 @@ export default function ProductReviews({ productId }: { productId: number }) {
 
         fetchReviews();
     }, [productId, page]);
+        
+    
+    
+
+    function convertImageToArray(image?: string | null): string[] {
+        if (!image || image.trim() === "" || image.endsWith("/storage")) return [];
+        return [image];
+    }
 
     function getImageUrl(path?: string | null) {
         if (!path || path.trim() === "" || path.endsWith("/storage")) return "/default-avatar.png";
