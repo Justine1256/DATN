@@ -25,8 +25,7 @@ class Review extends Model
         return $this->belongsTo(OrderDetail::class);
     }
     public function getImagesAttribute()
-{
-    return json_decode($this->image, true);
-}
-
+    {
+        return json_decode($this->image, true) ?? [];
+    }
 }
