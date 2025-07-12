@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation";
 
 type Order = {
   id: number;
-  final_amount: number;
+  final_amount: number; // ép chắc chắn là number
   payment_method: string;
   payment_status: string;
-  order_status: string;
+  order_status: string; // không cho undefined
   shipping_status: string;
   shipping_address: string;
   created_at: string;
 };
+
 
 const statusConfig = {
   Pending: { label: "Đang chờ xử lý", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
@@ -52,8 +53,7 @@ function downloadCSV(data: Order[]) {
     ]);
   });
 
-  const csvContent = "data:text/csv;charset=utf-8,"
-    + csvRows.map(e => e.join(",")).join("\n");
+  const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
@@ -88,10 +88,8 @@ export default function OrderListTable({
 
   return (
     <div className="space-y-6">
-      {/* Header với filters */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <div className="flex flex-wrap gap-4 items-center justify-between">
-          {/* Search */}
           <div className="relative">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -103,7 +101,6 @@ export default function OrderListTable({
             />
           </div>
 
-          {/* Filter controls */}
           <div className="flex flex-wrap gap-3">
             <select
               value={filterStatus}
@@ -115,33 +112,28 @@ export default function OrderListTable({
               <option value="Shipped">Đang giao hàng</option>
               <option value="Delivered">Đã giao hàng</option>
             </select>
-
             <input
               type="month"
               value={filterPeriod}
               onChange={(e) => setFilterPeriod(e.target.value)}
               className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none"
             />
-
             <input
               type="date"
               value={filterExactDate}
               onChange={(e) => setFilterExactDate(e.target.value)}
               className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none"
             />
-
             <button
               onClick={() => downloadCSV(orders)}
               className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-3 rounded-xl text-sm font-medium transition-all"
             >
-              <Download size={16} />
-              Xuất CSV
+              <Download size={16} /> Xuất CSV
             </button>
           </div>
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1200px] text-sm">
@@ -177,23 +169,15 @@ export default function OrderListTable({
                   </td>
                 </tr>
               ) : (
-                orders.map((order, index) => (
+                orders.map((order) => (
                   <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6">
-                      <span className="font-mono text-gray-900 font-medium">#{order.id}</span>
+                    <td className="py-4 px-6 font-mono text-gray-900 font-medium">#{order.id}</td>
+                    <td className="py-4 px-6 text-gray-900">{formatDateTime(order.created_at)}</td>
+                    <td className="py-4 px-6 text-gray-900 truncate max-w-[200px]" title={order.shipping_address}>
+                      {order.shipping_address}
                     </td>
-                    <td className="py-4 px-6">
-                      <div className="text-gray-900">{formatDateTime(order.created_at)}</div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="text-gray-900 truncate max-w-[200px]" title={order.shipping_address}>
-                        {order.shipping_address}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <span className="font-semibold text-gray-900">
-                        {Number(order.final_amount).toLocaleString("vi-VN")} đ
-                      </span>
+                    <td className="py-4 px-6 text-right font-semibold text-gray-900">
+                      {Number(order.final_amount).toLocaleString("vi-VN")} đ
                     </td>
                     <td className="py-4 px-6 text-center">
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
@@ -234,40 +218,6 @@ export default function OrderListTable({
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="flex justify-between items-center p-6 border-t border-gray-100 bg-gray-50">
-          <div className="text-sm text-gray-600">
-            Hiển thị <span className="font-semibold">{(orders.length > 0 ? ((currentPage - 1) * 10) + 1 : 0)}-{((currentPage - 1) * 10) + orders.length}</span> trên <span className="font-semibold">{totalItems}</span> đơn hàng
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${currentPage === 1
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                }`}
-            >
-              Trước
-            </button>
-
-            <div className="flex items-center px-3 py-2 text-sm text-gray-600">
-              Trang {currentPage} / {totalPages}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${currentPage === totalPages
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                }`}
-            >
-              Sau
-            </button>
-          </div>
         </div>
       </div>
     </div>
