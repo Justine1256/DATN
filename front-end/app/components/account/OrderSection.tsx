@@ -11,11 +11,15 @@ import ConfirmCancelModal from "./ConfirmCancelModal";
 
 export default function OrderSection() {
   const router = useRouter();
-
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const perPage = 3;
+  const totalPages = Math.ceil(filteredOrders.length / perPage);
+
   const [popupVisible, setPopupVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -46,7 +50,6 @@ export default function OrderSection() {
     fetchOrders();
   }, []);
 
-  // Khi đổi tab, re-filter theo danh sách hiện tại
   useEffect(() => {
     filterOrders(activeTab, orders);
   }, [activeTab, orders]);
@@ -55,25 +58,15 @@ export default function OrderSection() {
     const list = sourceOrders || orders;
     setActiveTab(status);
 
-    if (status === "all") {
-      setFilteredOrders(list);
-    } else if (status === "processing") {
-      const filtered = list.filter(order =>
-        order.order_status === "Pending" || order.order_status === "order confirmation"
-      );
-      setFilteredOrders(filtered);
-    } else if (status === "shipping") {
-      const filtered = list.filter(order => order.order_status === "Shipped");
-      setFilteredOrders(filtered);
-    } else if (status === "delivered") {
-      const filtered = list.filter(order => order.order_status === "Delivered");
-      setFilteredOrders(filtered);
-    } else if (status === "canceled") {
-      const filtered = list.filter(order => order.order_status === "Canceled");
-      setFilteredOrders(filtered);
-    } else {
-      setFilteredOrders([]);
-    }
+    let filtered: Order[] = [];
+    if (status === "all") filtered = list;
+    else if (status === "processing") filtered = list.filter(o => o.order_status === "Pending" || o.order_status === "order confirmation");
+    else if (status === "shipping") filtered = list.filter(o => o.order_status === "Shipped");
+    else if (status === "delivered") filtered = list.filter(o => o.order_status === "Delivered");
+    else if (status === "canceled") filtered = list.filter(o => o.order_status === "Canceled");
+
+    setFilteredOrders(filtered);
+    setCurrentPage(1); // reset trang khi filter
   };
 
   const handleViewOrderDetails = (order: Order) => {
@@ -138,6 +131,12 @@ export default function OrderSection() {
     }
   };
 
+  // lấy danh sách phân trang
+  const currentOrders = filteredOrders.slice(
+    (currentPage - 1) * perPage,
+    currentPage * perPage
+  );
+
   return (
     <div className="w-full max-w-[1400px] mx-auto px-4">
       <div className="bg-white p-6 rounded-xl shadow-lg min-h-[500px]">
@@ -154,16 +153,42 @@ export default function OrderSection() {
             <p className="text-lg text-gray-500">Không có đơn hàng phù hợp.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredOrders.map((order) => (
-              <OrderListItem
-                key={order.id}
-                order={order}
-                onViewDetails={handleViewOrderDetails}
-                onReorder={handleReorder}
-              />
-            ))}
-          </div>
+          <>
+            <div className="space-y-4">
+              {currentOrders.map((order) => (
+                <OrderListItem
+                  key={order.id}
+                  order={order}
+                  onViewDetails={handleViewOrderDetails}
+                  onReorder={handleReorder}
+                />
+              ))}
+            </div>
+
+            {/* Phân trang */}
+                <div className="flex items-center justify-center gap-4 mt-8">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="w-12 h-12 flex items-center justify-center rounded-full border border-gray-300 text-xl text-gray-600 hover:bg-[#db4444] hover:text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    «
+                  </button>
+
+                  <span className="text-sm text-gray-500">
+                    Trang <span className="font-semibold text-gray-700">{currentPage}</span> / {totalPages}
+                  </span>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="w-12 h-12 flex items-center justify-center rounded-full border border-gray-300 text-xl text-gray-600 hover:bg-[#db4444] hover:text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    »
+                  </button>
+                </div>
+
+          </>
         )}
       </div>
 
@@ -187,4 +212,4 @@ export default function OrderSection() {
       )}
     </div>
   );
-}
+  }

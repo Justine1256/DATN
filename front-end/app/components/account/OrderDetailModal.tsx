@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Order, OrderStatus } from "../../../types/oder";
-import { formatImageUrl, translateOrderStatus, statusColors } from "../../../types/utils";
+import { formatImageUrl, translateOrderStatus } from "../../../types/utils";
 
 interface OrderDetailModalProps {
     order: Order | null;
