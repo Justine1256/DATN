@@ -31,47 +31,51 @@ class ReviewController extends Controller
         return response()->json($reviews);
     }
 
-public function store(Request $request)
-{
-    $validated = $request->validate([
-        'order_detail_id' => 'required|exists:order_details,id',
-        'rating'          => 'required|integer|min:1|max:5',
-        'comment'         => 'required|string|min:10',
-        'images'          => 'nullable|array',       // nhận mảng
-        'images.*'        => 'url',                  // từng phần tử là URL
-    ]);
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'order_detail_id' => 'required|exists:order_details,id',
+            'rating'          => 'required|integer|min:1|max:5',
+            'comment'         => 'required|string|min:10',
+            'images'          => 'nullable|array',       // nhận mảng
+            'images.*'        => 'url',                  // từng phần tử là URL
+        ]);
 
-    $user = Auth::user();
+        $user = Auth::user();
 
-    $orderDetail = \App\Models\OrderDetail::with('order')->find($validated['order_detail_id']);
+        $orderDetail = \App\Models\OrderDetail::with('order')->find($validated['order_detail_id']);
 
-    if (!$orderDetail || $orderDetail->order->user_id !== $user->id) {
-        return response()->json(['message' => 'Bạn không có quyền đánh giá sản phẩm này'], 403);
+        if (!$orderDetail || $orderDetail->order->user_id !== $user->id) {
+            return response()->json(['message' => 'Bạn không có quyền đánh giá sản phẩm này'], 403);
+        }
+
+        if (strtolower($orderDetail->order->order_status) !== 'delivered') {
+            return response()->json(['message' => 'Chỉ được đánh giá sau khi nhận hàng'], 403);
+        }
+
+        if (\App\Models\Review::where('order_detail_id', $validated['order_detail_id'])->exists()) {
+            return response()->json(['message' => 'Sản phẩm này đã được đánh giá rồi'], 403);
+        }
+
+        // lưu JSON mảng ảnh hoặc null
+        $review = \App\Models\Review::create([
+            'user_id'          => $user->id,
+            'order_detail_id'  => $validated['order_detail_id'],
+            'rating'           => $validated['rating'],
+            'comment'          => $validated['comment'],
+            'image'            => !empty($validated['images']) ? json_encode($validated['images']) : null,
+            'status'           => 'approved',
+        ]);
+
+        return response()->json([
+            'data' => [
+                'id' => $review->id,
+                'comment' => $review->comment,
+                'rating' => $review->rating,
+                'images' => json_decode($review->image, true),
+            ]
+        ]);
     }
-
-    if (strtolower($orderDetail->order->order_status) !== 'delivered') {
-        return response()->json(['message' => 'Chỉ được đánh giá sau khi nhận hàng'], 403);
-    }
-
-    if (\App\Models\Review::where('order_detail_id', $validated['order_detail_id'])->exists()) {
-        return response()->json(['message' => 'Sản phẩm này đã được đánh giá rồi'], 403);
-    }
-
-    // lưu JSON mảng ảnh hoặc null
-    $review = \App\Models\Review::create([
-        'user_id'          => $user->id,
-        'order_detail_id'  => $validated['order_detail_id'],
-        'rating'           => $validated['rating'],
-        'comment'          => $validated['comment'],
-        'image'            => !empty($validated['images']) ? json_encode($validated['images']) : null,
-        'status'           => 'approved',
-    ]);
-
-    return response()->json([
-        'message' => 'Thêm đánh giá thành công',
-        'data'    => $review
-    ], 201);
-}
 
 
     public function show($id)
