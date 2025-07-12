@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import OrderListTable from "../../components/order/list";
+import OrderStatusCard from "../../components/order/card";
 import { API_BASE_URL } from "@/utils/api";
+import { ShoppingCart, Truck, CheckCircle, Clock } from "lucide-react";
 
 type Order = {
   id: number;
@@ -27,13 +29,10 @@ export default function ModernOrderTable() {
   const [filterExactDate, setFilterExactDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Đưa fetchOrders ra ngoài để gọi được ở handleShippingChange
   async function fetchOrders(page = currentPage) {
     setLoading(true);
     try {
       const token = Cookies.get("authToken");
-      console.log("🐾 Token:", token);
-
       const res = await fetch(`${API_BASE_URL}/admin/orders?page=${page}`, {
         headers: {
           "Accept": "application/json",
@@ -41,21 +40,17 @@ export default function ModernOrderTable() {
         }
       });
 
-      console.log("👉 API GET orders status:", res.status);
-      const contentType = res.headers.get("content-type");
       const text = await res.text();
-      console.log("📦 Raw response:", text);
-
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      if (!contentType?.includes("application/json")) {
-        console.error("❌ Không phải JSON:", text);
-        return;
-      }
 
       const data = JSON.parse(text);
-      console.log("✅ JSON parsed:", data);
+      const mappedOrders = (data.orders || []).map((o: any) => ({
+        ...o,
+        order_status: o.order_status ?? "Pending",
+        final_amount: Number(o.final_amount) || 0
+      }));
 
-      setOrders(data.orders || []);
+      setOrders(mappedOrders);
       setTotalPages(data.pagination?.last_page || 1);
       setCurrentPage(data.pagination?.current_page || 1);
 
@@ -66,25 +61,19 @@ export default function ModernOrderTable() {
     }
   }
 
-  // Gọi khi mount và khi page đổi
   useEffect(() => {
     fetchOrders();
   }, [currentPage]);
 
-  const handleShippingChange = async (id, value) => {
+  const handleShippingChange = async (id: number, value: string) => {
     try {
-      console.log(`🚀 Update shipping for order ${id} to "${value}"`);
-
-      // ánh xạ shipping -> order_status
       let orderStatus = "Pending";
       if (value === "Shipping") orderStatus = "Shipped";
       else if (value === "Delivered") orderStatus = "Delivered";
 
-      console.log("👉 Sending order_status:", orderStatus);
-
       const token = Cookies.get("authToken");
-      const res = await fetch(`${API_BASE_URL}/api/orders/${id}/status`, {
-        method: "POST",  // ✅ đổi PUT -> POST
+      await fetch(`${API_BASE_URL}/api/orders/${id}/status`, {
+        method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -93,19 +82,14 @@ export default function ModernOrderTable() {
         body: JSON.stringify({ order_status: orderStatus })
       });
 
-      console.log(`✅ POST response status: ${res.status}`);
-      const text = await res.text();
-      console.log("🔍 POST response body:", text);
-
       await fetchOrders();
 
     } catch (err) {
       console.error("🚨 Failed to update order status:", err);
     }
   };
-  
-  
 
+  // FILTER
   const filteredOrders = orders.filter(order => {
     const matchStatus = filterStatus === "Tất cả" || order.order_status === filterStatus;
     const matchPeriod = filterPeriod ? order.created_at.startsWith(filterPeriod) : true;
@@ -118,8 +102,23 @@ export default function ModernOrderTable() {
     return matchStatus && matchPeriod && matchExactDate && matchSearch;
   });
 
+  // AGGREGATE
+  const totalOrders = orders.length;
+  const totalAmount = orders.reduce((acc, cur) => acc + cur.final_amount, 0);
+  const pendingOrders = orders.filter(o => o.order_status === "Pending").length;
+  const shippingOrders = orders.filter(o => o.order_status === "Shipped").length;
+  const deliveredOrders = orders.filter(o => o.order_status === "Delivered").length;
+
   return (
     <div className="max-w-7xl mx-auto py-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+        <OrderStatusCard title="Tổng số đơn" count={totalOrders} icon={<ShoppingCart />} colorIndex={0} />
+        <OrderStatusCard title="Tổng tiền" count={totalAmount} icon={<Clock />} colorIndex={1} isAmount />
+        <OrderStatusCard title="Đơn đang chờ" count={pendingOrders} icon={<Clock />} colorIndex={2} />
+        <OrderStatusCard title="Đơn đang giao" count={shippingOrders} icon={<Truck />} colorIndex={3} />
+        <OrderStatusCard title="Đơn đã giao" count={deliveredOrders} icon={<CheckCircle />} colorIndex={4} />
+      </div>
+
       <OrderListTable
         orders={filteredOrders}
         loading={loading}
