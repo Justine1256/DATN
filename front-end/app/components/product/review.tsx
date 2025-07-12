@@ -39,8 +39,9 @@ export default function ProductReviews({ productId }: { productId: number }) {
                     rating: item.rating,
                     comment: item.comment,
                     created_at: item.created_at,
-                    images: convertImageToArray(item.image),
+                    images: item.images ?? [], // 👈
                 }));
+
 
                 setReviews(mapped);
                 setTotalPages(res.data.last_page ?? 1);
@@ -51,9 +52,9 @@ export default function ProductReviews({ productId }: { productId: number }) {
 
         fetchReviews();
     }, [productId, page]);
-        
-    
-    
+
+
+
 
     function convertImageToArray(image?: string | null): string[] {
         if (!image || image.trim() === "" || image.endsWith("/storage")) return [];
