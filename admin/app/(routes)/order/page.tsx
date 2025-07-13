@@ -16,6 +16,7 @@ type Order = {
   shipping_status: "Pending" | "Shipping" | "Delivered" | "Failed";
   shipping_address: string;
   created_at: string;
+  total_products: number;
 };
 
 export default function ModernOrderTable() {

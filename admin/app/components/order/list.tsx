@@ -1,5 +1,5 @@
 "use client";
-
+import React from "react";
 import { Eye, Search, Download } from "lucide-react";
 import Link from "next/link";
 
@@ -209,13 +209,75 @@ export default function OrderListTable({
 
         <div className="flex items-center justify-between p-4 text-sm text-gray-500">
           <div>Tổng: {totalItems} đơn</div>
-          <div className="flex gap-2">
-            <button disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}
-              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50">Trước</button>
-            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)}
-              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50">Sau</button>
+          <div className="flex gap-1 items-center">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
+            >
+              «
+            </button>
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))
+              }
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
+            >
+              ‹
+            </button>
+
+            {/* Tính các page cần hiện */}
+            {Array.from({ length: totalPages })
+              .map((_, i) => i + 1)
+              .filter(
+                page =>
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 1 && page <= currentPage + 1)
+              )
+              .reduce<number[]>((acc, page, i, arr) => {
+                if (i > 0 && page - arr[i - 1] > 1) acc.push(-1); // dấu ... khi cách xa
+                acc.push(page);
+                return acc;
+              }, [])
+              .map((page, i) =>
+                page === -1 ? (
+                  <span key={`dots-${i}`} className="px-2">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1 rounded border transition
+              ${page === currentPage
+                        ? "border-[#db4444] bg-[#db4444] text-white"
+                        : "border-gray-200 hover:border-[#db4444] hover:text-[#db4444]"}`}
+                    title={`Trang ${page}`}
+                  >
+                    {page}
+                  </button>
+                )
+              )
+            }
+
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))
+}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
+            >
+              ›
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
+            >
+              »
+            </button>
           </div>
         </div>
+
+
       </div>
     </div>
   );
