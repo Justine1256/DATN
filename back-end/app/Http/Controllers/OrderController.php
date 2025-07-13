@@ -290,6 +290,9 @@ class OrderController extends Controller
                 'id' => $order->user?->id,
                 'name' => $order->user?->name,
                 'email' => $order->user?->email,
+                'phone' => $order->user?->phone,
+                'rank' => $order->user?->rank,
+                'avatar' => $order->user?->avatar,
             ],
             'shop' => [
                 'id' => $order->shop?->id,
@@ -303,14 +306,35 @@ class OrderController extends Controller
             'shipping_address' => $order->shipping_address,
             'created_at' => $order->created_at,
             'products' => $order->orderDetails->map(function ($detail) {
+                $firstImage = null;
+
+                if (!empty($detail->product?->image)) {
+                    $images = $detail->product->image;
+
+                    // Nếu không phải mảng, thử json_decode
+                    if (!is_array($images)) {
+                        $decoded = json_decode($images, true);
+
+                        if (is_array($decoded)) {
+                            $images = $decoded;
+                        }
+                    }
+
+                    if (is_array($images) && count($images) > 0) {
+                        $firstImage = $images[0];
+                    }
+                }
+
                 return [
                     'id' => $detail->product->id ?? null,
                     'name' => $detail->product->name ?? null,
                     'price_at_time' => $detail->price_at_time,
                     'quantity' => $detail->quantity,
                     'subtotal' => $detail->subtotal,
+                    'image' => $firstImage,
                 ];
             }),
+
         ];
 
         return response()->json([
