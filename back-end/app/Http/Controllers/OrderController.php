@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\ProductVariant;
 use App\Models\Notification;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
@@ -645,5 +646,12 @@ class OrderController extends Controller
             'delivered_orders'         => $deliveredOrders,
             'canceled_orders'          => $canceledOrders,
         ]);
+    }
+    public function downloadInvoice($id)
+    {
+        $order = Order::with(['user', 'orderDetails.product'])->findOrFail($id);
+
+        $pdf = Pdf::loadView('invoices.order', compact('order'));
+        return $pdf->download("invoice_order_{$order->id}.pdf");
     }
 }
