@@ -16,6 +16,10 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'files.marketo.info.vn', // ✅ Thêm domain ảnh reviews
+      },
+      {
+        protocol: 'https',
         hostname: 'salt.tikicdn.com',
       },
       {
@@ -36,7 +40,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'duynhan.id.vn', // ✅ Đã thêm domain cần thiết
+        hostname: 'duynhan.id.vn',
       },
     ],
   },

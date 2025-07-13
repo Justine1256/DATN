@@ -104,12 +104,18 @@ Route::get('/vouchers', [VoucherController::class, 'index']);
 Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::class, 'showVouchersByCategory']);
 Route::get('/search', [ProductController::class, 'search']);
 Route::post('/nologin', [OrderController::class, 'guestCheckout']);// đặt hàng ko cần đăng nhập
+Route::get('/admin/orders', [OrderController::class, 'adminOrderList']);
+Route::get('/order-statistics', [OrderController::class, 'orderStatistics']);
+Route::get('/orders/{id}/invoice', [OrderController::class, 'downloadInvoice']);
+
+
 
 
 Route::get('/vouchers', [VoucherController::class, 'index']);
 
 Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
+Route::get('/products/{id}/reviews', [ReviewController::class, 'getByProduct']);
 Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
 Route::get('/shop/{slug}/products', [ProductController::class, 'showShopProducts']);
 Route::get('/shop/{slug}/products-by-category/{category_slug}', [ProductController::class, 'getShopProductsByCategorySlug']);
@@ -150,7 +156,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orderall', [OrderController::class, 'index']);
     Route::post('/dathang', [OrderController::class, 'checkout']);
     Route::get('/showdh/{id}', [OrderController::class, 'show']);
+    Route::get('/admin/order/{id}', [OrderController::class, 'adminShow']);
     Route::patch('/cancel/{id}', [OrderController::class, 'cancel']);
+    Route::post('/orders/{orderId}/status', [OrderController::class, 'updateOrderStatus']);
     Route::patch('/ordership/{id}', [OrderController::class, 'updateShippingStatus']);
     Route::post('/reorder/{orderId}', [OrderController::class, 'reorder']);
 

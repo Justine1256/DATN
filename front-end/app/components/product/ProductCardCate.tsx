@@ -15,7 +15,9 @@ export interface Product {
   slug: string;
   price: number;
   oldPrice?: number;
-  rating: string|number;  // Ensure rating is a string
+  rating: string | number;
+  rating_avg?: number;
+  review_count?: number;  // Ensure rating is a string
   discount?: number;
   sale_price?: number;
   shop_slug?: string;
@@ -58,6 +60,8 @@ export default function ProductCardCate({
   }, [isInWishlist, product?.id]);
 
   if (!product) return <LoadingSkeleton />;
+  const ratingValue = Number(product.rating_avg ?? 0);
+  const reviewCount = product.review_count ?? 0;
 
   const hasDiscount = !!(product.sale_price && product.sale_price > 0);
   const discountPercentage = hasDiscount
@@ -170,8 +174,6 @@ export default function ProductCardCate({
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
-  const ratingValue = typeof product.rating === "string" ? parseFloat(product.rating) : product.rating;
-
   const handleViewDetail = () => {
     const shopSlug = product.shop_slug || (product as any)?.shop?.slug;
 
@@ -235,22 +237,25 @@ export default function ProductCardCate({
 
         <div className="flex items-center justify-between text-sm mt-2 flex-wrap">
           <div className="flex items-center gap-1">
-            {ratingValue && ratingValue > 0 ? (
+            {ratingValue > 0 ? (
               <>
                 {Array(5)
                   .fill(0)
                   .map((_, i) => (
                     <AiFillStar
                       key={i}
-                      className={`w-4 h-4 ${i < Math.round(ratingValue / 2) ? "text-yellow-500" : "text-gray-300"}`}
+                      className={`w-4 h-4 ${i < Math.round(ratingValue) ? "text-yellow-500" : "text-gray-300"}`}
                     />
                   ))}
-                <span className="text-gray-600 text-xs">({ratingValue})</span>
+                <span className="text-gray-600 text-xs">
+                  {ratingValue.toFixed(1)} ⭐
+                </span>
               </>
             ) : (
               <span className="text-[#db4444] text-xs font-semibold">Chưa đánh giá</span>
             )}
           </div>
+
           <span className="text-gray-600 text-xs">
             {product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}
           </span>

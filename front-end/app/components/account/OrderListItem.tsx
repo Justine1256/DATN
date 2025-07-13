@@ -3,7 +3,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Order } from "../../../types/oder";
-import { formatImageUrl, translateOrderStatus, groupByShop } from "../../../types/utils";
+import { formatImageUrl, translateOrderStatus, groupByShop, translateShippingStatus } from "../../../types/utils";
 import ReviewModal from "./ReviewModal";
 
 interface OrderListItemProps {
@@ -93,8 +93,11 @@ export default function OrderListItem({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-gray-500 text-xs font-medium">Giao hàng</span>
-                            <span className="font-semibold text-black">{order.shipping_status}</span>
+                            <span className="font-semibold text-black">
+                                {translateShippingStatus(order.shipping_status)}
+                            </span>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -153,9 +156,10 @@ export default function OrderListItem({
                     </button>
 {order.order_status === "Delivered" && (
   order.order_details.every(detail => detail.reviewed) ? (
-    <span className="text-green-600 font-medium self-center">
-      Đơn hàng này đã được đánh giá
-    </span>
+                            <span className="text-green-600 font-semibold self-center">
+                                ✔ Đã đánh giá 
+                            </span>
+
   ) : (
     <button
       className="px-6 py-2 bg-[#db4444] text-white rounded-lg hover:bg-[#c13838]"

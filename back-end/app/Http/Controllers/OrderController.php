@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\ProductVariant;
+use App\Models\Notification;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
@@ -189,7 +191,7 @@ class OrderController extends Controller
                         'quantity' => $cart->quantity,
                         'subtotal' => $cart->quantity * $priceAtTime,
                     ]);
-
+                    $product->increment('sold', $cart->quantity);
                     $orders[] = $order;
                 }
             }
@@ -274,6 +276,113 @@ class OrderController extends Controller
 
         return response()->json(['message' => 'Không thể huỷ đơn ở trạng thái hiện tại'], 400);
     }
+    public function adminShow($id)
+    {
+        $order = Order::with(['user', 'shop', 'orderDetails.product'])
+            ->find($id);
+
+        if (!$order) {
+            return response()->json(['message' => 'Đơn hàng không tồn tại'], 404);
+        }
+
+        $response = [
+            'id' => $order->id,
+            'buyer' => [
+                'id' => $order->user?->id,
+                'name' => $order->user?->name,
+                'email' => $order->user?->email,
+                'phone' => $order->user?->phone,
+                'rank' => $order->user?->rank,
+                'avatar' => $order->user?->avatar,
+            ],
+            'shop' => [
+                'id' => $order->shop?->id,
+                'name' => $order->shop?->name,
+            ],
+            'final_amount' => $order->final_amount,
+            'payment_method' => $order->payment_method,
+            'payment_status' => $order->payment_status,
+            'order_status' => $order->order_status,
+            'shipping_status' => $order->shipping_status,
+            'shipping_address' => $order->shipping_address,
+            'created_at' => $order->created_at,
+            'products' => $order->orderDetails->map(function ($detail) {
+                $firstImage = null;
+
+                if (!empty($detail->product?->image)) {
+                    $images = $detail->product->image;
+
+                    // Nếu không phải mảng, thử json_decode
+                    if (!is_array($images)) {
+                        $decoded = json_decode($images, true);
+
+                        if (is_array($decoded)) {
+                            $images = $decoded;
+                        }
+                    }
+
+                    if (is_array($images) && count($images) > 0) {
+                        $firstImage = $images[0];
+                    }
+                }
+
+                return [
+                    'id' => $detail->product->id ?? null,
+                    'name' => $detail->product->name ?? null,
+                    'price_at_time' => $detail->price_at_time,
+                    'quantity' => $detail->quantity,
+                    'subtotal' => $detail->subtotal,
+                    'image' => $firstImage,
+                ];
+            }),
+
+        ];
+
+        return response()->json([
+            'order' => $response
+        ]);
+    }
+    public function adminOrderList(Request $request)
+    {
+        $query = Order::with(['user', 'shop', 'orderDetails']);
+
+        if ($request->has('status')) {
+            $query->where('order_status', $request->status);
+        }
+
+        $orders = $query->latest()->paginate(20);
+
+        $data = $orders->map(function ($order) {
+            return [
+                'id' => $order->id,
+                'buyer' => [
+                    'id' => $order->user?->id,
+                    'name' => $order->user?->name,
+                ],
+                'shop' => [
+                    'id' => $order->shop?->id,
+                    'name' => $order->shop?->name,
+                ],
+                'final_amount' => $order->final_amount,
+                'payment_method' => $order->payment_method,
+                'order_status' => $order->order_status,
+                'shipping_status' => $order->shipping_status,
+                'shipping_address' => $order->shipping_address,
+                'created_at' => $order->created_at,
+                'total_products' => $order->orderDetails->sum('quantity'),
+            ];
+        });
+
+        return response()->json([
+            'orders' => $data,
+            'pagination' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'total' => $orders->total(),
+            ]
+        ]);
+    }
+
     public function updateShippingStatus($orderId, Request $request)
     {
         $order = Order::find($orderId);
@@ -429,6 +538,7 @@ class OrderController extends Controller
                             'subtotal' => $quantity * $salePrice,
                         ]);
                     }
+                    $product->increment('sold', $quantity);
                 }
 
                 $orders[] = $order;
@@ -449,5 +559,99 @@ class OrderController extends Controller
             ]);
             return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
         }
+    }
+    public function updateOrderStatus(Request $request, $orderId)
+    {
+        // Validate input
+        $validated = $request->validate([
+            'order_status' => 'required|string|max:50',
+        ]);
+
+        // Tìm đơn hàng
+        $order = Order::find($orderId);
+
+        if (!$order) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+
+        $orderStatus = strtolower($validated['order_status']);
+
+        // Ánh xạ order_status -> shipping_status
+        $statusMap = [
+            'pending'              => 'Pending',
+            'order confirmation'   => 'Pending',
+            'shipped'              => 'Shipping',
+            'delivered'            => 'Delivered',
+            'canceled'             => 'Failed',
+        ];
+
+        // Cập nhật order_status
+        $order->order_status = ucfirst($orderStatus);
+
+        // Cập nhật shipping_status nếu ánh xạ được
+        if (isset($statusMap[$orderStatus])) {
+            $order->shipping_status = $statusMap[$orderStatus];
+        }
+
+        $order->save();
+
+        // Tạo thông báo nếu Delivered
+        if ($orderStatus === 'delivered') {
+            Notification::create([
+                'title'     => "Đơn hàng #{$order->id} đã giao",
+                'content'   => "Đơn hàng của bạn đã được giao thành công. Nhấn để xem chi tiết.",
+                'image_url' => '/images/order-delivered.png',
+                'link'      => "/account?section=orders&order_id={$order->id}",
+                'is_read'   => 0,
+            ]);
+        }
+
+        // Tạo thông báo nếu Canceled
+        if ($orderStatus === 'canceled') {
+            Notification::create([
+                'title'     => "Đơn hàng #{$order->id} đã bị huỷ",
+                'content'   => "Đơn hàng của bạn đã bị huỷ do khách hàng không nhận. Liên hệ hỗ trợ nếu cần.",
+                'image_url' => '/images/order-cancelled.png',
+                'link'      => "/account?section=orders&order_id={$order->id}",
+                'is_read'   => 0,
+            ]);
+        }
+
+        return response()->json(['message' => 'Order status updated successfully']);
+    }
+    public function orderStatistics()
+    {
+        $totalOrders = Order::count();
+
+        // Tổng tiền tính tất cả, kể cả đơn đã hủy
+        $totalAmount = Order::sum('final_amount');
+
+        $pendingOrders = Order::where('order_status', 'Pending')->count();
+
+        $confirmationOrders = Order::where('order_status', 'order confirmation')->count();
+
+        $shippingOrders = Order::where('order_status', 'Shipped')->count();
+
+        $deliveredOrders = Order::where('order_status', 'Delivered')->count();
+
+        $canceledOrders = Order::where('order_status', 'Canceled')->count();
+
+        return response()->json([
+            'total_orders'             => $totalOrders,
+            'total_amount'             => $totalAmount,
+            'formatted_total_amount'   => number_format($totalAmount, 0, ',', '.') . ' ₫',
+            'pending_orders'           => $pendingOrders,
+            'confirmation_orders'      => $confirmationOrders,
+            'shipping_orders'          => $shippingOrders,
+            'delivered_orders'         => $deliveredOrders,
+            'canceled_orders'          => $canceledOrders,
+        ]);
+    }
+    public function downloadInvoice($id)
+    {
+        $order = Order::with(['user', 'orderDetails.product'])->findOrFail($id);
+
+        $pdf = Pdf::loadView('invoices.order', compact('order'));
+        return $pdf->download("invoice_order_{$order->id}.pdf");
     }
 }

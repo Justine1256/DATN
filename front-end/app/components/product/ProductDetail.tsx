@@ -48,7 +48,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     async function fetchData() {
       const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
       const { data } = await res.json();
-      console.log("🚀 Product data:", data);  
+      console.log("🚀 Product data:", data);
 
       const gocA = parseOptionValues(data.value1);
       const gocB = parseOptionValues(data.value2);
@@ -73,6 +73,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   if (!product) return <LoadingProductDetail />;
 
+  const ratingValue =
+    typeof product.rating_avg === 'number'
+      ? product.rating_avg
+      : typeof product.rating === 'number'
+        ? product.rating
+        : 0;
+
   const optsA = Array.from(new Set([
     ...product.variants.map(v => v.value1),
     ...parseOptionValues(product.value1)
@@ -83,22 +90,22 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     ...parseOptionValues(product.value2)
   ].filter(Boolean)));
 
-const hasCombination = (a: string, b: string) => {
-  // Nếu không có biến thể thì luôn cho chọn
-  if (!product.variants.length) return true;
+  const hasCombination = (a: string, b: string) => {
+    // Nếu không có biến thể thì luôn cho chọn
+    if (!product.variants.length) return true;
 
-  const inVariant = product.variants.some(v => {
-    const matchA = !a || v.value1 === a;
-    const matchB = !b || v.value2 === b;
-    return matchA && matchB;
-  });
+    const inVariant = product.variants.some(v => {
+      const matchA = !a || v.value1 === a;
+      const matchB = !b || v.value2 === b;
+      return matchA && matchB;
+    });
 
-  const fromProduct =
-    parseOptionValues(product.value1).includes(a) &&
-    parseOptionValues(product.value2).includes(b);
+    const fromProduct =
+      parseOptionValues(product.value1).includes(a) &&
+      parseOptionValues(product.value2).includes(b);
 
-  return inVariant || fromProduct;
-};
+    return inVariant || fromProduct;
+  };
 
 
   const isFromProduct = parseOptionValues(product.value1).includes(selectedA) && parseOptionValues(product.value2).includes(selectedB);
@@ -116,16 +123,16 @@ const hasCombination = (a: string, b: string) => {
   };
 
   const handleSelectA = (a: string) => {
-  setSelectedA(a);
-  const matched = product.variants.find(v => v.value1 === a && v.value2 === selectedB);
-  setSelectedVariant(matched || null);
-};
+    setSelectedA(a);
+    const matched = product.variants.find(v => v.value1 === a && v.value2 === selectedB);
+    setSelectedVariant(matched || null);
+  };
 
-const handleSelectB = (b: string) => {
-  setSelectedB(b);
-  const matched = product.variants.find(v => v.value1 === selectedA && v.value2 === b);
-  setSelectedVariant(matched || null);
-};
+  const handleSelectB = (b: string) => {
+    setSelectedB(b);
+    const matched = product.variants.find(v => v.value1 === selectedA && v.value2 === b);
+    setSelectedVariant(matched || null);
+  };
 
 
   const commonPopup = (msg: string) => {
@@ -182,11 +189,6 @@ const handleSelectB = (b: string) => {
       }
     }
   };
-  
-  
-  
-  
-
   const toggleLike = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
     if (!token) return commonPopup('Vui lòng đăng nhập để yêu thích sản phẩm');
@@ -212,7 +214,7 @@ const handleSelectB = (b: string) => {
     setFollowed(!followed);
   };
 
-  const handleBuyNow = async() => {
+  const handleBuyNow = async () => {
     await handleAddToCart(); // Add product to cart
     router.push('/cart');
   };
@@ -245,30 +247,32 @@ const handleSelectB = (b: string) => {
             <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{product.name}</h1>
             {/* Rating, stock */}
             <div className="flex items-center gap-3 text-sm">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="flex items-center gap-2 text-base">
-                  {parseFloat(product.rating) > 0 ? (
-                    <>
-                      <span className="text-gray-800 flex items-center">
-                        {(parseFloat(product.rating) / 2).toFixed(1)}
-                      </span>
-                      <div className="flex items-center">
-                        {Array.from({ length: 5 }).map((_, i) =>
-                          i < Math.round(parseFloat(product.rating) / 2) ? (
-                            <FaStar key={i} className="text-yellow-400" />
-                          ) : (
-                            <FaRegStar key={i} className="text-gray-300" />
-                          )
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-red-500 font-semibold">Chưa đánh giá</span>
-                  )}
-                </div>
+              <div className="flex items-center gap-2 text-base">
+                {ratingValue > 0 && (
+                  <>
+                    <span className="text-gray-800 flex items-center">
+                      {ratingValue.toFixed(1)}
+                    </span>
+                    <div className="flex items-center">
+                      {Array.from({ length: 5 }).map((_, i) =>
+                        i < Math.round(ratingValue) ? (
+                          <FaStar key={i} className="text-yellow-400" />
+                        ) : (
+                          <FaRegStar key={i} className="text-gray-300" />
+                        )
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
-              <span className="text-gray-500">(150 Lượt Xem)</span>
+              {/* Luôn hiển thị lượt đánh giá */}
+              <span className="text-gray-500">
+                {product.review_count && product.review_count > 0
+                  ? `Lượt đánh giá: ${product.review_count}`
+                  : 'Chưa có đánh giá'}
+              </span>
+
               <span className="text-gray-300">|</span>
               <span className="text-emerald-400 font-medium">
                 Hàng trong kho: {product.stock || 0} sản phẩm

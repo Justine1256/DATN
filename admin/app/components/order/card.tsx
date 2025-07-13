@@ -1,10 +1,11 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 type OrderStatusCardProps = {
   title: string;
   count: number;
   icon: ReactNode;
   colorIndex?: number;
+  isAmount?: boolean;
 };
 
 const colors = [
@@ -16,18 +17,47 @@ const colors = [
   { hover: 'hover:border-indigo-300', bg: 'bg-indigo-100', text: 'text-indigo-600' }
 ];
 
-export default function OrderStatusCard({ title, count, icon, colorIndex = 0 }: OrderStatusCardProps) {
+export default function OrderStatusCard({
+  title,
+  count,
+  icon,
+  colorIndex = 0,
+  isAmount = false
+}: OrderStatusCardProps) {
   const color = colors[colorIndex % colors.length];
+  const [currentCount, setCurrentCount] = useState(0);
+
+  useEffect(() => {
+    const duration = 1000;
+    const step = count / (duration / 50);
+    let currentValue = 0;
+
+    const interval = setInterval(() => {
+      currentValue += step;
+      if (currentValue >= count) {
+        clearInterval(interval);
+        currentValue = count;
+      }
+      setCurrentCount(Math.floor(currentValue));
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, [count]);
 
   return (
-    <div className={`bg-white border border-gray-200 rounded-xl p-6 ${color.hover} transition-colors duration-200`}>
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <h3 className="text-sm font-medium text-slate-600 mb-2">{title}</h3>
-          <p className="text-2xl font-bold text-slate-800">{count}</p>
-        </div>
-        <div className={`${color.bg} p-3 rounded-lg ${color.text} text-xl ml-4`}>
+    <div className={`bg-white border border-gray-200 rounded-xl p-5 ${color.hover} transition-colors duration-200`}>
+      <div className="flex items-center gap-4">
+        <div className={`${color.bg} p-3 rounded-lg ${color.text} text-2xl`}>
           {icon}
+        </div>
+        <div className="flex flex-col">
+          <span className="text-xs text-gray-500">{title}</span>
+          <span className="text-xl font-semibold text-gray-800">
+            {isAmount
+              ? `${currentCount.toLocaleString('vi-VN')} đ`
+              : currentCount.toLocaleString('vi-VN')
+            }
+          </span>
         </div>
       </div>
     </div>
