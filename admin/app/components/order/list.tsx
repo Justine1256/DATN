@@ -134,7 +134,7 @@ export default function OrderListTable({
               <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[12%]">Ngày tạo</th>
               <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[18%]">Địa chỉ</th>
               <th className="py-4 px-3 text-right font-semibold text-gray-700 w-[12%]">Tổng tiền</th>
-              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[8%]">Sản phẩm</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[8%]">Số lượng</th>
               <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Thanh toán</th>
               <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Vận chuyển</th>
               <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[12%]">Trạng thái</th>
@@ -151,7 +151,9 @@ export default function OrderListTable({
                   {order.shipping_address}
                 </td>
                 <td className="py-4 px-3 text-right font-semibold text-gray-900">{order.final_amount.toLocaleString("vi-VN")} đ</td>
-                <td className="py-4 px-3 text-center">{order.total_products ?? "-"}</td>
+                <td className="py-4 px-3 text-center font-medium text-gray-900">
+                  {order.total_products > 0 ? order.total_products : "-"}
+                </td>
                 <td className="py-4 px-3 text-center">
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                     {order.payment_method}

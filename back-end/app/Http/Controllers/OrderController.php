@@ -319,7 +319,7 @@ class OrderController extends Controller
     }
     public function adminOrderList(Request $request)
     {
-        $query = Order::with(['user', 'shop']);
+        $query = Order::with(['user', 'shop', 'orderDetails']);
 
         if ($request->has('status')) {
             $query->where('order_status', $request->status);
@@ -342,8 +342,9 @@ class OrderController extends Controller
                 'payment_method' => $order->payment_method,
                 'order_status' => $order->order_status,
                 'shipping_status' => $order->shipping_status,
-                'shipping_address' => $order->shipping_address, // 👈 THÊM DÒNG NÀY
+                'shipping_address' => $order->shipping_address,
                 'created_at' => $order->created_at,
+                'total_products' => $order->orderDetails->sum('quantity'),
             ];
         });
 
@@ -356,7 +357,6 @@ class OrderController extends Controller
             ]
         ]);
     }
-
 
     public function updateShippingStatus($orderId, Request $request)
     {
