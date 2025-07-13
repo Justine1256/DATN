@@ -72,6 +72,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             <div className="mt-10">
                 <ProductListTable products={order.products} shippingStatus={order.shipping_status} />
             </div>
+            <div className="flex justify-end mt-4">
+                <button className="px-4 py-2 bg-[#db4444] text-white rounded-xl hover:bg-[#c73333] transition">
+                    Xuất hoá đơn
+                </button>
+            </div>
+
         </div>
     );
 }
