@@ -31,6 +31,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 if (!data?.order?.id) {
                     router.push("/404");
                 } else {
+                    console.log("✅ Đơn hàng nhận được:", data.order);
                     setOrder(data.order);
                 }
             })
@@ -39,5 +40,5 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
     if (!order) return <div className="p-10">Đang tải đơn hàng...</div>;
 
-    return <OrderDetailClient order={order} />;
+    return <OrderDetailClient order={order} setOrder={setOrder} />;
 }
