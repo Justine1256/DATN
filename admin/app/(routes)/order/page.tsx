@@ -19,15 +19,6 @@ type Order = {
   total_products: number;
 };
 
-type OrderStats = {
-  total_orders: number;
-  total_amount: number;
-  pending_orders: number;
-  shipping_orders: number;
-  delivered_orders: number;
-  canceled_orders: number;
-};
-
 export default function ModernOrderTable() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,26 +30,7 @@ export default function ModernOrderTable() {
   const [filterExactDate, setFilterExactDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [stats, setStats] = useState<OrderStats | null>(null);
-
-  // fetch thống kê
-  const fetchStats = async () => {
-    try {
-      const token = Cookies.get("authToken");
-      const res = await fetch(`${API_BASE_URL}/order-statistics`, {
-        headers: {
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
-      });
-      const data = await res.json();
-      setStats(data);
-    } catch (err) {
-      console.error("🚨 Failed to load order statistics:", err);
-    }
-  };
-
-  // fetch tất cả orders
+  // Fetch all orders
   async function fetchOrders(page = 1) {
     setLoading(true);
     try {
@@ -91,9 +63,9 @@ export default function ModernOrderTable() {
 
   useEffect(() => {
     fetchOrders(currentPage);
-    fetchStats();
   }, [currentPage]);
 
+  // Handle status change
   const handleStatusChange = async (id: number, value: string) => {
     try {
       const shippingMap: Record<Order["order_status"], Order["shipping_status"]> = {
@@ -129,6 +101,8 @@ export default function ModernOrderTable() {
     }
   };
 
+
+  // FILTER
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -148,19 +122,23 @@ export default function ModernOrderTable() {
     return matchStatus && matchPeriod && matchExactDate && matchSearch;
   });
 
+  // STATISTICS on ALL orders
+  const totalOrders = orders.length;
+  const totalAmount = orders.reduce((acc, cur) => acc + cur.final_amount, 0);
+  const pendingOrders = orders.filter(o => o.order_status === "Pending").length;
+  const shippingOrders = orders.filter(o => o.order_status === "Shipped").length;
+  const deliveredOrders = orders.filter(o => o.order_status === "Delivered").length;
+  const canceledOrders = orders.filter(o => o.order_status === "Canceled").length;
+
   return (
     <div className="max-w-7xl mx-auto py-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-        {stats && (
-          <>
-            <OrderStatusCard title="Tổng số đơn" count={stats.total_orders} icon={<ShoppingCart />} colorIndex={0} />
-            <OrderStatusCard title="Tổng tiền"count={stats.total_amount || 0} icon={<Clock />} colorIndex={1} isAmount/>
-            <OrderStatusCard title="Đơn đang chờ" count={stats.pending_orders} icon={<Clock />} colorIndex={2} />
-            <OrderStatusCard title="Đơn đang giao" count={stats.shipping_orders} icon={<Truck />} colorIndex={3} />
-            <OrderStatusCard title="Đơn đã giao" count={stats.delivered_orders} icon={<CheckCircle />} colorIndex={4} />
-            <OrderStatusCard title="Đơn đã huỷ" count={stats.canceled_orders ?? 0} icon={<XCircle />} colorIndex={5} />
-          </>
-        )}
+        <OrderStatusCard title="Tổng số đơn" count={totalOrders} icon={<ShoppingCart />} colorIndex={0} />
+        <OrderStatusCard title="Tổng tiền" count={totalAmount} icon={<Clock />} colorIndex={1} isAmount />
+        <OrderStatusCard title="Đơn đang chờ" count={pendingOrders} icon={<Clock />} colorIndex={2} />
+        <OrderStatusCard title="Đơn đang giao" count={shippingOrders} icon={<Truck />} colorIndex={3} />
+        <OrderStatusCard title="Đơn đã giao" count={deliveredOrders} icon={<CheckCircle />} colorIndex={4} />
+        <OrderStatusCard title="Đơn đã huỷ" count={canceledOrders} icon={<XCircle />} colorIndex={5} />
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -186,4 +164,5 @@ export default function ModernOrderTable() {
       </div>
     </div>
   );
+  
 }
