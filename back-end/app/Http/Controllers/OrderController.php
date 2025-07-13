@@ -618,28 +618,32 @@ class OrderController extends Controller
 
         return response()->json(['message' => 'Order status updated successfully']);
     }
-     public function orderStatistics()
+    public function orderStatistics()
     {
         $totalOrders = Order::count();
 
+        // Tổng tiền tính tất cả, kể cả đơn đã hủy
         $totalAmount = Order::sum('final_amount');
 
         $pendingOrders = Order::where('order_status', 'Pending')->count();
 
-        $shippingOrders = Order::where('shipping_status', 'Shipping')->count();
+        $confirmationOrders = Order::where('order_status', 'order confirmation')->count();
+
+        $shippingOrders = Order::where('order_status', 'Shipped')->count();
 
         $deliveredOrders = Order::where('order_status', 'Delivered')->count();
 
-        $cancelledOrders = Order::where('order_status', 'Cancelled')->count();
+        $canceledOrders = Order::where('order_status', 'Canceled')->count();
 
         return response()->json([
             'total_orders'             => $totalOrders,
             'total_amount'             => $totalAmount,
             'formatted_total_amount'   => number_format($totalAmount, 0, ',', '.') . ' ₫',
             'pending_orders'           => $pendingOrders,
+            'confirmation_orders'      => $confirmationOrders,
             'shipping_orders'          => $shippingOrders,
             'delivered_orders'         => $deliveredOrders,
-            'cancelled_orders'         => $cancelledOrders,
+            'canceled_orders'          => $canceledOrders,
         ]);
     }
 }
