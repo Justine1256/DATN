@@ -166,22 +166,33 @@ export default function OrderListTable({
                   </span>
                 </td>
                 <td className="py-4 px-3 text-center">
-                  <select
-                    value={order.order_status}
-                    onChange={(e) => onStatusChange(order.id, e.target.value)}
-                    className={`rounded-full border px-2 py-1 text-xs font-medium transition-all outline-none min-w-[100px]
-    ${statusConfig[order.order_status]?.bg}
-    ${statusConfig[order.order_status]?.text}
-    ${statusConfig[order.order_status]?.border}`}
-                  >
-                    {Object.keys(statusConfig).map(status => (
-                      <option key={status} value={status}>
-                        {statusConfig[status as keyof typeof statusConfig].label}
-                      </option>
-                    ))}
-                  </select>
-
+                  {order.order_status === "Delivered" || order.order_status === "Canceled" ? (
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
+        ${statusConfig[order.order_status]?.bg}
+        ${statusConfig[order.order_status]?.text}
+        ${statusConfig[order.order_status]?.border}`}
+                    >
+                      {statusConfig[order.order_status]?.label}
+                    </span>
+                  ) : (
+                    <select
+                      value={order.order_status}
+                      onChange={(e) => onStatusChange(order.id, e.target.value)}
+                      className={`rounded-full border px-2 py-1 text-xs font-medium transition-all outline-none min-w-[100px]
+        ${statusConfig[order.order_status]?.bg}
+        ${statusConfig[order.order_status]?.text}
+        ${statusConfig[order.order_status]?.border}`}
+                    >
+                      {Object.keys(statusConfig).map(status => (
+                        <option key={status} value={status}>
+                          {statusConfig[status as keyof typeof statusConfig].label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </td>
+
                 <td className="py-4 px-3 text-center">
                   <Link href={`/order/${order.id}`}>
                     <button className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#db4444] hover:bg-[#db4444] hover:text-white transition-all group">
