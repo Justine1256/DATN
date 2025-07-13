@@ -140,23 +140,28 @@ export default function ModernOrderTable() {
         <OrderStatusCard title="Đơn đã huỷ" count={canceledOrders} icon={<XCircle />} colorIndex={5} />
       </div>
 
-      <OrderListTable
-        orders={filteredOrders}
-        loading={loading}
-        onStatusChange={handleStatusChange}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        filterStatus={filterStatus}
-        setFilterStatus={setFilterStatus}
-        filterPeriod={filterPeriod}
-        setFilterPeriod={setFilterPeriod}
-        filterExactDate={filterExactDate}
-        setFilterExactDate={setFilterExactDate}
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        totalPages={totalPages}
-        totalItems={filteredOrders.length}
-      />
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <OrderListTable
+            orders={filteredOrders}
+            loading={loading}
+            onStatusChange={handleStatusChange}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
+            filterPeriod={filterPeriod}
+            setFilterPeriod={setFilterPeriod}
+            filterExactDate={filterExactDate}
+            setFilterExactDate={setFilterExactDate}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            totalPages={totalPages}
+            totalItems={filteredOrders.length}
+          />
+        </div>
+      </div>
     </div>
   );
+  
 }
