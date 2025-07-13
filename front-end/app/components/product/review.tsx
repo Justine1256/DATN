@@ -20,76 +20,67 @@ export default function ProductReviews({ productId }: { productId: number }) {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [lightbox, setLightbox] = useState<{ images: string[], index: number } | null>(null);
-useEffect(() => {
-  const fetchReviews = async () => {
-    try {
-      console.log("📝 Đang gọi API reviews với productId =", productId);
-      const res = await axios.get(`${API_BASE_URL}/products/${productId}/reviews`);
-      console.log("✅ Kết quả:", res.data);
 
-      let data = res.data.data ?? res.data;
-      if (!Array.isArray(data)) data = [data];
+    useEffect(() => {
+        const fetchReviews = async () => {
+            try {
+                const res = await axios.get(`${API_BASE_URL}/products/${productId}/reviews`, {
+                    params: { page }
+                });
+                let data = res.data.data ?? res.data;
+                if (!Array.isArray(data)) data = [data];
 
-      const mapped = data.map((item: any) => ({
-        id: item.id,
-        user: {
-          name: item.user?.name ?? "Unknown",
-          avatar: item.user?.avatar ?? "",
-        },
-        rating: item.rating,
-        comment: item.comment,
-        created_at: item.created_at,
-        images: item.images ?? [],
-      }));
+                const mapped = data.map((item: any) => ({
+                    id: item.id,
+                    user: {
+                        name: item.user?.name ?? "Unknown",
+                        avatar: item.user?.avatar ?? "",
+                    },
+                    rating: item.rating,
+                    comment: item.comment,
+                    created_at: item.created_at,
+                    images: item.images ?? [],
+                }));
 
-      console.log("🔷 reviews mapped", mapped); // 👈 log mapped reviews ở đây
+                setReviews(mapped);
+                setTotalPages(res.data.last_page ?? 1);
+            } catch (err: any) {
+                console.error("🚨 Failed to fetch reviews:", err?.response ?? err);
+            }
+        };
 
-      setReviews(mapped);
-      setTotalPages(res.data.last_page ?? 1);
-    } catch (err: any) {
-      console.error("🚨 Failed to fetch reviews:", err?.response ?? err);
-    }
-  };
+        fetchReviews();
+    }, [productId, page]);
 
-  fetchReviews();
-}, [productId, page]);
-
-        
-    
-    
-
-    // function convertImageToArray(image?: string | null): string[] {
-    //     if (!image || image.trim() === "" || image.endsWith("/storage")) return [];
-    //     return [image];
-    // }
-
-    function getImageUrl(path?: string | null) {
+    const getImageUrl = (path?: string | null) => {
         if (!path || path.trim() === "" || path.endsWith("/storage")) return "/default-avatar.png";
         if (path.startsWith("http")) return path;
         return `${STATIC_BASE_URL}/${path}`;
-    }
+    };
 
     const filteredReviews = reviews
         .filter(r => !filter.stars || r.rating === filter.stars)
         .filter(r => !filter.hasImage || r.images.length > 0);
 
-    console.log("===> Rendering reviews after filter:", filteredReviews);
-
     return (
         <div className="mt-10 mb-12">
+            {/* Title */}
             <div className="mb-6 pb-2 flex items-center">
                 <div className="w-[10px] h-[22px] bg-[#db4444] rounded-tl-sm rounded-bl-sm mr-2" />
                 <p className="font-medium text-brand text-base">Đánh giá sản phẩm</p>
             </div>
+
+            {/* Card */}
             <div className="border border-gray-200 rounded-xl shadow-sm p-6 bg-white">
-                {/* Filters */}
+
+                {/* Filter */}
                 <div className="flex flex-wrap gap-2 mb-8">
                     <button
                         onClick={() => { setFilter({}); setPage(1); }}
                         className={`px-5 py-2.5 rounded-lg border transition-all duration-200 font-medium text-sm ${!filter.stars && !filter.hasImage
                             ? "bg-[#db4444] text-white border-[#db4444]"
-                            : "bg-white text-gray-700 hover:bg-[#db4444] hover:text-white hover:border-[#db4444]"
-                            }`}
+                            : "bg-white text-gray-700 hover:bg-[#db4444] hover:text-white hover:border-[#db4444]"}`
+                        }
                     >
                         Tất cả
                     </button>
@@ -99,8 +90,8 @@ useEffect(() => {
                             onClick={() => { setFilter({ stars: star }); setPage(1); }}
                             className={`px-5 py-2.5 rounded-lg border transition-all duration-200 font-medium text-sm ${filter.stars === star
                                 ? "bg-[#db4444] text-white border-[#db4444]"
-                                : "bg-white text-gray-700 hover:bg-[#db4444] hover:text-white hover:border-[#db4444]"
-                                }`}
+                                : "bg-white text-gray-700 hover:bg-[#db4444] hover:text-white hover:border-[#db4444]"}`
+                            }
                         >
                             {star} Sao
                         </button>
@@ -109,14 +100,14 @@ useEffect(() => {
                         onClick={() => { setFilter({ hasImage: true }); setPage(1); }}
                         className={`px-5 py-2.5 rounded-lg border transition-all duration-200 font-medium text-sm ${filter.hasImage
                             ? "bg-[#db4444] text-white border-[#db4444]"
-                            : "bg-white text-gray-700 hover:bg-[#db4444] hover:text-white hover:border-[#db4444]"
-                            }`}
+                            : "bg-white text-gray-700 hover:bg-[#db4444] hover:text-white hover:border-[#db4444]"}`
+                        }
                     >
                         Có hình ảnh
                     </button>
                 </div>
 
-                {/* Review list */}
+                {/* List */}
                 <div className="space-y-4">
                     {filteredReviews.length === 0 && (
                         <div className="text-center text-gray-500 py-8">Chưa có đánh giá nào.</div>
@@ -153,9 +144,9 @@ useEffect(() => {
                                     {review.rating}/5
                                 </span>
                             </div>
-                            <p className="text-gray-700 mb-4 leading-relaxed">
-                                {review.comment}
-                            </p>
+                            <p className="text-gray-700 mb-4 leading-relaxed">{review.comment}</p>
+
+                            {/* Images */}
                             {review.images.length > 0 && (
                                 <div className="flex gap-3 flex-wrap mt-4">
                                     {review.images.map((img, idx) => (
@@ -205,32 +196,50 @@ useEffect(() => {
                 </div>
             </div>
 
-            {/* Lightbox overlay */}
+            {/* Lightbox */}
             {lightbox && (
-                <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center">
+                    {/* Nút đóng */}
                     <button
                         onClick={() => setLightbox(null)}
-                        className="absolute top-5 right-5 text-white text-3xl"
-                    >✖</button>
+                        className="absolute top-6 right-6 text-white text-5xl hover:scale-110 transition"
+                    >
+                        &times;
+                    </button>
+
+                    {/* Nút prev */}
                     <button
                         onClick={() =>
-                            setLightbox(prev => prev ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length } : null)
+                            setLightbox(prev =>
+                                prev ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length } : null
+                            )
                         }
-                        className="absolute left-5 text-white text-4xl"
-                    >&#8249;</button>
+                        className="absolute left-6 text-white text-6xl hover:scale-110 transition"
+                    >
+                        &#8249;
+                    </button>
+
+                    {/* Ảnh */}
                     <img
                         src={getImageUrl(lightbox.images[lightbox.index])}
-                        className="max-h-[80vh] max-w-[90vw] rounded-lg"
+                        className="max-h-[80vh] max-w-[90vw] rounded-lg shadow-2xl object-contain"
                         alt="Lightbox"
                     />
+
+                    {/* Nút next */}
                     <button
                         onClick={() =>
-                            setLightbox(prev => prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null)
+                            setLightbox(prev =>
+                                prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null
+                            )
                         }
-                        className="absolute right-5 text-white text-4xl"
-                    >&#8250;</button>
+                        className="absolute right-6 text-white text-6xl hover:scale-110 transition"
+                    >
+                        &#8250;
+                    </button>
                 </div>
             )}
+
         </div>
     );
 }

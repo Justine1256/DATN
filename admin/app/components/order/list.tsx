@@ -12,6 +12,7 @@ type Order = {
   shipping_status: "Pending" | "Shipping" | "Delivered" | "Failed";
   shipping_address: string;
   created_at: string;
+  total_products: number;
 };
 
 const statusConfig = {
@@ -126,79 +127,73 @@ export default function OrderListTable({
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px] text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="py-4 px-6 text-left font-semibold text-gray-700">Mã đơn</th>
-                <th className="py-4 px-6 text-left font-semibold text-gray-700">Ngày tạo</th>
-                <th className="py-4 px-6 text-left font-semibold text-gray-700">Địa chỉ giao hàng</th>
-                <th className="py-4 px-6 text-right font-semibold text-gray-700">Tổng tiền</th>
-                <th className="py-4 px-6 text-center font-semibold text-gray-700">Thanh toán</th>
-                <th className="py-4 px-6 text-center font-semibold text-gray-700">Vận chuyển</th>
-                <th className="py-4 px-6 text-center font-semibold text-gray-700">Trạng thái</th>
-                <th className="py-4 px-6 text-center font-semibold text-gray-700">Chi tiết</th>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-100">
+              <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[8%]">Mã đơn</th>
+              <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[12%]">Ngày tạo</th>
+              <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[18%]">Địa chỉ</th>
+              <th className="py-4 px-3 text-right font-semibold text-gray-700 w-[12%]">Tổng tiền</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[8%]">Sản phẩm</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Thanh toán</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Vận chuyển</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[12%]">Trạng thái</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[7%]">Chi tiết</th>
+
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map(order => (
+              <tr key={order.id} className="border-b border-gray-50 hover:bg-[#fff3f3] transition-colors">
+                <td className="py-4 px-3 font-mono text-gray-900 font-medium">#{order.id}</td>
+                <td className="py-4 px-3 text-gray-900 text-xs">{formatDateTime(order.created_at)}</td>
+                <td className="py-4 px-3 text-gray-900 truncate max-w-[160px]" title={order.shipping_address}>
+                  {order.shipping_address}
+                </td>
+                <td className="py-4 px-3 text-right font-semibold text-gray-900">{order.final_amount.toLocaleString("vi-VN")} đ</td>
+                <td className="py-4 px-3 text-center">{order.total_products ?? "-"}</td>
+                <td className="py-4 px-3 text-center">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                    {order.payment_method}
+                  </span>
+                </td>
+                <td className="py-4 px-3 text-center">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
+            ${shippingConfig[order.shipping_status]?.bg}
+            ${shippingConfig[order.shipping_status]?.text}
+            ${shippingConfig[order.shipping_status]?.border}`}>
+                    {shippingConfig[order.shipping_status]?.label}
+                  </span>
+                </td>
+                <td className="py-4 px-3 text-center">
+                  <select
+                    value={order.order_status}
+                    onChange={(e) => onStatusChange(order.id, e.target.value)}
+                    className={`rounded-full border px-2 py-1 text-xs font-medium transition-all outline-none min-w-[100px]
+    ${statusConfig[order.order_status]?.bg}
+    ${statusConfig[order.order_status]?.text}
+    ${statusConfig[order.order_status]?.border}`}
+                  >
+                    {Object.keys(statusConfig).map(status => (
+                      <option key={status} value={status}>
+                        {statusConfig[status as keyof typeof statusConfig].label}
+                      </option>
+                    ))}
+                  </select>
+
+                </td>
+                <td className="py-4 px-3 text-center">
+                  <Link href={`/order/${order.id}`}>
+                    <button className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#db4444] hover:bg-[#db4444] hover:text-white transition-all group">
+                      <Eye size={16} className="text-gray-600 group-hover:text-white" />
+                    </button>
+                  </Link>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={8} className="py-12 text-center text-gray-500">
-                  <div className="inline-flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-                    Đang tải dữ liệu...
-                  </div>
-                </td></tr>
-              ) : orders.length === 0 ? (
-                <tr><td colSpan={8} className="py-12 text-center text-gray-500">
-                  <div className="space-y-2">
-                    <div className="text-gray-400">📦</div>
-                    <div>Không có đơn hàng nào</div>
-                  </div>
-                </td></tr>
-              ) : (
-                orders.map(order => (
-                  <tr key={order.id} className="border-b border-gray-50 hover:bg-[#fff3f3] transition-colors">
-                    <td className="py-4 px-6 font-mono text-gray-900 font-medium">#{order.id}</td>
-                    <td className="py-4 px-6 text-gray-900">{formatDateTime(order.created_at)}</td>
-                    <td className="py-4 px-6 text-gray-900 truncate max-w-[200px]" title={order.shipping_address}>{order.shipping_address}</td>
-                    <td className="py-4 px-6 text-right font-semibold text-gray-900">{order.final_amount.toLocaleString("vi-VN")} đ</td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{order.payment_method}</span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border
-                        ${shippingConfig[order.shipping_status]?.bg}
-                        ${shippingConfig[order.shipping_status]?.text}
-                        ${shippingConfig[order.shipping_status]?.border}`}>
-                        {shippingConfig[order.shipping_status]?.label}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <select value={order.order_status} onChange={(e) => onStatusChange(order.id, e.target.value)}
-                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-all outline-none
-                          ${statusConfig[order.order_status]?.bg}
-                          ${statusConfig[order.order_status]?.text}
-                          ${statusConfig[order.order_status]?.border}`}>
-                        {Object.keys(statusConfig).map(status => (
-                          <option key={status} value={status}>
-                            {statusConfig[status as keyof typeof statusConfig].label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <Link href={`/order/${order.id}`}>
-                        <button className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#db4444] hover:bg-[#db4444] hover:text-white transition-all group">
-                          <Eye size={16} className="text-gray-600 group-hover:text-white" />
-                        </button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
+
         <div className="flex items-center justify-between p-4 text-sm text-gray-500">
           <div>Tổng: {totalItems} đơn</div>
           <div className="flex gap-2">
