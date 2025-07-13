@@ -88,7 +88,6 @@ export default function ModernOrderTable() {
         body: JSON.stringify({ order_status, shipping_status })
       });
 
-      // Update state local không cần fetch lại
       setOrders(prev =>
         prev.map(order =>
           order.id === id
@@ -101,6 +100,7 @@ export default function ModernOrderTable() {
       console.error("🚨 Failed to update order status:", err);
     }
   };
+
 
   // FILTER
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
