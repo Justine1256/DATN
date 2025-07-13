@@ -241,7 +241,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // quản lý danh mục của shop
     Route::get('/shop/categories/{shop_id}', [CategoryController::class, 'getShopCategories']);
     Route::post('/shop/categories', [CategoryController::class, 'addCategoryByShop']);
-    Route::patch('/shop/categories/{id}', [CategoryController::class, 'updateCategoryByShop']);
+    Route::put('/shop/categories/{id}', [CategoryController::class, 'updateCategoryByShop']);
+    Route::patch('/shop/categories/{id}/status', [CategoryController::class, 'updateCategoryStatus']);
     Route::delete('/shop/categories/{id}', [CategoryController::class, 'destroyCategoryByShop']);
     Route::post('/shop/categories/{id}', [CategoryController::class, 'restoreCategory']);
     // quản lý bình luận của shop
