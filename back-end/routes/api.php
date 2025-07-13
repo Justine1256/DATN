@@ -105,6 +105,8 @@ Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::cl
 Route::get('/search', [ProductController::class, 'search']);
 Route::post('/nologin', [OrderController::class, 'guestCheckout']);// đặt hàng ko cần đăng nhập
 Route::get('/admin/orders', [OrderController::class, 'adminOrderList']);
+Route::get('/order-statistics', [OrderController::class, 'orderStatistics']);
+
 
 
 Route::get('/vouchers', [VoucherController::class, 'index']);
