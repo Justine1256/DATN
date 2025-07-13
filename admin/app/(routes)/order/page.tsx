@@ -21,11 +21,11 @@ type Order = {
 
 type OrderStats = {
   total_orders: number;
-  formatted_total_amount: string;
+  total_amount: number;
   pending_orders: number;
   shipping_orders: number;
   delivered_orders: number;
-  cancelled_orders: number;
+  canceled_orders: number;
 };
 
 export default function ModernOrderTable() {
@@ -154,11 +154,11 @@ export default function ModernOrderTable() {
         {stats && (
           <>
             <OrderStatusCard title="Tổng số đơn" count={stats.total_orders} icon={<ShoppingCart />} colorIndex={0} />
-            <OrderStatusCard title="Tổng tiền" count={stats.formatted_total_amount} icon={<Clock />} colorIndex={1} isAmount />
+            <OrderStatusCard title="Tổng tiền"count={stats.total_amount || 0} icon={<Clock />} colorIndex={1} isAmount/>
             <OrderStatusCard title="Đơn đang chờ" count={stats.pending_orders} icon={<Clock />} colorIndex={2} />
             <OrderStatusCard title="Đơn đang giao" count={stats.shipping_orders} icon={<Truck />} colorIndex={3} />
             <OrderStatusCard title="Đơn đã giao" count={stats.delivered_orders} icon={<CheckCircle />} colorIndex={4} />
-            <OrderStatusCard title="Đơn đã huỷ" count={stats.cancelled_orders} icon={<XCircle />} colorIndex={5} />
+            <OrderStatusCard title="Đơn đã huỷ" count={stats.canceled_orders ?? 0} icon={<XCircle />} colorIndex={5} />
           </>
         )}
       </div>
