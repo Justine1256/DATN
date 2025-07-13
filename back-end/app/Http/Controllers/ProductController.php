@@ -542,6 +542,31 @@ class ProductController extends Controller
         ]);
     }
 
+    public function updateStatus(Request $request, $id)
+{
+    $request->validate([
+        'status' => 'required|in:deleted,activated',
+    ]);
+
+    $user = $request->user();
+
+    if (!$user || !$user->shop) {
+        return response()->json(['error' => 'Bạn chưa đăng nhập hoặc chưa có cửa hàng.'], 403);
+    }
+
+    $product = Product::where('id', $id)
+        ->where('shop_id', $user->shop->id)
+        ->first();
+
+    if (!$product) {
+        return response()->json(['error' => 'Không tìm thấy sản phẩm.'], 404);
+    }
+
+    $product->status = $request->status;
+    $product->save();
+
+    return response()->json(['message' => 'Cập nhật trạng thái sản phẩm thành công.']);
+}
 
     public function destroy(Request $request, $id)
     {

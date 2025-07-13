@@ -8,6 +8,7 @@ import { Product } from "@/types/product";
 import { Category } from "@/types/category";
 import { STATIC_BASE_URL } from "@/utils/api";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 type ProductRowProps = {
   product: Product;
@@ -90,29 +91,37 @@ const ProductRow = ({ product, onDelete }: ProductRowProps) => {
       <td className="py-2 px-3">
         <div className="flex justify-center gap-2">
           <button
-            onClick={() => setShowDetail(!showDetail)}
-            className={`p-2 rounded transition-colors ${showDetail
-                ? "bg-green-50 hover:bg-green-100"
-                : "bg-gray-100 hover:bg-gray-200"
-              }`}
-            title={showDetail ? "Đang mở chi tiết" : "Đang ẩn chi tiết"}
-          >
-            {showDetail ? (
-              <FiEye className="w-5 h-5 text-green-600" />
-            ) : (
-              <FiEyeOff className="w-5 h-5 text-gray-600" />
-            )}
-          </button>
+  onClick={async () => {
+    try {
+      const newStatus = product.status === "activated" ? "deleted" : "activated";
+      await axios.patch(`/api/shop/products/${product.id}/status`, {
+        status: newStatus,
+      });
+      alert("Cập nhật trạng thái thành công!");
 
-          <button
-            onClick={() => router.push(`/product/${product.id}/edit`)}
-            className="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200"
-            title="Edit"
-          >
-            <FiEdit />
-          </button>
+      // Optional: reload trang hoặc gọi hàm refetch từ parent
+      router.refresh(); // nếu dùng Next.js 13+ App Router
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi khi cập nhật trạng thái sản phẩm.");
+    }
+  }}
+  className={`p-2 rounded transition-colors ${
+    product.status === "activated"
+      ? "bg-red-100 hover:bg-red-200 text-red-600"
+      : "bg-green-100 hover:bg-green-200 text-green-600"
+  }`}
+  title={
+    product.status === "activated" ? "Ẩn sản phẩm" : "Kích hoạt sản phẩm"
+  }
+>
+  {product.status === "activated" ? <FiEyeOff /> : <FiEye />}
+</button>
+
         </div>
       </td>
+      <td>{product.status === 'deleted' ? 'Đã ẩn' : 'Đang bán'}</td>
+
     </tr>
   );
 };
