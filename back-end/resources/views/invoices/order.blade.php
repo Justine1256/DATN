@@ -63,18 +63,23 @@
     .signature {
         display: flex;
         justify-content: space-between;
-        margin-top: 40px;
+        margin-top: 50px;
     }
 
     .signature div {
         text-align: center;
-        width: 48%;
+        width: 45%;
     }
 
     .signature img {
         margin: 0 auto;
         display: block;
         height: 60px;
+        opacity: 0.8;
+    }
+
+    .signature p {
+        margin-top: 60px;
     }
 </style>
 </head>
@@ -119,7 +124,8 @@
 
 <div class="signature">
     <div>
-        <strong>Người mua hàng</strong>
+        <strong>Người mua hàng</strong><br>
+        <small>(Ký, ghi rõ họ tên)</small>
         <p><em>{{ $order->user->name }}</em></p>
     </div>
     <div>
