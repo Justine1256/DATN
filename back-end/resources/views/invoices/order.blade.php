@@ -160,7 +160,7 @@
         <strong>Đại diện shop</strong><br>
         <small>Ngày {{ now()->format('d/m/Y') }}</small>
         <div style="position: relative; height: 80px;">
-            <img src="{{ public_path('dau-shop.png') }}" style="position: absolute; left: 50%; top: 0; transform: translateX(-50%); height: 60px;">
+            <img src="{{ public_path('dau.png') }}" style="position: absolute; left: 50%; top: 0; transform: translateX(-50%); height: 60px;">
             <p style="margin-top: 65px;">
                 {{ $order->shop->name }}
             </p>
