@@ -40,7 +40,7 @@ Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
 
     // Kiểm tra token qua Sanctum
     if ($token) {
-        $user = Auth::guard('web')->user();
+        $user = Auth::guard('sanctum')->user();
 
         if ($user) {
             // Kiểm tra quyền truy cập vào channel
@@ -235,12 +235,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/shop/products/{id}/get', [ProductController::class, 'getProductByIdShop']);
     Route::post('/shop/products', [ProductController::class, 'store']);
     Route::patch('/shop/products/{id}/edit', [ProductController::class, 'update']);
+    Route::patch('/shop/products/{id}/status', [ProductController::class, 'updateStatus']);
     Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
+    Route::delete('/shop/product-variants/{id}', [ProductController::class, 'destroyVariant']);
     Route::post('/shop/restore/products/{id}', [ProductController::class, 'restoreProduct']);
     // quản lý danh mục của shop
     Route::get('/shop/categories/{shop_id}', [CategoryController::class, 'getShopCategories']);
     Route::post('/shop/categories', [CategoryController::class, 'addCategoryByShop']);
-    Route::patch('/shop/categories/{id}', [CategoryController::class, 'updateCategoryByShop']);
+    Route::put('/shop/categories/{id}', [CategoryController::class, 'updateCategoryByShop']);
+    Route::patch('/shop/categories/{id}/status', [CategoryController::class, 'updateCategoryStatus']);
     Route::delete('/shop/categories/{id}', [CategoryController::class, 'destroyCategoryByShop']);
     Route::post('/shop/categories/{id}', [CategoryController::class, 'restoreCategory']);
     // quản lý bình luận của shop

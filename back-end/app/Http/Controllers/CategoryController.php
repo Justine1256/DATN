@@ -341,6 +341,43 @@ public function updateCategoryByShop(Request $request, $id)
         'data' => $category->fresh()
     ]);
 }
+// cập nhật trạng thái danh mục của shop
+public function updateCategoryStatus(Request $request, $id)
+{
+    $user = $request->user();
+
+    if (!$user || !$user->shop) {
+        return response()->json(['status' => false, 'message' => 'Bạn chưa đăng nhập hoặc chưa có cửa hàng.'], 403);
+    }
+
+    $shopId = $user->shop->id;
+
+    // Tìm category thuộc shop
+    $category = Category::where('id', $id)->where('shop_id', $shopId)->first();
+
+    if (!$category) {
+        return response()->json(['status' => false, 'message' => 'Không tìm thấy danh mục.'], 404);
+    }
+
+    // Validate status
+    $validator = Validator::make($request->all(), [
+        'status' => 'required|in:activated,deleted',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+    }
+
+    // Cập nhật trạng thái
+    $category->status = $request->status;
+    $category->save();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Cập nhật trạng thái danh mục thành công.',
+        'data' => $category->fresh()
+    ]);
+}
 // Xóa danh mục của shop
 public function destroyCategoryByShop(Request $request, $id)
 {

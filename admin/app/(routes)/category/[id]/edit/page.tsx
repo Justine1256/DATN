@@ -143,7 +143,7 @@ export default function EditCategoryPage() {
     setSubmitting(true);
     try {
       await axios.put(
-        `${API_BASE_URL}/category/${id}`,
+        `${API_BASE_URL}/shop/categories/${id}`,
         {
           ...formData,
           image: formData.image || "",

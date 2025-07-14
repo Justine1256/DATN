@@ -169,11 +169,19 @@ export default function ProductListPage() {
                             ) : (
                                 products.map((product) => (
                                     <ProductRow
-                                        key={product.id}
-                                        product={product}
-                                        onDelete={handleDelete}
-                                        categoriesMap={categoriesMap}
-                                    />
+  key={product.id}
+  product={product}
+  onDelete={handleDelete}
+  onStatusChange={(newStatus) => {
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === product.id ? { ...p, status: newStatus } : p
+      )
+    );
+  }}
+  categoriesMap={categoriesMap}
+/>
+
                                   
                                 ))
                             )}

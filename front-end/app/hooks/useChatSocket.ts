@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Pusher from 'pusher-js';
 
 export const useChatSocket = (
@@ -8,26 +8,23 @@ export const useChatSocket = (
   onMessage?: (data: any) => void
 ) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  let pusher: Pusher | null = null; // Explicitly declare the type of 'pusher'
+  const pusherRef = useRef<Pusher | null>(null); // Sử dụng useRef để lưu trữ pusher instance
 
   useEffect(() => {
     if (!token || !userId || !receiverId || !onMessage) {
       return;
     }
 
-    // Kiểm tra token bằng API /api/user
+    // Kiểm tra token chỉ một lần khi component mount
     fetch('https://api.marketo.info.vn/api/user', {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
     })
-    .then(res => {
-      console.log("Response:", res);
-      return res.json();
-    })
+    .then(res => res.json())
     .then(data => {
       if (data && data.id === userId) {
-        setIsAuthenticated(true);
+        setIsAuthenticated(true); // Nếu token hợp lệ, xác nhận người dùng
       } else {
         console.error('Token không hợp lệ hoặc không phải người dùng này');
       }
@@ -40,41 +37,31 @@ export const useChatSocket = (
   useEffect(() => {
     if (!isAuthenticated || !userId || !receiverId) return;
 
-    // Kiểm tra kết nối trước
-    if (pusher && pusher.connection.state !== 'connected') {
-      pusher.disconnect();
+    // Nếu chưa có kết nối pusher, tạo mới kết nối
+    if (!pusherRef.current) {
+      pusherRef.current = new Pusher('d13455038dedab3f3d3e', {
+        cluster: 'ap1',
+        forceTLS: true,
+      });
+
+      const participants = [userId, receiverId].sort((a, b) => a - b);
+      const channelName = `chat.${participants[0]}.${participants[1]}`; // Kênh công khai
+      const channel = pusherRef.current.subscribe(channelName);
+
+      channel.bind('message.sent', (data: any) => {
+        if (onMessage) {
+          console.log('📥 Realtime received:', data);
+          onMessage(data); // Xử lý tin nhắn nhận được
+        }
+      });
     }
 
-    // Kết nối lại
-    pusher = new Pusher('d13455038dedab3f3d3e', {
-      cluster: 'ap1',
-      forceTLS: true,
-      authEndpoint: 'https://api.marketo.info.vn/api/broadcasting/auth',
-      auth: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    });
-
-    const participants = [userId, receiverId].sort((a, b) => a - b);
-    const channelName = `private-chat.${participants[0]}.${participants[1]}`;
-    const channel = pusher.subscribe(channelName);
-
-    channel.bind('message.sent', (data: any) => {
-      if (onMessage) {
-        console.log('📥 Realtime received:', data);
-        onMessage(data);
-      }
-    });
-
     return () => {
-      channel.unbind_all();
-      channel.unsubscribe();
-      if (pusher) {
-        pusher.disconnect();
+      // Ngắt kết nối Pusher khi component unmount
+      if (pusherRef.current) {
+        pusherRef.current.disconnect();
       }
     };
-  }, [isAuthenticated, token, userId, receiverId, onMessage]);
+  }, [isAuthenticated, userId, receiverId, onMessage]);
 
 };
