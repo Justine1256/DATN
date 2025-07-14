@@ -237,6 +237,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/shop/products/{id}/edit', [ProductController::class, 'update']);
     Route::patch('/shop/products/{id}/status', [ProductController::class, 'updateStatus']);
     Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
+    Route::delete('/shop/product-variants/{id}', [ProductController::class, 'destroyVariant']);
     Route::post('/shop/restore/products/{id}', [ProductController::class, 'restoreProduct']);
     // quản lý danh mục của shop
     Route::get('/shop/categories/{shop_id}', [CategoryController::class, 'getShopCategories']);

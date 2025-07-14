@@ -601,6 +601,29 @@ public function getProductByIdShop($id)
             'message' => 'Xóa sản phẩm thành công.'
         ]);
     }
+
+        public function destroyVariant($id)
+    {
+        $user = Auth::user();
+        if (!$user || !$user->shop) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $variant = ProductVariant::find($id);
+
+        if (!$variant) {
+            return response()->json(['message' => 'Variant not found'], 404);
+        }
+
+        // Chỉ xóa nếu biến thể thuộc về shop của user
+        if ($variant->product->shop_id !== $user->shop->id) {
+            return response()->json(['message' => 'Not authorized to delete this variant'], 403);
+        }
+
+        $variant->delete(); // soft delete nếu dùng SoftDeletes
+
+        return response()->json(['message' => 'Variant deleted successfully']);
+    }
     // Khôi phục sản phẩm đã xóa mềm bởi shop
     public function restoreProduct(Request $request, $id)
     {

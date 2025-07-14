@@ -11,6 +11,7 @@ import { Product } from "@/types/product";
 import VariantModal from "@/app/components/product/edit/VariantModal";
 
 interface Variant {
+  id?: number;
   value1: string;
   value2: string;
   price: number;
@@ -52,6 +53,31 @@ export default function EditProductPage() {
     setPopupType(type);
     setTimeout(() => setPopupMessage(""), 2000);
   };
+const handleDeleteVariant = async (variantId?: number) => {
+  if (!variantId) return;
+
+  const confirmed = window.confirm("Bạn có chắc muốn xoá biến thể này?");
+  if (!confirmed) return;
+
+  try {
+    const token = Cookies.get("authToken");
+    const res = await fetch(`${API_BASE_URL}/shop/product-variants/${variantId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("Xoá thất bại");
+
+    // Xoá trên frontend sau khi xoá trên DB thành công
+    setVariants((prev) => prev.filter((item) => item.id !== variantId));
+    handleShowPopup("Đã xoá biến thể", "success");
+  } catch (err) {
+    console.error("Lỗi xoá biến thể:", err);
+    handleShowPopup("Xoá biến thể thất bại", "error");
+  }
+};
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -63,12 +89,11 @@ export default function EditProductPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        
         if (!res.ok) throw new Error("Không tìm thấy sản phẩm hoặc không có quyền");
 
         const data = await res.json();
         const p = data.product;
-        console.log("variant",p)
+
         setProduct(p);
         setCategory(p.category_id?.toString() || "");
         setSelectedImages(
@@ -83,40 +108,29 @@ export default function EditProductPage() {
           option2: p.option2 || "",
           value2: p.value2 || "",
         });
-        if (Array.isArray(p.variants) && p.variants.length > 0) {
-  const v = p.variants[0]; // Lấy biến thể đầu tiên làm đại diện
-  setFormValues({
-    name: p.name,
-    price: v.price,
-    sale_price: v.sale_price || 0,
-    stock: v.stock || 0,
-    description: p.description || "",
-  });
-} else {
-  setFormValues({
-    name: p.name,
-    price: p.price,
-    sale_price: p.sale_price || 0,
-    stock: p.stock || 0,
-    description: p.description || "",
-  });
-}
 
-        setVariants(
-  Array.isArray(p.variants)
-    ? p.variants
-        .filter((v: any) => v.value1 && v.value2 && typeof v.price === "number")
-        .map((v: any) => ({
-          value1: v.value1,
-          value2: v.value2,
-          price: v.price,
-          sale_price: v.sale_price || 0,
-          stock: v.stock || 0,
-          image: Array.isArray(v.image) ? v.image : [],
-        }))
-    : []
-);
+        const loadedVariants: Variant[] = Array.isArray(p.variants)
+          ? p.variants.map((v: any) => ({
+              id: v.id,
+              value1: v.value1,
+              value2: v.value2,
+              price: parseFloat(v.price),
+              sale_price: parseFloat(v.sale_price) || 0,
+              stock: (v?.stock ?? p.stock) ?? 0,
+              image: Array.isArray(v.image) ? v.image : [],
+            }))
+          : [];
 
+        setVariants(loadedVariants);
+
+        const v = loadedVariants[0];
+        setFormValues({
+          name: p.name,
+          price: v?.price ?? parseFloat(p.price),
+          sale_price: v?.sale_price ?? parseFloat(p.sale_price || 0),
+          stock: (v?.stock ?? p.stock) ?? 0,
+          description: p.description || "",
+        });
       } catch (err) {
         console.error("Lỗi khi tải sản phẩm:", err);
         router.push("/product");
@@ -166,13 +180,15 @@ export default function EditProductPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               {variants.map((v, i) => (
-                <div key={i} className="border rounded p-3 relative">
+                <div key={v.id ?? i} className="border rounded p-3 relative">
                   <div className="text-sm text-gray-700 mb-1">
                     <strong>{v.value1}</strong> / {v.value2}
                   </div>
                   <div className="text-xs text-gray-500">
                     Giá: {v.price.toLocaleString()} | Tồn: {v.stock}
                   </div>
+
+                  {/* Sửa */}
                   <button
                     type="button"
                     className="absolute top-1 right-1 text-blue-500 text-xs underline"
@@ -183,6 +199,16 @@ export default function EditProductPage() {
                   >
                     Sửa
                   </button>
+
+                  {/* Xoá */}
+                  <button
+                    type="button"
+                    className="absolute bottom-1 right-1 text-red-500 text-xs underline"
+                    onClick={() => handleDeleteVariant(v.id)}
+                  >
+                    Xoá
+                  </button>
+
                 </div>
               ))}
             </div>
@@ -200,10 +226,11 @@ export default function EditProductPage() {
         </div>
       </div>
 
+      {/* Popup */}
       {popupMessage && (
         <div
           className={`fixed top-6 right-6 px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-slide-in
-            ${popupType === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
+          ${popupType === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
         >
           {popupType === "success" ? (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,6 +245,7 @@ export default function EditProductPage() {
         </div>
       )}
 
+      {/* Modal */}
       {showVariantModal && (
         <VariantModal
           onClose={() => {
@@ -225,13 +253,9 @@ export default function EditProductPage() {
             setShowVariantModal(false);
           }}
           onSave={(newVariant) => {
-            if (editingVariant) {
+            if (editingVariant?.id) {
               setVariants((prev) =>
-                prev.map((v) =>
-                  v.value1 === editingVariant.value1 && v.value2 === editingVariant.value2
-                    ? newVariant
-                    : v
-                )
+                prev.map((v) => (v.id === editingVariant.id ? { ...newVariant, id: v.id } : v))
               );
             } else {
               setVariants((prev) => [...prev, newVariant]);
