@@ -7,8 +7,8 @@
     body {
         font-family: DejaVu Sans, sans-serif;
         color: #333;
-        margin: 20px;
         font-size: 13px;
+        margin: 20px;
     }
 
     h2 {
@@ -28,43 +28,24 @@
         margin-bottom: 5px;
     }
 
-    .info {
-        margin-bottom: 20px;
-        line-height: 1.6;
-    }
-
     .info p {
         margin: 2px 0;
-    }
-
-    h3 {
-        margin-top: 20px;
-        margin-bottom: 10px;
-        color: #444;
-        font-size: 16px;
     }
 
     table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 10px;
         font-size: 12px;
+        margin-top: 10px;
     }
 
-    thead {
-        background-color: #f5f5f5;
+    th, td {
+        border: 1px solid #ddd;
+        padding: 6px 8px;
     }
 
     th {
-        text-align: left;
-        padding: 8px;
-        border: 1px solid #ddd;
-        font-weight: bold;
-    }
-
-    td {
-        border: 1px solid #ddd;
-        padding: 6px 8px;
+        background-color: #f5f5f5;
     }
 
     tbody tr:nth-child(even) {
@@ -87,10 +68,13 @@
 
     .signature div {
         text-align: center;
+        width: 48%;
     }
 
     .signature img {
-        opacity: 0.5;
+        margin: 0 auto;
+        display: block;
+        height: 60px;
     }
 </style>
 </head>
@@ -104,21 +88,19 @@
 <h2>HÓA ĐƠN ĐƠN HÀNG #{{ $order->id }}</h2>
 
 <div class="info">
-    <p><strong>Ngày đặt:</strong> {{ $order->created_at->format('d/m/Y H:i') }}</p>
+    <p><strong>Ngày đặt:</strong> {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
     <p><strong>Khách hàng:</strong> {{ $order->user->name }}</p>
     <p><strong>Email:</strong> {{ $order->user->email }}</p>
     <p><strong>Địa chỉ:</strong> {{ $order->shipping_address }}</p>
 </div>
 
-<h3>Danh sách sản phẩm</h3>
-
 <table>
     <thead>
         <tr>
-            <th style="width: 40%">Tên sản phẩm</th>
-            <th style="width: 15%">Số lượng</th>
-            <th style="width: 20%">Giá</th>
-            <th style="width: 25%">Tổng</th>
+            <th>Tên sản phẩm</th>
+            <th>Số lượng</th>
+            <th>Giá</th>
+            <th>Tổng</th>
         </tr>
     </thead>
     <tbody>
@@ -142,32 +124,11 @@
     </div>
     <div>
         <strong>Đại diện shop</strong><br>
-        <small>Ngày {{ now()->format('d/m/Y') }}</small>
-        <div style="position: relative; height: 80px;">
-            <img src="{{ public_path('dau-shop.png') }}" style="position: absolute; left: 50%; top: 0; transform: translateX(-50%); height: 60px;">
-            <p style="margin-top: 65px;">
-                {{ $order->shop->name }}
-            </p>
-        </div>
+        <small>Ngày {{ date('d/m/Y') }}</small>
+        <img src="{{ public_path('dau.png') }}" alt="Dấu shop">
+        <p><strong>{{ $order->shop->name }}</strong></p>
     </div>
 </div>
-<div class="signature">
-    <div>
-        <strong>Người mua hàng</strong>
-        <p><em>{{ $order->user->name }}</em></p>
-    </div>
-    <div>
-        <strong>Đại diện shop</strong><br>
-        <small>Ngày {{ now()->format('d/m/Y') }}</small>
-        <div style="position: relative; height: 80px;">
-            <img src="{{ public_path('dau.png') }}" style="position: absolute; left: 50%; top: 0; transform: translateX(-50%); height: 60px;">
-            <p style="margin-top: 65px;">
-                {{ $order->shop->name }}
-            </p>
-        </div>
-    </div>
-</div>
-
 
 </body>
 </html>
