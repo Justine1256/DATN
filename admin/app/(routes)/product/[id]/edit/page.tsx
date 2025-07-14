@@ -4,11 +4,20 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/utils/api";
-
 import ImageDrop from "@/app/components/product/edit/ImageDrop";
 import Form from "@/app/components/product/edit/Form";
 import ActionButtons from "@/app/components/product/edit/ActionButtons";
 import { Product } from "@/types/product";
+import VariantModal from "@/app/components/product/edit/VariantModal";
+
+interface Variant {
+  value1: string;
+  value2: string;
+  price: number;
+  sale_price?: number;
+  stock: number;
+  image?: string[];
+}
 
 export default function EditProductPage() {
   const { id } = useParams();
@@ -31,12 +40,13 @@ export default function EditProductPage() {
     stock: 0,
     description: "",
   });
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [editingVariant, setEditingVariant] = useState<Variant | null>(null);
+  const [showVariantModal, setShowVariantModal] = useState(false);
 
-  // ✅ Popup state
   const [popupMessage, setPopupMessage] = useState("");
   const [popupType, setPopupType] = useState<"success" | "error">("success");
 
-  // ✅ Show popup with type
   const handleShowPopup = (message: string, type: "success" | "error") => {
     setPopupMessage(message);
     setPopupType(type);
@@ -44,28 +54,21 @@ export default function EditProductPage() {
   };
 
   useEffect(() => {
-    const fetchUserAndProduct = async () => {
+    const fetchProduct = async () => {
       try {
         const token = Cookies.get("authToken");
         if (!token) throw new Error("Chưa đăng nhập");
 
-        const userRes = await fetch(`${API_BASE_URL}/user`, {
+        const res = await fetch(`${API_BASE_URL}/shop/products/${id}/get`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!userRes.ok) throw new Error("Lỗi lấy thông tin user");
-        const userData = await userRes.json();
 
-        const shopId = userData?.shop?.id;
-        if (!shopId) throw new Error("User chưa có shop");
+        
+        if (!res.ok) throw new Error("Không tìm thấy sản phẩm hoặc không có quyền");
 
-        const productRes = await fetch(`${API_BASE_URL}/shop/products/${id}/get`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!productRes.ok) throw new Error("Không tìm thấy sản phẩm hoặc không có quyền");
-
-        const data = await productRes.json();
+        const data = await res.json();
         const p = data.product;
-
+        console.log("variant",p)
         setProduct(p);
         setCategory(p.category_id?.toString() || "");
         setSelectedImages(
@@ -80,13 +83,40 @@ export default function EditProductPage() {
           option2: p.option2 || "",
           value2: p.value2 || "",
         });
-        setFormValues({
-          name: p.name,
-          price: p.price,
-          sale_price: p.sale_price || 0,
-          stock: p.stock || 0,
-          description: p.description || "",
-        });
+        if (Array.isArray(p.variants) && p.variants.length > 0) {
+  const v = p.variants[0]; // Lấy biến thể đầu tiên làm đại diện
+  setFormValues({
+    name: p.name,
+    price: v.price,
+    sale_price: v.sale_price || 0,
+    stock: v.stock || 0,
+    description: p.description || "",
+  });
+} else {
+  setFormValues({
+    name: p.name,
+    price: p.price,
+    sale_price: p.sale_price || 0,
+    stock: p.stock || 0,
+    description: p.description || "",
+  });
+}
+
+        setVariants(
+  Array.isArray(p.variants)
+    ? p.variants
+        .filter((v: any) => v.value1 && v.value2 && typeof v.price === "number")
+        .map((v: any) => ({
+          value1: v.value1,
+          value2: v.value2,
+          price: v.price,
+          sale_price: v.sale_price || 0,
+          stock: v.stock || 0,
+          image: Array.isArray(v.image) ? v.image : [],
+        }))
+    : []
+);
+
       } catch (err) {
         console.error("Lỗi khi tải sản phẩm:", err);
         router.push("/product");
@@ -95,7 +125,7 @@ export default function EditProductPage() {
       }
     };
 
-    if (id) fetchUserAndProduct();
+    if (id) fetchProduct();
   }, [id]);
 
   if (loading) return <div className="p-6">Đang tải sản phẩm...</div>;
@@ -120,18 +150,56 @@ export default function EditProductPage() {
             onFormChange={setFormValues}
           />
 
+          {/* Biến thể */}
+          <div className="space-y-4 mt-6">
+            <h3 className="text-base font-medium text-gray-700">Biến thể</h3>
+            <button
+              type="button"
+              className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+              onClick={() => {
+                setEditingVariant(null);
+                setShowVariantModal(true);
+              }}
+            >
+              + Thêm biến thể
+            </button>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              {variants.map((v, i) => (
+                <div key={i} className="border rounded p-3 relative">
+                  <div className="text-sm text-gray-700 mb-1">
+                    <strong>{v.value1}</strong> / {v.value2}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Giá: {v.price.toLocaleString()} | Tồn: {v.stock}
+                  </div>
+                  <button
+                    type="button"
+                    className="absolute top-1 right-1 text-blue-500 text-xs underline"
+                    onClick={() => {
+                      setEditingVariant(v);
+                      setShowVariantModal(true);
+                    }}
+                  >
+                    Sửa
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <ActionButtons
             productId={product.id}
             images={selectedImages}
             optionValues={optionValues}
             categoryId={category}
             formValues={formValues}
+            variants={variants}
             onPopup={handleShowPopup}
           />
         </div>
       </div>
 
-      {/* ✅ Popup đẹp ở góc phải */}
       {popupMessage && (
         <div
           className={`fixed top-6 right-6 px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-slide-in
@@ -148,6 +216,30 @@ export default function EditProductPage() {
           )}
           <span className="text-sm font-medium">{popupMessage}</span>
         </div>
+      )}
+
+      {showVariantModal && (
+        <VariantModal
+          onClose={() => {
+            setEditingVariant(null);
+            setShowVariantModal(false);
+          }}
+          onSave={(newVariant) => {
+            if (editingVariant) {
+              setVariants((prev) =>
+                prev.map((v) =>
+                  v.value1 === editingVariant.value1 && v.value2 === editingVariant.value2
+                    ? newVariant
+                    : v
+                )
+              );
+            } else {
+              setVariants((prev) => [...prev, newVariant]);
+            }
+            setShowVariantModal(false);
+          }}
+          initialData={editingVariant || undefined}
+        />
       )}
     </form>
   );

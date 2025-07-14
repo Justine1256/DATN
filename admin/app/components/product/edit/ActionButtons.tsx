@@ -5,6 +5,15 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/utils/api";
 
+interface Variant {
+  value1: string;
+  value2: string;
+  price: number;
+  sale_price?: number;
+  stock: number;
+  image?: string[];
+}
+
 interface ActionButtonsProps {
   productId: number;
   images: { id: string; url: string }[];
@@ -22,6 +31,7 @@ interface ActionButtonsProps {
     stock: number;
   };
   categoryId: string;
+  variants: Variant[]; // ✅ THÊM VÀO ĐÂY
   onPopup: (msg: string, type: "success" | "error") => void;
 }
 
@@ -31,6 +41,7 @@ export default function ActionButtons({
   optionValues,
   formValues,
   categoryId,
+  variants,
   onPopup,
 }: ActionButtonsProps) {
   const router = useRouter();
@@ -55,6 +66,7 @@ export default function ActionButtons({
         value1: optionValues.value1 || null,
         option2: optionValues.option2 || null,
         value2: optionValues.value2 || null,
+        variants: variants.length > 0 ? variants : null, // ✅ GỬI LÊN BACKEND
       };
 
       const res = await fetch(`${API_BASE_URL}/shop/products/${productId}/edit`, {
