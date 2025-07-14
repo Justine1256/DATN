@@ -342,46 +342,72 @@ class OrderController extends Controller
             'order' => $response
         ]);
     }
-    public function adminOrderList(Request $request)
-    {
-        $query = Order::with(['user', 'shop', 'orderDetails']);
+public function adminOrderList(Request $request)
+{
+    $user = Auth::user();
 
-        if ($request->has('status')) {
-            $query->where('order_status', $request->status);
+    if (!$user) {
+        return response()->json([
+            'message' => 'Unauthorized'
+        ], 401);
+    }
+
+    $query = Order::with(['user', 'shop', 'orderDetails']);
+
+    if ($user->role === 'seller') {
+        // Lấy shop_id của seller
+        $shop = \App\Models\Shop::where('user_id', $user->id)->first();
+
+        if (!$shop) {
+            return response()->json([
+                'orders' => [],
+                'pagination' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'total' => 0,
+                ]
+            ]);
         }
 
-        $orders = $query->latest()->paginate(20);
-
-        $data = $orders->map(function ($order) {
-            return [
-                'id' => $order->id,
-                'buyer' => [
-                    'id' => $order->user?->id,
-                    'name' => $order->user?->name,
-                ],
-                'shop' => [
-                    'id' => $order->shop?->id,
-                    'name' => $order->shop?->name,
-                ],
-                'final_amount' => $order->final_amount,
-                'payment_method' => $order->payment_method,
-                'order_status' => $order->order_status,
-                'shipping_status' => $order->shipping_status,
-                'shipping_address' => $order->shipping_address,
-                'created_at' => $order->created_at,
-                'total_products' => $order->orderDetails->sum('quantity'),
-            ];
-        });
-
-        return response()->json([
-            'orders' => $data,
-            'pagination' => [
-                'current_page' => $orders->currentPage(),
-                'last_page' => $orders->lastPage(),
-                'total' => $orders->total(),
-            ]
-        ]);
+        $query->where('shop_id', $shop->id);
     }
+
+    if ($request->filled('status')) {
+        $query->where('order_status', $request->input('status'));
+    }
+
+    $orders = $query->latest()->paginate(20);
+
+    $data = $orders->map(function ($order) {
+        return [
+            'id' => $order->id,
+            'buyer' => [
+                'id' => $order->user?->id,
+                'name' => $order->user?->name,
+            ],
+            'shop' => [
+                'id' => $order->shop?->id,
+                'name' => $order->shop?->name,
+            ],
+            'final_amount' => $order->final_amount,
+            'payment_method' => $order->payment_method,
+            'order_status' => $order->order_status,
+            'shipping_status' => $order->shipping_status,
+            'shipping_address' => $order->shipping_address,
+            'created_at' => $order->created_at,
+            'total_products' => $order->orderDetails->sum('quantity'),
+        ];
+    });
+
+    return response()->json([
+        'orders' => $data,
+        'pagination' => [
+            'current_page' => $orders->currentPage(),
+            'last_page' => $orders->lastPage(),
+            'total' => $orders->total(),
+        ]
+    ]);
+}
 
     public function updateShippingStatus($orderId, Request $request)
     {
