@@ -649,16 +649,18 @@ class OrderController extends Controller
     }
     public function downloadInvoice($id)
     {
-        $order = Order::with(['user', 'shop', 'orderDetails.product'])->findOrFail($id);
+        $order = Order::with(['user', 'orderDetails.product'])->findOrFail($id);
+        $shop = Shop::find($order->shop_id);
     
-        $pdf = Pdf::loadView('invoices.order', compact('order'))
+        $pdf = PDF::loadView('invoices.order', compact('order', 'shop'))
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled' => true, // cho phép load file từ public_path
+                'isRemoteEnabled' => true,
                 'defaultFont' => 'DejaVu Sans'
             ]);
     
         return $pdf->download("invoice_order_{$order->id}.pdf");
     }
+    
     
 }
