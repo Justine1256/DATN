@@ -405,7 +405,7 @@ class ProductController extends Controller
 
         $product = Product::where('id', $id)
             ->where('shop_id', $shopId)
-            ->with('category')
+            ->with(['category', 'variants.image'])
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->first();

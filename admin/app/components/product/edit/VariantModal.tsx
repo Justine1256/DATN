@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Variant {
   value1: string;
@@ -26,12 +26,23 @@ export default function VariantModal({
   disableValue1,
   disableValue2,
 }: VariantModalProps) {
-  const [value1, setValue1] = useState(initialData?.value1 || "");
-  const [value2, setValue2] = useState(initialData?.value2 || "");
-  const [price, setPrice] = useState<number>(initialData?.price || 0);
-  const [salePrice, setSalePrice] = useState<number>(initialData?.sale_price || 0);
-  const [stock, setStock] = useState<number>(initialData?.stock || 1);
-  const [images, setImages] = useState<string[]>(initialData?.image || []);
+  const [value1, setValue1] = useState("");
+  const [value2, setValue2] = useState("");
+  const [price, setPrice] = useState<number>(0);
+  const [salePrice, setSalePrice] = useState<number>(0);
+  const [stock, setStock] = useState<number>(1);
+  const [images, setImages] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (initialData) {
+      setValue1(initialData.value1 || "");
+      setValue2(initialData.value2 || "");
+      setPrice(initialData.price || 0);
+      setSalePrice(initialData.sale_price || 0);
+      setStock(initialData.stock || 1);
+      setImages(initialData.image || []);
+    }
+  }, [initialData]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,10 +79,14 @@ export default function VariantModal({
     onClose();
   };
 
+  const isEditing = Boolean(initialData);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-200">
-        <h2 className="text-lg font-semibold text-slate-800 mb-6">Thêm biến thể</h2>
+        <h2 className="text-lg font-semibold text-slate-800 mb-6">
+          {isEditing ? "Chỉnh sửa biến thể" : "Thêm biến thể"}
+        </h2>
 
         <div className="space-y-4">
           {/* Value 1 */}
@@ -186,7 +201,7 @@ export default function VariantModal({
             onClick={handleSubmit}
             className="bg-[#db4444] text-white px-4 py-2 rounded hover:bg-red-600 transition-all"
           >
-            Xác nhận
+            {isEditing ? "Lưu thay đổi" : "Xác nhận"}
           </button>
         </div>
       </div>

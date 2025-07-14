@@ -213,7 +213,7 @@ export default function AdminChat() {
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 text-gray-600 hover:text-[#db4444] hover:bg-gray-100 rounded-full transition-colors"
               >
-                <Image sizes={20} />
+                {/* <Image sizes={20} /> */}
 
               </button>
               <input
