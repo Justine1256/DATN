@@ -18,6 +18,16 @@
         font-size: 20px;
     }
 
+    .header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .header img {
+        height: 50px;
+        margin-bottom: 5px;
+    }
+
     .info {
         margin-bottom: 20px;
         line-height: 1.6;
@@ -68,9 +78,28 @@
         margin-top: 20px;
         color: #db4444;
     }
+
+    .signature {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 40px;
+    }
+
+    .signature div {
+        text-align: center;
+    }
+
+    .signature img {
+        opacity: 0.5;
+    }
 </style>
 </head>
 <body>
+
+<div class="header">
+    <img src="{{ public_path('logo.png') }}" alt="Logo Shop">
+    <div><strong>Shop {{ $order->shop->name ?? '---' }}</strong></div>
+</div>
 
 <h2>HÓA ĐƠN ĐƠN HÀNG #{{ $order->id }}</h2>
 
@@ -105,6 +134,40 @@
 </table>
 
 <p class="total">Tổng cộng: {{ number_format($order->final_amount) }} đ</p>
+
+<div class="signature">
+    <div>
+        <strong>Người mua hàng</strong>
+        <p><em>{{ $order->user->name }}</em></p>
+    </div>
+    <div>
+        <strong>Đại diện shop</strong><br>
+        <small>Ngày {{ now()->format('d/m/Y') }}</small>
+        <div style="position: relative; height: 80px;">
+            <img src="{{ public_path('dau-shop.png') }}" style="position: absolute; left: 50%; top: 0; transform: translateX(-50%); height: 60px;">
+            <p style="margin-top: 65px;">
+                {{ $order->shop->name }}
+            </p>
+        </div>
+    </div>
+</div>
+<div class="signature">
+    <div>
+        <strong>Người mua hàng</strong>
+        <p><em>{{ $order->user->name }}</em></p>
+    </div>
+    <div>
+        <strong>Đại diện shop</strong><br>
+        <small>Ngày {{ now()->format('d/m/Y') }}</small>
+        <div style="position: relative; height: 80px;">
+            <img src="{{ public_path('dau-shop.png') }}" style="position: absolute; left: 50%; top: 0; transform: translateX(-50%); height: 60px;">
+            <p style="margin-top: 65px;">
+                {{ $order->shop->name }}
+            </p>
+        </div>
+    </div>
+</div>
+
 
 </body>
 </html>
