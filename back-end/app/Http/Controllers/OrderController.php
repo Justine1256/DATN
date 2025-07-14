@@ -344,21 +344,14 @@ class OrderController extends Controller
     }
     public function adminOrderList(Request $request)
     {
-        $user = Auth::user();
-    
         $query = Order::with(['user', 'shop', 'orderDetails']);
-    
-        if ($user->role === 'seller') {
-            // chỉ hiển thị đơn của shop seller đang quản lý
-            $query->where('shop_id', $user->shop->id ?? 0);
-        }
-    
+
         if ($request->has('status')) {
             $query->where('order_status', $request->status);
         }
-    
+
         $orders = $query->latest()->paginate(20);
-    
+
         $data = $orders->map(function ($order) {
             return [
                 'id' => $order->id,
@@ -379,7 +372,7 @@ class OrderController extends Controller
                 'total_products' => $order->orderDetails->sum('quantity'),
             ];
         });
-    
+
         return response()->json([
             'orders' => $data,
             'pagination' => [
@@ -389,7 +382,6 @@ class OrderController extends Controller
             ]
         ]);
     }
-    
 
     public function updateShippingStatus($orderId, Request $request)
     {
@@ -629,23 +621,21 @@ class OrderController extends Controller
     }
     public function orderStatistics()
     {
-        $user = Auth::user();
-        $query = Order::query();
-    
-        // Nếu là seller thì chỉ thống kê cho shop họ
-        if ($user->role === 'seller') {
-            $query->where('shop_id', $user->shop->id ?? 0);
-        }
-    
-        $totalOrders = (clone $query)->count();
-        $totalAmount = (clone $query)->sum('final_amount');
-    
-        $pendingOrders = (clone $query)->where('order_status', 'Pending')->count();
-        $confirmationOrders = (clone $query)->where('order_status', 'order confirmation')->count();
-        $shippingOrders = (clone $query)->where('order_status', 'Shipped')->count();
-        $deliveredOrders = (clone $query)->where('order_status', 'Delivered')->count();
-        $canceledOrders = (clone $query)->where('order_status', 'Canceled')->count();
-    
+        $totalOrders = Order::count();
+
+        // Tổng tiền tính tất cả, kể cả đơn đã hủy
+        $totalAmount = Order::sum('final_amount');
+
+        $pendingOrders = Order::where('order_status', 'Pending')->count();
+
+        $confirmationOrders = Order::where('order_status', 'order confirmation')->count();
+
+        $shippingOrders = Order::where('order_status', 'Shipped')->count();
+
+        $deliveredOrders = Order::where('order_status', 'Delivered')->count();
+
+        $canceledOrders = Order::where('order_status', 'Canceled')->count();
+
         return response()->json([
             'total_orders'             => $totalOrders,
             'total_amount'             => $totalAmount,
@@ -657,7 +647,6 @@ class OrderController extends Controller
             'canceled_orders'          => $canceledOrders,
         ]);
     }
-    
     public function downloadInvoice($id)
     {
         $order = Order::with(['user', 'orderDetails.product'])->findOrFail($id);

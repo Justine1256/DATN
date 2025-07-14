@@ -41,13 +41,43 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             .catch(() => router.push("/404"));
     }, [id, router]);
 
+    // ✅ Hàm gọi API riêng lấy file PDF và tự tải
+    const downloadInvoice = async () => {
+        try {
+            const token = Cookies.get("authToken");
+            const response = await fetch(`${API_BASE_URL}/orders/${order?.id}/invoice`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Không thể tải hóa đơn");
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `invoice_order_${order?.id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("🚨 Lỗi tải hóa đơn:", err);
+            alert("Không thể tải hóa đơn. Vui lòng thử lại.");
+        }
+    };
+
     if (!order) return (
         <div className="flex flex-col items-center justify-center p-10 space-y-4">
             <div className="w-10 h-10 border-4 border-gray-300 border-t-[#db4444] rounded-full animate-spin"></div>
             <div className="text-gray-700 text-sm">Đang tải thông tin đơn hàng...</div>
         </div>
     );
-      
 
     return (
         <div className=" space-y-4">
@@ -73,11 +103,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 <ProductListTable products={order.products} shippingStatus={order.shipping_status} />
             </div>
             <div className="flex justify-end mt-4">
-                <button className="px-4 py-2 bg-[#db4444] text-white rounded-xl hover:bg-[#c73333] transition">
+                <button
+                    onClick={downloadInvoice}
+                    className="px-4 py-2 bg-[#db4444] text-white rounded-xl hover:bg-[#c73333] transition"
+                >
                     Xuất hoá đơn
                 </button>
             </div>
-
         </div>
     );
 }
