@@ -387,38 +387,39 @@ class ProductController extends Controller
             'products' => $products,
         ]);
     }
-    public function getProductByIdShop($id)
-    {
-        $user = Auth::user();
+public function getProductByIdShop($id)
+{
+    $user = Auth::user();
 
-        if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-
-        $shop = $user->shop; // lấy shop qua quan hệ
-
-        if (!$shop) {
-            return response()->json(['message' => 'User has no shop'], 403);
-        }
-
-        $shopId = $shop->id;
-
-        $product = Product::where('id', $id)
-            ->where('shop_id', $shopId)
-            ->with(['category', 'variants.image'])
-            ->withCount(['approvedReviews as review_count'])
-            ->withAvg(['approvedReviews as rating_avg'], 'rating')
-            ->first();
-
-        if (!$product) {
-            return response()->json(['message' => 'Product not found or not authorized'], 404);
-        }
-
-        return response()->json([
-            'status' => true,
-            'product' => $product,
-        ]);
+    if (!$user) {
+        return response()->json(['message' => 'Unauthorized'], 401);
     }
+
+    $shop = $user->shop; // lấy shop qua quan hệ
+
+    if (!$shop) {
+        return response()->json(['message' => 'User has no shop'], 403);
+    }
+
+    $shopId = $shop->id;
+
+    $product = Product::where('id', $id)
+        ->where('shop_id', $shopId)
+        ->with(['category', 'variants'])
+        ->withCount(['approvedReviews as review_count'])
+        ->withAvg(['approvedReviews as rating_avg'], 'rating')
+        ->first();
+
+    if (!$product) {
+        return response()->json(['message' => 'Product not found or not authorized'], 404);
+    }
+
+    return response()->json([
+        'status' => true,
+        'product' => $product,
+    ]);
+}
+
 
 
     // Cập nhật sản phẩm bởi shop
