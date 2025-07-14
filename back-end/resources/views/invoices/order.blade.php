@@ -158,11 +158,12 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="shop-name">Shop {{ $shop->name }}</div>
-        <div class="shop-info">Địa chỉ: {{ $shop->address }}</div>
-        <div class="shop-info">Điện thoại: {{ $shop->phone }} | Email: {{ $shop->email }}</div>
-    </div>
+<div class="header">
+    <div class="shop-name">Shop {{ $order->shop->name ?? '---' }}</div>
+    <div class="shop-info">Địa chỉ: {{ $order->shop->address ?? '---' }}</div>
+    <div class="shop-info">Điện thoại: {{ $order->shop->phone ?? '---' }} | Email: {{ $order->shop->email ?? '---' }}</div>
+</div>
+
 
     <div class="invoice-title">Hóa Đơn Bán Hàng</div>
     <div class="date-time">Ngày: {{ $order->created_at->format('d/m/Y - H:i') }}</div>
