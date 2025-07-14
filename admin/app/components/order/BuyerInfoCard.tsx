@@ -25,7 +25,7 @@ export default function BuyerInfoCard({ buyer }: { buyer: Buyer }) {
   const rankInfo = rankMap[buyer.rank] || rankMap["member"];
 
   return (
-    <div className="bg-gradient-to-br from-white via-[#f7f1e3] to-[#e8e0d2] rounded-2xl shadow border border-gray-200 p-5 w-full flex flex-col items-center">
+    <div className="bg-white rounded-2xl shadow border border-gray-200 p-5 w-full flex flex-col items-center">
       <h3 className="text-lg font-bold mb-4 text-gray-800 text-center">Thông tin người mua</h3>
       <Image
         src={`${STATIC_BASE_URL}/${buyer.avatar}`}
@@ -39,7 +39,7 @@ export default function BuyerInfoCard({ buyer }: { buyer: Buyer }) {
         <p><span className="font-semibold">Email:</span> {buyer.email}</p>
         <p><span className="font-semibold">Điện thoại:</span> {buyer.phone}</p>
         <div className={`inline-flex items-center gap-1 mt-1 ${rankInfo.color}`}>
-          {rankInfo.icon}
+          Rank:{rankInfo.icon}
           <span className="font-semibold">{rankInfo.label}</span>
         </div>
       </div>
