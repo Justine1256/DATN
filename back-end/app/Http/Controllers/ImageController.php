@@ -97,5 +97,23 @@ public function uploadReviewImage(Request $request)
         'images' => [$url]
     ], 201);
 }
+public function uploadShopLogo(Request $request)
+{
+    $request->validate([
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
+    ]);
 
+    $file = $request->file('image');
+
+    // Lưu vào thư mục storage/app/public/shops
+    $path = $file->store('shops', 'public');
+
+    // Trả về đường dẫn public
+    $url = asset('storage/' . $path);
+
+    return response()->json([
+        'message' => 'Tải logo thành công',
+        'logo' => [$url] // trả về mảng
+    ], 201);
+}
 }
