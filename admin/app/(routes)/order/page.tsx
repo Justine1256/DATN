@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
-import axios from "axios";
 import OrderListTable from "../../components/order/list";
 import OrderStatusCard from "../../components/order/card";
 import { API_BASE_URL } from "@/utils/api";
@@ -18,10 +17,6 @@ type Order = {
   shipping_address: string;
   created_at: string;
   total_products: number;
-  shop?: {
-    id: number;
-    name: string;
-  };
 };
 
 type OrderStats = {
@@ -37,39 +32,17 @@ type OrderStats = {
 export default function ModernOrderTable() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [filterStatus, setFilterStatus] = useState("Tất cả");
   const [filterPeriod, setFilterPeriod] = useState("");
   const [filterExactDate, setFilterExactDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
   const [stats, setStats] = useState<OrderStats | null>(null);
 
-  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
-  const [role, setRole] = useState<string>("");
-  const [shopId, setShopId] = useState<number | null>(null);
-
-  // Pagination FE
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  useEffect(() => {
-    const token = Cookies.get("authToken");
-    if (!token) return;
-
-    axios.get(`${API_BASE_URL}/user`, {
-      headers: { Authorization: `Bearer ${token}` },
-      withCredentials: true,
-    })
-      .then(res => {
-        setRole(res.data.role);
-        setShopId(res.data.shop?.id ?? null);
-      })
-      .catch(err => {
-        console.error("🚨 Lỗi gọi API /user:", err);
-        Cookies.remove("authToken");
-      });
-  }, []);
-
+  // Fetch statistics
   const fetchStats = async () => {
     try {
       const token = Cookies.get("authToken");
@@ -86,11 +59,12 @@ export default function ModernOrderTable() {
     }
   };
 
-  async function fetchOrders() {
+  // Fetch all orders
+  async function fetchOrders(page = 1) {
     setLoading(true);
     try {
       const token = Cookies.get("authToken");
-      const res = await fetch(`${API_BASE_URL}/admin/orders`, {
+      const res = await fetch(`${API_BASE_URL}/admin/orders?page=${page}`, {
         headers: {
           "Accept": "application/json",
           "Authorization": `Bearer ${token}`
@@ -106,6 +80,9 @@ export default function ModernOrderTable() {
       }));
 
       setOrders(mappedOrders);
+      setTotalPages(data.pagination?.last_page || 1);
+      setCurrentPage(data.pagination?.current_page || 1);
+
     } catch (err) {
       console.error("🚨 Failed to load orders:", err);
     } finally {
@@ -114,16 +91,9 @@ export default function ModernOrderTable() {
   }
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(currentPage);
     fetchStats();
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [currentPage]);
 
   const handleStatusChange = async (id: number, value: string) => {
     try {
@@ -154,12 +124,20 @@ export default function ModernOrderTable() {
             : order
         )
       );
+
     } catch (err) {
       console.error("🚨 Failed to update order status:", err);
     }
   };
 
-  // Filter orders theo role
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const filteredOrders = orders.filter(order => {
     const matchStatus = filterStatus === "Tất cả" || order.order_status === filterStatus;
     const matchPeriod = filterPeriod ? order.created_at.startsWith(filterPeriod) : true;
@@ -168,23 +146,8 @@ export default function ModernOrderTable() {
       ? order.shipping_address.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       `#${order.id}`.toLowerCase().includes(debouncedSearch.toLowerCase())
       : true;
-
-    if (role === "seller" && shopId != null) {
-      return order.shop?.id === shopId && matchStatus && matchPeriod && matchExactDate && matchSearch;
-    } else if (role === "admin") {
-      return matchStatus && matchPeriod && matchExactDate && matchSearch;
-    }
-    return false;
+    return matchStatus && matchPeriod && matchExactDate && matchSearch;
   });
-
-  console.log("📦 Filtered orders:", filteredOrders);
-
-  // Pagination FE
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-  const paginatedOrders = filteredOrders.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   return (
     <div className="max-w-7xl mx-auto py-8">
@@ -204,7 +167,7 @@ export default function ModernOrderTable() {
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <OrderListTable
-            orders={paginatedOrders}
+            orders={filteredOrders}
             loading={loading}
             onStatusChange={handleStatusChange}
             searchTerm={searchTerm}
