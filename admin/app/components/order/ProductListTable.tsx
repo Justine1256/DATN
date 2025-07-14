@@ -43,7 +43,7 @@ export default function ProductListTable({
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden w-full">
             <table className="w-full text-sm">
                 <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100">
+                    <tr className="bg-gray-400 border-b border-gray-100">
                         <th className="py-3 px-3 text-left font-semibold text-gray-700 w-[30%]">Sản phẩm</th>
                         <th className="py-3 px-3 text-center font-semibold text-gray-700 w-[10%]">Số lượng</th>
                         <th className="py-3 px-3 text-center font-semibold text-gray-700 w-[15%]">Giá</th>
