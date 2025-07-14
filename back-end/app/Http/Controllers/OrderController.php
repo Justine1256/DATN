@@ -646,33 +646,55 @@ public function adminOrderList(Request $request)
         return response()->json(['message' => 'Order status updated successfully']);
     }
     public function orderStatistics()
-    {
-        $totalOrders = Order::count();
+{
+    $user = Auth::user();
 
-        // Tổng tiền tính tất cả, kể cả đơn đã hủy
-        $totalAmount = Order::sum('final_amount');
+    $query = Order::query();
 
-        $pendingOrders = Order::where('order_status', 'Pending')->count();
+    if ($user->role === 'seller') {
+        // Lấy shop của seller
+        $shop = \App\Models\Shop::where('user_id', $user->id)->first();
+        if (!$shop) {
+            return response()->json([
+                'message' => 'Seller chưa có shop',
+                'data' => [
+                    'total_orders' => 0,
+                    'total_amount' => 0,
+                    'formatted_total_amount' => '0 ₫',
+                    'pending_orders' => 0,
+                    'confirmation_orders' => 0,
+                    'shipping_orders' => 0,
+                    'delivered_orders' => 0,
+                    'canceled_orders' => 0,
+                ]
+            ]);
+        }
 
-        $confirmationOrders = Order::where('order_status', 'order confirmation')->count();
-
-        $shippingOrders = Order::where('order_status', 'Shipped')->count();
-
-        $deliveredOrders = Order::where('order_status', 'Delivered')->count();
-
-        $canceledOrders = Order::where('order_status', 'Canceled')->count();
-
-        return response()->json([
-            'total_orders'             => $totalOrders,
-            'total_amount'             => $totalAmount,
-            'formatted_total_amount'   => number_format($totalAmount, 0, ',', '.') . ' ₫',
-            'pending_orders'           => $pendingOrders,
-            'confirmation_orders'      => $confirmationOrders,
-            'shipping_orders'          => $shippingOrders,
-            'delivered_orders'         => $deliveredOrders,
-            'canceled_orders'          => $canceledOrders,
-        ]);
+        // chỉ lọc đơn của shop này
+        $query->where('shop_id', $shop->id);
     }
+
+    $totalOrders = $query->count();
+
+    $totalAmount = $query->sum('final_amount');
+
+    $pendingOrders = (clone $query)->where('order_status', 'Pending')->count();
+    $confirmationOrders = (clone $query)->where('order_status', 'order confirmation')->count();
+    $shippingOrders = (clone $query)->where('order_status', 'Shipped')->count();
+    $deliveredOrders = (clone $query)->where('order_status', 'Delivered')->count();
+    $canceledOrders = (clone $query)->where('order_status', 'Canceled')->count();
+
+    return response()->json([
+        'total_orders'           => $totalOrders,
+        'total_amount'           => $totalAmount,
+        'formatted_total_amount' => number_format($totalAmount, 0, ',', '.') . ' ₫',
+        'pending_orders'         => $pendingOrders,
+        'confirmation_orders'    => $confirmationOrders,
+        'shipping_orders'        => $shippingOrders,
+        'delivered_orders'       => $deliveredOrders,
+        'canceled_orders'        => $canceledOrders,
+    ]);
+}
  public function downloadInvoice($id)
     {
     $order = Order::with(['user', 'orderDetails.product', 'shop'])->findOrFail($id);
