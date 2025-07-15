@@ -25,11 +25,15 @@ export default function ShopRegisterPage() {
 
     const handleSendOtp = async () => {
         let errors: string[] = [];
-        if (!form.name.trim()) errors.push("Tên shop không được để trống.");
-        if (!form.description.trim()) errors.push("Mô tả shop không được để trống.");
-        if (!/^(0\d{9})$/.test(form.phone)) errors.push("Số điện thoại không hợp lệ.");
-        if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(form.email)) errors.push("Email không hợp lệ.");
-        if (!file) errors.push("Vui lòng chọn logo.");
+        if (!form.name.trim() && !form.description.trim() && !form.phone.trim() && !form.email.trim() && !file) {
+            errors.push("Vui lòng điền đầy đủ thông tin và chọn logo.");
+        } else {
+            if (!form.name.trim()) errors.push("Tên shop không được để trống.");
+            if (!form.description.trim()) errors.push("Mô tả shop không được để trống.");
+            if (!/^(0\d{9})$/.test(form.phone)) errors.push("Số điện thoại không hợp lệ.");
+            if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(form.email)) errors.push("Email không hợp lệ.");
+            if (!file) errors.push("Vui lòng chọn logo.");
+        }
 
         if (errors.length > 0) return showPopup(errors.join(" "));
 
@@ -61,8 +65,6 @@ export default function ShopRegisterPage() {
             setLoading(false);
         }
     };
-    
-    
 
     const handleConfirmOtp = async () => {
         try {
@@ -96,14 +98,22 @@ export default function ShopRegisterPage() {
     const handleChooseFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
         if (f) {
+            // Kiểm tra mime type
+            const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
+            if (!allowedTypes.includes(f.type)) {
+                showPopup("Chỉ chấp nhận ảnh JPG, JPEG, PNG hoặc GIF");
+                return;
+            }
+
             setFile(f);
             setPreview(URL.createObjectURL(f));
         }
     };
+    
 
     return (
         <>
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+            <div className="min-h-screen flex items-center justify-center p-6">
                 <div className="bg-white p-8 rounded shadow w-full max-w-xl">
                     <div className="mb-6 text-center">
                         <h1 className="text-2xl font-bold text-gray-800 mb-1">Đăng ký Shop</h1>
@@ -157,16 +167,15 @@ export default function ShopRegisterPage() {
                                     className={`bg-[#db4444] text-white px-6 py-3 rounded hover:bg-[#c23333] font-semibold flex items-center justify-center min-w-[150px] ${loading ? "opacity-70 cursor-not-allowed" : ""
                                         }`}
                                 >
-                                    {loading ? (
+                                    {loading && (
                                         <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                         </svg>
-                                    ) : null}
+                                    )}
                                     {loading ? "Đang gửi..." : "Đăng Ký"}
                                 </button>
                             </div>
-
                         </div>
                     )}
 
@@ -233,7 +242,7 @@ function ShopStepper({ currentStep }: { currentStep: number }) {
         <div className="relative w-full mb-10">
             <div className="absolute top-[19px] left-7 right-5 h-1 bg-gray-200 rounded-full"></div>
             <div
-                className="absolute top-[19px] left-5 h-1 bg-[#db4444] rounded-full transition-all duration-500"
+                className="absolute top-[19px] left-7 h-1 bg-[#db4444] rounded-full transition-all duration-500"
                 style={{
                     width:
                         currentStep === steps.length - 1

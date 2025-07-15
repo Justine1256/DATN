@@ -51,104 +51,113 @@ interface Shop {
     status: 'activated' | 'pending' | 'suspended';
     email: string;
     slug: string;
+    followers_count: number;
 }
 
 const ShopCard = ({ shop }: { shop: Shop }) => {
     return (
         <div className="bg-white py-4">
-            <div className="max-w-6xl mx-auto px-4">
+            <div className='mt-10 relative h-80 rounded-2xl outline-1 outline-gray-200'>
+                {/* Cover photo */}
+                <div className='absolute w-full h-full overflow-hidden'>
+                    <Image
+                        src="/shop_cover.jpg"
+                        alt="Shop Cover"
+                        width={1200}
+                        height={320}
+                        className="w-full h-80 object-cover rounded-2xl"
+                    />
+                </div>
+                {/* Shop Avatar */}
+                <div className="absolute z-10 left-12 top-16 w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden transition-transform duration-300 hover:scale-105">
+                    <Image
+                        src={`${API_BASE_URL}/image/${shop.logo}`}
+                        alt="Shop Logo"
+                        width={56}
+                        height={56}
+                        className="rounded-full object-cover w-full h-full border-4 border-white"
+                    />
+                </div>
                 {/* Main Shop Card */}
-                <div className="bg-gray-50 w-full rounded-2xl overflow-hidden">
+                <div className="absolute z-1 bottom-0 bg-gray-50 w-full rounded-2xl overflow-hidden pr-8 pb-8 pt-4 flex justify-end">
                     {/* Shop Info Section */}
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 p-6">
-                        {/* Left Section - Avatar, Buttons, Status */}
-                        <div className="col-span-12 sm:col-span-4 flex flex-col items-center">
-                            {/* Shop Avatar */}
-                            <div className="w-14 h-14 sm:w-24 sm:h-24 rounded-full overflow-hidden mb-4 transition-transform duration-300 hover:scale-105">
+                    <div className='w-full md:w-[83%]'>
+                        {/* Shop Name and Status */}
+                        <div className="flex gap-8 items-center mb-8">
+                            {/* Shop Name */}
+                            <h1 className="text-2xl font-bold text-black">{shop.name}</h1>
 
-                                <Image
-                                    src={`${API_BASE_URL}/image/${shop.logo}`}
-                                    alt="Shop Logo"
-                                    width={56}
-                                    height={56}
-                                    className="rounded-full object-cover w-full h-full"
-                                />
-                            </div>
-
-                            {/* Follow and Chat Buttons */}
-                            <div className="flex flex-col gap-2 w-[120px]">
-                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
-                                    <User size={16} />
-                                    <span>Theo Dõi</span>
-                                </button>
-                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
-                                    <MessageCircle size={16} />
-                                    <span>Chat</span>
-                                </button>
+                            {/* Status */}
+                            <div className="inline-block px-2 rounded-full text-sm bg-green-100 text-green-800 font-medium">
+                                {shop.status === 'activated' ? 'Đã kích hoạt' : 'Chưa kích hoạt'}
                             </div>
                         </div>
 
-                        {/* Right Section - Shop Details */}
-                        <div className="col-span-12 sm:col-span-8">
-                            {/* Shop Name */}
-                            <h1 className="text-2xl font-bold text-black mb-2">{shop.name}</h1>
-
-                            {/* Status */}
-                            <div className="inline-block px-2 rounded-full text-sm bg-green-100 text-green-800 font-medium mb-6">
-                                {shop.status === 'activated' ? 'Đã kích hoạt' : 'Chưa kích hoạt'}
-                            </div>
-
+                        <div className="flex justify-between">
                             {/* Shop Info Grid - 2 rows, 3 columns */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {/* Row 1 */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <Phone size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Điện thoại</div>
-                                        <div className="font-semibold text-black">{shop.phone}</div>
+                                        <div className="font-semibold text-black w-max">{shop.phone}</div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <Package size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Đã bán</div>
-                                        <div className="font-semibold text-black">{shop.total_sales}</div>
+                                        <div className="font-semibold text-black w-max">{shop.total_sales == null || shop.total_sales === 0 ? "Chưa có lượt bán" : shop.total_sales}</div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <Star size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Đánh giá</div>
-                                        <div className="font-semibold text-black">{shop.rating}</div>
+                                        <div className="font-semibold text-black w-max">
+                                            {shop.rating == null || shop.rating === "0.0" ? "Chưa có đánh giá" : shop.rating}
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Row 2 */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <Calendar size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Tham gia</div>
-                                        <div className="font-semibold text-black">{formatTimeAgo(shop.created_at)}</div>
+                                        <div className="font-semibold text-black w-max">{formatTimeAgo(shop.created_at)}</div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <Users size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Người theo dõi</div>
-                                        <div className="font-semibold text-black">1.2K</div>
+                                        <div className="font-semibold text-black w-max">{shop.followers_count == null || shop.followers_count === 0 ? "Chưa có người theo dõi" : shop.followers_count}</div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <MessageCircle size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Email</div>
-                                        <div className="font-semibold text-black text-xs">{shop.email}</div>
+                                        <div className="font-semibold text-black w-max">{shop.email}</div>
                                     </div>
                                 </div>
+                            </div>
+                            {/* Follow and Chat Buttons */}
+                            <div className="flex flex-col gap-4 w-[200px] justify-end flex-wrap">
+                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
+                                    <User size={20} />
+                                    <span>Theo Dõi</span>
+                                </button>
+                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
+                                    <MessageCircle size={20} />
+                                    <span>Chat</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -162,8 +171,8 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                 </div>
             )}
         </div>
-  
-);
+
+    );
 
 }
 export default ShopCard;

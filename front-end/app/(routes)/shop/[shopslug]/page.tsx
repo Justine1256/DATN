@@ -41,6 +41,7 @@ interface Shop {
     status: 'activated' | 'pending' | 'suspended';
     email: string;
     slug: string;
+    followers_count: number;
 }
 
 const ShopPage = () => {
@@ -54,9 +55,11 @@ const ShopPage = () => {
     const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
     const [selectedPriceFilter, setSelectedPriceFilter] = useState<string | null>(null);
     const [showAllCategories, setShowAllCategories] = useState(false);
+    const slug = window.location.pathname.split('/').pop();
 
     const fetchData = useCallback(async (categorySlug: string | null = null) => {
         const slug = window.location.pathname.split('/').pop();
+        
         if (!slug) {
             setError('Không tìm thấy slug cửa hàng trên URL.');
             setLoading(false);
@@ -77,7 +80,7 @@ const ShopPage = () => {
 
             const shopData = await shopRes.json();
             const categoryData = await categoryRes.json();
-
+            console.log("✅ Shop info:", shopData?.shop || "Không có dữ liệu");
             if (shopData && shopData.shop) {
                 setShop(shopData.shop);
             } else {
@@ -125,6 +128,7 @@ const ShopPage = () => {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
 
     const handleCategorySelect = (slug: string | null) => {
         setSelectedCategory(slug);
@@ -182,8 +186,8 @@ const ShopPage = () => {
             </div>
         </div>
     );
-      
-      
+
+
     if (!shop) return <div className="flex items-center justify-center min-h-screen text-xl text-red-600">Không thể tải thông tin.</div>;
 
     return (

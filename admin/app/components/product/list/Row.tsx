@@ -54,43 +54,56 @@ const handleStatusChange = async () => {
 
 
   return (
-    <tr className="h-[100px] border-b border-gray-100 hover:bg-gray-50 text-gray-700 animate-fade-fast">
-      <td className="py-2 px-3 flex items-center gap-3">
-        <Image
-          src={imageSrc}
-          alt={product.name}
-          width={40}
-          height={40}
-          className="rounded object-cover shrink-0"
-        />
-        <div className="truncate">
-          <p className="font-medium text-gray-900">{product.name}</p>
-          <div className="text-xs text-gray-500 mt-1">
-            {product.option1 && product.value1 && (
-              <div>
-                <span className="font-semibold">{product.option1}:</span> {product.value1}
-              </div>
-            )}
-            {product.option2 && product.value2 && (
-              <div>
-                <span className="font-semibold">{product.option2}:</span> {product.value2}
-              </div>
-            )}
+    <tr className="h-[80px] border-b border-gray-100 hover:bg-gray-50 text-gray-700 animate-fade-fast">
+      {/* Tên sản phẩm & option */}
+      <td className="py-2 px-3 align-middle">
+        <div className="flex items-center gap-3">
+          <Image
+            src={imageSrc}
+            alt={product.name}
+            width={40}
+            height={40}
+            className="rounded object-cover shrink-0"
+          />
+          <div className="truncate">
+            <p className="font-medium text-gray-900">{product.name}</p>
+            <div className="text-xs text-gray-500">
+              {product.option1 && product.value1 && (
+                <div>
+                  <span className="font-semibold">{product.option1}:</span> {product.value1}
+                </div>
+              )}
+              {product.option2 && product.value2 && (
+                <div>
+                  <span className="font-semibold">{product.option2}:</span> {product.value2}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </td>
 
-      <td className="py-2 px-3">{product.price.toLocaleString()}</td>
-      <td className="py-2 px-3">{product.stock}</td>
-      <td className="py-2 px-3">{subcategoryName}</td>
+      {/* Giá */}
+      <td className="py-2 px-3 align-middle whitespace-nowrap">
+        {product.price.toLocaleString()}
+      </td>
 
-      <td className="py-2 px-3">
-        <div className="flex items-center gap-1">
+      {/* Kho */}
+      <td className="py-2 px-3 align-middle text-center whitespace-nowrap">
+        {product.stock}
+      </td>
+
+      {/* Danh mục */}
+      <td className="py-2 px-3 align-middle whitespace-nowrap">
+        {subcategoryName}
+      </td>
+
+      {/* Đánh giá */}
+      <td className="py-2 px-3 align-middle whitespace-nowrap">
+        <div className="flex items-center gap-1 justify-center">
           {product.rating > 0 ? (
             <>
-              <span className="text-sm font-medium w-6 text-center">
-                {(product.rating / 2).toFixed(1)}
-              </span>
+              <span className="text-sm font-medium">{(product.rating / 2).toFixed(1)}</span>
               {[...Array(5)].map((_, i) => (
                 <AiFillStar
                   key={i}
@@ -107,17 +120,28 @@ const handleStatusChange = async () => {
         </div>
       </td>
 
-      <td className="py-2 px-3">
+      {/* Trạng thái */}
+      <td className="py-2 px-3 align-middle text-center whitespace-nowrap">
+        <span
+          className={`px-2 py-1 text-xs rounded-full font-semibold ${product.status === "activated"
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+            }`}
+        >
+          {product.status === "activated" ? "Hoạt động" : "Đã ẩn"}
+        </span>
+      </td>
+
+      {/* Thao tác */}
+      <td className="py-2 px-3 align-middle whitespace-nowrap">
         <div className="flex justify-center gap-2">
           <button
             onClick={handleStatusChange}
             className={`p-2 rounded transition-colors ${product.status === "activated"
-              ? "bg-red-100 hover:bg-red-200 text-red-600"
-              : "bg-green-100 hover:bg-green-200 text-green-600"
+                ? "bg-red-100 hover:bg-red-200 text-red-600"
+                : "bg-green-100 hover:bg-green-200 text-green-600"
               }`}
-            title={
-              product.status === "activated" ? "Ẩn sản phẩm" : "Kích hoạt sản phẩm"
-            }
+            title={product.status === "activated" ? "Ẩn sản phẩm" : "Kích hoạt sản phẩm"}
           >
             {product.status === "activated" ? <FiEyeOff /> : <FiEye />}
           </button>
@@ -130,9 +154,10 @@ const handleStatusChange = async () => {
           </button>
         </div>
       </td>
-      <td>{product.status === "deleted" ? "Đã ẩn" : "Đang bán"}</td>
     </tr>
   );
+
+
 };
 
 export default ProductRow;

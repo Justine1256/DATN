@@ -329,8 +329,7 @@ const Header = () => {
                           <TbBuildingStore className="w-5 h-5" /> Cửa Hàng
                         </Link>
                       </li>
-
-                      {user && user.role !== "admin" && user.role !== "seller" && (
+                      {user && user.role === "user" && !user.shop && (
                         <li>
                           <Link href="/shop/register"
                             className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
@@ -338,6 +337,7 @@ const Header = () => {
                           </Link>
                         </li>
                       )}
+
 
                       {(user?.role === "admin" || user?.role === "seller") && (
                         <li>
@@ -347,6 +347,7 @@ const Header = () => {
                           </Link>
                         </li>
                       )}
+
 
                       <li
                         onClick={handleLogout}
