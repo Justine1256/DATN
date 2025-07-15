@@ -39,7 +39,8 @@ export default function ShopRegisterPage() {
             data.append("description", form.description);
             data.append("phone", form.phone);
             data.append("email", form.email);
-            data.append("image", file);
+            data.append("image", file as Blob);
+
 
             const res = await fetch(`${API_BASE_URL}/shopregister`, {
                 method: "POST",
