@@ -29,11 +29,12 @@ export default function BuyerInfoCard({ buyer }: { buyer: Buyer }) {
       <h3 className="text-lg font-bold mb-4 text-gray-800 text-center">Thông tin người mua</h3>
       <Image
         src={`${STATIC_BASE_URL}/${buyer.avatar}`}
-        alt={buyer.name}
+        alt={buyer.name || "Avatar người mua"}
         width={90}
         height={90}
         className="rounded-full border-2 border-gray-300 shadow-lg mb-4"
       />
+
       <div className="flex flex-col items-start w-full max-w-xs">
         <p><span className="font-semibold">Tên:</span> {buyer.name}</p>
         <p><span className="font-semibold">Email:</span> {buyer.email}</p>

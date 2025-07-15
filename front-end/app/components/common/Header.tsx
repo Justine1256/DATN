@@ -322,22 +322,32 @@ const Header = () => {
                           <FiUser /> Quản Lý Tài Khoản
                         </Link>
                       </li>
+
                       <li>
                         <Link href={shopSlug ? `/shop/${shopSlug}` : "/shop/open"}
                           className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
                           <TbBuildingStore className="w-5 h-5" /> Cửa Hàng
                         </Link>
-
                       </li>
-                      {(user.role === "admin" || user.role === "seller") && (
+
+                      {user && user.role !== "admin" && user.role !== "seller" && (
+                        <li>
+                          <Link href="/shop/register"
+                            className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
+                            <TbBuildingStore className="w-5 h-5" /> Đăng Ký Shop
+                          </Link>
+                        </li>
+                      )}
+
+                      {(user?.role === "admin" || user?.role === "seller") && (
                         <li>
                           <Link href="http://localhost:3001/dashboard"
                             className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
                             <FiSettings className="w-5 h-5" /> Trang Quản Trị
                           </Link>
-
                         </li>
                       )}
+
                       <li
                         onClick={handleLogout}
                         className="flex items-center gap-2 text-red-400 hover:bg-white/10 px-3 py-2 rounded cursor-pointer"
@@ -345,6 +355,7 @@ const Header = () => {
                         <FiLogOut /> Đăng Xuất
                       </li>
                     </ul>
+
                   </div>
                 )}
               </div>
