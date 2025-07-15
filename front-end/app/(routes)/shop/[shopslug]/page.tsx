@@ -57,6 +57,7 @@ const ShopPage = () => {
 
     const fetchData = useCallback(async (categorySlug: string | null = null) => {
         const slug = window.location.pathname.split('/').pop();
+        
         if (!slug) {
             setError('Không tìm thấy slug cửa hàng trên URL.');
             setLoading(false);
@@ -77,7 +78,7 @@ const ShopPage = () => {
 
             const shopData = await shopRes.json();
             const categoryData = await categoryRes.json();
-
+            console.log("✅ Shop info:", shopData?.shop || "Không có dữ liệu");
             if (shopData && shopData.shop) {
                 setShop(shopData.shop);
             } else {

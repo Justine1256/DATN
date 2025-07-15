@@ -104,40 +104,44 @@ export default function CategoryListPage() {
     }, [shopId, fetchCategories, fetchProducts]);
 
     return (
-        <div className="p-6 relative">
+        <div className="flex flex-col relative">
             <CategoryListHeader />
+            <div className="flex-1 flex flex-col gap-8">
+                <div className="h-[600px] border border-gray-200 rounded-md overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="sticky top-0 bg-white z-10">
+                            <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
+                                <th className="py-2 px-3 w-1/5">Danh mục</th>
+                                <th className="py-2 px-3 w-1/5">Mô tả</th>
+                                <th className="py-2 px-3 w-1/5 text-center">Số SP</th>
+                                <th className="py-2 px-3 w-1/5 text-center">Trạng thái</th>
+                                <th className="py-2 px-3 w-1/5">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading
+                                ? Array.from({ length: categoriesPerPage }).map((_, i) => (
+                                    <CategoryRowSkeleton key={i} />
+                                ))
+                                : paginatedCategories.map((category) => (
+                                    <CategoryRow
+                                        key={category.id}
+                                        category={category}
+                                        productCount={getProductCountForCategory(category.id)}
+                                    />
+                                ))}
+                        </tbody>
+                    </table>
+                </div>
 
-            <table className="w-full text-sm text-left table-fixed">
-                <thead>
-                    <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
-                        <th className="py-2 px-3 w-1/5">Danh mục</th>
-                        <th className="py-2 px-3 w-1/5">Mô tả</th>
-                        <th className="py-2 px-3 w-1/5 text-center">Số SP</th>
-                        <th className="py-2 px-3 w-1/5 text-center">Trạng thái</th>
-                        <th className="py-2 px-3 w-1/5">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {loading
-                        ? Array.from({ length: categoriesPerPage }).map((_, i) => (
-                            <CategoryRowSkeleton key={i} />
-                        ))
-                        : paginatedCategories.map((category) => (
-                            <CategoryRow
-                                key={category.id}
-                                category={category}
-                                productCount={getProductCountForCategory(category.id)}
-                            />
-                        ))}
-                </tbody>
-            </table>
-
-            <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                setCurrentPage={setCurrentPage}
-            />
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    setCurrentPage={setCurrentPage}
+                />
+            </div>
         </div>
     );
+      
     
 }

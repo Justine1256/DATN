@@ -65,8 +65,11 @@ const CategoryRow = ({ category, productCount }: CategoryRowProps) => {
 
       {/* Mô tả */}
       <td className="py-3 px-4 min-w-[200px] text-xs text-gray-600 max-w-xs truncate">
-        {category.description || "-"}
+        {category.description
+          ? category.description.replace(/<\/?[^>]+(>|$)/g, "")
+          : "-"}
       </td>
+
 
       {/* Số lượng sp */}
       <td className="py-3 px-4 min-w-[120px] text-center">{productCount}</td>

@@ -51,6 +51,7 @@ interface Shop {
     status: 'activated' | 'pending' | 'suspended';
     email: string;
     slug: string;
+    followers_count: number;
 }
 
 const ShopCard = ({ shop }: { shop: Shop }) => {
@@ -138,7 +139,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                                     <Users size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Người theo dõi</div>
-                                        <div className="font-semibold text-black">1.2K</div>
+                                        <div className="font-semibold text-black">{shop.followers_count}</div>
                                     </div>
                                 </div>
 
