@@ -35,5 +35,10 @@ class Shop extends Model
 {
     return $this->belongsToMany(User::class, 'shop_user', 'shop_id', 'user_id');
 }
+public function followRecords()
+{
+    return $this->hasMany(Follow::class, 'shop_id');
+}
+
 }
 

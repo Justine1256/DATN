@@ -170,7 +170,7 @@ class ShopController extends Controller
 
 public function showShopInfo($slug)
 {
-    $shop = Shop::where('slug', $slug)->withCount('followers')->first();
+    $shop = Shop::where('slug', $slug)->withCount('followRecords')->first();
 
     if (!$shop) {
         return response()->json(['error' => 'Shop không tồn tại'], 404);
@@ -190,11 +190,10 @@ public function showShopInfo($slug)
             'status' => $shop->status,
             'created_at' => $shop->created_at,
             'updated_at' => $shop->updated_at,
-            'followers_count' => $shop->followers_count,
+            'followers_count' => $shop->follow_records_count,
         ]
     ]);
 }
-
     public function getShopProducts($slug)
     {
         $shop = Shop::where('slug', $slug)->first();
