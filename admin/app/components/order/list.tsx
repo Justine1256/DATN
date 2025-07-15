@@ -1,29 +1,32 @@
 "use client";
-
-import { Eye, ChevronDown, Search, Download } from "lucide-react";
-import { useRouter } from "next/navigation";
+import React from "react";
+import { Eye, Search, Download } from "lucide-react";
+import Link from "next/link";
 
 type Order = {
   id: number;
   final_amount: number;
   payment_method: string;
   payment_status: string;
-  order_status: string;
-  shipping_status: string;
+  order_status: "Pending" | "Shipped" | "Delivered" | "Canceled";
+  shipping_status: "Pending" | "Shipping" | "Delivered" | "Failed";
   shipping_address: string;
   created_at: string;
+  total_products: number;
 };
 
 const statusConfig = {
   Pending: { label: "Đang chờ xử lý", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
   Shipped: { label: "Đang giao hàng", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
   Delivered: { label: "Đã giao hàng", bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  Canceled: { label: "Đã hủy", bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
 } as const;
 
-const shippingStatusMap = {
-  Pending: "Chờ giao",
-  Shipping: "Đang giao",
-  Delivered: "Đã giao"
+const shippingConfig = {
+  Pending: { label: "Chờ giao", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  Shipping: { label: "Đang giao", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  Delivered: { label: "Đã giao", bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  Failed: { label: "Giao thất bại", bg: "bg-red-50", text: "text-red-700", border: "border-red-200" }
 } as const;
 
 function formatDateTime(datetime: string) {
@@ -36,10 +39,7 @@ function formatDateTime(datetime: string) {
 }
 
 function downloadCSV(data: Order[]) {
-  const csvRows = [
-    ["Mã", "Ngày", "Địa chỉ", "Tổng", "Thanh toán", "Trạng thái", "Vận chuyển"]
-  ];
-
+  const csvRows = [["Mã", "Ngày", "Địa chỉ", "Tổng", "Thanh toán", "Trạng thái", "Vận chuyển"]];
   data.forEach(order => {
     csvRows.push([
       `#${order.id}`,
@@ -51,9 +51,7 @@ function downloadCSV(data: Order[]) {
       order.shipping_status
     ]);
   });
-
-  const csvContent = "data:text/csv;charset=utf-8,"
-    + csvRows.map(e => e.join(",")).join("\n");
+  const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
@@ -64,9 +62,7 @@ function downloadCSV(data: Order[]) {
 }
 
 export default function OrderListTable({
-  orders,
-  loading,
-  onShippingChange,
+  orders, loading, onStatusChange,
   searchTerm, setSearchTerm,
   filterStatus, setFilterStatus,
   filterPeriod, setFilterPeriod,
@@ -76,7 +72,7 @@ export default function OrderListTable({
 }: {
   orders: Order[];
   loading: boolean;
-  onShippingChange: (id: number, status: string) => void;
+  onStatusChange: (id: number, status: string) => void;
   searchTerm: string; setSearchTerm: (v: string) => void;
   filterStatus: string; setFilterStatus: (v: string) => void;
   filterPeriod: string; setFilterPeriod: (v: string) => void;
@@ -84,14 +80,11 @@ export default function OrderListTable({
   currentPage: number; setCurrentPage: (v: number) => void;
   totalPages: number; totalItems: number;
 }) {
-  const router = useRouter();
-
   return (
     <div className="space-y-6">
-      {/* Header với filters */}
+      {/* Filter */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <div className="flex flex-wrap gap-4 items-center justify-between">
-          {/* Search */}
           <div className="relative">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -102,40 +95,31 @@ export default function OrderListTable({
               className="pl-11 pr-4 py-3 w-72 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:border-gray-300 transition-all outline-none text-sm placeholder-gray-500"
             />
           </div>
-
-          {/* Filter controls */}
           <div className="flex flex-wrap gap-3">
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none min-w-[160px]"
+              className={`border rounded-xl px-4 py-3 text-sm hover:bg-gray-50 focus:border-gray-300 transition-all outline-none min-w-[160px]
+                ${filterStatus === "Pending" ? "bg-amber-50 text-amber-700 border-amber-200" : ""}
+                ${filterStatus === "Shipped" ? "bg-blue-50 text-blue-700 border-blue-200" : ""}
+                ${filterStatus === "Delivered" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}
+                ${filterStatus === "Canceled" ? "bg-red-50 text-red-700 border-red-200" : ""}
+              `}
             >
               <option value="Tất cả">Tất cả trạng thái</option>
               <option value="Pending">Đang chờ xử lý</option>
               <option value="Shipped">Đang giao hàng</option>
               <option value="Delivered">Đã giao hàng</option>
+              <option value="Canceled">Đã hủy</option>
             </select>
 
-            <input
-              type="month"
-              value={filterPeriod}
-              onChange={(e) => setFilterPeriod(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none"
-            />
-
-            <input
-              type="date"
-              value={filterExactDate}
-              onChange={(e) => setFilterExactDate(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none"
-            />
-
-            <button
-              onClick={() => downloadCSV(orders)}
-              className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-3 rounded-xl text-sm font-medium transition-all"
-            >
-              <Download size={16} />
-              Xuất CSV
+            <input type="month" value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)}
+              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none" />
+            <input type="date" value={filterExactDate} onChange={(e) => setFilterExactDate(e.target.value)}
+              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none" />
+            <button onClick={() => downloadCSV(orders)}
+              className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-3 rounded-xl text-sm font-medium transition-all">
+              <Download size={16} /> Xuất CSV
             </button>
           </div>
         </div>
@@ -143,132 +127,157 @@ export default function OrderListTable({
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px] text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="py-4 px-6 text-left font-semibold text-gray-700">Mã đơn</th>
-                <th className="py-4 px-6 text-left font-semibold text-gray-700">Ngày tạo</th>
-                <th className="py-4 px-6 text-left font-semibold text-gray-700">Địa chỉ giao hàng</th>
-                <th className="py-4 px-6 text-right font-semibold text-gray-700">Tổng tiền</th>
-                <th className="py-4 px-6 text-center font-semibold text-gray-700">Thanh toán</th>
-                <th className="py-4 px-6 text-center font-semibold text-gray-700">Vận chuyển</th>
-                <th className="py-4 px-6 text-center font-semibold text-gray-700">Trạng thái</th>
-                <th className="py-4 px-6 text-center font-semibold text-gray-700">Chi tiết</th>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-100">
+              <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[8%]">Mã đơn</th>
+              <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[12%]">Ngày tạo</th>
+              <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[18%]">Địa chỉ</th>
+              <th className="py-4 px-3 text-right font-semibold text-gray-700 w-[12%]">Tổng tiền</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[8%]">Số lượng</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Thanh toán</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Vận chuyển</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[12%]">Trạng thái</th>
+              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[7%]">Chi tiết</th>
+
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map(order => (
+              <tr key={order.id} className="border-b border-gray-50 hover:bg-[#fff3f3] transition-colors">
+                <td className="py-4 px-3 font-mono text-gray-900 font-medium">#{order.id}</td>
+                <td className="py-4 px-3 text-gray-900 text-xs">{formatDateTime(order.created_at)}</td>
+                <td className="py-4 px-3 text-gray-900 truncate max-w-[160px]" title={order.shipping_address}>
+                  {order.shipping_address}
+                </td>
+                <td className="py-4 px-3 text-right font-semibold text-gray-900">{order.final_amount.toLocaleString("vi-VN")} đ</td>
+                <td className="py-4 px-3 text-center font-medium text-gray-900">
+                  {order.total_products > 0 ? order.total_products : "-"}
+                </td>
+                <td className="py-4 px-3 text-center">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                    {order.payment_method}
+                  </span>
+                </td>
+                <td className="py-4 px-3 text-center">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
+            ${shippingConfig[order.shipping_status]?.bg}
+            ${shippingConfig[order.shipping_status]?.text}
+            ${shippingConfig[order.shipping_status]?.border}`}>
+                    {shippingConfig[order.shipping_status]?.label}
+                  </span>
+                </td>
+                <td className="py-4 px-3 text-center">
+                  {order.order_status === "Delivered" || order.order_status === "Canceled" ? (
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
+        ${statusConfig[order.order_status]?.bg}
+        ${statusConfig[order.order_status]?.text}
+        ${statusConfig[order.order_status]?.border}`}
+                    >
+                      {statusConfig[order.order_status]?.label}
+                    </span>
+                  ) : (
+                    <select
+                      value={order.order_status}
+                      onChange={(e) => onStatusChange(order.id, e.target.value)}
+                      className={`rounded-full border px-2 py-1 text-xs font-medium transition-all outline-none min-w-[100px]
+        ${statusConfig[order.order_status]?.bg}
+        ${statusConfig[order.order_status]?.text}
+        ${statusConfig[order.order_status]?.border}`}
+                    >
+                      {Object.keys(statusConfig).map(status => (
+                        <option key={status} value={status}>
+                          {statusConfig[status as keyof typeof statusConfig].label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </td>
+
+                <td className="py-4 px-3 text-center">
+                  <Link href={`/order/${order.id}`}>
+                    <button className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#db4444] hover:bg-[#db4444] hover:text-white transition-all group">
+                      <Eye size={16} className="text-gray-600 group-hover:text-white" />
+                    </button>
+                  </Link>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-500">
-                    <div className="inline-flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-                      Đang tải dữ liệu...
-                    </div>
-                  </td>
-                </tr>
-              ) : orders.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-500">
-                    <div className="space-y-2">
-                      <div className="text-gray-400">📦</div>
-                      <div>Không có đơn hàng nào</div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                orders.map((order, index) => (
-                  <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6">
-                      <span className="font-mono text-gray-900 font-medium">#{order.id}</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="text-gray-900">{formatDateTime(order.created_at)}</div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="text-gray-900 truncate max-w-[200px]" title={order.shipping_address}>
-                        {order.shipping_address}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <span className="font-semibold text-gray-900">
-                        {Number(order.final_amount).toLocaleString("vi-VN")} đ
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                        {order.payment_method}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <select
-                        value={order.shipping_status}
-                        onChange={(e) => onShippingChange(order.id, e.target.value)}
-                        className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none"
-                      >
-                        {Object.keys(shippingStatusMap).map(status => (
-                          <option key={status} value={status}>
-                            {shippingStatusMap[status as keyof typeof shippingStatusMap]}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border
-                        ${statusConfig[order.order_status as keyof typeof statusConfig]?.bg}
-                        ${statusConfig[order.order_status as keyof typeof statusConfig]?.text}
-                        ${statusConfig[order.order_status as keyof typeof statusConfig]?.border}`}>
-                        {statusConfig[order.order_status as keyof typeof statusConfig]?.label ?? order.order_status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <button
-                        onClick={() => router.push(`/orders/${order.id}`)}
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#db4444] hover:bg-[#db4444] hover:text-white transition-all group"
-                      >
-                        <Eye size={16} className="text-gray-600 group-hover:text-white" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
 
-        {/* Pagination */}
-        <div className="flex justify-between items-center p-6 border-t border-gray-100 bg-gray-50">
-          <div className="text-sm text-gray-600">
-            Hiển thị <span className="font-semibold">{(orders.length > 0 ? ((currentPage - 1) * 10) + 1 : 0)}-{((currentPage - 1) * 10) + orders.length}</span> trên <span className="font-semibold">{totalItems}</span> đơn hàng
-          </div>
-          <div className="flex gap-2">
+        <div className="flex items-center justify-between p-4 text-sm text-gray-500">
+          <div>Tổng: {totalItems} đơn</div>
+          <div className="flex gap-1 items-center">
             <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${currentPage === 1
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                }`}
+              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
             >
-              Trước
+              «
+            </button>
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))
+              }
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
+            >
+              ‹
             </button>
 
-            <div className="flex items-center px-3 py-2 text-sm text-gray-600">
-              Trang {currentPage} / {totalPages}
-            </div>
+            {/* Tính các page cần hiện */}
+            {Array.from({ length: totalPages })
+              .map((_, i) => i + 1)
+              .filter(
+                page =>
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 1 && page <= currentPage + 1)
+              )
+              .reduce<number[]>((acc, page, i, arr) => {
+                if (i > 0 && page - arr[i - 1] > 1) acc.push(-1); // dấu ... khi cách xa
+                acc.push(page);
+                return acc;
+              }, [])
+              .map((page, i) =>
+                page === -1 ? (
+                  <span key={`dots-${i}`} className="px-2">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1 rounded border transition
+              ${page === currentPage
+                        ? "border-[#db4444] bg-[#db4444] text-white"
+                        : "border-gray-200 hover:border-[#db4444] hover:text-[#db4444]"}`}
+                    title={`Trang ${page}`}
+                  >
+                    {page}
+                  </button>
+                )
+              )
+            }
 
             <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))
+}
               disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${currentPage === totalPages
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                }`}
+              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
             >
-              Sau
+              ›
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
+            >
+              »
             </button>
           </div>
         </div>
+
+
       </div>
     </div>
   );

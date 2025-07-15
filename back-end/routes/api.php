@@ -40,7 +40,7 @@ Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
 
     // Kiểm tra token qua Sanctum
     if ($token) {
-        $user = Auth::guard('web')->user();
+        $user = Auth::guard('sanctum')->user();
 
         if ($user) {
             // Kiểm tra quyền truy cập vào channel
@@ -66,6 +66,7 @@ Route::get('/image/{path}', [ImageController::class, 'show'])->where('path', '.*
 Route::post('/upload-image', [ImageController::class, 'store']);
 Route::post('/upload-product-image', [ImageController::class, 'uploadProductImage']);
 Route::post('/upload-review-image', [ImageController::class, 'uploadReviewImage']);
+// Route::post('/shop/upload-logo', [ImageController::class, 'uploadShopLogo']);
 
 Route::get('/category', [CategoryController::class, 'index']);
 Route::get('/admin/categories', [CategoryController::class, 'showDefaultCategory']);
@@ -104,12 +105,16 @@ Route::get('/vouchers', [VoucherController::class, 'index']);
 Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::class, 'showVouchersByCategory']);
 Route::get('/search', [ProductController::class, 'search']);
 Route::post('/nologin', [OrderController::class, 'guestCheckout']);// đặt hàng ko cần đăng nhập
+Route::get('/orders/{id}/invoice', [OrderController::class, 'downloadInvoice']);
+
+
 
 
 Route::get('/vouchers', [VoucherController::class, 'index']);
 
 Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
+Route::get('/products/{id}/reviews', [ReviewController::class, 'getByProduct']);
 Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
 Route::get('/shop/{slug}/products', [ProductController::class, 'showShopProducts']);
 Route::get('/shop/{slug}/products-by-category/{category_slug}', [ProductController::class, 'getShopProductsByCategorySlug']);
@@ -150,6 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orderall', [OrderController::class, 'index']);
     Route::post('/dathang', [OrderController::class, 'checkout']);
     Route::get('/showdh/{id}', [OrderController::class, 'show']);
+    Route::get('/order-statistics', [OrderController::class, 'orderStatistics']);
     Route::get('/admin/orders', [OrderController::class, 'adminOrderList']);
     Route::get('/admin/order/{id}', [OrderController::class, 'adminShow']);
     Route::patch('/cancel/{id}', [OrderController::class, 'cancel']);
@@ -230,12 +236,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/shop/products/{id}/get', [ProductController::class, 'getProductByIdShop']);
     Route::post('/shop/products', [ProductController::class, 'store']);
     Route::patch('/shop/products/{id}/edit', [ProductController::class, 'update']);
+    Route::patch('/shop/products/{id}/status', [ProductController::class, 'updateStatus']);
     Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
+    Route::delete('/shop/product-variants/{id}', [ProductController::class, 'destroyVariant']);
     Route::post('/shop/restore/products/{id}', [ProductController::class, 'restoreProduct']);
     // quản lý danh mục của shop
     Route::get('/shop/categories/{shop_id}', [CategoryController::class, 'getShopCategories']);
     Route::post('/shop/categories', [CategoryController::class, 'addCategoryByShop']);
-    Route::patch('/shop/categories/{id}', [CategoryController::class, 'updateCategoryByShop']);
+    Route::put('/shop/categories/{id}', [CategoryController::class, 'updateCategoryByShop']);
+    Route::patch('/shop/categories/{id}/status', [CategoryController::class, 'updateCategoryStatus']);
     Route::delete('/shop/categories/{id}', [CategoryController::class, 'destroyCategoryByShop']);
     Route::post('/shop/categories/{id}', [CategoryController::class, 'restoreCategory']);
     // quản lý bình luận của shop

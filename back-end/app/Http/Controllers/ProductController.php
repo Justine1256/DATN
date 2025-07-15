@@ -387,38 +387,39 @@ class ProductController extends Controller
             'products' => $products,
         ]);
     }
-    public function getProductByIdShop($id)
-    {
-        $user = Auth::user();
+public function getProductByIdShop($id)
+{
+    $user = Auth::user();
 
-        if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-
-        $shop = $user->shop; // lấy shop qua quan hệ
-
-        if (!$shop) {
-            return response()->json(['message' => 'User has no shop'], 403);
-        }
-
-        $shopId = $shop->id;
-
-        $product = Product::where('id', $id)
-            ->where('shop_id', $shopId)
-            ->with('category')
-            ->withCount(['approvedReviews as review_count'])
-            ->withAvg(['approvedReviews as rating_avg'], 'rating')
-            ->first();
-
-        if (!$product) {
-            return response()->json(['message' => 'Product not found or not authorized'], 404);
-        }
-
-        return response()->json([
-            'status' => true,
-            'product' => $product,
-        ]);
+    if (!$user) {
+        return response()->json(['message' => 'Unauthorized'], 401);
     }
+
+    $shop = $user->shop; // lấy shop qua quan hệ
+
+    if (!$shop) {
+        return response()->json(['message' => 'User has no shop'], 403);
+    }
+
+    $shopId = $shop->id;
+
+    $product = Product::where('id', $id)
+        ->where('shop_id', $shopId)
+        ->with(['category', 'variants'])
+        ->withCount(['approvedReviews as review_count'])
+        ->withAvg(['approvedReviews as rating_avg'], 'rating')
+        ->first();
+
+    if (!$product) {
+        return response()->json(['message' => 'Product not found or not authorized'], 404);
+    }
+
+    return response()->json([
+        'status' => true,
+        'product' => $product,
+    ]);
+}
+
 
 
     // Cập nhật sản phẩm bởi shop
@@ -542,6 +543,31 @@ class ProductController extends Controller
         ]);
     }
 
+    public function updateStatus(Request $request, $id)
+{
+    $request->validate([
+        'status' => 'required|in:deleted,activated',
+    ]);
+
+    $user = $request->user();
+
+    if (!$user || !$user->shop) {
+        return response()->json(['error' => 'Bạn chưa đăng nhập hoặc chưa có cửa hàng.'], 403);
+    }
+
+    $product = Product::where('id', $id)
+        ->where('shop_id', $user->shop->id)
+        ->first();
+
+    if (!$product) {
+        return response()->json(['error' => 'Không tìm thấy sản phẩm.'], 404);
+    }
+
+    $product->status = $request->status;
+    $product->save();
+
+    return response()->json(['message' => 'Cập nhật trạng thái sản phẩm thành công.']);
+}
 
     public function destroy(Request $request, $id)
     {
@@ -574,6 +600,29 @@ class ProductController extends Controller
             'status' => true,
             'message' => 'Xóa sản phẩm thành công.'
         ]);
+    }
+
+        public function destroyVariant($id)
+    {
+        $user = Auth::user();
+        if (!$user || !$user->shop) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $variant = ProductVariant::find($id);
+
+        if (!$variant) {
+            return response()->json(['message' => 'Variant not found'], 404);
+        }
+
+        // Chỉ xóa nếu biến thể thuộc về shop của user
+        if ($variant->product->shop_id !== $user->shop->id) {
+            return response()->json(['message' => 'Not authorized to delete this variant'], 403);
+        }
+
+        $variant->delete(); // soft delete nếu dùng SoftDeletes
+
+        return response()->json(['message' => 'Variant deleted successfully']);
     }
     // Khôi phục sản phẩm đã xóa mềm bởi shop
     public function restoreProduct(Request $request, $id)

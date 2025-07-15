@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\ProductVariant;
 use App\Models\Notification;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
@@ -290,6 +291,9 @@ class OrderController extends Controller
                 'id' => $order->user?->id,
                 'name' => $order->user?->name,
                 'email' => $order->user?->email,
+                'phone' => $order->user?->phone,
+                'rank' => $order->user?->rank,
+                'avatar' => $order->user?->avatar,
             ],
             'shop' => [
                 'id' => $order->shop?->id,
@@ -303,60 +307,107 @@ class OrderController extends Controller
             'shipping_address' => $order->shipping_address,
             'created_at' => $order->created_at,
             'products' => $order->orderDetails->map(function ($detail) {
+                $firstImage = null;
+
+                if (!empty($detail->product?->image)) {
+                    $images = $detail->product->image;
+
+                    // Nếu không phải mảng, thử json_decode
+                    if (!is_array($images)) {
+                        $decoded = json_decode($images, true);
+
+                        if (is_array($decoded)) {
+                            $images = $decoded;
+                        }
+                    }
+
+                    if (is_array($images) && count($images) > 0) {
+                        $firstImage = $images[0];
+                    }
+                }
+
                 return [
                     'id' => $detail->product->id ?? null,
                     'name' => $detail->product->name ?? null,
                     'price_at_time' => $detail->price_at_time,
                     'quantity' => $detail->quantity,
                     'subtotal' => $detail->subtotal,
+                    'image' => $firstImage,
                 ];
             }),
+
         ];
 
         return response()->json([
             'order' => $response
         ]);
     }
-    public function adminOrderList(Request $request)
-    {
-        $query = Order::with(['user', 'shop']);
+public function adminOrderList(Request $request)
+{
+    $user = Auth::user();
 
-        if ($request->has('status')) {
-            $query->where('order_status', $request->status);
-        }
-
-        $orders = $query->latest()->paginate(20);
-
-        $data = $orders->map(function ($order) {
-            return [
-                'id' => $order->id,
-                'buyer' => [
-                    'id' => $order->user?->id,
-                    'name' => $order->user?->name,
-                ],
-                'shop' => [
-                    'id' => $order->shop?->id,
-                    'name' => $order->shop?->name,
-                ],
-                'final_amount' => $order->final_amount,
-                'payment_method' => $order->payment_method,
-                'order_status' => $order->order_status,
-                'shipping_status' => $order->shipping_status,
-                'shipping_address' => $order->shipping_address, // 👈 THÊM DÒNG NÀY
-                'created_at' => $order->created_at,
-            ];
-        });
-
+    if (!$user) {
         return response()->json([
-            'orders' => $data,
-            'pagination' => [
-                'current_page' => $orders->currentPage(),
-                'last_page' => $orders->lastPage(),
-                'total' => $orders->total(),
-            ]
-        ]);
+            'message' => 'Unauthorized'
+        ], 401);
     }
 
+    $query = Order::with(['user', 'shop', 'orderDetails']);
+
+    if ($user->role === 'seller') {
+        // Lấy shop_id của seller
+        $shop = \App\Models\Shop::where('user_id', $user->id)->first();
+
+        if (!$shop) {
+            return response()->json([
+                'orders' => [],
+                'pagination' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'total' => 0,
+                ]
+            ]);
+        }
+
+        $query->where('shop_id', $shop->id);
+    }
+
+    if ($request->filled('status')) {
+        $query->where('order_status', $request->input('status'));
+    }
+
+    $orders = $query->latest()->paginate(20);
+
+    $data = $orders->map(function ($order) {
+        return [
+            'id' => $order->id,
+            'buyer' => [
+                'id' => $order->user?->id,
+                'name' => $order->user?->name,
+            ],
+            'shop' => [
+                'id' => $order->shop?->id,
+                'name' => $order->shop?->name,
+            ],
+            'final_amount' => $order->final_amount,
+            'payment_method' => $order->payment_method,
+            'order_status' => $order->order_status,
+            'shipping_status' => $order->shipping_status,
+            'shipping_address' => $order->shipping_address,
+            'created_at' => $order->created_at,
+            'total_products' => $order->orderDetails->sum('quantity'),
+        ];
+    });
+
+    return response()->json([
+        'orders' => $data,
+        'pagination' => [
+            'current_page' => $orders->currentPage(),
+            'last_page' => $orders->lastPage(),
+            'total' => $orders->total(),
+        ]
+    ]);
+}
 
     public function updateShippingStatus($orderId, Request $request)
     {
@@ -594,4 +645,67 @@ class OrderController extends Controller
 
         return response()->json(['message' => 'Order status updated successfully']);
     }
+    public function orderStatistics()
+{
+    $user = Auth::user();
+
+    $query = Order::query();
+
+    if ($user->role === 'seller') {
+        // Lấy shop của seller
+        $shop = \App\Models\Shop::where('user_id', $user->id)->first();
+        if (!$shop) {
+            return response()->json([
+                'message' => 'Seller chưa có shop',
+                'data' => [
+                    'total_orders' => 0,
+                    'total_amount' => 0,
+                    'formatted_total_amount' => '0 ₫',
+                    'pending_orders' => 0,
+                    'confirmation_orders' => 0,
+                    'shipping_orders' => 0,
+                    'delivered_orders' => 0,
+                    'canceled_orders' => 0,
+                ]
+            ]);
+        }
+
+        // chỉ lọc đơn của shop này
+        $query->where('shop_id', $shop->id);
+    }
+
+    $totalOrders = $query->count();
+
+    $totalAmount = $query->sum('final_amount');
+
+    $pendingOrders = (clone $query)->where('order_status', 'Pending')->count();
+    $confirmationOrders = (clone $query)->where('order_status', 'order confirmation')->count();
+    $shippingOrders = (clone $query)->where('order_status', 'Shipped')->count();
+    $deliveredOrders = (clone $query)->where('order_status', 'Delivered')->count();
+    $canceledOrders = (clone $query)->where('order_status', 'Canceled')->count();
+
+    return response()->json([
+        'total_orders'           => $totalOrders,
+        'total_amount'           => $totalAmount,
+        'formatted_total_amount' => number_format($totalAmount, 0, ',', '.') . ' ₫',
+        'pending_orders'         => $pendingOrders,
+        'confirmation_orders'    => $confirmationOrders,
+        'shipping_orders'        => $shippingOrders,
+        'delivered_orders'       => $deliveredOrders,
+        'canceled_orders'        => $canceledOrders,
+    ]);
+}
+ public function downloadInvoice($id)
+    {
+    $order = Order::with(['user', 'orderDetails.product', 'shop'])->findOrFail($id);
+
+    $pdf = Pdf::loadView('invoices.order', compact('order'));
+    $pdf->setPaper('A4');
+    $pdf->setOptions([
+        'defaultFont' => 'DejaVu Sans'
+    ]);
+
+    return $pdf->download("invoice_order_{$order->id}.pdf");
+    }
+
 }

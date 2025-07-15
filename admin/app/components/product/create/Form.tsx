@@ -156,23 +156,14 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
                   Giá gốc (VND) <span className="text-[#db4444]">*</span>
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   name="price"
                   placeholder="0"
                   value={price}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^\d]/g, ""); // loại bỏ mọi ký tự ngoài số
-                    setPrice(raw);
-                  }}
-                  onBlur={() => {
-                    setPrice((prev) => formatCurrency(prev));
-                  }}
-                  onFocus={() => {
-                    const raw = price.replace(/[^\d]/g, "");
-                    setPrice(raw);
-                  }}
+                  onChange={(e) => setPrice(e.target.value)}
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
                 />
+
 
               </div>
 

@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import ProductCardCate, { Product } from "../product/ProductCardCate";
 import { API_BASE_URL } from "@/utils/api";
 
-// ✅ Nhận shopSlug qua props
 export default function ShopProductSlider({ shopSlug }: { shopSlug: string }) {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -71,13 +70,13 @@ export default function ShopProductSlider({ shopSlug }: { shopSlug: string }) {
         sliderRef.current!.scrollLeft = scrollLeft.current - walk;
     };
 
-    if (!mounted || !shopSlug) return null;
+    // ❌ Không render luôn nếu không loading mà products rỗng
+    if (!mounted || !shopSlug || (!loading && products.length === 0)) return null;
 
     return (
         <section className="bg-white pt-10 pb-6">
             <div className="max-w-[1170px] mx-auto">
                 <div className="mb-6">
-                    {/* <div className="border-t border-gray-200 mb-6" /> */}
                     <div className="flex items-center justify-between gap-10 mb-6">
                         <div className="flex flex-col justify-center !mr-6">
                             <div className="flex items-center gap-2">
@@ -86,12 +85,6 @@ export default function ShopProductSlider({ shopSlug }: { shopSlug: string }) {
                             </div>
                             <h2 className="text-3xl font-bold text-black mt-2">Sản phẩm của shop</h2>
                         </div>
-                        {/* <button
-                            onClick={() => router.push("/category")}
-                            className="text-brand border border-brand hover:bg-brand hover:text-white font-medium text-sm py-2.5 px-4 rounded-md transition duration-300 w-fit ml-4 mt-4"
-                        >
-                            Xem tất cả sản phẩm
-                        </button> */}
                     </div>
                 </div>
 

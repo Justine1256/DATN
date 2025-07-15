@@ -81,21 +81,39 @@ class ImageController extends Controller
 
         return response()->json(['url' => $url]);
     }
-    public function uploadReviewImage(Request $request)
-    {
-        $request->validate([
-            'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
-        ]);
+public function uploadReviewImage(Request $request)
+{
+    $request->validate([
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
+    ]);
 
-        $file = $request->file('image');
-        $path = $file->store('reviews', 'public'); // Ví dụ trả về: reviews/abc.jpg
+    $file = $request->file('image');
+    $path = $file->store('reviews', 'public'); // lưu vào storage/app/public/reviews
 
-        // ✅ Build URL đúng, có cả tên file
-        $url = 'https://files.marketo.info.vn/files/public/' . $path;
+    $url = asset('storage/' . $path); // ✅ public path
 
-        return response()->json([
-            'message' => 'Tải ảnh review thành công',
-            'images' => [$url] // mảng
-        ], 201);
-    }
+    return response()->json([
+        'message' => 'Tải ảnh review thành công',
+        'images' => [$url]
+    ], 201);
+}
+public function uploadShopLogo(Request $request)
+{
+    $request->validate([
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
+    ]);
+
+    $file = $request->file('image');
+
+    // Lưu vào thư mục storage/app/public/shops
+    $path = $file->store('shops', 'public');
+
+    // Trả về đường dẫn public
+    $url = asset('storage/' . $path);
+
+    return response()->json([
+        'message' => 'Tải logo thành công',
+        'logo' => [$url] // trả về mảng
+    ], 201);
+}
 }
