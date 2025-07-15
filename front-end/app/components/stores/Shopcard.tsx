@@ -97,52 +97,54 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                             {/* Shop Info Grid - 2 rows, 3 columns */}
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {/* Row 1 */}
-                                <div className="flex items-center gap-2 md:w-[170px]">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <Phone size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Điện thoại</div>
-                                        <div className="font-semibold text-black">{shop.phone}</div>
+                                        <div className="font-semibold text-black w-max">{shop.phone}</div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 md:w-[170px]">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <Package size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Đã bán</div>
-                                        <div className="font-semibold text-black">{shop.total_sales}</div>
+                                        <div className="font-semibold text-black w-max">{shop.total_sales == null || shop.total_sales === 0 ? "Chưa có lượt bán" : shop.total_sales}</div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 md:w-[170px]">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <Star size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Đánh giá</div>
-                                        <div className="font-semibold text-black">{shop.rating}</div>
+                                        <div className="font-semibold text-black w-max">
+                                            {shop.rating == null || shop.rating === "0.0" ? "Chưa có đánh giá" : shop.rating}
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Row 2 */}
-                                <div className="flex items-center gap-2 md:w-[170px]">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <Calendar size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Tham gia</div>
-                                        <div className="font-semibold text-black">{formatTimeAgo(shop.created_at)}</div>
+                                        <div className="font-semibold text-black w-max">{formatTimeAgo(shop.created_at)}</div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 md:w-[170px]">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <Users size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Người theo dõi</div>
-                                        <div className="font-semibold text-black">{shop.followers_count}</div>
+                                        <div className="font-semibold text-black w-max">{shop.followers_count == null || shop.followers_count === 0 ? "Chưa có người theo dõi" : shop.followers_count}</div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 md:w-[170px]">
+                                <div className="flex items-center gap-2 md:min-w-[200px]">
                                     <MessageCircle size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Email</div>
-                                        <div className="font-semibold text-black text-xs">{shop.email}</div>
+                                        <div className="font-semibold text-black w-max">{shop.email}</div>
                                     </div>
                                 </div>
                             </div>
