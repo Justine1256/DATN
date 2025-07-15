@@ -231,9 +231,9 @@ function ShopStepper({ currentStep }: { currentStep: number }) {
     const steps = ["Thông tin & Logo", "Nhập OTP"];
     return (
         <div className="relative w-full mb-10">
-            <div className="absolute top-[20px] left-7 right-5 h-1 bg-gray-200 rounded-full"></div>
+            <div className="absolute top-[19px] left-7 right-5 h-1 bg-gray-200 rounded-full"></div>
             <div
-                className="absolute top-[20px] left-5 h-1 bg-[#db4444] rounded-full transition-all duration-500"
+                className="absolute top-[19px] left-5 h-1 bg-[#db4444] rounded-full transition-all duration-500"
                 style={{
                     width:
                         currentStep === steps.length - 1
