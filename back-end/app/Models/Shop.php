@@ -23,7 +23,9 @@ class Shop extends Model
         'rating',
         'status',
     ];
-
+    protected $casts = [
+        'logo' => 'array',
+    ];
     public $timestamps = true;
 
     public function user()
@@ -32,8 +34,7 @@ class Shop extends Model
     }
 
     public function followers()
-{
-    return $this->belongsToMany(User::class, 'shop_user', 'shop_id', 'user_id');
+    {
+        return $this->hasMany(\App\Models\Follow::class, 'shop_id');
+    }
 }
-}
-

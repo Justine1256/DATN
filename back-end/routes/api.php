@@ -66,7 +66,7 @@ Route::get('/image/{path}', [ImageController::class, 'show'])->where('path', '.*
 Route::post('/upload-image', [ImageController::class, 'store']);
 Route::post('/upload-product-image', [ImageController::class, 'uploadProductImage']);
 Route::post('/upload-review-image', [ImageController::class, 'uploadReviewImage']);
-Route::post('/shop/upload-logo', [ImageController::class, 'uploadShopLogo']);
+// Route::post('/shop/upload-logo', [ImageController::class, 'uploadShopLogo']);
 
 Route::get('/category', [CategoryController::class, 'index']);
 Route::get('/admin/categories', [CategoryController::class, 'showDefaultCategory']);
