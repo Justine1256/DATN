@@ -54,9 +54,9 @@ const ShopPage = () => {
     const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
     const [selectedPriceFilter, setSelectedPriceFilter] = useState<string | null>(null);
     const [showAllCategories, setShowAllCategories] = useState(false);
+    const slug = window.location.pathname.split('/').pop();
 
     const fetchData = useCallback(async (categorySlug: string | null = null) => {
-        const slug = window.location.pathname.split('/').pop();
         if (!slug) {
             setError('Không tìm thấy slug cửa hàng trên URL.');
             setLoading(false);
@@ -126,6 +126,7 @@ const ShopPage = () => {
         fetchData();
     }, [fetchData]);
 
+
     const handleCategorySelect = (slug: string | null) => {
         setSelectedCategory(slug);
         fetchData(slug);
@@ -182,8 +183,8 @@ const ShopPage = () => {
             </div>
         </div>
     );
-      
-      
+
+
     if (!shop) return <div className="flex items-center justify-center min-h-screen text-xl text-red-600">Không thể tải thông tin.</div>;
 
     return (
@@ -191,76 +192,102 @@ const ShopPage = () => {
             <ShopCard shop={shop} />
 
             <div className="grid grid-cols-12 gap-6 mt-8 ">
+
                 <div className="col-span-12 lg:col-span-3 text-[15px] max-h-[1000px] overflow-auto pr-2 no-scrollbar">
-                    <h2 className="text-sm font-semibold text-brand mb-3 uppercase">Danh mục sản phẩm</h2>
-                    <div className="space-y-1">
-                        <button
-                            onClick={() => handleCategorySelect(null)}
-                            className={`w-full text-left px-3 py-1 rounded truncate 
-              ${!selectedCategory ? "text-brand font-semibold" : "hover:text-brand"}`}>
-                            Tất cả
-                        </button>
+                    <div className="flex flex-col gap-8">
+                        {/* Bộ lọc và sắp xếp */}
+                        <div className="pt-4 flex flex-col space-y-4">
+                            <h3 className="text-lg font-semibold pb-4 border-b">Bộ lọc </h3>
 
-                        {(showAllCategories ? categories : categories.slice(0, 6)).map(cat => (
-                            <button
-                                key={cat.id}
-                                onClick={() => handleCategorySelect(cat.slug)}
-                                className={`w-full text-left px-3 py-1 rounded truncate max-w-[180px]
-                  ${cat.slug === selectedCategory ? "text-brand font-semibold" : "hover:text-brand"}`}>
-                                {cat.name}
-                            </button>
-                        ))}
+                            {/* Danh mục */}
+                            <div className="flex flex-col space-y-4">
+                                <h3 className="font-semibold">Danh mục</h3>
 
-                        {categories.length > 6 && (
-                            <button
-                                onClick={() => setShowAllCategories(!showAllCategories)}
-                                className="mt-2 text-sm text-[#db4444] hover:underline">
-                                {showAllCategories ? 'Ẩn bớt' : 'Xem thêm'}
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="mt-6">
-                        <h3 className="text-base font-semibold mb-3">Bộ lọc & Sắp xếp</h3>
-                        {["Phổ Biến", "Mới Nhất", "Bán Chạy"].map(label => (
-                            <div key={label} className="px-3 py-1 hover:text-brand">
-                                <label className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="sortOption"
-                                        checked={selectedSort === label}
-                                        onChange={() => { setSelectedSort(label); setSelectedPriceFilter(null); }}
-                                    />
-                                    <span>{label}</span>
-                                </label>
+                                <div>
+                                    <button
+                                        onClick={() => handleCategorySelect(null)}
+                                        className={`w-full px-3 py-2 transition-colors text-left
+                                        ${!slug ? "text-brand font-semibold" : "hover:text-brand"}`}
+                                    >
+                                        Tất Cả Sản Phẩm
+                                    </button>
+                                    {categories.map((cat) => (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => handleCategorySelect(cat.slug)}
+                                            className={`w-full px-3 py-2 transition-colors text-left
+                                        ${cat.slug === slug ? "text-brand font-semibold" : "hover:text-brand"}`}
+                                        >
+                                            {cat.name}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        ))}
-                        <h4 className="text-[15px] font-medium mt-4 mb-2">Giá</h4>
-                        {[{ label: "Giá: thấp đến cao", value: "asc" },
-                        { label: "Giá: cao đến thấp", value: "desc" },
-                        { label: "Giảm giá nhiều nhất", value: "discount" }
-                        ].map(option => (
-                            <div key={option.value} className="px-3 py-1 hover:text-brand">
-                                <label className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="priceFilterOptions"
-                                        checked={selectedPriceFilter === option.value}
-                                        onChange={() => { setSelectedPriceFilter(option.value); setSelectedSort("Phổ Biến"); }}
-                                    />
-                                    <span>{option.label}</span>
-                                </label>
+
+                            {/* Sắp xếp */}
+                            <h4 className="text-[15px] font-medium mt-4 mb-2">Giá</h4>
+                            {[{ label: "Giá: thấp đến cao", value: "asc" },
+                            { label: "Giá: cao đến thấp", value: "desc" },
+                            { label: "Giảm giá nhiều nhất", value: "discount" }
+                            ].map(option => (
+                                <div key={option.value} className="px-3 py-1 hover:text-brand">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="priceFilterOptions"
+                                            checked={selectedPriceFilter === option.value}
+                                            onChange={() => { setSelectedPriceFilter(option.value); setSelectedSort("Phổ Biến"); }}
+                                        />
+                                        <span>{option.label}</span>
+                                    </label>
+                                </div>
+                            ))}
+
+                            {/* Sắp xếp giá */}
+                            <div className="flex flex-col space-y-4">
+                                <h4 className="font-semibold">Giá</h4>
+                                <div className="flex flex-col">
+                                    <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
+                                        <input
+                                            type="radio"
+                                            name="priceFilterOptions"
+                                            className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
+                                            checked={selectedPriceFilter === "asc"}
+                                            onChange={() => {
+                                                setSelectedPriceFilter("asc");
+                                                setSelectedSort("Phổ Biến");
+                                            }}
+                                        />
+                                        <span>Giá: thấp đến cao</span>
+                                    </label>
+                                    <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
+                                        <input
+                                            type="radio"
+                                            name="priceFilterOptions"
+                                            className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
+                                            checked={selectedPriceFilter === "desc"}
+                                            onChange={() => {
+                                                setSelectedPriceFilter("desc");
+                                                setSelectedSort("Phổ Biến");
+                                            }}
+                                        />
+                                        <span>Giá: cao đến thấp</span>
+                                    </label>
+                                    <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
+                                        <input
+                                            type="radio"
+                                            name="priceFilterOptions"
+                                            className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
+                                            checked={selectedPriceFilter === "discount"}
+                                            onChange={() => {
+                                                setSelectedPriceFilter("discount");
+                                                setSelectedSort("Phổ Biến");
+                                            }}
+                                        />
+                                        <span>Giảm giá nhiều nhất</span>
+                                    </label>
+                                </div>
                             </div>
-                        ))}
-                        <div className="flex flex-col gap-2 mt-4">
-                            <button onClick={handleApplyFilters}
-                                className="py-1.5 bg-[#DB4444] text-white rounded hover:bg-red-600 text-sm w-full">
-                                Lọc
-                            </button>
-                            <button onClick={handleResetFilters}
-                                className="py-1.5 border border-gray-300 text-black rounded hover:bg-gray-100 text-sm w-full">
-                                Đặt lại
-                            </button>
                         </div>
                     </div>
                 </div>
