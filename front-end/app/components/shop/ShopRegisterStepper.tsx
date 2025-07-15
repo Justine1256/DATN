@@ -16,6 +16,7 @@ export default function ShopRegisterPage() {
     const [otp, setOtp] = useState("");
     const [popup, setPopup] = useState<string>("");
     const [cooldown, setCooldown] = useState(60);
+    const [loading, setLoading] = useState(false);
 
     const showPopup = (msg: string) => {
         setPopup(msg);
@@ -24,19 +25,6 @@ export default function ShopRegisterPage() {
 
     const handleSendOtp = async () => {
         let errors: string[] = [];
-
-        // Check nếu tất cả đều trống
-        if (
-            !form.name.trim() &&
-            !form.description.trim() &&
-            !form.phone.trim() &&
-            !form.email.trim() &&
-            !file
-        ) {
-            return showPopup("Vui lòng điền đầy đủ thông tin.");
-        }
-
-        // Validate từng trường
         if (!form.name.trim()) errors.push("Tên shop không được để trống.");
         if (!form.description.trim()) errors.push("Mô tả shop không được để trống.");
         if (!/^(0\d{9})$/.test(form.phone)) errors.push("Số điện thoại không hợp lệ.");
@@ -46,6 +34,7 @@ export default function ShopRegisterPage() {
         if (errors.length > 0) return showPopup(errors.join(" "));
 
         try {
+            setLoading(true);
             const token = Cookies.get("authToken");
             const data = new FormData();
             data.append("name", form.name);
@@ -68,8 +57,11 @@ export default function ShopRegisterPage() {
             startCooldown();
         } catch (err: any) {
             showPopup(JSON.stringify(err.errors || err.error || err));
+        } finally {
+            setLoading(false);
         }
     };
+    
     
 
     const handleConfirmOtp = async () => {
@@ -161,11 +153,20 @@ export default function ShopRegisterPage() {
                             <div className="flex justify-end">
                                 <button
                                     onClick={handleSendOtp}
-                                    className="bg-[#db4444] text-white px-6 py-3 rounded hover:bg-[#c23333] font-semibold"
+                                    disabled={loading}
+                                    className={`bg-[#db4444] text-white px-6 py-3 rounded hover:bg-[#c23333] font-semibold flex items-center justify-center min-w-[150px] ${loading ? "opacity-70 cursor-not-allowed" : ""
+                                        }`}
                                 >
-                                    Gửi OTP & Đăng ký
+                                    {loading ? (
+                                        <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                        </svg>
+                                    ) : null}
+                                    {loading ? "Đang gửi..." : "Gửi OTP & Đăng ký"}
                                 </button>
                             </div>
+
                         </div>
                     )}
 
