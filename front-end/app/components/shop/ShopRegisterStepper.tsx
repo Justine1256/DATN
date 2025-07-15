@@ -24,6 +24,19 @@ export default function ShopRegisterPage() {
 
     const handleSendOtp = async () => {
         let errors: string[] = [];
+
+        // Check nếu tất cả đều trống
+        if (
+            !form.name.trim() &&
+            !form.description.trim() &&
+            !form.phone.trim() &&
+            !form.email.trim() &&
+            !file
+        ) {
+            return showPopup("Vui lòng điền đầy đủ thông tin.");
+        }
+
+        // Validate từng trường
         if (!form.name.trim()) errors.push("Tên shop không được để trống.");
         if (!form.description.trim()) errors.push("Mô tả shop không được để trống.");
         if (!/^(0\d{9})$/.test(form.phone)) errors.push("Số điện thoại không hợp lệ.");
@@ -41,7 +54,6 @@ export default function ShopRegisterPage() {
             data.append("email", form.email);
             data.append("image", file as Blob);
 
-
             const res = await fetch(`${API_BASE_URL}/shopregister`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${token}` },
@@ -58,6 +70,7 @@ export default function ShopRegisterPage() {
             showPopup(JSON.stringify(err.errors || err.error || err));
         }
     };
+    
 
     const handleConfirmOtp = async () => {
         try {
@@ -217,7 +230,7 @@ function ShopStepper({ currentStep }: { currentStep: number }) {
     const steps = ["Thông tin & Logo", "Nhập OTP"];
     return (
         <div className="relative w-full mb-10">
-            <div className="absolute top-[20px] left-5 right-5 h-1 bg-gray-200 rounded-full"></div>
+            <div className="absolute top-[20px] left-7 right-5 h-1 bg-gray-200 rounded-full"></div>
             <div
                 className="absolute top-[20px] left-5 h-1 bg-[#db4444] rounded-full transition-all duration-500"
                 style={{
