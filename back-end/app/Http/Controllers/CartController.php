@@ -81,17 +81,14 @@ public function store(Request $request)
         $productValue  = null;
 
         // ✅ Nếu có variant_id được truyền
-        if (!empty($validated['variant_id'])) {
-    $validated['variant_id'] = (int)$validated['variant_id'];
+        if (array_key_exists('variant_id', $validated) && $validated['variant_id']) {
+            $variant = ProductVariant::where('id', $validated['variant_id'])
+                ->where('product_id', $product->id)
+                ->first();
 
-    $variant = ProductVariant::where('id', $validated['variant_id'])
-        ->where('product_id', $product->id)
-        ->first();
-
-    if (!$variant) {
-        return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
-    }
-
+            if (!$variant) {
+                return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
+            }
 
             // Ghép chuỗi từ biến thể
             $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
