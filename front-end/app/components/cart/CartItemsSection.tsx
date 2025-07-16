@@ -79,13 +79,32 @@ export default function CartItemsSection({
     if (!res.ok) throw new Error('Không thể tải giỏ hàng từ API');
 
     const apiCartData = await res.json();
-    const formatted = apiCartData.map((item: any) => ({
-      ...item,
-      product: {
-        ...item.product,
-        image: [formatImageUrl(item.product.image || 'default.jpg')],
-      },
-    }));
+    const formatted = apiCartData.map((item: any) => {
+      // Tự tìm variant.id dựa trên localStorage product
+      const savedProduct = JSON.parse(localStorage.getItem(`product_${item.product.id}`) || 'null');
+
+      let variantId = null;
+      if (savedProduct?.variants) {
+        const matched = savedProduct?.variants?.find((v: any) =>
+          v.value1 === item.variant?.value1 && v.value2 === item.variant?.value2
+        );
+
+        variantId = matched?.id ?? null;
+      }
+
+      return {
+        ...item,
+        variant: {
+          ...item.variant,
+          id: variantId
+        },
+        product: {
+          ...item.product,
+          image: [formatImageUrl(item.product.image || 'default.jpg')]
+        },
+      };
+    });
+
 
     setCartItems(formatted);
     propsSetCartItems(formatted);
