@@ -10,47 +10,45 @@ use App\Models\ProductVariant;
 
 class CartController extends Controller
 {
- public function index()
-{
-    $userId = Auth::id();
+    public function index()
+    {
+        $userId = Auth::id();
+        $carts = Cart::with('product')
+            ->where('user_id', $userId)
+            ->where('is_active', true)
+            ->get();
 
-    $carts = Cart::with('product')
-        ->where('user_id', $userId)
-        ->where('is_active', true)
-        ->get();
+        $carts->transform(function ($cart) {
+            // Tách option và value
+            $options = explode(' - ', $cart->product_option ?? '');
+            $values = explode(' - ', $cart->product_value ?? '');
 
-    $carts->transform(function ($cart) {
-        // Tách option và value từ cột text
-        $options = explode(' - ', $cart->product_option ?? '');
-        $values = explode(' - ', $cart->product_value ?? '');
-
-        $query = ProductVariant::where('product_id', $cart->product_id);
-        if (!empty($values[0])) $query->where('value1', $values[0]);
-        if (!empty($values[1])) $query->where('value2', $values[1]);
-
-        $matched = $query->first();
-
-        $variant = null;
-        if ($matched) {
             $variant = [
-                'id'         => $matched->id,
-                'option1'    => $matched->option1,
-                'value1'     => $matched->value1,
-                'option2'    => $matched->option2,
-                'value2'     => $matched->value2,
-                'price'      => $matched->price,
-                'sale_price' => $matched->sale_price,
-                'stock'      => $matched->stock,
+                'option1'     => $options[0] ?? null,
+                'value1'      => $values[0] ?? null,
+                'option2'     => $options[1] ?? null,
+                'value2'      => $values[1] ?? null,
+                'price'       => null,
+                'sale_price'  => null,
             ];
-        }
 
-        $cart->variant = $variant;
-        return $cart;
-    });
+            // Lấy thông tin biến thể nếu có
+            $query = ProductVariant::where('product_id', $cart->product_id);
+            if (!empty($values[0])) $query->where('value1', $values[0]);
+            if (!empty($values[1])) $query->where('value2', $values[1]);
 
-    return response()->json($carts);
-}
+            $matched = $query->first();
+            if ($matched) {
+                $variant['price'] = $matched->price;
+                $variant['sale_price'] = $matched->sale_price;
+            }
 
+            $cart->variant = $variant;
+            return $cart;
+        });
+
+        return response()->json($carts);
+    }
 
 public function store(Request $request)
 {
@@ -62,42 +60,58 @@ public function store(Request $request)
         ]);
 
         $userId = Auth::id();
-        if (!$userId) return response()->json(['message' => 'Người dùng chưa đăng nhập'], 401);
+        if (!$userId) {
+            return response()->json(['message' => 'Người dùng chưa đăng nhập'], 401);
+        }
 
         $quantity = $validated['quantity'] ?? 1;
         $replaceQuantity = $request->boolean('replace_quantity', false);
 
         $product = Product::where('id', $validated['product_id'])
-            ->where('status', 'activated')->first();
+            ->where('status', 'activated')
+            ->first();
 
-        if (!$product) return response()->json(['message' => 'Sản phẩm không tồn tại hoặc đã bị vô hiệu hóa'], 404);
+        if (!$product) {
+            return response()->json(['message' => 'Sản phẩm không tồn tại hoặc đã bị vô hiệu hóa'], 404);
+        }
 
-        $variant = null;
+        $hasVariants = ProductVariant::where('product_id', $product->id)->exists();
+
         $productOption = null;
         $productValue  = null;
 
-        if (!empty($validated['variant_id'])) {
+        // ✅ Nếu có variant_id được truyền
+        if (array_key_exists('variant_id', $validated) && $validated['variant_id']) {
             $variant = ProductVariant::where('id', $validated['variant_id'])
-                ->where('product_id', $product->id)->first();
+                ->where('product_id', $product->id)
+                ->first();
 
-            if (!$variant) return response()->json(['message' => 'Biến thể không hợp lệ'], 400);
+            if (!$variant) {
+                return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
+            }
 
+            // Ghép chuỗi từ biến thể
             $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
             $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
         } else {
-            $hasVariants = ProductVariant::where('product_id', $product->id)->exists();
+            // ✅ Không có variant_id, dùng dữ liệu từ product gốc
+            $hasValues = $product->value1 || $product->value2;
 
-            if ($hasVariants && (!$product->value1 && !$product->value2)) {
-                return response()->json(['message' => 'Vui lòng chọn biến thể cụ thể'], 400);
+            if ($hasVariants && !$hasValues) {
+                // ❌ Có biến thể nhưng không có value từ product → phải chọn variant
+                return response()->json(['message' => 'Vui lòng chọn biến thể cụ thể cho sản phẩm này'], 400);
             }
 
+            // Ghép chuỗi từ product gốc
             $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
             $productValue  = trim(implode(' - ', array_filter([$product->value1, $product->value2])));
         }
 
+        // ✅ Kiểm tra giỏ hàng đã tồn tại chưa
         $cart = Cart::where('user_id', $userId)
             ->where('product_id', $product->id)
-            ->where('variant_id', $variant->id ?? null)
+            ->where('product_option', $productOption)
+            ->where('product_value', $productValue)
             ->where('is_active', true)
             ->first();
 
@@ -105,10 +119,9 @@ public function store(Request $request)
             $cart->quantity = $replaceQuantity ? $quantity : $cart->quantity + $quantity;
             $cart->save();
         } else {
-            Cart::create([
+            $cart = Cart::create([
                 'user_id'        => $userId,
                 'product_id'     => $product->id,
-                'variant_id'     => $variant->id ?? null,
                 'quantity'       => $quantity,
                 'product_option' => $productOption,
                 'product_value'  => $productValue,
@@ -116,12 +129,14 @@ public function store(Request $request)
             ]);
         }
 
-        return response()->json(['message' => 'Thêm vào giỏ thành công']);
+        return response()->json($cart, 201);
 
     } catch (\Throwable $e) {
         return response()->json([
-            'message' => 'Lỗi khi thêm vào giỏ',
+            'message' => 'Đã xảy ra lỗi khi thêm vào giỏ hàng',
             'error'   => $e->getMessage(),
+            'line'    => $e->getLine(),
+            'file'    => $e->getFile(),
         ], 500);
     }
 }
