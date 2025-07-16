@@ -122,6 +122,7 @@ public function store(Request $request)
             $cart = Cart::create([
                 'user_id'        => $userId,
                 'product_id'     => $product->id,
+                'variant_id'     => $variant->id ?? null,
                 'quantity'       => $quantity,
                 'product_option' => $productOption,
                 'product_value'  => $productValue,
