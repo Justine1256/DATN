@@ -313,7 +313,7 @@ export default function CKEditorWrapper({ data, onChange }) {
             "resizeImage",
           ],
         },
-        initialData: "Nhập mô tả tại đây",
+        initialData: "",
         language: "vi",
         licenseKey: LICENSE_KEY,
         link: {
