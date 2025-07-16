@@ -2,13 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import dynamic from "next/dynamic";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
 import { Product } from "@/types/product";
-
-const CKEditor = dynamic(() => import("../../ckeditor/CKEditorWrapper"), { ssr: false });
-
+import { CKEditor } from "@ckeditor/ckeditor5-react";
+import { useCKEditorConfig } from "../../ckeditor/CKEditorWrapper";
 
 interface ProductFormProps {
   images: { id: string; url: string }[];
@@ -50,6 +48,8 @@ export default function ProductForm({
   const [value1, setValue1] = useState(defaultValues?.value1 || "");
   const [option2, setOption2] = useState(defaultValues?.option2 || "");
   const [value2, setValue2] = useState(defaultValues?.value2 || "");
+
+  const { ClassicEditor, editorConfig } = useCKEditorConfig();
 
   useEffect(() => {
     const fetchUserAndCategories = async () => {
@@ -199,7 +199,7 @@ export default function ProductForm({
             Tuỳ chọn sản phẩm
           </h3>
           {[{ label: "Tuỳ chọn 1", option: option1, setOption: setOption1, value: value1, setValue: setValue1 },
-          { label: "Tuỳ chọn 2", option: option2, setOption: setOption2, value: value2, setValue: setValue2 }].map((opt, idx) => (
+            { label: "Tuỳ chọn 2", option: option2, setOption: setOption2, value: value2, setValue: setValue2 }].map((opt, idx) => (
             <div key={idx} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
               <h4 className="text-sm font-medium text-slate-700 mb-3">{opt.label}</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -239,11 +239,15 @@ export default function ProductForm({
             Mô tả sản phẩm
           </h3>
           <div className="border border-slate-300 rounded-lg overflow-hidden transition-all min-h-[300px]">
-            <CKEditor
-              data={description}
-              onChange={(event: unknown, editor: any) => setDescription(editor.getData())}
-            />
+            {editorConfig && (
+              <CKEditor
+                editor={ClassicEditor}
+                config={editorConfig as any}
+                data={description}
+                onChange={(event, editor) => setDescription(editor.getData())}
+              />
 
+            )}
           </div>
           <p className="text-xs text-slate-500 mt-2">
             Mô tả chi tiết sẽ giúp khách hàng hiểu rõ hơn về sản phẩm của bạn
@@ -268,5 +272,4 @@ export default function ProductForm({
       </div>
     </div>
   );
-
 }
