@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Product;
 use App\Models\ProductVariant;
-use Illuminate\Support\Facades\Log;
+
 class CartController extends Controller
 {
     public function index()
@@ -52,8 +52,6 @@ class CartController extends Controller
 
 public function store(Request $request)
 {
-    Log::info('Payload nhận được từ FE', $request->all());
-
     try {
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
