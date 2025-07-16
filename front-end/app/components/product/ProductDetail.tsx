@@ -156,7 +156,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     const cartItem = {
       product_id: product.id,
       quantity,
-      ...(variantId && { variant_id: variantId }),
+      variant_id: variantId, // luôn gửi
       name: product.name,
       image: formatImageUrl(product.image[0]),
       price: selectedVariant
@@ -165,6 +165,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       value1: selectedA,
       value2: selectedB,
     };
+
 
     if (!token) {
       const existing = localStorage.getItem('cart');
