@@ -151,32 +151,39 @@ const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
 
     // 3. Gửi từng item cần sync
     for (const item of itemsToSync) {
-      try {
-        const payload = {
-          product_id: item.product.id,
-          quantity: item.quantity,
-          replace_quantity: true,
-          ...(item.variant && { variant_id: item.variant.id }),
-        };
+      let variantId = item.variant?.id ?? null;
 
-        const res = await fetch(`${API_BASE_URL}/cart/add`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          console.error(`Sync ${item.product.name} lên API lỗi:`, err);
+      // 🚀 fallback tự tìm variant.id theo value1, value2
+      if (!variantId) {
+        const savedProduct = JSON.parse(localStorage.getItem(`product_${item.product.id}`) || 'null');
+        if (savedProduct?.variants) {
+          const matched = savedProduct.variants.find((v: any) =>
+            v.value1 === item.variant?.value1 && v.value2 === item.variant?.value2
+          );
+          variantId = matched?.id ?? null;
         }
-      } catch (err) {
-        console.error(`Lỗi khi sync ${item.product.name}:`, err);
       }
+
+      const payload = {
+        product_id: item.product.id,
+        quantity: item.quantity,
+        replace_quantity: true,
+        ...(variantId && { variant_id: variantId })
+      };
+
+      console.log("SYNC PAYLOAD:", payload);
+
+      const res = await fetch(`${API_BASE_URL}/cart/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
     }
+
 
     localStorage.removeItem('cart');
   } catch (err) {
