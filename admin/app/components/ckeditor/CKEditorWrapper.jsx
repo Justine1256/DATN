@@ -367,39 +367,30 @@ export default function CKEditorWrapper({ data, onChange }) {
   }, [isLayoutReady]);
 
   return (
-    <div className="main-container">
-      <div
-        className="editor-container editor-container_classic-editor editor-container_include-style editor-container_include-word-count editor-container_include-fullscreen"
-        ref={editorContainerRef}
-      >
-        <div className="editor-container__editor">
-          <div ref={editorRef}>
-            {editorConfig && (
-              <CKEditor
-                editor={ClassicEditor}
-                config={editorConfig}
-                data={data}
-                onChange={(event, editor) => onChange(editor.getData())}
-                onReady={(editor) => {
-                  const wordCount = editor.plugins.get("WordCount");
-                  editorWordCountRef.current?.appendChild(
-                    wordCount.wordCountContainer
-                  );
-                }}
-                onAfterDestroy={() => {
-                  Array.from(
-                    editorWordCountRef.current?.children || []
-                  ).forEach((child) => child.remove());
-                }}
-              />
-            )}
-          </div>
-        </div>
-        <div
-          className="editor_container__word-count"
-          ref={editorWordCountRef}
-        ></div>
-      </div>
-    </div>
-  );
+		<div className="main-container">
+			<div
+				className="editor-container editor-container_classic-editor editor-container_include-style editor-container_include-word-count editor-container_include-fullscreen"
+				ref={editorContainerRef}
+			>
+				<div className="editor-container__editor">
+					<div ref={editorRef}>
+						{editorConfig && (
+							<CKEditor
+								onReady={editor => {
+									const wordCount = editor.plugins.get('WordCount');
+									editorWordCountRef.current.appendChild(wordCount.wordCountContainer);
+								}}
+								onAfterDestroy={() => {
+									Array.from(editorWordCountRef.current.children).forEach(child => child.remove());
+								}}
+								editor={ClassicEditor}
+								config={editorConfig}
+							/>
+						)}
+					</div>
+				</div>
+				<div className="editor_container__word-count" ref={editorWordCountRef}></div>
+			</div>
+		</div>
+	);
 }
