@@ -143,10 +143,20 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   const handleAddToCart = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
+
+    // 🚀 Thêm đoạn này để fallback tìm variantId nếu cần
+    let variantId = selectedVariant?.id ?? null;
+    if (!variantId && product?.variants?.length) {
+      const matched = product.variants.find(v =>
+        v.value1 === selectedA && v.value2 === selectedB
+      );
+      variantId = matched?.id ?? null;
+    }
+
     const cartItem = {
       product_id: product.id,
       quantity,
-      variant_id: selectedVariant?.id || null,
+      ...(variantId && { variant_id: variantId }),
       name: product.name,
       image: formatImageUrl(product.image[0]),
       price: selectedVariant
@@ -157,7 +167,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     };
 
     if (!token) {
-      // Nếu chưa đăng nhập, lưu giỏ hàng vào localStorage
       const existing = localStorage.getItem('cart');
       const cart = existing ? JSON.parse(existing) : [];
 
@@ -175,7 +184,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       localStorage.setItem('cart', JSON.stringify(cart));
       commonPopup(`Đã thêm "${cartItem.name}" vào giỏ hàng`);
     } else {
-      // Nếu đã đăng nhập, gọi API để thêm sản phẩm vào giỏ hàng
       const res = await fetch(`${API_BASE_URL}/cart`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -189,6 +197,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       }
     }
   };
+
   const toggleLike = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
     if (!token) return commonPopup('Vui lòng đăng nhập để yêu thích sản phẩm');
