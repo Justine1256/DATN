@@ -9,6 +9,9 @@ class OrderDetail extends Model
     protected $fillable = [
         'order_id',
         'product_id',
+        'variant_id',
+        'product_option',
+        'product_value',
         'price_at_time',
         'quantity',
         'subtotal',

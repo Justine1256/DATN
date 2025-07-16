@@ -5,8 +5,12 @@ import Cookies from "js-cookie";
 import dynamic from "next/dynamic";
 import { API_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
+import { useCKEditorConfig } from "../../ckeditor/CKEditorWrapper";
 
-const CKEditor = dynamic(() => import("../../ckeditor/CKEditorWrapper"), { ssr: false });
+const CKEditor = dynamic(
+  () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
+  { ssr: false }
+);
 
 interface ProductFormProps {
   images: { id: string; url: string }[];
@@ -32,6 +36,8 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
   const [value2, setValue2] = useState("");
   const [price, setPrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
+
+  const { ClassicEditor, editorConfig } = useCKEditorConfig();
 
   const formatCurrency = (value: number | string) => {
     const num = typeof value === "string" ? parseInt(value) : value;
@@ -106,8 +112,6 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
               Thông tin cơ bản
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-              {/* Tên sản phẩm */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Tên sản phẩm <span className="text-[#db4444]">*</span>
@@ -120,7 +124,6 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
                 />
               </div>
 
-              {/* Danh mục */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Danh mục <span className="text-[#db4444]">*</span>
@@ -161,8 +164,6 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
                   onChange={(e) => setPrice(e.target.value)}
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-md text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
                 />
-
-
               </div>
 
               <div>
@@ -199,79 +200,39 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
               Tuỳ chọn sản phẩm
             </h3>
             <div className="space-y-4">
-              {/* Option 1 */}
-              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <h4 className="text-sm font-medium text-slate-700 mb-3">Tuỳ chọn 1</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">
-                      Tên tuỳ chọn
-                    </label>
-                    <input
-                      name="option1"
-                      placeholder="Bộ nhớ, Kích thước..."
-                      value={option1}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setOption1(val);
-                        if (!val) setValue1("");
-                      }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444]"
-                    />
+              {[{ option: option1, setOption: setOption1, value: value1, setValue: setValue1, label: "Tuỳ chọn 1" },
+              { option: option2, setOption: setOption2, value: value2, setValue: setValue2, label: "Tuỳ chọn 2" }]
+                .map((opt, idx) => (
+                  <div key={idx} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <h4 className="text-sm font-medium text-slate-700 mb-3">{opt.label}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Tên tuỳ chọn</label>
+                        <input
+                          placeholder="VD: Bộ nhớ, Kích thước..."
+                          value={opt.option}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            opt.setOption(val);
+                            if (!val) opt.setValue("");
+                          }}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Giá trị</label>
+                        <input
+                          placeholder="VD: 256GB, Đen, Xám..."
+                          value={opt.value}
+                          onChange={(e) => opt.setValue(e.target.value)}
+                          disabled={!opt.option}
+                          className={`w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all
+                            ${!opt.option ? "bg-slate-100 text-slate-400 cursor-not-allowed" : ""}`}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">
-                      Giá trị
-                    </label>
-                    <input
-                      name="value1"
-                      placeholder="256GB, Large..."
-                      value={value1}
-                      onChange={(e) => setValue1(e.target.value)}
-                      disabled={!option1}
-                      className={`w-full px-3 py-2 border border-slate-300 rounded-md text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] ${!option1 ? "bg-slate-100 text-slate-400 cursor-not-allowed" : ""
-                        }`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Option 2 */}
-              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <h4 className="text-sm font-medium text-slate-700 mb-3">Tuỳ chọn 2</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">
-                      Tên tuỳ chọn
-                    </label>
-                    <input
-                      name="option2"
-                      placeholder="Màu sắc, Chất liệu..."
-                      value={option2}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setOption2(val);
-                        if (!val) setValue2("");
-                      }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">
-                      Giá trị
-                    </label>
-                    <input
-                      name="value2"
-                      placeholder="Đen, Trắng, Xám..."
-                      value={value2}
-                      onChange={(e) => setValue2(e.target.value)}
-                      disabled={!option2}
-                      className={`w-full px-3 py-2 border border-slate-300 rounded-md text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] ${!option2 ? "bg-slate-100 text-slate-400 cursor-not-allowed" : ""
-                        }`}
-                    />
-                  </div>
-                </div>
-              </div>
+                ))}
             </div>
           </div>
 
@@ -282,11 +243,14 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
               Mô tả sản phẩm
             </h3>
             <div className="border border-slate-300 rounded-lg overflow-hidden transition-all min-h-[300px]">
-              <CKEditor
-                data={description}
-                onChange={(event: unknown, editor: any) => setDescription(editor.getData())}
-              />
-
+              {editorConfig && (
+                <CKEditor
+                  editor={ClassicEditor}
+                  config={editorConfig as any}
+                  data={description}
+                  onChange={(event, editor) => setDescription(editor.getData())}
+                />
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-2">
               Mô tả chi tiết sẽ giúp khách hàng hiểu rõ hơn về sản phẩm của bạn
@@ -295,7 +259,6 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
         </div>
       </div>
 
-      {/* Popup thông báo trái */}
       {showPopup && (
         <div className="fixed top-20 left-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-l-4 border-[#db4444] animate-slideInLeft">
           {popupMessage}
