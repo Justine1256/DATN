@@ -1,11 +1,8 @@
 "use client";
 import dynamic from "next/dynamic";
+import { useState as reactUseState } from "react";
 
-const CKEditor = dynamic(
-  () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
-  { ssr: false }
-);
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+const CKEditor = dynamic(() => import("../../ckeditor/CKEditorWrapper"), { ssr: false });
 
 interface Category {
   id: string;
@@ -19,6 +16,7 @@ interface Props {
 
 export default function CategoryInfoForm({ data, setData, categories }: Props) {
   console.log("cate", categories)
+  const [description, setDescription] = useState("");
 
   return (
     <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg overflow-hidden">
@@ -85,27 +83,21 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
             <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
             Mô tả danh mục
           </h3>
-          <div className="border border-[#cbd5e1] rounded-lg overflow-hidden">
+          <div className="border border-slate-300 rounded-lg overflow-hidden transition-all min-h-[300px]">
             <CKEditor
-              editor={ClassicEditor}
-              data={data.description}
-              onChange={(_, editor) => {
-                const value = editor.getData();
-                setData("description", value);
-              }}
-              config={{
-                toolbar: [
-                  "heading", "|",
-                  "bold", "italic", "underline", "|",
-                  "bulletedList", "numberedList", "|",
-                  "undo", "redo",
-                ],
-                placeholder: "Nhập mô tả danh mục...",
-              }}
+              data={description}
+              onChange={(event: unknown, editor: any) => setDescription(editor.getData())}
             />
+
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+// Reasonable implementation using React's useState
+function useState<T>(initialValue: T): [T, (value: T) => void] {
+  return reactUseState(initialValue);
+}
+

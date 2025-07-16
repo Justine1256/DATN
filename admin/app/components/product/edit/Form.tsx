@@ -7,11 +7,8 @@ import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
 import { Product } from "@/types/product";
 
-// Dynamically import CKEditor to avoid SSR issues
-const CKEditor = dynamic(
-  () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
-  { ssr: false }
-);
+const CKEditor = dynamic(() => import("../../ckeditor/CKEditorWrapper"), { ssr: false });
+
 
 interface ProductFormProps {
   images: { id: string; url: string }[];
@@ -236,22 +233,21 @@ export default function ProductForm({
         </div>
 
         {/* Description */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+        <div>
+          <h3 className="text-base font-medium text-slate-800 mb-4 flex items-center">
             <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
             Mô tả sản phẩm
           </h3>
-          <div className="border border-slate-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#db4444]/20 focus-within:border-[#db4444] transition-all">
-            {/* <CKEditor
-              editor={ClassicEditor}
+          <div className="border border-slate-300 rounded-lg overflow-hidden transition-all min-h-[300px]">
+            <CKEditor
               data={description}
-              onChange={(event, editor) => setDescription(editor.getData())}
-              config={{
-                toolbar: ['heading', '|', 'bold', 'italic', 'underline', '|', 'bulletedList', 'numberedList', '|', 'outdent', 'indent', '|', 'blockQuote', 'insertTable', '|', 'undo', 'redo'],
-                placeholder: 'Nhập mô tả chi tiết về sản phẩm...'
-              }}
-            /> */}
+              onChange={(event: unknown, editor: any) => setDescription(editor.getData())}
+            />
+
           </div>
+          <p className="text-xs text-slate-500 mt-2">
+            Mô tả chi tiết sẽ giúp khách hàng hiểu rõ hơn về sản phẩm của bạn
+          </p>
         </div>
 
         {/* Images */}
@@ -272,5 +268,5 @@ export default function ProductForm({
       </div>
     </div>
   );
-  
+
 }
