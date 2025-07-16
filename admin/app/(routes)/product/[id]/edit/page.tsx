@@ -53,31 +53,31 @@ export default function EditProductPage() {
     setPopupType(type);
     setTimeout(() => setPopupMessage(""), 2000);
   };
-const handleDeleteVariant = async (variantId?: number) => {
-  if (!variantId) return;
+  const handleDeleteVariant = async (variantId?: number) => {
+    if (!variantId) return;
 
-  const confirmed = window.confirm("Bạn có chắc muốn xoá biến thể này?");
-  if (!confirmed) return;
+    const confirmed = window.confirm("Bạn có chắc muốn xoá biến thể này?");
+    if (!confirmed) return;
 
-  try {
-    const token = Cookies.get("authToken");
-    const res = await fetch(`${API_BASE_URL}/shop/product-variants/${variantId}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      const token = Cookies.get("authToken");
+      const res = await fetch(`${API_BASE_URL}/shop/product-variants/${variantId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    if (!res.ok) throw new Error("Xoá thất bại");
+      if (!res.ok) throw new Error("Xoá thất bại");
 
-    // Xoá trên frontend sau khi xoá trên DB thành công
-    setVariants((prev) => prev.filter((item) => item.id !== variantId));
-    handleShowPopup("Đã xoá biến thể", "success");
-  } catch (err) {
-    console.error("Lỗi xoá biến thể:", err);
-    handleShowPopup("Xoá biến thể thất bại", "error");
-  }
-};
+      // Xoá trên frontend sau khi xoá trên DB thành công
+      setVariants((prev) => prev.filter((item) => item.id !== variantId));
+      handleShowPopup("Đã xoá biến thể", "success");
+    } catch (err) {
+      console.error("Lỗi xoá biến thể:", err);
+      handleShowPopup("Xoá biến thể thất bại", "error");
+    }
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -111,14 +111,14 @@ const handleDeleteVariant = async (variantId?: number) => {
 
         const loadedVariants: Variant[] = Array.isArray(p.variants)
           ? p.variants.map((v: any) => ({
-              id: v.id,
-              value1: v.value1,
-              value2: v.value2,
-              price: parseFloat(v.price),
-              sale_price: parseFloat(v.sale_price) || 0,
-              stock: (v?.stock ?? p.stock) ?? 0,
-              image: Array.isArray(v.image) ? v.image : [],
-            }))
+            id: v.id,
+            value1: v.value1,
+            value2: v.value2,
+            price: parseFloat(v.price),
+            sale_price: parseFloat(v.sale_price) || 0,
+            stock: (v?.stock ?? p.stock) ?? 0,
+            image: Array.isArray(v.image) ? v.image : [],
+          }))
           : [];
 
         setVariants(loadedVariants);
@@ -167,18 +167,11 @@ const handleDeleteVariant = async (variantId?: number) => {
           {/* Biến thể */}
           <div className="space-y-4 mt-6">
             <h3 className="text-base font-medium text-gray-700">Biến thể</h3>
-            <button
-              type="button"
-              className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-              onClick={() => {
-                setEditingVariant(null);
-                setShowVariantModal(true);
-              }}
-            >
-              + Thêm biến thể
-            </button>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              {variants.length === 0 && (
+                <div className="col-span-2 text-gray-500">Chưa có biến thể nào.</div>
+              )}
               {variants.map((v, i) => (
                 <div key={v.id ?? i} className="border rounded p-3 relative">
                   <div className="text-sm text-gray-700 mb-1">
@@ -212,17 +205,32 @@ const handleDeleteVariant = async (variantId?: number) => {
                 </div>
               ))}
             </div>
+
+
           </div>
 
-          <ActionButtons
-            productId={product.id}
-            images={selectedImages}
-            optionValues={optionValues}
-            categoryId={category}
-            formValues={formValues}
-            variants={variants}
-            onPopup={handleShowPopup}
-          />
+          <div className="flex justify-between w-full">
+            <button
+              type="button"
+              className="px-4 py-2 rounded border border-[#db4444] text-[#db4444] font-medium hover:bg-[#ffeaea] transition-colors duration-200"
+              onClick={() => {
+                setEditingVariant(null);
+                setShowVariantModal(true);
+              }}
+            >
+              + Thêm biến thể
+            </button>
+            <ActionButtons
+              productId={product.id}
+              images={selectedImages}
+              optionValues={optionValues}
+              categoryId={category}
+              formValues={formValues}
+              variants={variants}
+              onPopup={handleShowPopup}
+            />
+          </div>
+
         </div>
       </div>
 

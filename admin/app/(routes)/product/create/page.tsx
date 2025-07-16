@@ -109,7 +109,7 @@ export default function AddProductPage() {
                                 setShowVariantModal(true);
                                 setEditingIndex(null);
                             }}
-                            className="bg-[#db4444] text-white px-4 py-2 rounded hover:bg-[#c23333]"
+                            className="px-4 py-2 rounded border border-[#db4444] text-[#db4444] font-medium hover:bg-[#ffeaea] transition-colors duration-200"
                         >
                             Thêm biến thể
                         </button>
