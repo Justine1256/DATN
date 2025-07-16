@@ -22,6 +22,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../ProductSkeleton.tsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../ProductSkeleton.tsx", "app/components/ckeditor/CKEditorWrapper.jsx"],
   "exclude": ["node_modules"]
 }

@@ -6,9 +6,7 @@ import dynamic from "next/dynamic";
 import { API_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
 
-import { CKEditor, ClassicEditor } from "../../CKEditorWrapper";
-
-
+const CKEditor = dynamic(() => import("../../ckeditor/CKEditorWrapper"), { ssr: false });
 
 interface ProductFormProps {
   images: { id: string; url: string }[];
@@ -40,7 +38,7 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
     if (isNaN(num)) return "";
     return num.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
   };
-  
+
   useEffect(() => {
     const fetchUserAndCategories = async () => {
       try {
@@ -285,36 +283,9 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
             </h3>
             <div className="border border-slate-300 rounded-lg overflow-hidden transition-all min-h-[300px]">
               <CKEditor
-                editor={ClassicEditor}
                 data={description}
-                onChange={(event, editor) => {
-                  const data = editor.getData();
-                  setDescription(data);
-                }}
-                config={{
-                  toolbar: [
-                    "heading",
-                    "|",
-                    "bold",
-                    "italic",
-                    "underline",
-                    "|",
-                    "bulletedList",
-                    "numberedList",
-                    "|",
-                    "outdent",
-                    "indent",
-                    "|",
-                    "blockQuote",
-                    "insertTable",
-                    "|",
-                    "undo",
-                    "redo",
-                  ],
-                  placeholder: "Nhập mô tả chi tiết về sản phẩm...",
-                }}
+                onChange={(event: unknown, editor: any) => setDescription(editor.getData())}
               />
-
 
             </div>
             <p className="text-xs text-slate-500 mt-2">

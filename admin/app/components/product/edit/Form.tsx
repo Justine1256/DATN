@@ -12,7 +12,6 @@ const CKEditor = dynamic(
   () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
   { ssr: false }
 );
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 
 interface ProductFormProps {
   images: { id: string; url: string }[];
@@ -243,7 +242,7 @@ export default function ProductForm({
             Mô tả sản phẩm
           </h3>
           <div className="border border-slate-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#db4444]/20 focus-within:border-[#db4444] transition-all">
-            <CKEditor
+            {/* <CKEditor
               editor={ClassicEditor}
               data={description}
               onChange={(event, editor) => setDescription(editor.getData())}
@@ -251,7 +250,7 @@ export default function ProductForm({
                 toolbar: ['heading', '|', 'bold', 'italic', 'underline', '|', 'bulletedList', 'numberedList', '|', 'outdent', 'indent', '|', 'blockQuote', 'insertTable', '|', 'undo', 'redo'],
                 placeholder: 'Nhập mô tả chi tiết về sản phẩm...'
               }}
-            />
+            /> */}
           </div>
         </div>
 
