@@ -59,7 +59,7 @@ public function store(Request $request)
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity' => 'nullable|integer|min:1',
-            'variant_id' => 'nullable|integer|exists:product_variants,id', // ✅ BẮT BUỘC PHẢI CÓ
+            'variant_id' => 'nullable|numeric|exists:product_variants,id', // ✅ BẮT BUỘC PHẢI CÓ
         ]);
 
         $userId = Auth::id();
