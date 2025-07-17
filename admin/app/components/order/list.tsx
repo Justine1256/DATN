@@ -68,7 +68,8 @@ export default function OrderListTable({
   filterPeriod, setFilterPeriod,
   filterExactDate, setFilterExactDate,
   currentPage, setCurrentPage,
-  totalPages, totalItems
+  totalPages, totalItems,
+   onViewDetail
 }: {
   orders: Order[];
   loading: boolean;
@@ -79,6 +80,7 @@ export default function OrderListTable({
   filterExactDate: string; setFilterExactDate: (v: string) => void;
   currentPage: number; setCurrentPage: (v: number) => void;
   totalPages: number; totalItems: number;
+    onViewDetail: (id: number) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -196,12 +198,15 @@ export default function OrderListTable({
                 </td>
 
                 <td className="py-4 px-3 text-center">
-                  <Link href={`/order/${order.id}`}>
-                    <button className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#db4444] hover:bg-[#db4444] hover:text-white transition-all group">
-                      <Eye size={16} className="text-gray-600 group-hover:text-white" />
-                    </button>
-                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => onViewDetail(order.id)}
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#db4444] hover:bg-[#db4444] hover:text-white transition-all group"
+                  >
+                    <Eye size={16} className="text-gray-600 group-hover:text-white" />
+                  </button>
                 </td>
+
               </tr>
             ))}
           </tbody>

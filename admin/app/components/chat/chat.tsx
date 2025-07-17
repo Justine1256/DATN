@@ -40,11 +40,13 @@ export default function AdminChat() {
 
   useEffect(() => {
     const t = localStorage.getItem('token') || Cookies.get('authToken');
+    console.log('🚀 Token khởi tạo:', t);
     if (t) {
       setToken(t);
       fetchUsers(t);
     }
   }, []);
+
 
   const fetchUsers = async (t: string) => {
     try {

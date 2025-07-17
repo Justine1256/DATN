@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-import Swal from "sweetalert2";
 
 import CateImageDrop from "@/app/components/category/create/ImageDrop";
 import CategoryInfoForm from "@/app/components/category/create/Form";
@@ -13,7 +12,7 @@ import { API_BASE_URL } from "@/utils/api";
 interface Category {
     id: string;
     shop_id: string;
-    parent_id?: string | null;
+    parent_id: string | null; // bỏ dấu ? để không có undefined
     name: string;
     slug: string;
     description: string;
@@ -21,13 +20,13 @@ interface Category {
     status: string;
 }
 
+
 export default function CreateCategoryPage() {
     const [token, setToken] = useState<string | null>(null);
     const [shopId, setShopId] = useState<string | null>(null);
     const [parentCategories, setParentCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [success, setSuccess] = useState(false);
 
     const [formData, setFormData] = useState<Omit<Category, "id" | "status">>({
         shop_id: "",
@@ -35,22 +34,25 @@ export default function CreateCategoryPage() {
         name: "",
         slug: "",
         description: "",
-        image: "", // gửi rỗng hoặc URL để không bị validation Laravel fail
+        image: "",
     });
 
-    // ✅ Lấy token
+    const [showPopup, setShowPopup] = useState(false);
+    const [popupMessage, setPopupMessage] = useState('');
+    const [popupType, setPopupType] = useState<'success' | 'error'>('success');
+
+    // ✅ lấy token
     useEffect(() => {
         const tk = Cookies.get("authToken");
         setToken(tk || null);
     }, []);
 
-    // ✅ Lấy shop_id
+    // ✅ lấy shop_id
     useEffect(() => {
         if (!token) return;
-        axios
-            .get(`${API_BASE_URL}/user`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
+        axios.get(`${API_BASE_URL}/user`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
             .then((res) => {
                 const sid = res.data.shop?.id;
                 setShopId(sid);
@@ -59,8 +61,7 @@ export default function CreateCategoryPage() {
             .catch((err) => console.error("❌ Lỗi lấy shop_id:", err));
     }, [token]);
 
-    // ✅ Lấy danh mục cha shop + admin
-    // ✅ Lấy danh mục cha shop + admin
+    // ✅ lấy danh mục cha shop + admin
     useEffect(() => {
         if (!token || !shopId) return;
 
@@ -76,14 +77,12 @@ export default function CreateCategoryPage() {
                 ]);
 
                 const shopData = Array.isArray(shopRes.data.categories)
-                    ? shopRes.data.categories
-                    : [];
+                    ? shopRes.data.categories : [];
 
                 const adminRawData = Array.isArray(adminRes.data)
                     ? adminRes.data
                     : adminRes.data.data || [];
 
-                // ✅ Thêm "(Mặc định)" cho danh mục admin có parent_id = null
                 const adminData = adminRawData.map((cate: Category) => ({
                     ...cate,
                     name: cate.parent_id === null ? `(Mặc định) ${cate.name}` : cate.name
@@ -100,24 +99,20 @@ export default function CreateCategoryPage() {
         fetchAllCategories();
     }, [token, shopId]);
 
-
-    // ✅ Xử lý thay đổi form
+    // ✅ xử lý thay đổi form
     const handleSetData = (field: string, value: any) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
-    // ✅ Submit form
+    // ✅ submit
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!shopId || !token) return;
 
         if (!formData.parent_id) {
-            await Swal.fire({
-                icon: "warning",
-                title: "Thiếu danh mục cha",
-                text: "Vui lòng chọn danh mục cha.",
-                confirmButtonColor: "#db4444",
-            });
+            setPopupType('error');
+            setPopupMessage('Vui lòng chọn danh mục cha.');
+            setShowPopup(true);
             return;
         }
 
@@ -130,76 +125,105 @@ export default function CreateCategoryPage() {
                 {
                     ...formData,
                     shop_id: shopId,
-                    image: formData.image || "", // bảo vệ
+                    parent_id: formData.parent_id ?? null, // ép null an toàn
+                    image: formData.image || "",
                 },
                 {
                     headers: { Authorization: `Bearer ${token}` },
                 }
             );
 
-            setSuccess(true);
-            await Swal.fire({
-                icon: "success",
-                title: "Tạo thành công!",
-                text: "Danh mục đã được thêm.",
-                confirmButtonColor: "#db4444",
-                timer: 2000, // tự tắt sau 2 giây
-                timerProgressBar: true,
+            setPopupType('success');
+            setPopupMessage('Tạo danh mục thành công!');
+            setShowPopup(true);
+
+            // reset form
+            setFormData({
+                shop_id: shopId,
+                parent_id: null,
+                name: "",
+                slug: "",
+                description: "",
+                image: "",
             });
-            
+
         } catch (err: any) {
-            if (axios.isAxiosError(err)) {
-                console.error("❌ Axios error:", err.response?.data || err.message);
-                await Swal.fire({
-                    icon: "error",
-                    title: "Lỗi",
-                    text:
-                        err.response?.data?.error ||
-                        err.response?.data?.message ||
-                        "Không thể tạo danh mục.",
-                    confirmButtonColor: "#db4444",
-                });
-            } else {
-                console.error("❌ Unknown error:", err);
-            }
+            console.error("❌ Lỗi:", err.response?.data || err.message);
+            setPopupType('error');
+            setPopupMessage(
+                err.response?.data?.error ||
+                err.response?.data?.message ||
+                "Không thể tạo danh mục."
+            );
+            setShowPopup(true);
         } finally {
             setSubmitting(false);
         }
     };
 
+    useEffect(() => {
+        if (showPopup) {
+            const timer = setTimeout(() => setShowPopup(false), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [showPopup]);
+
     if (loading)
         return <div className="p-6 text-center text-gray-600">Loading...</div>;
 
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="p-6 space-y-9 flex justify-center"
-        >
-            <div className="w-full max-w-4xl">
-                {/* <h1 className="text-xl font-bold text-gray-800 mb-4">
-                    Tạo mới danh mục
-                </h1> */}
+        <>
+            <form
+                onSubmit={handleSubmit}
+                className="p-6 space-y-9 flex justify-center"
+            >
+                <div className="w-full max-w-4xl">
+                    <div className="space-y-6 mt-8">
+                        <CateImageDrop
+                            image={formData.image}
+                            setImage={(url) => handleSetData("image", url)}
+                        />
 
-                <div className="space-y-6 mt-8">
-                    {/* ✅ Thêm lại ảnh */}
-                    <CateImageDrop
-                        image={formData.image}
-                        setImage={(url) => handleSetData("image", url)}
-                    />
+                        <CategoryInfoForm
+                            data={formData}
+                            setData={handleSetData}
+                            categories={parentCategories}
+                        />
 
-                    <CategoryInfoForm
-                        data={formData}
-                        setData={handleSetData}
-                        categories={parentCategories}
-                    />
-
-                    <ActionButtons
-                        loading={submitting}
-                        success={success}
-                        submitLabel="Tạo mới"
-                    />
+                        <ActionButtons
+                            loading={submitting}
+                            success={popupType === 'success'}
+                            submitLabel="Tạo mới"
+                        />
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
+
+            {showPopup && (
+                <div
+                    className={`fixed top-6 right-6 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-slide-in ${popupType === "success" ? "bg-green-500" : "bg-red-500"
+                        }`}
+                >
+                    <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d={
+                                popupType === "success"
+                                    ? "M5 13l4 4L19 7"
+                                    : "M6 18L18 6M6 6l12 12"
+                            }
+                        />
+                    </svg>
+                    <span className="text-sm font-medium">{popupMessage}</span>
+                </div>
+            )}
+        </>
     );
 }
