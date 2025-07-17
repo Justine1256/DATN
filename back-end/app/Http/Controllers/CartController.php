@@ -98,26 +98,31 @@ public function store(Request $request)
         }
 
         // 🔍 Tìm cart đã tồn tại
-        $cart = Cart::where('user_id', $userId)
-            ->where('product_id', $product->id)
-            ->where('product_option', $productOption)
-            ->where('product_value', $productValue)
-            ->where('is_active', true)
-            ->first();
+       $cart = Cart::where('user_id', $userId)
+    ->where('product_id', $product->id)
+    ->when($variantId, function ($query) use ($variantId) {
+        $query->where('variant_id', $variantId);
+    }, function ($query) {
+        $query->whereNull('variant_id');
+    })
+    ->where('is_active', true)
+    ->first();
+
 
         if ($cart) {
             $cart->quantity = $replaceQuantity ? $quantity : $cart->quantity + $quantity;
             $cart->save();
         } else {
             $cart = Cart::create([
-                'user_id' => $userId,
-                'product_id' => $product->id,
-                'variant_id' => $variantId, // ✅ Giờ sẽ không bị null nữa
-                'quantity' => $quantity,
-                'product_option' => $productOption,
-                'product_value' => $productValue,
-                'is_active' => true,
-            ]);
+    'user_id' => $userId,
+    'product_id' => $product->id,
+    'variant_id' => $variantId,
+    'quantity' => $quantity,
+    'product_option' => $productOption,
+    'product_value' => $productValue,
+    'is_active' => true,
+]);
+
         }
 
         return response()->json($cart, 201);
