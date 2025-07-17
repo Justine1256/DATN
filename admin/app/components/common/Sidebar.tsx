@@ -41,28 +41,28 @@ const menu = [
       { label: "Thêm mới", href: "/category/create", icon: <PlusCircle size={14} /> },
     ],
   },
-  {
-    label: "Kho hàng",
-    icon: <Warehouse size={18} />,
-    href: "/inventory",
-  },
+  // {
+  //   label: "Kho hàng",
+  //   icon: <Warehouse size={18} />,
+  //   href: "/inventory",
+  // },
   {
     label: "Đơn hàng",
     icon: <Truck size={18} />,
     children: [{ label: "Danh sách", href: "/order" }],
   },
+  // {
+  //   label: "Nhập hàng",
+  //   icon: <ShoppingCart size={18} />,
+  //   href: "/purchases",
+  // },
+  // {
+  //   label: "Thuộc tính",
+  //   icon: <Settings size={18} />,
+  //   href: "/attributes",
+  // },
   {
-    label: "Nhập hàng",
-    icon: <ShoppingCart size={18} />,
-    href: "/purchases",
-  },
-  {
-    label: "Thuộc tính",
-    icon: <Settings size={18} />,
-    href: "/attributes",
-  },
-  {
-    label: "Người dùng",
+    label: "Khách Hàng",
     icon: <Users size={18} />,
     href: "/admin/users",
   },
