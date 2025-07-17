@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use Illuminate\Support\Facades\Log;
 
 class CartController extends Controller
 {
@@ -53,10 +54,12 @@ class CartController extends Controller
 public function store(Request $request)
 {
     try {
+        Log::info('🧪 FE gửi lên:', $request->all());
+
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
-            'variant_id' => 'nullable|exists:product_variants,id',
             'quantity'   => 'nullable|integer|min:1',
+            // KHÔNG VALIDATE variant_id nữa, để tự kiểm tra thủ công bên dưới
         ]);
 
         $userId = Auth::id();
@@ -69,21 +72,14 @@ public function store(Request $request)
 
         $product = Product::where('id', $validated['product_id'])
             ->where('status', 'activated')
-            ->first();
+            ->firstOrFail();
 
-        if (!$product) {
-            return response()->json(['message' => 'Sản phẩm không tồn tại hoặc đã bị vô hiệu hóa'], 404);
-        }
-
-        $hasVariants = ProductVariant::where('product_id', $product->id)->exists();
-
-        $variantId = $validated['variant_id'] ?? null;
+        $variantId = $request->input('variant_id');
         $variant = null;
 
-        $productOption = null;
-        $productValue  = null;
+        $productOption = '';
+        $productValue = '';
 
-        // ✅ Nếu có variant_id được truyền
         if ($variantId) {
             $variant = ProductVariant::where('id', $variantId)
                 ->where('product_id', $product->id)
@@ -94,9 +90,9 @@ public function store(Request $request)
             }
 
             $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
-            $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
+            $productValue = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
         } else {
-            // ✅ Không có variant_id, dùng dữ liệu từ product gốc
+            $hasVariants = ProductVariant::where('product_id', $product->id)->exists();
             $hasValues = $product->value1 || $product->value2;
 
             if ($hasVariants && !$hasValues) {
@@ -104,7 +100,7 @@ public function store(Request $request)
             }
 
             $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
-            $productValue  = trim(implode(' - ', array_filter([$product->value1, $product->value2])));
+            $productValue = trim(implode(' - ', array_filter([$product->value1, $product->value2])));
         }
 
         $cart = Cart::where('user_id', $userId)
@@ -121,7 +117,7 @@ public function store(Request $request)
             $cart = Cart::create([
                 'user_id'        => $userId,
                 'product_id'     => $product->id,
-                'variant_id'     => $variantId,
+                'variant_id'     => $variant?->id, // nullable
                 'quantity'       => $quantity,
                 'product_option' => $productOption,
                 'product_value'  => $productValue,
@@ -140,6 +136,7 @@ public function store(Request $request)
         ], 500);
     }
 }
+
 
 
     public function update(Request $request, $id)
