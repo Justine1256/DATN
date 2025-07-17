@@ -44,7 +44,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     return value.split(',').map(v => v.trim());
   };
 
-  useEffect(() => {
+  useEffect(() => 
+    {
     async function fetchData() {
       const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
       const { data } = await res.json();
@@ -70,7 +71,16 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     }
     fetchData();
   }, [shopslug, productslug, router]);
+  useEffect(() => {
+  if (!product) return;
 
+  const matched = product.variants.find(v =>
+    v.value1.trim().toLowerCase() === selectedA.trim().toLowerCase() &&
+    v.value2.trim().toLowerCase() === selectedB.trim().toLowerCase()
+  );
+
+  setSelectedVariant(matched || null);
+}, [selectedA, selectedB, product]);
   if (!product) return <LoadingProductDetail />;
 
   const ratingValue =
@@ -122,17 +132,9 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     return product.stock;
   };
 
-  const handleSelectA = (a: string) => {
-    setSelectedA(a);
-    const matched = product.variants.find(v => v.value1 === a && v.value2 === selectedB);
-    setSelectedVariant(matched || null);
-  };
+const handleSelectA = (a: string) => setSelectedA(a);
+const handleSelectB = (b: string) => setSelectedB(b);
 
-  const handleSelectB = (b: string) => {
-    setSelectedB(b);
-    const matched = product.variants.find(v => v.value1 === selectedA && v.value2 === b);
-    setSelectedVariant(matched || null);
-  };
 
 
   const commonPopup = (msg: string) => {
@@ -142,53 +144,63 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   };
 
   const handleAddToCart = async () => {
-    const token = Cookies.get('authToken') || localStorage.getItem('token');
-    const cartItem = {
-      product_id: product.id,
-      quantity,
-      variant_id: selectedVariant?.id || null,
-      name: product.name,
-      image: formatImageUrl(product.image[0]),
-      price: selectedVariant
-        ? selectedVariant.sale_price || selectedVariant.price
-        : product.sale_price || product.price,
-      value1: selectedA,
-      value2: selectedB,
-    };
+  const token = Cookies.get('authToken') || localStorage.getItem('token');
 
-    if (!token) {
-      // Nếu chưa đăng nhập, lưu giỏ hàng vào localStorage
-      const existing = localStorage.getItem('cart');
-      const cart = existing ? JSON.parse(existing) : [];
+  const variant = product?.variants.find(
+    v => v.value1.trim().toLowerCase() === selectedA.trim().toLowerCase() &&
+         v.value2.trim().toLowerCase() === selectedB.trim().toLowerCase()
+  );
 
-      const matchedIndex = cart.findIndex((item: any) =>
-        item.product_id === cartItem.product_id &&
-        item.variant_id === cartItem.variant_id
-      );
-
-      if (matchedIndex !== -1) {
-        cart[matchedIndex].quantity += cartItem.quantity;
-      } else {
-        cart.push(cartItem);
-      }
-
-      localStorage.setItem('cart', JSON.stringify(cart));
-      commonPopup(`Đã thêm "${cartItem.name}" vào giỏ hàng`);
-    } else {
-      // Nếu đã đăng nhập, gọi API để thêm sản phẩm vào giỏ hàng
-      const res = await fetch(`${API_BASE_URL}/cart`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(cartItem),
-      });
-
-      if (res.ok) {
-        commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
-      } else {
-        commonPopup('Thêm vào giỏ hàng thất bại');
-      }
-    }
+  const cartItem: any = {
+    product_id: product.id,
+    quantity,
+    name: product.name,
+    image: formatImageUrl(product.image[0]),
+    price: variant ? variant.sale_price || variant.price : product.sale_price || product.price,
+    value1: selectedA,
+    value2: selectedB,
   };
+
+  if (variant?.id) {
+    cartItem.variant_id = variant.id;
+  } else {
+    console.warn('⚠️ Không tìm thấy variant phù hợp với lựa chọn hiện tại');
+  }
+
+  console.log('🧪 Add to cart debug:', cartItem);
+
+  if (!token) {
+    const existing = localStorage.getItem('cart');
+    const cart = existing ? JSON.parse(existing) : [];
+
+    const matchedIndex = cart.findIndex((item: any) =>
+      item.product_id === cartItem.product_id &&
+      item.variant_id === cartItem.variant_id
+    );
+
+    if (matchedIndex !== -1) {
+      cart[matchedIndex].quantity += cartItem.quantity;
+    } else {
+      cart.push(cartItem);
+    }
+
+    localStorage.setItem('cart', JSON.stringify(cart));
+    commonPopup(`Đã thêm "${cartItem.name}" vào giỏ hàng`);
+  } else {
+    const res = await fetch(`${API_BASE_URL}/cart`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(cartItem),
+    });
+
+    if (res.ok) {
+      commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
+    } else {
+      commonPopup('Thêm vào giỏ hàng thất bại');
+    }
+  }
+};
+
   const toggleLike = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
     if (!token) return commonPopup('Vui lòng đăng nhập để yêu thích sản phẩm');

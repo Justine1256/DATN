@@ -77,12 +77,15 @@ public function store(Request $request)
 
         $hasVariants = ProductVariant::where('product_id', $product->id)->exists();
 
+        $variantId = $validated['variant_id'] ?? null;
+        $variant = null;
+
         $productOption = null;
         $productValue  = null;
 
         // ✅ Nếu có variant_id được truyền
-        if (array_key_exists('variant_id', $validated) && $validated['variant_id']) {
-            $variant = ProductVariant::where('id', $validated['variant_id'])
+        if ($variantId) {
+            $variant = ProductVariant::where('id', $variantId)
                 ->where('product_id', $product->id)
                 ->first();
 
@@ -90,7 +93,6 @@ public function store(Request $request)
                 return response()->json(['message' => 'Biến thể không hợp lệ cho sản phẩm này'], 400);
             }
 
-            // Ghép chuỗi từ biến thể
             $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
             $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
         } else {
@@ -98,16 +100,13 @@ public function store(Request $request)
             $hasValues = $product->value1 || $product->value2;
 
             if ($hasVariants && !$hasValues) {
-                // ❌ Có biến thể nhưng không có value từ product → phải chọn variant
                 return response()->json(['message' => 'Vui lòng chọn biến thể cụ thể cho sản phẩm này'], 400);
             }
 
-            // Ghép chuỗi từ product gốc
             $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
             $productValue  = trim(implode(' - ', array_filter([$product->value1, $product->value2])));
         }
 
-        // ✅ Kiểm tra giỏ hàng đã tồn tại chưa
         $cart = Cart::where('user_id', $userId)
             ->where('product_id', $product->id)
             ->where('product_option', $productOption)
@@ -122,7 +121,7 @@ public function store(Request $request)
             $cart = Cart::create([
                 'user_id'        => $userId,
                 'product_id'     => $product->id,
-                'variant_id'     => $variant->id ?? null,
+                'variant_id'     => $variantId,
                 'quantity'       => $quantity,
                 'product_option' => $productOption,
                 'product_value'  => $productValue,
@@ -141,6 +140,7 @@ public function store(Request $request)
         ], 500);
     }
 }
+
 
     public function update(Request $request, $id)
     {
