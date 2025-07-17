@@ -56,10 +56,14 @@ public function store(Request $request)
     try {
         Log::info('🧪 Request FE gửi:', $request->all());
 
+        // Ép variant_id về số nếu có
+        $rawVariantId = $request->input('variant_id');
+        $variantId = is_numeric($rawVariantId) ? (int)$rawVariantId : null;
+
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity' => 'nullable|integer|min:1',
-            'variant_id' => 'nullable|numeric|exists:product_variants,id', // ✅ BẮT BUỘC PHẢI CÓ
+            // KHÔNG validate variant_id ở đây để tránh reject nếu là "34"
         ]);
 
         $userId = Auth::id();
@@ -74,10 +78,7 @@ public function store(Request $request)
         $quantity = $validated['quantity'] ?? 1;
         $replaceQuantity = $request->boolean('replace_quantity', false);
 
-        $variantId = $validated['variant_id'] ?? null;
         $variant = null;
-
-        // 🧩 Xác định Option và Value
         $productOption = '';
         $productValue = '';
 
@@ -97,32 +98,32 @@ public function store(Request $request)
             $productValue = implode(' - ', array_filter([$product->value1, $product->value2]));
         }
 
-        // 🔍 Tìm cart đã tồn tại
-       $cart = Cart::where('user_id', $userId)
-    ->where('product_id', $product->id)
-    ->when($variantId, function ($query) use ($variantId) {
-        $query->where('variant_id', $variantId);
-    }, function ($query) {
-        $query->whereNull('variant_id');
-    })
-    ->where('is_active', true)
-    ->first();
-
+        // 🔍 Tìm cart đã tồn tại theo variant_id
+        $cart = Cart::where('user_id', $userId)
+            ->where('product_id', $product->id)
+            ->where(function ($query) use ($variantId) {
+                if ($variantId) {
+                    $query->where('variant_id', $variantId);
+                } else {
+                    $query->whereNull('variant_id');
+                }
+            })
+            ->where('is_active', true)
+            ->first();
 
         if ($cart) {
             $cart->quantity = $replaceQuantity ? $quantity : $cart->quantity + $quantity;
             $cart->save();
         } else {
             $cart = Cart::create([
-    'user_id' => $userId,
-    'product_id' => $product->id,
-    'variant_id' => $variantId,
-    'quantity' => $quantity,
-    'product_option' => $productOption,
-    'product_value' => $productValue,
-    'is_active' => true,
-]);
-
+                'user_id' => $userId,
+                'product_id' => $product->id,
+                'variant_id' => $variantId,
+                'quantity' => $quantity,
+                'product_option' => $productOption,
+                'product_value' => $productValue,
+                'is_active' => true,
+            ]);
         }
 
         return response()->json($cart, 201);
@@ -139,9 +140,6 @@ public function store(Request $request)
         ], 500);
     }
 }
-
-
-
 
     public function update(Request $request, $id)
     {
