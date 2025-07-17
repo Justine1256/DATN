@@ -59,6 +59,7 @@ public function store(Request $request)
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity'   => 'nullable|integer|min:1',
+            'variant_id' => 'nullable|integer|exists:product_variants,id',
             // KHÔNG VALIDATE variant_id nữa, để tự kiểm tra thủ công bên dưới
         ]);
 
