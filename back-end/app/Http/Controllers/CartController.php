@@ -117,7 +117,7 @@ public function store(Request $request)
             $cart = Cart::create([
                 'user_id'        => $userId,
                 'product_id'     => $product->id,
-                'variant_id' => $variantId, // nullable
+'variant_id' => $validated['variant_id'] ?? null,
                 'quantity'       => $quantity,
                 'product_option' => $productOption,
                 'product_value'  => $productValue,
