@@ -158,7 +158,39 @@ class ShopController extends Controller
         'shop' => $shop,
     ]);
 }
+public function update(Request $request)
+{
+    $user = Auth::user();
 
+    if (!$user->shop) {
+        return response()->json(['error' => 'Bạn chưa có shop!'], 400);
+    }
+
+    $shop = $user->shop;
+
+    $validator = Validator::make($request->all(), [
+        'name' => 'sometimes|string|max:100|unique:shops,name,' . $shop->id,
+        'description' => 'sometimes|string|max:255',
+        'phone' => ['sometimes', 'regex:/^0\d{9}$/', 'unique:shops,phone,' . $shop->id],
+        'email' => 'sometimes|email|max:100|unique:shops,email,' . $shop->id,
+        'image' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
+
+    if ($request->hasFile('image')) {
+        $file = $request->file('image');
+        $path = $file->store('shops', 'public');
+        $shop->logo = json_encode([asset('storage/' . $path)]);
+    }
+
+    $shop->fill($request->only(['name', 'description', 'phone', 'email']));
+    $shop->save();
+
+    return response()->json(['message' => 'Cập nhật shop thành công!', 'shop' => $shop]);
+}
 
     public function exitShop()
     {
