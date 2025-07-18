@@ -202,11 +202,22 @@ public function update(Request $request)
 
 public function showShopInfo($slug)
 {
-    $shop = Shop::where('slug', $slug)->withCount('followRecords')->first();
+    $shop = Shop::where('slug', $slug)->first();
 
     if (!$shop) {
         return response()->json(['error' => 'Shop không tồn tại'], 404);
     }
+
+    $followersCount = \App\Models\Follow::where('shop_id', $shop->id)->count();
+
+    $totalSales = \App\Models\OrderDetail::whereHas('order', function ($q) use ($shop) {
+            $q->where('shop_id', $shop->id)
+              ->where('order_status', 'Delivered');
+        })->sum('quantity');
+
+    $avgRating = \App\Models\Review::whereHas('orderDetail.product', function ($q) use ($shop) {
+            $q->where('shop_id', $shop->id);
+        })->avg('rating');
 
     return response()->json([
         'shop' => [
@@ -217,15 +228,16 @@ public function showShopInfo($slug)
             'logo' => $shop->logo,
             'phone' => $shop->phone,
             'email' => $shop->email,
-            'total_sales' => $shop->total_sales,
-            'rating' => $shop->rating,
+            'total_sales' => $totalSales,
+            'rating' => $avgRating ? round($avgRating, 1) : null,
             'status' => $shop->status,
             'created_at' => $shop->created_at,
             'updated_at' => $shop->updated_at,
-            'followers_count' => $shop->follow_records_count,
+            'followers_count' => $followersCount,
         ]
     ]);
 }
+
     public function getShopProducts($slug)
     {
         $shop = Shop::where('slug', $slug)->first();
