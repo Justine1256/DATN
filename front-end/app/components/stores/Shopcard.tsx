@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { User, MessageCircle, Star, Phone, Package, Calendar, Users } from 'lucide-react';
 import Image from 'next/image';
 import { API_BASE_URL } from "@/utils/api";
 import ShopProductSlider from '../home/ShopProduct'; // Gợi ý sản phẩm từ shop
+import Cookies from 'js-cookie';
 
 // Helper function để định dạng thời gian
 const formatTimeAgo = (dateString: string): string => {
@@ -55,6 +57,20 @@ interface Shop {
 }
 
 const ShopCard = ({ shop }: { shop: Shop }) => {
+    const [followed, setFollowed] = useState(false);
+
+    // Hàm theo dõi
+    const handleFollow = async () => {
+        const token = Cookies.get('authToken') || localStorage.getItem('token');
+        if (!token) return alert('Vui lòng đăng nhập để theo dõi cửa hàng');
+
+        const url = `${API_BASE_URL}/shops/${shop.id}/${followed ? 'unfollow' : 'follow'}`;
+        await fetch(url, { method: followed ? 'DELETE' : 'POST', headers: { Authorization: `Bearer ${token}` } });
+
+        // Cập nhật trạng thái theo dõi
+        setFollowed(!followed);
+    };
+
     return (
         <div className="bg-white py-4">
             <div className='mt-10 relative h-80 rounded-2xl outline-1 outline-gray-200'>
@@ -150,9 +166,12 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                             </div>
                             {/* Follow and Chat Buttons */}
                             <div className="flex flex-col gap-4 w-[200px] justify-end flex-wrap">
-                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
+                                <button
+                                    onClick={handleFollow} // Add click handler for follow/unfollow
+                                    className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full"
+                                >
                                     <User size={20} />
-                                    <span>Theo Dõi</span>
+                                    <span>{followed ? 'Đã theo dõi' : 'Theo Dõi'}</span>
                                 </button>
                                 <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
                                     <MessageCircle size={20} />
@@ -166,13 +185,12 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
 
             {/* Gợi ý sản phẩm shop */}
             {shop.slug && (
-                <div className="w-full max-w-screen-xl mx-auto mt-8 ">
+                <div className="w-full max-w-screen-xl mx-auto mt-8">
                     <ShopProductSlider shopSlug={shop.slug} />
                 </div>
             )}
         </div>
-
     );
-
 }
+
 export default ShopCard;
