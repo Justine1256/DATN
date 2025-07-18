@@ -55,13 +55,13 @@ export default function NotificationDropdown({ notifications, unreadCount, onNot
                             className="flex gap-3 p-3 hover:bg-gray-100 transition cursor-pointer"
                             onClick={() => onNotificationClick(note.id, note.link)}
                         >
-                            <div className="w-[56px] h-[56px] flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                            <div className="flex justify-center items-center w-[56px] h-[56px] overflow-hidden rounded-md border border-gray-200">
                                 <Image
                                     src={formatImageUrl(note.image_url)}
                                     alt={note.title}
                                     width={56}
                                     height={56}
-                                    className="object-cover w-full h-full"
+                                    className="object-cover"
                                 />
                             </div>
                             <div className="flex-1">

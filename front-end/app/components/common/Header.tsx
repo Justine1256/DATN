@@ -202,7 +202,7 @@ const Header = () => {
       </div>
 
       {/* Thanh header chính */}
-      <div className="py-0 px-2">
+      <div className="py-0 px-2 border-b border-gray-200">
         <div className="grid grid-cols-12 items-center py-4 md:px-16 max-w-[1280px] mx-auto">
           {/* Logo */}
           <div className="col-span-6 sm:col-span-3 lg:col-span-2">
@@ -213,6 +213,7 @@ const Header = () => {
                 width={140}
                 height={140}
                 className="rounded-full cursor-pointer"
+                style={{ width: "100%", height: "auto" }}
                 priority
               />
             </Link>
@@ -364,9 +365,6 @@ const Header = () => {
           </div>
         </div>
       </div>
-
-      {/* Line dưới header */}
-      <div className="bg-gray-200 h-[1px] w-full" />
     </header>
   );
 
