@@ -200,52 +200,53 @@ public function update(Request $request)
         return redirect('/');
     }
 
-public function showShopInfo($slug)
-{
-    $shop = Shop::where('slug', $slug)->first();
+ public function showShopInfo($slug)
+    {
+        $shop = Shop::where('slug', $slug)->first();
 
-    if (!$shop) {
-        return response()->json(['error' => 'Shop không tồn tại'], 404);
-    }
+        if (!$shop) {
+            return response()->json(['error' => 'Shop không tồn tại'], 404);
+        }
 
-    // 👥 Tính followers động
-    $followersCount = \App\Models\Follow::where('shop_id', $shop->id)->count();
+        // 👥 Tính followers động
+        $followersCount = \App\Models\Follow::where('shop_id', $shop->id)->count();
 
-    // 📦 Tính tổng đã bán (Delivered)
-    $totalSales = \App\Models\OrderDetail::whereHas('order', function ($q) use ($shop) {
+        // 📦 Tính tổng đã bán (Delivered)
+        $totalSales = \App\Models\OrderDetail::whereHas('order', function ($q) use ($shop) {
             $q->where('shop_id', $shop->id)
-              ->where('order_status', 'Delivered');
+                ->where('order_status', 'Delivered');
         })->sum('quantity');
 
-    // ⭐ Tính rating động
-    $avgRating = \App\Models\Review::whereHas('orderDetail.product', function ($q) use ($shop) {
+        // ⭐ Tính rating động
+        $avgRating = \App\Models\Review::whereHas('orderDetail.product', function ($q) use ($shop) {
             $q->where('shop_id', $shop->id);
         })->avg('rating');
 
-    // 🎯 Ghi đè giá trị động lên model
-    $shop->total_sales = $totalSales;
-    $shop->rating = $avgRating ? round($avgRating, 1) : null;
-    $shop->followers_count = $followersCount;
-    $shop->save();
 
-    return response()->json([
-        'shop' => [
-            'id' => $shop->id,
-            'name' => $shop->name,
-            'slug' => $shop->slug,
-            'description' => $shop->description,
-            'logo' => $shop->logo,
-            'phone' => $shop->phone,
-            'email' => $shop->email,
-            'total_sales' => $shop->total_sales,
-            'rating' => $shop->rating,
-            'status' => $shop->status,
-            'created_at' => $shop->created_at,
-            'updated_at' => $shop->updated_at,
-            'followers_count' => $shop->followers_count,
-        ]
-    ]);
-}
+        // 🎯 Ghi đè giá trị động lên model
+        $shop->total_sales = $totalSales;
+        $shop->rating = $avgRating ? round($avgRating, 1) : null;
+        $shop->followers_count = $followersCount;
+        $shop->save();
+
+        return response()->json([
+            'shop' => [
+                'id' => $shop->id,
+                'name' => $shop->name,
+                'slug' => $shop->slug,
+                'description' => $shop->description,
+                'logo' => $shop->logo,
+                'phone' => $shop->phone,
+                'email' => $shop->email,
+                'total_sales' => $shop->total_sales,
+                'rating' => $shop->rating,
+                'status' => $shop->status,
+                'created_at' => $shop->created_at,
+                'updated_at' => $shop->updated_at,
+                'followers_count' => $shop->followers_count,
+            ]
+        ]);
+    }
     public function getShopProducts($slug)
     {
         $shop = Shop::where('slug', $slug)->first();
