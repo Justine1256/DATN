@@ -62,6 +62,15 @@ const menu = [
   //   href: "/attributes",
   // },
   {
+    label: "Quản lý shop", // New "Quản lý shop" Section
+    icon: <Warehouse size={18} />,
+    children: [
+      { label: "Thông tin shop", href: "/shop/info" },
+      { label: "Chỉnh sửa shop", href: "/shop/updateShop" },
+      { label: "Quản lý nhân viên", href: "/shop/employees" },
+    ],
+  },
+  {
     label: "Khách Hàng",
     icon: <Users size={18} />,
     href: "/admin/users",
