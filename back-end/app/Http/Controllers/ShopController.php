@@ -226,6 +226,7 @@ public function showShopInfo($slug)
     $shop->total_sales = $totalSales;
     $shop->rating = $avgRating ? round($avgRating, 1) : null;
     $shop->followers_count = $followersCount;
+    $shop->save();
 
     return response()->json([
         'shop' => [
