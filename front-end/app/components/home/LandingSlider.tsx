@@ -92,26 +92,27 @@ export default function LandingSlider() {
       {slides.map((slide, index) => (
         <div
           key={slide.id}
-          className={`absolute inset-0 transition-all duration-700 ease-in-out ${
-            index === current ? "opacity-100 z-10" : "opacity-0 z-0"
-          }`}
+          className={`absolute inset-0 transition-all duration-700 ease-in-out ${index === current ? "opacity-100 z-10" : "opacity-0 z-0"
+            }`}
         >
           <Image
-  src={slide.image}
-  alt={`banner-${slide.id}`}
-  width={1120}
-  height={344}
-  className="object-cover rounded-lg"
-/>
+            src={slide.image}
+            alt={`banner-${slide.id}`}
+            // width={1120}
+            // height={344}
+            className="object-cover rounded-lg"
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 1120px"
+          />
           {index === current && (
             <div className="absolute left-10 bottom-12 z-20">
               <button
                 onClick={() => router.push("/shop")}
-                className={`w-[143px] h-[43px] rounded-md text-white font-semibold transition ${
-                  slide.variant === "red"
-                    ? "bg-brand hover:bg-red-600"
-                    : "bg-black hover:bg-neutral-700"
-                }`}
+                className={`w-[143px] h-[43px] rounded-md text-white font-semibold transition ${slide.variant === "red"
+                  ? "bg-brand hover:bg-red-600"
+                  : "bg-black hover:bg-neutral-700"
+                  }`}
               >
                 {slide.buttonText}
               </button>
@@ -125,9 +126,8 @@ export default function LandingSlider() {
           <div
             key={index}
             onClick={() => handleDotClick(index)}
-            className={`w-2 h-2 mb-2 rounded-full cursor-pointer transition-all duration-300 ${
-              index === current ? "bg-brand" : "bg-gray-300"
-            }`}
+            className={`w-2 h-2 mb-2 rounded-full cursor-pointer transition-all duration-300 ${index === current ? "bg-brand" : "bg-gray-300"
+              }`}
           />
         ))}
       </div>
