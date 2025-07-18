@@ -256,7 +256,7 @@ export default function ProductCard({
                   />
                 ))}
                 <span className="text-gray-600 text-xs">
-                  {ratingValue.toFixed(1)} ⭐
+                  {ratingValue.toFixed(1)} 
                 </span>
               </>
             ) : (
