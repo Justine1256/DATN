@@ -225,7 +225,7 @@ export default function ProductCard({
           alt={product.name}
           width={150}
           height={150}
-          className="object-contain max-h-[150px] transition-transform duration-300 group-hover:scale-105"
+          className="object-contain md:w-[150px] md:h-[150px] transition-transform duration-300 group-hover:scale-105"
         />
       </div>
 
