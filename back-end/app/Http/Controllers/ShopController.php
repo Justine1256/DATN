@@ -207,10 +207,6 @@ public function update(Request $request)
         if (!$shop) {
             return response()->json(['error' => 'Shop không tồn tại'], 404);
         }
-
-        // 👥 Tính followers động
-        $followersCount = \App\Models\Follow::where('shop_id', $shop->id)->count();
-
         // 📦 Tính tổng đã bán (Delivered)
         $totalSales = \App\Models\OrderDetail::whereHas('order', function ($q) use ($shop) {
             $q->where('shop_id', $shop->id)
@@ -226,7 +222,6 @@ public function update(Request $request)
         // 🎯 Ghi đè giá trị động lên model
         $shop->total_sales = $totalSales;
         $shop->rating = $avgRating ? round($avgRating, 1) : null;
-        $shop->followers_count = $followersCount;
         $shop->save();
 
         return response()->json([
@@ -243,7 +238,6 @@ public function update(Request $request)
                 'status' => $shop->status,
                 'created_at' => $shop->created_at,
                 'updated_at' => $shop->updated_at,
-                'followers_count' => $shop->followers_count,
             ]
         ]);
     }
