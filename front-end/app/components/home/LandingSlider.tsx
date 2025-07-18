@@ -98,8 +98,6 @@ export default function LandingSlider() {
           <Image
             src={slide.image}
             alt={`banner-${slide.id}`}
-            // width={1120}
-            // height={344}
             className="object-cover rounded-lg"
             fill
             priority
