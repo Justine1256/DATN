@@ -59,6 +59,7 @@ export default function NewArrival() {
             src="/ps5.png"
             alt="PlayStation 5"
             fill
+            sizes="(min-width: 1024px) 50vw, 100vw"
             className="object-cover transition duration-500 brightness-75 group-hover:brightness-100"
           />
           <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition duration-300 z-10" />
@@ -77,6 +78,7 @@ export default function NewArrival() {
               src="/phuba.png"
               alt="Women’s Collections"
               fill
+              sizes="(min-width: 1024px) 50vw, 100vw"
               className="object-cover transition duration-500 brightness-75 group-hover:brightness-100"
             />
             <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition duration-300 z-10" />
@@ -93,6 +95,7 @@ export default function NewArrival() {
               src="/hang.png"
               alt="Speakers"
               fill
+              sizes="(max-width: 768px) 100vw, 33vw"
               className="object-cover transition duration-500 brightness-75 group-hover:brightness-100"
             />
             <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition duration-300 z-10" />
@@ -109,6 +112,7 @@ export default function NewArrival() {
               src="/per.webp"
               alt="Perfume"
               fill
+              sizes="(max-width: 768px) 100vw, 33vw"
               className="object-cover transition duration-500 brightness-75 group-hover:brightness-100"
             />
             <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition duration-300 z-10" />
