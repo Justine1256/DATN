@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Models\Review;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class ProductController extends Controller
 {
@@ -674,70 +676,126 @@ public function getProductByIdShop($id)
 public function recommended(Request $request)
 {
     $user = $request->user();
-    $products = collect();
+    $userId = optional($user)->id;
+    $sessionId = $request->cookie('session_id') ?? session()->getId();
 
-    if ($user) {
-        // 1. Lấy danh mục từ sản phẩm user đã xem
+    if (!$request->cookie('session_id')) {
+        cookie()->queue(cookie('session_id', $sessionId, 60 * 24 * 30));
+    }
+
+    $recommended = collect();
+    $limit = 20;
+
+    /** -------------------
+     * 1. Lấy category từ lịch sử xem
+     * ------------------- */
+    $viewedProductIds = DB::table('user_view')
+        ->where(function ($q) use ($userId, $sessionId) {
+            $userId ? $q->where('user_id', $userId)
+                    : $q->whereNull('user_id')->where('session_id', $sessionId);
+        })
+        ->orderByDesc('view_date')
+        ->limit(10)
+        ->pluck('product_id');
+
+    $recentCategoryIds = [];
+    if ($viewedProductIds->isNotEmpty()) {
         $recentCategoryIds = DB::table('products')
-            ->whereIn('id', function ($query) use ($user) {
-                $query->select('product_id')
-                    ->from('user_view')
-                    ->where('user_id', $user->id)
-                    ->orderBy('view_date', 'desc')
-                    ->limit(5);
+            ->whereIn('id', $viewedProductIds)
+            ->pluck('category_id');
+    }
+
+    if (!empty($recentCategoryIds)) {
+        $productsFromViews = Product::whereIn('category_id', $recentCategoryIds)
+            ->whereHas('category', fn($q) => $q->where('status', 'activated'))
+            ->orderBy('sold', 'desc') // hoặc 'created_at' để ưu tiên mới
+            ->take(10)
+            ->get();
+        $recommended = $recommended->merge($productsFromViews);
+    }
+
+    /** -------------------
+     * 2. Gợi ý từ lịch sử mua
+     * ------------------- */
+    if ($recommended->count() < $limit && $userId) {
+        $orderCategoryIds = DB::table('products')
+            ->whereIn('id', function ($query) use ($userId) {
+                $query->select('product_id')->from('orders')->where('user_id', $userId);
             })
             ->pluck('category_id');
 
-        if ($recentCategoryIds->count() > 0) {
-            $products = Product::whereIn('category_id', $recentCategoryIds)
-                ->whereHas('category', function ($query) {
-                    $query->where('status', 'activated');
-                })
-                ->orderBy('created_at', 'desc')
-                ->take(20)
+        if ($orderCategoryIds->isNotEmpty()) {
+            $productsFromOrders = Product::whereIn('category_id', $orderCategoryIds)
+                ->whereHas('category', fn($q) => $q->where('status', 'activated'))
+                ->whereNotIn('id', $recommended->pluck('id'))
+                ->orderBy('sold', 'desc')
+                ->take(6)
                 ->get();
-        }
-
-        // 2. Nếu chưa có lịch sử xem hoặc chưa đủ sản phẩm, fallback theo lịch sử mua
-        if ($products->count() < 20) {
-            $orderCategoryIds = DB::table('products')
-                ->whereIn('id', function ($query) use ($user) {
-                    $query->select('product_id')
-                        ->from('orders')
-                        ->where('user_id', $user->id);
-                })
-                ->pluck('category_id');
-
-            if ($orderCategoryIds->count() > 0) {
-                $moreProducts = Product::whereIn('category_id', $orderCategoryIds)
-                    ->whereHas('category', function ($query) {
-                        $query->where('status', 'activated');
-                    })
-                    ->orderBy('sold', 'desc')
-                    ->take(20 - $products->count())
-                    ->get();
-
-                $products = $products->merge($moreProducts);
-            }
+            $recommended = $recommended->merge($productsFromOrders);
         }
     }
 
-    // 3. Nếu vẫn thiếu hoặc user chưa đăng nhập, lấy sản phẩm bán chạy
-    if ($products->count() < 20) {
-        $fallbackProducts = Product::whereHas('category', function ($query) {
-                $query->where('status', 'activated');
-            })
-            ->orderBy('sold', 'desc')
-            ->take(20 - $products->count())
-            ->get();
-
-        $products = $products->merge($fallbackProducts);
-    }
+    /** -------------------
+     * 3. Fallback: trending
+     * ------------------- */
+    // if ($recommended->count() < $limit) {
+    //     $trending = Product::whereHas('category', fn($q) => $q->where('status', 'activated'))
+    //         ->whereNotIn('id', $recommended->pluck('id'))
+    //         ->orderBy('sold', 'desc')
+    //         ->take($limit - $recommended->count())
+    //         ->get();
+    //     $recommended = $recommended->merge($trending);
+    // }
 
     return response()->json([
         'status' => 'success',
-        'data' => $products
+        'data' => $recommended->take($limit)->values()
+
     ]);
+}
+public function storeHistory(Request $request)
+{
+    $request->validate([
+        'product_id' => 'required|integer|exists:products,id'
+    ]);
+
+    $userId = null;
+    $token = $request->bearerToken();
+
+    if ($token) {
+        $accessToken = PersonalAccessToken::findToken($token);
+        if ($accessToken) {
+            $userId = $accessToken->tokenable_id; // ID user nếu đã đăng nhập
+        }
+    }
+
+    // Xử lý session_id cho guest
+    $sessionId = $request->cookie('session_id') ?? session()->getId();
+    if (!$request->cookie('session_id')) {
+        Cookie::queue('session_id', $sessionId, 60 * 24 * 30); // Lưu cookie 30 ngày
+    }
+
+    // Nếu user đã đăng nhập => merge lịch sử guest (nếu có)
+    if ($userId) {
+        DB::table('user_view')
+            ->whereNull('user_id')
+            ->where('session_id', $sessionId)
+            ->update(['user_id' => $userId]);
+    }
+
+    // Lưu hoặc update lịch sử xem
+    DB::table('user_view')->updateOrInsert(
+        [
+            'user_id' => $userId, // null nếu guest
+            'session_id' => $sessionId,
+            'product_id' => $request->product_id
+        ],
+        [
+            'view_date' => now()
+        ]
+    );
+
+    return response()->json(['status' => 'success']);
 }
 
 

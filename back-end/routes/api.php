@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\Broadcast;
 // test api
 // Route::get('/userall', [UserController::class, 'index']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return response()->json($request->user()->load('shop'));
+    return response()->json($request->user()->load('shop')->toArray());
 });
 // routes/api.php
 Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
@@ -83,6 +83,7 @@ Route::get('/topdiscountedproducts', [ProductController::class, 'topDiscountedPr
 Route::get('/newproducts', [ProductController::class, 'newProducts']);
 Route::get('/category/{slug}/products', [ProductController::class, 'getCategoryAndProductsBySlug']);
 Route::get('/products/recommended', [ProductController::class, 'recommended']);
+Route::post('/products/history', [ProductController::class, 'storeHistory']);
 
 
 Route::post('/product', [ProductController::class, 'store']);
@@ -107,6 +108,9 @@ Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::cl
 Route::get('/search', [ProductController::class, 'search']);
 Route::post('/nologin', [OrderController::class, 'guestCheckout']);// đặt hàng ko cần đăng nhập
 Route::get('/orders/{id}/invoice', [OrderController::class, 'downloadInvoice']);
+
+
+
 
 Route::get('/vouchers', [VoucherController::class, 'index']);
 
@@ -142,7 +146,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shopotp', [ShopController::class, 'confirmOtp']);
     Route::get('/shopdashboard', [ShopController::class, 'index']);
     Route::post('/shopexit', [ShopController::class, 'exitShop']);
-    Route::post('/shop/update', [ShopController::class, 'update']);
 
 
     Route::get('/addresses', [AddressController::class, 'index']);
