@@ -738,14 +738,14 @@ public function recommended(Request $request)
     /** -------------------
      * 3. Fallback: trending
      * ------------------- */
-    if ($recommended->count() < $limit) {
-        $trending = Product::whereHas('category', fn($q) => $q->where('status', 'activated'))
-            ->whereNotIn('id', $recommended->pluck('id'))
-            ->orderBy('sold', 'desc')
-            ->take($limit - $recommended->count())
-            ->get();
-        $recommended = $recommended->merge($trending);
-    }
+    // if ($recommended->count() < $limit) {
+    //     $trending = Product::whereHas('category', fn($q) => $q->where('status', 'activated'))
+    //         ->whereNotIn('id', $recommended->pluck('id'))
+    //         ->orderBy('sold', 'desc')
+    //         ->take($limit - $recommended->count())
+    //         ->get();
+    //     $recommended = $recommended->merge($trending);
+    // }
 
     return response()->json([
         'status' => 'success',
@@ -753,9 +753,6 @@ public function recommended(Request $request)
 
     ]);
 }
-
-
-
 public function storeHistory(Request $request)
 {
     $request->validate([
