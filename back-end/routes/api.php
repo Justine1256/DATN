@@ -109,9 +109,6 @@ Route::get('/search', [ProductController::class, 'search']);
 Route::post('/nologin', [OrderController::class, 'guestCheckout']);// đặt hàng ko cần đăng nhập
 Route::get('/orders/{id}/invoice', [OrderController::class, 'downloadInvoice']);
 
-
-
-
 Route::get('/vouchers', [VoucherController::class, 'index']);
 
 Route::get('/reviews', [ReviewController::class, 'index']);
@@ -146,6 +143,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shopotp', [ShopController::class, 'confirmOtp']);
     Route::get('/shopdashboard', [ShopController::class, 'index']);
     Route::post('/shopexit', [ShopController::class, 'exitShop']);
+    Route::post('/shop/update', [ShopController::class, 'update']);
 
 
     Route::get('/addresses', [AddressController::class, 'index']);
