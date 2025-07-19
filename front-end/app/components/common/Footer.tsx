@@ -11,8 +11,8 @@ export default function Footer() {
 
         {/* 🌐 Logo + Subscribe (3 cột trên desktop, full trên mobile) */}
         <div className="md:col-span-3 col-span-1">
-          <Link href="/" className="inline-block mb-2">
-            <Image src="/logoft.png" alt="Logo công ty" width={120} height={40} />
+          <Link href="/" className="inline-block mb-2 relative md:h-[40px]">
+            <Image src="/logoft.png" alt="Logo công ty" fill sizes="(max-width: 120px) 120px, 40px" />
           </Link>
           <p className="text-sm mb-2">Đăng ký nhận tin</p>
           <p className="text-sm mb-4">Nhận 10% giảm giá cho đơn hàng đầu tiên</p>
@@ -66,11 +66,11 @@ export default function Footer() {
               <Image src="/qr.png" alt="QR Code" width={64} height={64} />
             </Link>
             <div className="flex flex-col gap-2">
-              <Link href="https://play.google.com/store" target="_blank" rel="noopener noreferrer">
-                <Image src="/gg.png" alt="Google Play" width={96} height={30} />
+              <Link href="https://play.google.com/store" target="_blank" rel="noopener noreferrer" className='relative md:h-[30px]'>
+                <Image src="/gg.png" alt="Google Play" fill sizes="(max-width: 96px) 96px, 30px" />
               </Link>
-              <Link href="https://www.apple.com/app-store/" target="_blank" rel="noopener noreferrer">
-                <Image src="/ap.png" alt="App Store" width={96} height={30} />
+              <Link href="https://www.apple.com/app-store/" target="_blank" rel="noopener noreferrer" className='relative md:h-[30px]'>
+                <Image src="/ap.png" alt="App Store" fill sizes="(max-width: 96px) 96px, 30px" />
               </Link>
             </div>
           </div>

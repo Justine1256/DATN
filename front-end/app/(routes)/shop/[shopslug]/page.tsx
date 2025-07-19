@@ -35,7 +35,7 @@ interface Shop {
     description: string;
     logo: string;
     phone: string;
-    rating: string;
+    rating: number | null;
     total_sales: number;
     created_at: string;
     status: 'activated' | 'pending' | 'suspended';
@@ -55,11 +55,15 @@ const ShopPage = () => {
     const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
     const [selectedPriceFilter, setSelectedPriceFilter] = useState<string | null>(null);
     const [showAllCategories, setShowAllCategories] = useState(false);
-    const slug = window.location.pathname.split('/').pop();
+    const [slug, setSlug] = useState<string | null>(null); // state for slug
+
+    useEffect(() => {
+        // Lấy slug từ URL sau khi component đã mount
+        const pathSlug = window.location.pathname.split('/').pop();
+        setSlug(pathSlug ?? null); // If the slug is undefined, set it to null
+    }, []);
 
     const fetchData = useCallback(async (categorySlug: string | null = null) => {
-        const slug = window.location.pathname.split('/').pop();
-        
         if (!slug) {
             setError('Không tìm thấy slug cửa hàng trên URL.');
             setLoading(false);
@@ -123,12 +127,11 @@ const ShopPage = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [slug]);
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
+        if (slug) fetchData(); // fetch data only when slug is available
+    }, [fetchData, slug]);
 
     const handleCategorySelect = (slug: string | null) => {
         setSelectedCategory(slug);
@@ -186,7 +189,6 @@ const ShopPage = () => {
             </div>
         </div>
     );
-
 
     if (!shop) return <div className="flex items-center justify-center min-h-screen text-xl text-red-600">Không thể tải thông tin.</div>;
 

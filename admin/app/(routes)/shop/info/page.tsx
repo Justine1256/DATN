@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { User, MessageCircle, Star, Phone, Package, Calendar, Users } from 'lucide-react';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Phone, Package, Calendar, Users, MessageCircle, Star } from 'lucide-react';
 import Image from 'next/image';
 import { API_BASE_URL } from "@/utils/api";
-import ShopProductSlider from '../home/ShopProduct'; // Gợi ý sản phẩm từ shop
-import Cookies from 'js-cookie';  // Importing Cookies
+import Cookies from 'js-cookie';
 
 // Helper function để định dạng thời gian
 const formatTimeAgo = (dateString: string): string => {
@@ -38,6 +39,7 @@ const formatTimeAgo = (dateString: string): string => {
     return `${diffInYears} năm trước`;
 };
 
+// Định nghĩa kiểu dữ liệu của Shop
 interface Shop {
     id: number;
     name: string;
@@ -49,27 +51,62 @@ interface Shop {
     created_at: string;
     status: 'activated' | 'pending' | 'suspended';
     email: string;
-    slug: string;
     followers_count: number;
 }
 
-const ShopCard = ({ shop }: { shop: Shop }) => {
-    const [followed, setFollowed] = useState(false);
+const ShopCard = () => {
+    const [shop, setShop] = useState<Shop | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const handleFollow = async () => {
-        const token = Cookies.get('authToken') || localStorage.getItem('token');
-        if (!token) return commonPopup('Vui lòng đăng nhập để theo dõi cửa hàng');
-        const url = `${API_BASE_URL}/shops/${shop.id}/${followed ? 'unfollow' : 'follow'}`;
-        await fetch(url, { method: followed ? 'DELETE' : 'POST', headers: { Authorization: `Bearer ${token}` } });
-        setFollowed(!followed);
-    };
+    useEffect(() => {
+        // Lấy thông tin shop từ API /user
+        const fetchShopData = async () => {
+            try {
+                const token = Cookies.get("authToken");
+                if (!token) {
+                    setError("Vui lòng đăng nhập để lấy thông tin cửa hàng");
+                    return;
+                }
 
-    const commonPopup = (msg: string) => {
-        alert(msg);  // Simple popup (can be customized)
-    };
+                const response = await fetch(`${API_BASE_URL}/user`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    setError("Không thể lấy thông tin cửa hàng.");
+                    return;
+                }
+
+                const data = await response.json();
+                setShop(data.shop);  // Lưu dữ liệu cửa hàng vào state
+            } catch (error) {
+                setError("Có lỗi xảy ra khi tải dữ liệu cửa hàng.");
+                console.error("Lỗi:", error);
+            } finally {
+                setIsLoading(false);  // Khi dữ liệu đã tải xong
+            }
+        };
+
+        fetchShopData();
+    }, []);
+
+    if (error) {
+        return <div className="text-red-600">{error}</div>;
+    }
+
+    if (isLoading || !shop) {
+        return (
+            <div className="w-full h-96 bg-gray-300 animate-pulse rounded-2xl">
+                {/* Hiển thị ô vuông xám khi đang load */}
+            </div>
+        );
+    }
 
     return (
-        <div className="bg-white py-4">
+        <div>
             <div className='mt-10 relative h-80 rounded-2xl outline-1 outline-gray-200'>
                 {/* Cover photo */}
                 <div className='absolute w-full h-full overflow-hidden'>
@@ -79,6 +116,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                         width={1200}
                         height={320}
                         className="w-full h-80 object-cover rounded-2xl"
+                        onLoadingComplete={() => setIsLoading(false)} // Khi ảnh tải xong
                     />
                 </div>
                 {/* Shop Avatar */}
@@ -89,6 +127,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                         width={56}
                         height={56}
                         className="rounded-full object-cover w-full h-full border-4 border-white"
+                        onLoadingComplete={() => setIsLoading(false)} // Khi ảnh tải xong
                     />
                 </div>
                 {/* Main Shop Card */}
@@ -98,7 +137,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                         {/* Shop Name and Status */}
                         <div className="flex gap-8 items-center mb-8">
                             {/* Shop Name */}
-                            <h1 className="text-2xl font-bold text-black">{shop.name}</h1>
+                            <h1 className="text-2xl font-bold ">{shop.name}</h1>
 
                             {/* Status */}
                             <div className="inline-block px-2 rounded-full text-sm bg-green-100 text-green-800 font-medium">
@@ -111,7 +150,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {/* Row 1 */}
                                 <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <Phone size={18} className="text-brand" />
+                                    <Phone size={18} className="text-[#db4444]" />
                                     <div>
                                         <div className="text-xs text-gray-500">Điện thoại</div>
                                         <div className="font-semibold text-black w-max">{shop.phone}</div>
@@ -119,7 +158,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                                 </div>
 
                                 <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <Package size={18} className="text-brand" />
+                                    <Package size={18} className="text-[#db4444]" />
                                     <div>
                                         <div className="text-xs text-gray-500">Đã bán</div>
                                         <div className="font-semibold text-black w-max">{shop.total_sales == null || shop.total_sales === 0 ? "Chưa có lượt bán" : shop.total_sales}</div>
@@ -127,7 +166,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                                 </div>
 
                                 <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <Star size={18} className="text-brand" />
+                                    <Star size={18} className="text-[#db4444]" />
                                     <div>
                                         <div className="text-xs text-gray-500">Đánh giá</div>
                                         <div className="font-semibold text-black w-max">
@@ -138,7 +177,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
 
                                 {/* Row 2 */}
                                 <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <Calendar size={18} className="text-brand" />
+                                    <Calendar size={18} className="text-[#db4444]" />
                                     <div>
                                         <div className="text-xs text-gray-500">Tham gia</div>
                                         <div className="font-semibold text-black w-max">{formatTimeAgo(shop.created_at)}</div>
@@ -146,7 +185,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                                 </div>
 
                                 <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <Users size={18} className="text-brand" />
+                                    <Users size={18} className="text-[#db4444]" />
                                     <div>
                                         <div className="text-xs text-gray-500">Người theo dõi</div>
                                         <div className="font-semibold text-black w-max">{shop.followers_count == null || shop.followers_count === 0 ? "Chưa có người theo dõi" : shop.followers_count}</div>
@@ -154,36 +193,17 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                                 </div>
 
                                 <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <MessageCircle size={18} className="text-brand" />
+                                    <MessageCircle size={18} className="text-[#db4444]" />
                                     <div>
                                         <div className="text-xs text-gray-500">Email</div>
-                                        <div className="font-semibold text-black max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">{shop.email}</div>
+                                        <div className="font-semibold text-black w-max">{shop.email}</div>
                                     </div>
                                 </div>
-
-                            </div>
-                            {/* Follow and Chat Buttons */}
-                            <div className="flex flex-col gap-4 w-[200px] justify-end flex-wrap">
-                                <button onClick={handleFollow} className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
-                                    <User size={20} />
-                                    <span>{followed ? 'Đã theo dõi' : 'Theo Dõi'}</span>
-                                </button>
-                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
-                                    <MessageCircle size={20} />
-                                    <span>Chat</span>
-                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            {/* Gợi ý sản phẩm shop */}
-            {shop.slug && (
-                <div className="w-full max-w-screen-xl mx-auto mt-8 ">
-                    <ShopProductSlider shopSlug={shop.slug} />
-                </div>
-            )}
         </div>
     );
 }

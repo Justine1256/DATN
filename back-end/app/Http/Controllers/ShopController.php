@@ -158,7 +158,39 @@ class ShopController extends Controller
         'shop' => $shop,
     ]);
 }
+public function update(Request $request)
+{
+    $user = Auth::user();
 
+    if (!$user->shop) {
+        return response()->json(['error' => 'Bạn chưa có shop!'], 400);
+    }
+
+    $shop = $user->shop;
+
+    $validator = Validator::make($request->all(), [
+        'name' => 'sometimes|string|max:100|unique:shops,name,' . $shop->id,
+        'description' => 'sometimes|string|max:255',
+        'phone' => ['sometimes', 'regex:/^0\d{9}$/', 'unique:shops,phone,' . $shop->id],
+        'email' => 'sometimes|email|max:100|unique:shops,email,' . $shop->id,
+        'image' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
+
+    if ($request->hasFile('image')) {
+        $file = $request->file('image');
+        $path = $file->store('shops', 'public');
+        $shop->logo = json_encode([asset('storage/' . $path)]);
+    }
+
+    $shop->fill($request->only(['name', 'description', 'phone', 'email']));
+    $shop->save();
+
+    return response()->json(['message' => 'Cập nhật shop thành công!', 'shop' => $shop]);
+}
 
     public function exitShop()
     {
@@ -168,32 +200,47 @@ class ShopController extends Controller
         return redirect('/');
     }
 
-public function showShopInfo($slug)
-{
-    $shop = Shop::where('slug', $slug)->withCount('followRecords')->first();
+ public function showShopInfo($slug)
+    {
+        $shop = Shop::where('slug', $slug)->first();
 
-    if (!$shop) {
-        return response()->json(['error' => 'Shop không tồn tại'], 404);
+        if (!$shop) {
+            return response()->json(['error' => 'Shop không tồn tại'], 404);
+        }
+        // 📦 Tính tổng đã bán (Delivered)
+        $totalSales = \App\Models\OrderDetail::whereHas('order', function ($q) use ($shop) {
+            $q->where('shop_id', $shop->id)
+                ->where('order_status', 'Delivered');
+        })->sum('quantity');
+
+        // ⭐ Tính rating động
+        $avgRating = \App\Models\Review::whereHas('orderDetail.product', function ($q) use ($shop) {
+            $q->where('shop_id', $shop->id);
+        })->avg('rating');
+
+
+        // 🎯 Ghi đè giá trị động lên model
+        $shop->total_sales = $totalSales;
+        $shop->rating = $avgRating ? round($avgRating, 1) : null;
+        $shop->save();
+
+        return response()->json([
+            'shop' => [
+                'id' => $shop->id,
+                'name' => $shop->name,
+                'slug' => $shop->slug,
+                'description' => $shop->description,
+                'logo' => $shop->logo,
+                'phone' => $shop->phone,
+                'email' => $shop->email,
+                'total_sales' => $shop->total_sales,
+                'rating' => $shop->rating,
+                'status' => $shop->status,
+                'created_at' => $shop->created_at,
+                'updated_at' => $shop->updated_at,
+            ]
+        ]);
     }
-
-    return response()->json([
-        'shop' => [
-            'id' => $shop->id,
-            'name' => $shop->name,
-            'slug' => $shop->slug,
-            'description' => $shop->description,
-            'logo' => $shop->logo,
-            'phone' => $shop->phone,
-            'email' => $shop->email,
-            'total_sales' => $shop->total_sales,
-            'rating' => $shop->rating,
-            'status' => $shop->status,
-            'created_at' => $shop->created_at,
-            'updated_at' => $shop->updated_at,
-            'followers_count' => $shop->follow_records_count,
-        ]
-    ]);
-}
     public function getShopProducts($slug)
     {
         $shop = Shop::where('slug', $slug)->first();
