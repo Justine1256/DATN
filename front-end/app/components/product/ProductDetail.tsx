@@ -58,7 +58,7 @@ useEffect(() => {
 
     // Ghi lịch sử xem nếu đã đăng nhập
     if (token && data?.id) {
-      await fetch(`${API_BASE_URL}/user/view-product`, {
+      await fetch(`${API_BASE_URL}/products/history`, {
         method: 'POST',
         headers: { ...headers },
         body: JSON.stringify({ product_id: data.id })

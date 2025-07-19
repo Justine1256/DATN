@@ -86,7 +86,7 @@ Route::get('/topdiscountedproducts', [ProductController::class, 'topDiscountedPr
 Route::get('/newproducts', [ProductController::class, 'newProducts']);
 Route::get('/category/{slug}/products', [ProductController::class, 'getCategoryAndProductsBySlug']);
 Route::get('/products/recommended', [ProductController::class, 'recommended']);
-Route::get('/products/history', [ProductController::class, 'storeHistory']);
+Route::post('/products/history', [ProductController::class, 'storeHistory']);
 
 
 Route::post('/product', [ProductController::class, 'store']);
