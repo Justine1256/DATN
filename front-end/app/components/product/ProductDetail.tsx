@@ -44,40 +44,31 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     return value.split(',').map(v => v.trim());
   };
 
-  useEffect(() => 
-    {
-    async function fetchData() {
-      const token = Cookies.get('authToken') || localStorage.getItem('token');
-const headers: any = { 'Content-Type': 'application/json' };
-if (token) headers.Authorization = `Bearer ${token}`;
+useEffect(() => {
+  async function fetchData() {
+    const token = Cookies.get('authToken') || localStorage.getItem('token');
+    const headers: any = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
 
-const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`, {
-  headers
-});
-console.log(token)
-      const { data } = await res.json();
-      console.log("🚀 Product data:", data);
+    const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`, { headers });
+    const { data } = await res.json();
 
-      const gocA = parseOptionValues(data.value1);
-      const gocB = parseOptionValues(data.value2);
-      data.variants.sort((v1: Variant, v2: Variant) => {
-        const score = (v: Variant) => (gocA.includes(v.value1) ? 1 : 0) + (gocB.includes(v.value2) ? 1 : 0);
-        return score(v2) - score(v1);
+    setProduct(data);
+    setMainImage(formatImageUrl(data.image[0] || ''));
+
+    // Ghi lịch sử xem nếu đã đăng nhập
+    if (token && data?.id) {
+      await fetch(`${API_BASE_URL}/user/view-product`, {
+        method: 'POST',
+        headers: { ...headers },
+        body: JSON.stringify({ product_id: data.id })
       });
-
-      setProduct(data);
-      setMainImage(formatImageUrl(data.image[0] || ''));
-      if (data.variants.length) {
-        setSelectedA(data.variants[0].value1);
-        setSelectedB(data.variants[0].value2);
-        setSelectedVariant(data.variants[0]);
-      } else {
-        setSelectedA(gocA[0] || '');
-        setSelectedB(gocB[0] || '');
-      }
     }
-    fetchData();
-  }, [shopslug, productslug, router]);
+  }
+
+  fetchData();
+}, [shopslug, productslug, router]);
+
   useEffect(() => {
   if (!product) return;
 

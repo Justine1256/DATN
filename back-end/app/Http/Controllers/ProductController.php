@@ -739,6 +739,25 @@ public function recommended(Request $request)
         'data' => $products
     ]);
 }
+    public function storeHistory(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|integer|exists:products,id'
+        ]);
 
+        $user = $request->user();
+
+        DB::table('user_view')->updateOrInsert(
+            [
+                'user_id' => $user->id,
+                'product_id' => $request->product_id
+            ],
+            [
+                'view_date' => now()
+            ]
+        );
+
+        return response()->json(['status' => 'success']);
+    }
 
 }
