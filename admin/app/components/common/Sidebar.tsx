@@ -66,7 +66,7 @@ const menu = [
     icon: <Warehouse size={18} />,
     children: [
       { label: "Thông tin shop", href: "/shop/info" },
-      { label: "Chỉnh sửa shop", href: "/shop/updateShop" },
+      { label: "Chỉnh sửa shop", href: "/shop/update" },
       { label: "Quản lý nhân viên", href: "/shop/employees" },
     ],
   },
