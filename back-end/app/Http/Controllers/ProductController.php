@@ -749,7 +749,8 @@ public function recommended(Request $request)
 
     return response()->json([
         'status' => 'success',
-        'data' => $recommended->shuffle()->take($limit)->values() // shuffle để đa dạng kết quả
+        'data' => $recommended->take($limit)->values()
+
     ]);
 }
 
