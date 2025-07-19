@@ -47,7 +47,14 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   useEffect(() => 
     {
     async function fetchData() {
-      const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
+      const token = Cookies.get('authToken') || localStorage.getItem('token');
+const headers: any = { 'Content-Type': 'application/json' };
+if (token) headers.Authorization = `Bearer ${token}`;
+
+const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`, {
+  headers
+});
+console.log(token)
       const { data } = await res.json();
       console.log("🚀 Product data:", data);
 
