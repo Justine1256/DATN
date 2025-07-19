@@ -1,9 +1,9 @@
-'use client';
-
+import { useState } from 'react';
 import { User, MessageCircle, Star, Phone, Package, Calendar, Users } from 'lucide-react';
 import Image from 'next/image';
 import { API_BASE_URL } from "@/utils/api";
 import ShopProductSlider from '../home/ShopProduct'; // Gợi ý sản phẩm từ shop
+import Cookies from 'js-cookie';  // Importing Cookies
 
 // Helper function để định dạng thời gian
 const formatTimeAgo = (dateString: string): string => {
@@ -38,7 +38,6 @@ const formatTimeAgo = (dateString: string): string => {
     return `${diffInYears} năm trước`;
 };
 
-// Định nghĩa kiểu dữ liệu của Shop
 interface Shop {
     id: number;
     name: string;
@@ -55,6 +54,20 @@ interface Shop {
 }
 
 const ShopCard = ({ shop }: { shop: Shop }) => {
+    const [followed, setFollowed] = useState(false);
+
+    const handleFollow = async () => {
+        const token = Cookies.get('authToken') || localStorage.getItem('token');
+        if (!token) return commonPopup('Vui lòng đăng nhập để theo dõi cửa hàng');
+        const url = `${API_BASE_URL}/shops/${shop.id}/${followed ? 'unfollow' : 'follow'}`;
+        await fetch(url, { method: followed ? 'DELETE' : 'POST', headers: { Authorization: `Bearer ${token}` } });
+        setFollowed(!followed);
+    };
+
+    const commonPopup = (msg: string) => {
+        alert(msg);  // Simple popup (can be customized)
+    };
+
     return (
         <div className="bg-white py-4">
             <div className='mt-10 relative h-80 rounded-2xl outline-1 outline-gray-200'>
@@ -144,15 +157,16 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                                     <MessageCircle size={18} className="text-brand" />
                                     <div>
                                         <div className="text-xs text-gray-500">Email</div>
-                                        <div className="font-semibold text-black w-max">{shop.email}</div>
+                                        <div className="font-semibold text-black max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">{shop.email}</div>
                                     </div>
                                 </div>
+
                             </div>
                             {/* Follow and Chat Buttons */}
                             <div className="flex flex-col gap-4 w-[200px] justify-end flex-wrap">
-                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
+                                <button onClick={handleFollow} className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
                                     <User size={20} />
-                                    <span>Theo Dõi</span>
+                                    <span>{followed ? 'Đã theo dõi' : 'Theo Dõi'}</span>
                                 </button>
                                 <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
                                     <MessageCircle size={20} />
@@ -171,8 +185,7 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                 </div>
             )}
         </div>
-
     );
-
 }
+
 export default ShopCard;
