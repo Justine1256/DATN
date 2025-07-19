@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Models\Review;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class ProductController extends Controller
 {
@@ -758,17 +760,26 @@ public function storeHistory(Request $request)
         'product_id' => 'required|integer|exists:products,id'
     ]);
 
-    $userId = optional($request->user())->id; // null nếu chưa login
-    $sessionId = $request->cookie('session_id') ?? session()->getId(); // dùng session ID
+    // Lấy token từ header
+    $token = $request->bearerToken();
+    $userId = null;
 
-    // Tạo session_id nếu chưa có
+    if ($token) {
+        $accessToken = PersonalAccessToken::findToken($token);
+        if ($accessToken) {
+            $userId = $accessToken->tokenable_id; // Lấy ID user
+        }
+    }
+
+    // Xử lý session cho guest
+    $sessionId = $request->cookie('session_id') ?? session()->getId();
     if (!$request->cookie('session_id')) {
-        cookie()->queue(cookie('session_id', $sessionId, 60 * 24 * 30)); // lưu 30 ngày
+        Cookie::queue('session_id', $sessionId, 60 * 24 * 30); // 30 ngày
     }
 
     DB::table('user_view')->updateOrInsert(
         [
-            'user_id' => $userId,
+            'user_id' => $userId, // null nếu chưa đăng nhập
             'session_id' => $sessionId,
             'product_id' => $request->product_id
         ],
