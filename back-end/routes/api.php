@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\Broadcast;
 // test api
 // Route::get('/userall', [UserController::class, 'index']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return response()->json($request->user()->load('shop')->toArray());
+    return response()->json($request->user()->load('shops')->toArray());
 });
 // routes/api.php
 Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
