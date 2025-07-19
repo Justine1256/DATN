@@ -31,11 +31,8 @@ use Illuminate\Support\Facades\Broadcast;
 // test api
 // Route::get('/userall', [UserController::class, 'index']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return response()->json([
-        'user' => $request->user()->load('shop')->toArray()
-    ]);
+    return response()->json($request->user()->load('shop'));
 });
-
 // routes/api.php
 Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
     // Lấy token từ header
@@ -112,6 +109,9 @@ Route::get('/search', [ProductController::class, 'search']);
 Route::post('/nologin', [OrderController::class, 'guestCheckout']);// đặt hàng ko cần đăng nhập
 Route::get('/orders/{id}/invoice', [OrderController::class, 'downloadInvoice']);
 
+
+
+
 Route::get('/vouchers', [VoucherController::class, 'index']);
 
 Route::get('/reviews', [ReviewController::class, 'index']);
@@ -146,7 +146,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shopotp', [ShopController::class, 'confirmOtp']);
     Route::get('/shopdashboard', [ShopController::class, 'index']);
     Route::post('/shopexit', [ShopController::class, 'exitShop']);
-    Route::post('/shop/update', [ShopController::class, 'update']);
 
 
     Route::get('/addresses', [AddressController::class, 'index']);
