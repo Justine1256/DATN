@@ -183,6 +183,16 @@ console.log("GỬI LÊN BACKEND guestPayload:", JSON.stringify(guestPayload, nul
         setPopupType('success');
         setShowPopup(true);
 
+        // Xoá local cart nếu là guest
+        localStorage.removeItem('cart');
+        setCartItems([]);
+
+        // Chuyển hướng về trang chủ sau 3 giây
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 3000);
+
+
         if (response.data.redirect_url) {
           window.location.href = response.data.redirect_url;
         }
