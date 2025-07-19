@@ -25,6 +25,7 @@ export interface OrderDetail {
     subtotal: string;
     product: Product;
     reviewed?: boolean;  // Đã đánh giá hay chưa
+    product_value?: string;
 }
 
 export interface Order {
