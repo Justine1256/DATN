@@ -762,26 +762,34 @@ public function storeHistory(Request $request)
         'product_id' => 'required|integer|exists:products,id'
     ]);
 
-    // Lấy token từ header
-    $token = $request->bearerToken();
     $userId = null;
+    $token = $request->bearerToken();
 
     if ($token) {
         $accessToken = PersonalAccessToken::findToken($token);
         if ($accessToken) {
-            $userId = $accessToken->tokenable_id; // Lấy ID user
+            $userId = $accessToken->tokenable_id; // ID user nếu đã đăng nhập
         }
     }
 
-    // Xử lý session cho guest
+    // Xử lý session_id cho guest
     $sessionId = $request->cookie('session_id') ?? session()->getId();
     if (!$request->cookie('session_id')) {
-        Cookie::queue('session_id', $sessionId, 60 * 24 * 30); // 30 ngày
+        Cookie::queue('session_id', $sessionId, 60 * 24 * 30); // Lưu cookie 30 ngày
     }
 
+    // Nếu user đã đăng nhập => merge lịch sử guest (nếu có)
+    if ($userId) {
+        DB::table('user_view')
+            ->whereNull('user_id')
+            ->where('session_id', $sessionId)
+            ->update(['user_id' => $userId]);
+    }
+
+    // Lưu hoặc update lịch sử xem
     DB::table('user_view')->updateOrInsert(
         [
-            'user_id' => $userId, // null nếu chưa đăng nhập
+            'user_id' => $userId, // null nếu guest
             'session_id' => $sessionId,
             'product_id' => $request->product_id
         ],
