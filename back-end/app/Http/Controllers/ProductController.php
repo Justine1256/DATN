@@ -679,27 +679,23 @@ public function recommended(Request $request)
     $userId = optional($user)->id;
     $sessionId = $request->cookie('session_id') ?? session()->getId();
 
-    // Nếu chưa có cookie session_id thì set
     if (!$request->cookie('session_id')) {
-        cookie()->queue(cookie('session_id', $sessionId, 60 * 24 * 30)); // lưu 30 ngày
+        cookie()->queue(cookie('session_id', $sessionId, 60 * 24 * 30));
     }
 
-    $products = collect();
+    $recommended = collect();
+    $limit = 20;
 
-    /**
-     * 1. Lấy danh sách category_id từ lịch sử xem (user_id hoặc session_id)
-     * Tách ra làm 2 query để tránh LIMIT trong subquery
-     */
+    /** -------------------
+     * 1. Lấy category từ lịch sử xem
+     * ------------------- */
     $viewedProductIds = DB::table('user_view')
         ->where(function ($q) use ($userId, $sessionId) {
-            if ($userId) {
-                $q->where('user_id', $userId);
-            } else {
-                $q->whereNull('user_id')->where('session_id', $sessionId);
-            }
+            $userId ? $q->where('user_id', $userId)
+                    : $q->whereNull('user_id')->where('session_id', $sessionId);
         })
-        ->orderBy('view_date', 'desc')
-        ->limit(5)
+        ->orderByDesc('view_date')
+        ->limit(10)
         ->pluck('product_id');
 
     $recentCategoryIds = [];
@@ -710,59 +706,53 @@ public function recommended(Request $request)
     }
 
     if (!empty($recentCategoryIds)) {
-        $products = Product::whereIn('category_id', $recentCategoryIds)
-            ->whereHas('category', function ($query) {
-                $query->where('status', 'activated');
-            })
-            ->orderBy('created_at', 'desc')
-            ->take(20)
+        $productsFromViews = Product::whereIn('category_id', $recentCategoryIds)
+            ->whereHas('category', fn($q) => $q->where('status', 'activated'))
+            ->orderBy('sold', 'desc') // hoặc 'created_at' để ưu tiên mới
+            ->take(10)
             ->get();
+        $recommended = $recommended->merge($productsFromViews);
     }
 
-    /**
-     * 2. Nếu chưa đủ sản phẩm, fallback theo lịch sử mua (chỉ với user đăng nhập)
-     */
-    if ($products->count() < 20 && $userId) {
+    /** -------------------
+     * 2. Gợi ý từ lịch sử mua
+     * ------------------- */
+    if ($recommended->count() < $limit && $userId) {
         $orderCategoryIds = DB::table('products')
             ->whereIn('id', function ($query) use ($userId) {
-                $query->select('product_id')
-                    ->from('orders')
-                    ->where('user_id', $userId);
+                $query->select('product_id')->from('orders')->where('user_id', $userId);
             })
             ->pluck('category_id');
 
-        if ($orderCategoryIds->count() > 0) {
-            $moreProducts = Product::whereIn('category_id', $orderCategoryIds)
-                ->whereHas('category', function ($query) {
-                    $query->where('status', 'activated');
-                })
+        if ($orderCategoryIds->isNotEmpty()) {
+            $productsFromOrders = Product::whereIn('category_id', $orderCategoryIds)
+                ->whereHas('category', fn($q) => $q->where('status', 'activated'))
+                ->whereNotIn('id', $recommended->pluck('id'))
                 ->orderBy('sold', 'desc')
-                ->take(20 - $products->count())
+                ->take(6)
                 ->get();
-
-            $products = $products->merge($moreProducts);
+            $recommended = $recommended->merge($productsFromOrders);
         }
     }
 
-    /**
-     * 3. Nếu vẫn thiếu hoặc user chưa đăng nhập, lấy sản phẩm bán chạy
-     */
-    if ($products->count() < 20) {
-        $fallbackProducts = Product::whereHas('category', function ($query) {
-                $query->where('status', 'activated');
-            })
+    /** -------------------
+     * 3. Fallback: trending
+     * ------------------- */
+    if ($recommended->count() < $limit) {
+        $trending = Product::whereHas('category', fn($q) => $q->where('status', 'activated'))
+            ->whereNotIn('id', $recommended->pluck('id'))
             ->orderBy('sold', 'desc')
-            ->take(20 - $products->count())
+            ->take($limit - $recommended->count())
             ->get();
-
-        $products = $products->merge($fallbackProducts);
+        $recommended = $recommended->merge($trending);
     }
 
     return response()->json([
         'status' => 'success',
-        'data' => $products
+        'data' => $recommended->shuffle()->take($limit)->values() // shuffle để đa dạng kết quả
     ]);
 }
+
 
 
 public function storeHistory(Request $request)

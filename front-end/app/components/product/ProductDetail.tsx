@@ -45,7 +45,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   };
 
 useEffect(() => {
+  let didRun = false;
+
   async function fetchData() {
+    if (didRun) return;
+    didRun = true;
+
     const token = Cookies.get('authToken') || localStorage.getItem('token');
     const headers: any = { 'Content-Type': 'application/json' };
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -56,7 +61,6 @@ useEffect(() => {
     setProduct(data);
     setMainImage(formatImageUrl(data.image[0] || ''));
 
-    // Ghi lịch sử xem nếu đã đăng nhập
     if (token && data?.id) {
       await fetch(`${API_BASE_URL}/products/history`, {
         method: 'POST',
@@ -67,7 +71,8 @@ useEffect(() => {
   }
 
   fetchData();
-}, [shopslug, productslug, router]);
+}, [shopslug, productslug]);
+
 
   useEffect(() => {
   if (!product) return;
