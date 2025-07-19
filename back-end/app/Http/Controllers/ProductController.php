@@ -686,24 +686,30 @@ public function recommended(Request $request)
 
     $products = collect();
 
-    // 1. Lấy lịch sử xem theo user_id hoặc session_id
-    $recentCategoryIds = DB::table('products')
-        ->whereIn('id', function ($query) use ($userId, $sessionId) {
-            $query->select('product_id')
-                ->from('user_view')
-                ->where(function ($q) use ($userId, $sessionId) {
-                    if ($userId) {
-                        $q->where('user_id', $userId);
-                    } else {
-                        $q->whereNull('user_id')->where('session_id', $sessionId);
-                    }
-                })
-                ->orderBy('view_date', 'desc')
-                ->limit(5);
+    /**
+     * 1. Lấy danh sách category_id từ lịch sử xem (user_id hoặc session_id)
+     * Tách ra làm 2 query để tránh LIMIT trong subquery
+     */
+    $viewedProductIds = DB::table('user_view')
+        ->where(function ($q) use ($userId, $sessionId) {
+            if ($userId) {
+                $q->where('user_id', $userId);
+            } else {
+                $q->whereNull('user_id')->where('session_id', $sessionId);
+            }
         })
-        ->pluck('category_id');
+        ->orderBy('view_date', 'desc')
+        ->limit(5)
+        ->pluck('product_id');
 
-    if ($recentCategoryIds->count() > 0) {
+    $recentCategoryIds = [];
+    if ($viewedProductIds->isNotEmpty()) {
+        $recentCategoryIds = DB::table('products')
+            ->whereIn('id', $viewedProductIds)
+            ->pluck('category_id');
+    }
+
+    if (!empty($recentCategoryIds)) {
         $products = Product::whereIn('category_id', $recentCategoryIds)
             ->whereHas('category', function ($query) {
                 $query->where('status', 'activated');
@@ -713,7 +719,9 @@ public function recommended(Request $request)
             ->get();
     }
 
-    // 2. Nếu chưa đủ sản phẩm, fallback theo lịch sử mua (chỉ áp dụng cho user đăng nhập)
+    /**
+     * 2. Nếu chưa đủ sản phẩm, fallback theo lịch sử mua (chỉ với user đăng nhập)
+     */
     if ($products->count() < 20 && $userId) {
         $orderCategoryIds = DB::table('products')
             ->whereIn('id', function ($query) use ($userId) {
@@ -736,7 +744,9 @@ public function recommended(Request $request)
         }
     }
 
-    // 3. Nếu vẫn thiếu hoặc user chưa đăng nhập, lấy sản phẩm bán chạy
+    /**
+     * 3. Nếu vẫn thiếu hoặc user chưa đăng nhập, lấy sản phẩm bán chạy
+     */
     if ($products->count() < 20) {
         $fallbackProducts = Product::whereHas('category', function ($query) {
                 $query->where('status', 'activated');
@@ -753,6 +763,7 @@ public function recommended(Request $request)
         'data' => $products
     ]);
 }
+
 
 public function storeHistory(Request $request)
 {
