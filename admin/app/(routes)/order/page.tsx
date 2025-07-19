@@ -178,10 +178,14 @@ export default function ModernOrderTable() {
       setOrders((prev) =>
         prev.map((o) => (o.id === id ? { ...o, order_status, shipping_status } : o))
       );
+
+      fetchStats(); // ✅ gọi lại thống kê ngay
+
     } catch (err) {
       console.error("🚨 Failed to update order status:", err);
     }
   };
+
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
