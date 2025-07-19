@@ -82,6 +82,7 @@ Route::get('/bestsellingproducts', [ProductController::class, 'bestSellingProduc
 Route::get('/topdiscountedproducts', [ProductController::class, 'topDiscountedProducts']);
 Route::get('/newproducts', [ProductController::class, 'newProducts']);
 Route::get('/category/{slug}/products', [ProductController::class, 'getCategoryAndProductsBySlug']);
+Route::get('/products/recommended', [ProductController::class, 'recommended']);
 
 
 Route::post('/product', [ProductController::class, 'store']);
