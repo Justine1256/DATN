@@ -28,39 +28,50 @@ class ProductController extends Controller
         return response()->json($products);
     }
 
-    // Chi tiết 1 sản phẩm
-    public function show($shopslug, $productslug)
-    {
-        $product = Product::with([
-            'shop',
-            'category.parent',    // Load category + parent
-            'variants'            // Load danh sách các variant của sp
-        ])
-            ->where('slug', $productslug)
-            ->whereHas('shop', function ($query) use ($shopslug) {
-                $query->where('slug', $shopslug);
-            })
-            ->first();
+public function show($shopslug, $productslug, Request $request)
+{
+    // Lấy sản phẩm theo shopslug + productslug
+    $product = Product::with([
+        'shop',
+        'category.parent',    // Load category + parent
+        'variants'            // Load danh sách các variant
+    ])
+        ->where('slug', $productslug)
+        ->whereHas('shop', function ($query) use ($shopslug) {
+            $query->where('slug', $shopslug);
+        })
+        ->first();
 
-        if (!$product) {
-            return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
-        }
-
-        $reviewStats = DB::table('reviews')
-            ->join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
-            ->where('order_details.product_id', $product->id)
-            ->where('reviews.status', 'approved')
-            ->selectRaw('AVG(reviews.rating) as avg_rating, COUNT(reviews.id) as total_reviews')
-            ->first();
-
-        $product->rating_avg = round($reviewStats->avg_rating ?? 0, 1); // Ví dụ: 4.5
-        $product->review_count = $reviewStats->total_reviews ?? 0;
-
-        return response()->json([
-            'status' => true,
-            'data' => $product
-        ]);
+    if (!$product) {
+        return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
     }
+
+    // Lấy thống kê đánh giá (rating + số lượng review)
+    $reviewStats = DB::table('reviews')
+        ->join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
+        ->where('order_details.product_id', $product->id)
+        ->where('reviews.status', 'approved')
+        ->selectRaw('AVG(reviews.rating) as avg_rating, COUNT(reviews.id) as total_reviews')
+        ->first();
+
+    $product->rating_avg = round($reviewStats->avg_rating ?? 0, 1); // Ví dụ: 4.5
+    $product->review_count = $reviewStats->total_reviews ?? 0;
+
+    // ✅ Ghi lịch sử xem nếu user đăng nhập
+    $user = $request->user();
+    if ($user) {
+        DB::table('user_view')->updateOrInsert(
+            ['user_id' => $user->id, 'product_id' => $product->id],
+            ['view_date' => now()]
+        );
+    }
+
+    return response()->json([
+        'status' => true,
+        'data' => $product
+    ]);
+}
+
 
 
     public function getCategoryAndProductsBySlug($slug)
