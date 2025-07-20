@@ -396,13 +396,18 @@ const Header = () => {
 
                       {(user?.role === "admin" || user?.role === "seller") && (
                         <Link
-                          href="http://localhost:3001/dashboard"
+                          href={
+                            user.role === "admin"
+                              ? "http://localhost:3001/admin/dashboard"
+                              : "http://localhost:3001/shop-admin/dashboard"
+                          }
                           className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"
                         >
                           <FiSettings className="w-5 h-5" />
                           {user.role === "admin" ? "Trang Quản Trị Tổng" : "Trang Quản Trị Shop"}
                         </Link>
                       )}
+
 
 
 
