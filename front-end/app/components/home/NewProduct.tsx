@@ -14,13 +14,15 @@ const router = useRouter();
     fetch(`${API_BASE_URL}/newproducts`)
       .then((res) => res.json())
       .then((data) => {
+        console.log("Dữ liệu fetch được:", data); // 🟢 LOG CHÍNH Ở ĐÂY
         setProducts(Array.isArray(data.products) ? data.products : []);
       })
       .catch((err) => {
-        console.error('Lỗi khi fetch sản phẩm mới:', err);
+        console.error("❌ Lỗi khi fetch sản phẩm mới:", err);
       })
       .finally(() => setLoading(false));
   }, []);
+
 
   return (
     <section className="bg-white py-10">

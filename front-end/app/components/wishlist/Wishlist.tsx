@@ -53,28 +53,45 @@ const Wishlist = () => {
   }, []);
 
   // ✅ Fetch wishlist data
-  const fetchWishlist = (token: string) => {
-    fetch(`${API_BASE_URL}/wishlist`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      },
+const fetchWishlist = (token: string) => {
+  fetch(`${API_BASE_URL}/wishlist`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error("Không thể lấy wishlist!");
+      return res.json();
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Không thể lấy wishlist!");
-        return res.json();
-      })
-      .then((data: WishlistItem[]) => {
-        const validData = data.filter((item) => item.product !== null);
-        setWishlistItems(validData);
-        setLoading(false);
-      })
-      
-      .catch((error) => {
-        console.error("❌ Lỗi lấy wishlist:", error);
-        setLoading(false);
+    .then((data: WishlistItem[]) => {
+      // ✅ Lọc ra những item có product hợp lệ
+      const validData = data.filter((item) => item.product !== null);
+
+      // ✅ Log toàn bộ mảng wishlist
+      console.log("✅ Dữ liệu wishlist fetch được:", validData);
+
+      // ✅ Log từng sản phẩm để kiểm tra rating và lượt đánh giá
+      validData.forEach((item, index) => {
+        const p = item.product;
+        console.log(`🔍 Sản phẩm ${index + 1}:`, {
+          id: p.id,
+          name: p.name,
+          rating_avg: p.rating_avg,
+          review_count: p.review_count,
+        });
       });
-  };
+
+      // ✅ Cập nhật state
+      setWishlistItems(validData);
+      setLoading(false);
+    })
+    .catch((error) => {
+      console.error("❌ Lỗi lấy wishlist:", error);
+      setLoading(false);
+    });
+};
+
 
   // ✅ Gỡ sản phẩm khỏi danh sách hiển thị khi đã unlike (xóa khỏi UI)
   const removeItem = (productId: number) => {

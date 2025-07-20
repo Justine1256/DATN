@@ -27,6 +27,11 @@ export interface Product {
   updated_at?: string;
   sold?: number;
 }
+const formatNumberShort = (num: number): string => {
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (num >= 1_000) return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return num.toString();
+};
 
 const formatImageUrl = (img: unknown): string => {
   if (Array.isArray(img)) img = img[0];
@@ -235,31 +240,33 @@ export default function ProductCardCate({
           )}
         </div>
 
-        <div className="flex items-center justify-between text-sm mt-2 flex-wrap">
-          <div className="flex items-center gap-1">
-            {ratingValue > 0 ? (
+        <div className="flex items-center justify-between text-sm mt-2 flex-wrap gap-y-1">
+          <div className="flex items-center gap-1 flex-wrap">
+            {Number(ratingValue) > 0 && (product.review_count ?? 0) > 0 ? (
               <>
-                {Array(5)
-                  .fill(0)
-                  .map((_, i) => (
-                    <AiFillStar
-                      key={i}
-                      className={`w-4 h-4 ${i < Math.round(ratingValue) ? "text-yellow-500" : "text-gray-300"}`}
-                    />
-                  ))}
+                <AiFillStar className="w-4 h-4 text-yellow-500" />
                 <span className="text-gray-600 text-xs">
-                  {ratingValue.toFixed(1)} ⭐
+                  {Number(ratingValue).toFixed(1)}
+                </span>
+                <span className="text-gray-500 text-xs ml-1">
+                  ({formatNumberShort(product.review_count ?? 0)} lượt đánh giá)
                 </span>
               </>
             ) : (
-              <span className="text-[#db4444] text-xs font-semibold">Chưa đánh giá</span>
+              <span className="text-[#db4444] text-xs font-semibold">
+                Chưa đánh giá
+              </span>
             )}
           </div>
 
+
+          {/* 🔢 Đã bán */}
           <span className="text-gray-600 text-xs">
-            {product.sold ? `Đã bán: ${product.sold}` : "Chưa bán"}
+            {product.sold ? `Đã bán: ${formatNumberShort(product.sold)}` : "Chưa bán"}
           </span>
         </div>
+
+
 
       </div>
     </div>
