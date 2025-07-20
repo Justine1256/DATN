@@ -5,9 +5,9 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import Swal from "sweetalert2";
 
-import CateImageDrop from "@/app/components/category/edit/ImageDrop";
-import CategoryInfoForm from "@/app/components/category/edit/Form";
-import ActionButtons from "@/app/components/category/edit/ActionButtons";
+import CateImageDrop from "@/app/components/shop-admin/category/edit/ImageDrop";
+import CategoryInfoForm from "@/app/components/shop-admin/category/edit/Form";
+import ActionButtons from "@/app/components/shop-admin/category/edit/ActionButtons";
 import { API_BASE_URL } from "@/utils/api";
 import { useParams, useRouter } from "next/navigation";
 

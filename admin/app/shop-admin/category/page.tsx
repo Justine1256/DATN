@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import Cookies from "js-cookie";
 import { CategoryRowSkeleton } from "../../components/loading/loading";
 import { API_BASE_URL } from "@/utils/api";
-import CategoryListHeader from "../../components/category/list/Header";
-import Pagination from "../../components/category/list/Pagination";
-import CategoryRow from "../../components/category/list/Row";
+import CategoryListHeader from "@/app/components/shop-admin/category/list/Header";
+import Pagination from "@/app/components/shop-admin/category/list/Pagination";
+import CategoryRow from "@/app/components/shop-admin/category/list/Row";
 
 type LocalCategory = {
     id: string;

@@ -1,9 +1,11 @@
 "use client";
 import dynamic from "next/dynamic";
 import React from "react";
-import { useCKEditorConfig } from "../../ckeditor/CKEditorWrapper";
+import { useCKEditorConfig } from "@/app/components/ckeditor/CKEditorWrapper";
 
-const CKEditor = dynamic(() => import("@ckeditor/ckeditor5-react").then(mod => mod.CKEditor), { ssr: false });
+const CKEditor = dynamic(() => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor), {
+  ssr: false,
+});
 
 interface Category {
   id: string;
@@ -39,7 +41,7 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
             </label>
             <input
               type="text"
-              value={data.name || ""}
+              value={data.name}
               onChange={(e) => setData("name", e.target.value)}
               placeholder="Nhập tên danh mục"
               className="w-full px-3 py-2.5 border border-[#cbd5e1] rounded-md text-sm 
@@ -77,13 +79,17 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
           <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
           Mô tả danh mục
         </h3>
-        <div className="border border-[#cbd5e1] rounded-lg overflow-hidden min-h-[300px]">
+        <div className="border border-[#cbd5e1] rounded-lg overflow-hidden min-h-[300px] bg-white">
           {editorConfig && (
             <CKEditor
               editor={ClassicEditor}
               config={editorConfig as any}
               data={data.description || ""}
-              onChange={(event, editor) => setData("description", editor.getData())}
+              onChange={(event, editor) => {
+                const html = editor.getData();
+                console.log("CKEditor HTML:", html);
+                setData("description", html);
+              }}
             />
 
           )}

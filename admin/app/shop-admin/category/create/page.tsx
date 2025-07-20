@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 
-import CateImageDrop from "@/app/components/category/create/ImageDrop";
-import CategoryInfoForm from "@/app/components/category/create/Form";
-import ActionButtons from "@/app/components/category/create/ActionButtons";
+import CateImageDrop from "@/app/components/shop-admin/category/create/ImageDrop";
+import CategoryInfoForm from "@/app/components/shop-admin/category/create/Form";
+import ActionButtons from "@/app/components/shop-admin/category/create/ActionButtons";
 import { API_BASE_URL } from "@/utils/api";
 
 interface Category {

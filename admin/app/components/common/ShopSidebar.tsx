@@ -6,79 +6,61 @@ import { usePathname } from "next/navigation";
 import { FaChevronRight } from "react-icons/fa";
 
 import {
-  Home,
   Package,
   Tags,
   Warehouse,
   Truck,
-  ShoppingCart,
-  Settings,
   Users,
   MessageSquare,
   LayoutDashboard,
   PlusCircle,
 } from "lucide-react";
 
-const menu = [
+export const menu = [
   {
     label: "Bảng điều khiển",
-    href: "/dashboard",
+    href: "/shop-admin/dashboard",
     icon: <LayoutDashboard size={18} />,
   },
   {
     label: "Sản phẩm",
     icon: <Package size={18} />,
     children: [
-      { label: "Danh sách", href: "/product" },
-      { label: "Thêm mới", href: "/product/create", icon: <PlusCircle size={14} /> },
+      { label: "Danh sách", href: "/shop-admin/product" },
+      { label: "Thêm mới", href: "/shop-admin/product/create", icon: <PlusCircle size={14} /> },
     ],
   },
   {
     label: "Danh mục",
     icon: <Tags size={18} />,
     children: [
-      { label: "Danh sách", href: "/category" },
-      { label: "Thêm mới", href: "/category/create", icon: <PlusCircle size={14} /> },
+      { label: "Danh sách", href: "/shop-admin/category" },
+      { label: "Thêm mới", href: "/shop-admin/category/create", icon: <PlusCircle size={14} /> },
     ],
   },
-  // {
-  //   label: "Kho hàng",
-  //   icon: <Warehouse size={18} />,
-  //   href: "/inventory",
-  // },
   {
     label: "Đơn hàng",
     icon: <Truck size={18} />,
-    children: [{ label: "Danh sách", href: "/order" }],
+    children: [{ label: "Danh sách", href: "/shop-admin/order" }],
   },
-  // {
-  //   label: "Nhập hàng",
-  //   icon: <ShoppingCart size={18} />,
-  //   href: "/purchases",
-  // },
-  // {
-  //   label: "Thuộc tính",
-  //   icon: <Settings size={18} />,
-  //   href: "/attributes",
-  // },
   {
-    label: "Quản lý shop", // New "Quản lý shop" Section
+    label: "Quản lý shop",
     icon: <Warehouse size={18} />,
     children: [
-      { label: "Thông tin shop", href: "/shop/info" },
-      { label: "Chỉnh sửa shop", href: "/shop/update" },
-      { label: "Quản lý nhân viên", href: "/shop/employees" },
+      { label: "Thông tin shop", href: "/shop-admin/shop/info" },
+      { label: "Chỉnh sửa shop", href: "/shop-admin/shop/update" },
+      { label: "Quản lý nhân viên", href: "/shop-admin/shop/employees" },
     ],
   },
   {
     label: "Khách Hàng",
     icon: <Users size={18} />,
-    href: "/admin/users",
+    href: "/shop-admin/admin/users",
   },
   {
     label: "Tin nhắn",
     icon: <MessageSquare size={18} />,
-    href: "/chat",
+    href: "/shop-admin/chat",
   },
 ];
 
@@ -115,12 +97,10 @@ export default function ModernAdminSidebar() {
 
   return (
     <div className="h-screen w-72 bg-[#1e293b] text-[#e2e8f0] border-r border-[#334155] flex flex-col">
-      {/* Logo */}
       <div className="px-6 py-6 border-b border-[#334155] flex justify-center">
         <img src="/logo.png" alt="MarketO Logo" className="w-32 h-auto" />
       </div>
 
-      {/* Main scrollable */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="px-4 py-6">
           <div className="mb-6">
