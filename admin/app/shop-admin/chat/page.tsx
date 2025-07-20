@@ -1,4 +1,4 @@
-import AdminChat from "@/app/components/chat/chat";
+import AdminChat from "@/app/components/shop-admin/chat/chat";
 
 export default function ChatPage() {
     return <AdminChat />;

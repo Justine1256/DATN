@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Cookies from "js-cookie";
-import { CategoryRowSkeleton } from "../../components/loading/loading";
+import { CategoryRowSkeleton } from "../../components/shop-admin/loading/loading";
 import { API_BASE_URL } from "@/utils/api";
 import CategoryListHeader from "@/app/components/shop-admin/category/list/Header";
 import Pagination from "@/app/components/shop-admin/category/list/Pagination";

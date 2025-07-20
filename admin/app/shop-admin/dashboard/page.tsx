@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect } from "react";
-import PerformanceChart from "../../components/dashboard/PerformanceChart";
-import SummaryCards from "../../components/dashboard/SummaryCards";
+import PerformanceChart from "../../components/shop-admin/dashboard/PerformanceChart";
+import SummaryCards from "../../components/shop-admin/dashboard/SummaryCards";
 import Swal from "sweetalert2";
 import Cookies from "js-cookie";
 
