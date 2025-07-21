@@ -103,7 +103,7 @@ const CategoryRow = ({ category, productCount }: CategoryRowProps) => {
           </button>
 
           <Link
-            href={`/category/${category.id}/edit`}
+            href={`/shop-admin/category/${category.id}/edit`}
             className="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200"
             title="Chỉnh sửa"
           >
