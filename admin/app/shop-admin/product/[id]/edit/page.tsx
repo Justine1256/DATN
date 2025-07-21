@@ -4,11 +4,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { API_BASE_URL } from "@/utils/api";
-import ImageDrop from "@/app/components/product/edit/ImageDrop";
-import Form from "@/app/components/product/edit/Form";
-import ActionButtons from "@/app/components/product/edit/ActionButtons";
+import ImageDrop from "@/app/components/shop-admin/product/edit/ImageDrop";
+import Form from "@/app/components/shop-admin/product/edit/Form";
+import ActionButtons from "@/app/components/shop-admin/product/edit/ActionButtons";
 import { Product } from "@/types/product";
-import VariantModal from "@/app/components/product/edit/VariantModal";
+import VariantModal from "@/app/components/shop-admin/product/edit/VariantModal";
 
 interface Variant {
   id?: number;
