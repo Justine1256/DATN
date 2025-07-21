@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Models\Review;
-use MeiliSearch\Client;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -706,53 +705,18 @@ public function getProductByIdShop($id)
             'product' => $product
         ], 200);
     }
-protected $meili;
-
-public function __construct()
-{
-    $this->meili = new Client('http://127.0.0.1:7700', 'ThisIsAStrongMasterKey123!');
-}
-
     public function search(Request $request)
-{
-    $keyword = $request->get('q');
-    $page = max(1, (int) $request->get('page', 1));
-    $perPage = min(50, max(1, (int) $request->get('per_page', 20)));
+    {
+        $keyword = $request->get('q');
 
-    if (!$keyword) {
-        return response()->json(['error' => 'Keyword is required'], 400);
+        if (!$keyword) {
+            return response()->json(['error' => 'Keyword is required'], 400);
+        }
+
+        $products = Product::search($keyword)->take(50)->get();
+
+        return response()->json($products);
     }
-
-    // Không bắt buộc dấu ngoặc kép. Meilisearch xử lý tốt typo và proximity
-    // Nếu bạn muốn tìm theo cụm chính xác, mới dùng "..."
-    // Nhưng Shopee thì tìm linh hoạt, nên không cần thêm dấu
-
-    $index = $this->meili->index('products');
-    $offset = ($page - 1) * $perPage;
-
-    $searchResult = $index->search($keyword, [
-        // 'filter' => ['status = "activated"', 'stock > 0'],
-        // 'sort' => ['sold:desc'],
-        'limit' => $perPage,
-        'offset' => $offset,
-    ]);
-
-    $hits = $searchResult->getHits();
-    $total = $searchResult->getEstimatedTotalHits();
-
-    return response()->json([
-        'data' => $hits,
-        'total' => $total,
-        'page' => $page,
-        'per_page' => $perPage,
-        'has_more' => ($page * $perPage) < $total,
-    ]);
-}
-
-
-
-
-
 public function recommended(Request $request)
 {
     $user = $request->user();
