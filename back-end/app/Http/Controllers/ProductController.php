@@ -737,8 +737,9 @@ public function search(Request $request)
         'offset' => $offset,
     ]);
 
-    $hits = $searchResult->hits();
-    $total = $searchResult->estimatedTotalHits();
+$hits = $searchResult['hits'] ?? [];
+$total = $searchResult['nbHits'] ?? 0;
+
 
     return response()->json([
         'data' => $hits,
