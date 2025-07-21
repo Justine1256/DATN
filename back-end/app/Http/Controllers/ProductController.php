@@ -731,8 +731,8 @@ public function __construct()
     $offset = ($page - 1) * $perPage;
 
     $searchResult = $index->search($keyword, [
-        'filter' => ['status = "activated"', 'stock > 0'],
-        'sort' => ['sold:desc'],
+        // 'filter' => ['status = "activated"', 'stock > 0'],
+        // 'sort' => ['sold:desc'],
         'limit' => $perPage,
         'offset' => $offset,
     ]);
