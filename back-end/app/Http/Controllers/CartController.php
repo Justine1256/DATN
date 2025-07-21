@@ -232,4 +232,70 @@ public function getTotal()
 
         return response()->json(['message' => 'Xóa sản phẩm khỏi giỏ hàng thành công']);
     }
+        public function storeGuest(Request $request)
+{
+    $validated = $request->validate([
+        'product_id' => 'required|exists:products,id',
+        'variant_id' => 'nullable|exists:product_variants,id',
+        'quantity'   => 'nullable|integer|min:1',
+        'replace_quantity' => 'nullable|boolean'
+    ]);
+
+    $quantity = $validated['quantity'] ?? 1;
+    $replaceQuantity = $validated['replace_quantity'] ?? false;
+
+    $product = Product::where('id', $validated['product_id'])
+        ->where('status', 'activated')
+        ->firstOrFail();
+
+    $hasVariants = ProductVariant::where('product_id', $product->id)->exists();
+
+    $productOption = null;
+    $productValue  = null;
+
+    if ($validated['variant_id']) {
+        $variant = ProductVariant::where('id', $validated['variant_id'])
+            ->where('product_id', $product->id)
+            ->firstOrFail();
+
+        $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
+        $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
+    } else {
+        if ($hasVariants && (!$product->value1 && !$product->value2)) {
+            return response()->json(['message' => 'Vui lòng chọn biến thể cho sản phẩm này'], 400);
+        }
+
+        $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
+        $productValue  = trim(implode(' - ', array_filter([$product->value1, $product->value2])));
+    }
+
+    $cart = session()->get('guest_cart', []);
+
+    $key = $validated['product_id'] . '-' . ($validated['variant_id'] ?? 'null');
+
+    if (isset($cart[$key])) {
+        $cart[$key]['quantity'] = $replaceQuantity
+            ? $quantity
+            : $cart[$key]['quantity'] + $quantity;
+    } else {
+        $cart[$key] = [
+            'product_id' => $product->id,
+            'variant_id' => $validated['variant_id'] ?? null,
+            'quantity'   => $quantity,
+            'name'       => $product->name,
+            'image'      => $product->image[0] ?? null,
+            'price'      => $product->price,
+            'sale_price' => $product->sale_price,
+            'value1'     => $validated['variant_id'] ? ($variant->value1 ?? null) : ($product->value1 ?? null),
+            'value2'     => $validated['variant_id'] ? ($variant->value2 ?? null) : ($product->value2 ?? null),
+        ];
+    }
+
+    session()->put('guest_cart', $cart);
+
+    return response()->json([
+        'message' => 'Sản phẩm đã được thêm vào giỏ hàng guest',
+        'cart' => array_values($cart),
+    ]);
+}
 }
