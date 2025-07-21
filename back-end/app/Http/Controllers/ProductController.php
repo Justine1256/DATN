@@ -705,18 +705,34 @@ public function getProductByIdShop($id)
             'product' => $product
         ], 200);
     }
-    public function search(Request $request)
-    {
-        $keyword = $request->get('q');
+public function search(Request $request)
+{
+    $keyword = $request->get('q');
+    $page = max(1, (int) $request->get('page', 1));
+    $perPage = min(50, max(1, (int) $request->get('per_page', 20))); // mặc định 20, max 50
 
-        if (!$keyword) {
-            return response()->json(['error' => 'Keyword is required'], 400);
-        }
-
-        $products = Product::search($keyword)->take(50)->get();
-
-        return response()->json($products);
+    if (!$keyword) {
+        return response()->json(['error' => 'Keyword is required'], 400);
     }
+
+    // Giả sử bạn dùng Laravel Scout hoặc search engine nào đó có method paginate()
+    $query = Product::search($keyword);
+
+    $total = $query->count(); // tổng số kết quả
+
+    // Lấy kết quả theo trang
+    $products = $query->paginate($perPage, '*', 'page', $page);
+
+    // Chuẩn hóa response giống Shopee
+    return response()->json([
+        'data' => $products->items(),
+        'total' => $total,
+        'page' => $page,
+        'per_page' => $perPage,
+        'has_more' => $products->hasMorePages(),
+    ]);
+}
+
 public function recommended(Request $request)
 {
     $user = $request->user();
