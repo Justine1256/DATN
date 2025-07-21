@@ -184,23 +184,33 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
     console.log('🧪 Add to cart debug:', cartItem);
 
-    if (!token) {
-      const existing = localStorage.getItem('cart');
-      const cart = existing ? JSON.parse(existing) : [];
+if (!token) {
+  const existing = localStorage.getItem('cart');
+  const cart = existing ? JSON.parse(existing) : [];
 
-      const matchedIndex = cart.findIndex((item: any) =>
-        item.product_id === cartItem.product_id &&
-        item.variant_id === cartItem.variant_id
-      );
+  const matchedIndex = cart.findIndex((item: any) =>
+    item.product_id === cartItem.product_id &&
+    item.variant_id === cartItem.variant_id
+  );
 
-      if (matchedIndex !== -1) {
-        cart[matchedIndex].quantity += cartItem.quantity;
-      } else {
-        cart.push(cartItem);
-      }
+  if (matchedIndex !== -1) {
+    cart[matchedIndex].quantity += cartItem.quantity;
+  } else {
+    // 👉 Thêm field sale_price để backend dùng được
+    cartItem.sale_price = variant?.sale_price ?? null;
+cartItem.price = Number(cartItem.price);
+cartItem.sale_price = cartItem.sale_price !== null ? Number(cartItem.sale_price) : null;
 
-      localStorage.setItem('cart', JSON.stringify(cart));
-      commonPopup(`Đã thêm "${cartItem.name}" vào giỏ hàng`);
+console.log('🧾 Giỏ hàng localStorage sau chuẩn hóa:', cartItem);
+
+
+    cart.push(cartItem);
+  }
+
+  console.log('🧾 Giỏ hàng localStorage sau khi thêm:', cart);
+
+  localStorage.setItem('cart', JSON.stringify(cart));
+  commonPopup(`Đã thêm "${cartItem.name}" vào giỏ hàng`);
     } else {
       const res = await fetch(`${API_BASE_URL}/cart`, {
         method: 'POST',
