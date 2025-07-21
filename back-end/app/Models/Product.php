@@ -110,6 +110,7 @@ public function approvedReviews()
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'name_normalized' => Str::ascii($this->name),
             'slug' => $this->slug,
             'option1' => $this->option1,
             'value1' => $this->value1,
