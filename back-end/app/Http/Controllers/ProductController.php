@@ -723,6 +723,7 @@ public function search(Request $request)
         return response()->json(['error' => 'Keyword is required'], 400);
     }
 
+    // Nếu muốn tìm chính xác cụm từ, đặt trong dấu ngoặc kép
     if (strpos($keyword, ' ') !== false && !preg_match('/^".*"$/', $keyword)) {
         $keyword = '"' . $keyword . '"';
     }
@@ -739,7 +740,7 @@ public function search(Request $request)
     ]);
 
     $hits = $searchResult['hits'] ?? [];
-    $total = $searchResult['nbHits'] ?? 0;
+    $total = $searchResult['estimatedTotalHits'] ?? 0;
 
     return response()->json([
         'data' => $hits,
@@ -749,6 +750,7 @@ public function search(Request $request)
         'has_more' => ($page * $perPage) < $total,
     ]);
 }
+
 
 
 public function recommended(Request $request)
