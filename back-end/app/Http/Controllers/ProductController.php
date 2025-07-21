@@ -714,44 +714,41 @@ public function __construct()
 }
 
     public function search(Request $request)
-    {
-        $keyword = $request->get('q');
-        $page = max(1, (int) $request->get('page', 1));
-        $perPage = min(50, max(1, (int) $request->get('per_page', 20)));
+{
+    $keyword = $request->get('q');
+    $page = max(1, (int) $request->get('page', 1));
+    $perPage = min(50, max(1, (int) $request->get('per_page', 20)));
 
-        if (!$keyword) {
-            return response()->json(['error' => 'Keyword is required'], 400);
-        }
-
-        // Nếu muốn tìm chính xác cụm từ, đặt trong dấu ngoặc kép
-        if (strpos($keyword, ' ') !== false && !preg_match('/^".*"$/', $keyword)) {
-            $keyword = '"' . $keyword . '"';
-        }
-
-        $index = $this->meili->index('products');
-
-        $offset = ($page - 1) * $perPage;
-
-        $searchResult = $index->search($keyword, [
-    'filter' => ['status = "activated"', 'stock > 0'],
-    'sort' => ['sold:desc'],
-    'limit' => $perPage,
-    'offset' => $offset,
-]);
-
-
-$hits = $searchResult->getHits();
-$total = $searchResult->getEstimatedTotalHits();
-
-
-        return response()->json([
-            'data' => $hits,
-            'total' => $total,
-            'page' => $page,
-            'per_page' => $perPage,
-            'has_more' => ($page * $perPage) < $total,
-        ]);
+    if (!$keyword) {
+        return response()->json(['error' => 'Keyword is required'], 400);
     }
+
+    // Không bắt buộc dấu ngoặc kép. Meilisearch xử lý tốt typo và proximity
+    // Nếu bạn muốn tìm theo cụm chính xác, mới dùng "..."
+    // Nhưng Shopee thì tìm linh hoạt, nên không cần thêm dấu
+
+    $index = $this->meili->index('products');
+    $offset = ($page - 1) * $perPage;
+
+    $searchResult = $index->search($keyword, [
+        'filter' => ['status = "activated"', 'stock > 0'],
+        'sort' => ['sold:desc'],
+        'limit' => $perPage,
+        'offset' => $offset,
+    ]);
+
+    $hits = $searchResult->getHits();
+    $total = $searchResult->getEstimatedTotalHits();
+
+    return response()->json([
+        'data' => $hits,
+        'total' => $total,
+        'page' => $page,
+        'per_page' => $perPage,
+        'has_more' => ($page * $perPage) < $total,
+    ]);
+}
+
 
 
 
