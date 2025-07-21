@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import ImageDrop from "@/app/components/product/create/ImageDrop";
-import ProductInfoForm from "@/app/components/product/create/Form";
-import VariantModal from "@/app/components/product/create/VariantModal";
-import ActionButtons from "@/app/components/product/create/ActionButtons";
+import ImageDrop from "@/app/components/shop-admin/product/create/ImageDrop";
+import ProductInfoForm from "@/app/components/shop-admin/product/create/Form";
+import VariantModal from "@/app/components/shop-admin/product/create/VariantModal";
+import ActionButtons from "@/app/components/shop-admin/product/create/ActionButtons";
 import { API_BASE_URL } from "@/utils/api";
 import { useAuth } from "@/app/AuthContext";
 import Cookies from "js-cookie";

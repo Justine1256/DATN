@@ -12,8 +12,8 @@ import { FiEye, FiEyeOff, FiEdit } from "react-icons/fi";
 import { Product } from "@/types/product";
 import { Category } from "@/types/category";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
-import ProductListHeader from "../../components/product/list/ListHeader";
-import Pagination from "../../components/product/list/Pagination";
+import ProductListHeader from "../../components/shop-admin/product/list/ListHeader";
+import Pagination from "../../components/shop-admin/product/list/Pagination";
 import { useAuth } from "../../AuthContext";
 
 const ProductRowSkeleton = () => (
