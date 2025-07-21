@@ -713,42 +713,44 @@ public function __construct()
     $this->meili = new Client('http://127.0.0.1:7700', 'ThisIsAStrongMasterKey123!');
 }
 
-public function search(Request $request)
-{
-    $keyword = $request->get('q');
-    $page = max(1, (int) $request->get('page', 1));
-    $perPage = min(50, max(1, (int) $request->get('per_page', 20)));
+    public function search(Request $request)
+    {
+        $keyword = $request->get('q');
+        $page = max(1, (int) $request->get('page', 1));
+        $perPage = min(50, max(1, (int) $request->get('per_page', 20)));
 
-    if (!$keyword) {
-        return response()->json(['error' => 'Keyword is required'], 400);
+        if (!$keyword) {
+            return response()->json(['error' => 'Keyword is required'], 400);
+        }
+
+        // Nếu muốn tìm chính xác cụm từ, đặt trong dấu ngoặc kép
+        if (strpos($keyword, ' ') !== false && !preg_match('/^".*"$/', $keyword)) {
+            $keyword = '"' . $keyword . '"';
+        }
+
+        $index = $this->meili->index('products');
+
+        $offset = ($page - 1) * $perPage;
+
+        $searchResult = $index->search($keyword, [
+            'filter' => 'status = activated AND stock > 0',
+            'sort' => ['sold:desc'],
+            'limit' => $perPage,
+            'offset' => $offset,
+        ]);
+
+$hits = $searchResult->getHits();
+$total = $searchResult->getEstimatedTotalHits();
+
+
+        return response()->json([
+            'data' => $hits,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'has_more' => ($page * $perPage) < $total,
+        ]);
     }
-
-    if (strpos($keyword, ' ') !== false && !preg_match('/^".*"$/', $keyword)) {
-        $keyword = '"' . $keyword . '"';
-    }
-
-    $index = $this->meili->index('products');
-    $offset = ($page - 1) * $perPage;
-
-    $searchResult = $index->search($keyword, [
-        'filter' => ['status = activated', 'stock > 0'],
-        'sort' => ['sold:desc'],
-        'limit' => $perPage,
-        'offset' => $offset,
-    ]);
-
-$hits = $searchResult['hits'] ?? [];
-$total = $searchResult['nbHits'] ?? 0;
-
-
-    return response()->json([
-        'data' => $hits,
-        'total' => $total,
-        'page' => $page,
-        'per_page' => $perPage,
-        'has_more' => ($page * $perPage) < $total,
-    ]);
-}
 
 
 
