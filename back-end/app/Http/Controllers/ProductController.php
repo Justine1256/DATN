@@ -733,11 +733,12 @@ public function __construct()
         $offset = ($page - 1) * $perPage;
 
         $searchResult = $index->search($keyword, [
-            'filter' => 'status = activated AND stock > 0',
-            'sort' => ['sold:desc'],
-            'limit' => $perPage,
-            'offset' => $offset,
-        ]);
+    'filter' => ['status = "activated"', 'stock > 0'],
+    'sort' => ['sold:desc'],
+    'limit' => $perPage,
+    'offset' => $offset,
+]);
+
 
 $hits = $searchResult->getHits();
 $total = $searchResult->getEstimatedTotalHits();
