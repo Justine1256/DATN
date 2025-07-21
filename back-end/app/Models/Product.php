@@ -116,8 +116,11 @@ public function toSearchableArray()
         'value1' => $this->value1,
         'option2' => $this->option2,
         'value2' => $this->value2,
-        'sold' => $this->sold, // thêm trường sold vào để Meilisearch index
+        'sold' => $this->sold,
+        'status' => $this->status,  // thêm trường status
+        'stock' => $this->stock,    // thêm trường stock
     ];
 }
+
 
 }
