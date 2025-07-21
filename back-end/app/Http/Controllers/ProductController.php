@@ -709,26 +709,20 @@ public function search(Request $request)
 {
     $keyword = $request->get('q');
     $page = max(1, (int) $request->get('page', 1));
-    $perPage = min(50, max(1, (int) $request->get('per_page', 20))); // mặc định 20, max 50
+    $perPage = min(50, max(1, (int) $request->get('per_page', 20)));
 
     if (!$keyword) {
         return response()->json(['error' => 'Keyword is required'], 400);
     }
 
-    // Giả sử bạn dùng Laravel Scout hoặc search engine nào đó có method paginate()
-    $query = Product::search($keyword);
+    // Dùng paginate() của Scout (nó có sẵn)
+    $products = Product::search($keyword)->paginate($perPage, 'page', $page);
 
-    $total = $query->count(); // tổng số kết quả
-
-    // Lấy kết quả theo trang
-    $products = $query->paginate($perPage, '*', 'page', $page);
-
-    // Chuẩn hóa response giống Shopee
     return response()->json([
         'data' => $products->items(),
-        'total' => $total,
-        'page' => $page,
-        'per_page' => $perPage,
+        'total' => $products->total(),
+        'page' => $products->currentPage(),
+        'per_page' => $products->perPage(),
         'has_more' => $products->hasMorePages(),
     ]);
 }
