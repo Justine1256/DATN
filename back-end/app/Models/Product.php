@@ -105,17 +105,19 @@ public function approvedReviews()
     )->where('reviews.status', 'approved');
 }
 
-    public function toSearchableArray()
-    {
-        return [
-            'id' => $this->id,
-            'name' => $this->name,
-            'name_normalized' => Str::ascii($this->name),
-            'slug' => $this->slug,
-            'option1' => $this->option1,
-            'value1' => $this->value1,
-            'option2' => $this->option2,
-            'value2' => $this->value2,
-        ];
-    }
+public function toSearchableArray()
+{
+    return [
+        'id' => $this->id,
+        'name' => $this->name,
+        'name_normalized' => Str::ascii($this->name),
+        'slug' => $this->slug,
+        'option1' => $this->option1,
+        'value1' => $this->value1,
+        'option2' => $this->option2,
+        'value2' => $this->value2,
+        'sold' => $this->sold, // thêm trường sold vào để Meilisearch index
+    ];
+}
+
 }
