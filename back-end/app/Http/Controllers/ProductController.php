@@ -723,13 +723,11 @@ public function search(Request $request)
         return response()->json(['error' => 'Keyword is required'], 400);
     }
 
-    // Nếu muốn tìm chính xác cụm từ, đặt trong dấu ngoặc kép
     if (strpos($keyword, ' ') !== false && !preg_match('/^".*"$/', $keyword)) {
         $keyword = '"' . $keyword . '"';
     }
 
     $index = $this->meili->index('products');
-
     $offset = ($page - 1) * $perPage;
 
     $searchResult = $index->search($keyword, [
@@ -739,8 +737,8 @@ public function search(Request $request)
         'offset' => $offset,
     ]);
 
-    $hits = $searchResult['hits'] ?? [];
-    $total = $searchResult['estimatedTotalHits'] ?? 0;
+    $hits = $searchResult->hits();
+    $total = $searchResult->estimatedTotalHits();
 
     return response()->json([
         'data' => $hits,
@@ -750,6 +748,7 @@ public function search(Request $request)
         'has_more' => ($page * $perPage) < $total,
     ]);
 }
+
 
 
 
