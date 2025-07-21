@@ -105,7 +105,8 @@ Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 
 Route::get('/vouchers', [VoucherController::class, 'index']);
 Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::class, 'showVouchersByCategory']);
-Route::get('/search', [ProductController::class, 'search']);
+// Route::get('/search', [ProductController::class, 'search']);
+Route::get('/products/search', [ProductController::class, 'search']);
 Route::post('/nologin', [OrderController::class, 'guestCheckout']);// đặt hàng ko cần đăng nhập
 Route::post('/cart/guest', [CartController::class, 'storeGuest']);// thêm vào giỏ hàng ko cần đăng nhập
 Route::get('/orders/{id}/invoice', [OrderController::class, 'downloadInvoice']);

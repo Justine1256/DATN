@@ -705,7 +705,18 @@ public function getProductByIdShop($id)
             'product' => $product
         ], 200);
     }
+    public function search(Request $request)
+    {
+        $keyword = $request->get('q');
 
+        if (!$keyword) {
+            return response()->json(['error' => 'Keyword is required'], 400);
+        }
+
+        $products = Product::search($keyword)->take(50)->get();
+
+        return response()->json($products);
+    }
 public function recommended(Request $request)
 {
     $user = $request->user();
