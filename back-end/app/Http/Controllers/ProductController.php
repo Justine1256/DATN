@@ -673,6 +673,39 @@ public function getProductByIdShop($id)
             'message' => 'Khôi phục sản phẩm thành công.'
         ]);
     }
+    // Nhập kho sản phẩm
+    public function importStock(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'quantity'   => 'required|integer|min:1',
+        ]);
+
+        $user = $request->user();
+        $shopId = $user->shop->id ?? null;
+
+        if (!$shopId) {
+            return response()->json(['error' => 'Shop not found for user'], 403);
+        }
+
+        $product = Product::where('id', $request->product_id)
+                          ->where('shop_id', $shopId)
+                          ->first();
+
+        if (!$product) {
+            return response()->json(['error' => 'Product not found or not owned by your shop'], 404);
+        }
+
+        // Update stock
+        $product->stock += $request->quantity;
+        $product->save();
+
+        return response()->json([
+            'message' => 'Stock updated successfully',
+            'product' => $product
+        ], 200);
+    }
+
 public function recommended(Request $request)
 {
     $user = $request->user();
