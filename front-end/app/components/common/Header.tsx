@@ -14,6 +14,8 @@ import CartDropdown from "./CartDropdown";
 import { useUser } from "../../context/UserContext";
 import { TbBuildingStore } from "react-icons/tb";
 import { FiSettings } from "react-icons/fi";
+import { useCart } from "@/app/context/CartContext";
+
 
 // Kiểu dữ liệu thông báo
 interface Notification {
@@ -83,7 +85,7 @@ const Header = () => {
   // State các danh mục
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
   // State giỏ hàng
-  const [cartItems, setCartItems] = useState<any[]>([]);
+  const { cartItems, setCartItems, reloadCart } = useCart();
   // State thông báo
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
@@ -105,63 +107,50 @@ const Header = () => {
   useEffect(() => {
     const token = Cookies.get("authToken");
     if (!token) return;
+
     axios.get(`${API_BASE_URL}/user`, {
       headers: { Authorization: `Bearer ${token}` },
       withCredentials: true
     })
-      .then(res => setUser(res.data))
+      .then(async (res) => {
+        setUser(res.data);
+
+        // ✅ Merge localStorage cart vào server
+        const localCart = localStorage.getItem("cart");
+        if (localCart) {
+          const cart = JSON.parse(localCart);
+
+          for (const item of cart) {
+            try {
+              await fetch(`${API_BASE_URL}/cart`, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(item),
+              });
+            } catch (err) {
+              console.error("❌ Lỗi khi merge giỏ hàng local:", err);
+            }
+          }
+
+          // ✅ Xoá local cart sau khi merge
+          localStorage.removeItem("cart");
+
+          // ✅ Cập nhật lại giỏ hàng từ server
+          reloadCart?.();
+        }
+      })
       .catch(() => {
         Cookies.remove("authToken");
         setUser(null);
       });
   }, []);
 
+
   // Lấy giỏ hàng
-  useEffect(() => {
-    const token = Cookies.get("authToken");
-    if (!token) {
-      const guestCart = localStorage.getItem("cart");
-      if (guestCart) {
-        const parsedCart = JSON.parse(guestCart).map((item: any) => ({
-          id: item.product_id,
-          quantity: item.quantity,
-          product: {
-            id: item.product_id,
-            name: item.name,
-            image: [item.image],
-            price: item.price,
-            sale_price: null,
-          },
-          variant: item.variant_id ? {
-            id: item.variant_id,
-            option1: "Phân loại 1",
-            option2: "Phân loại 2",
-            value1: item.value1,
-            value2: item.value2,
-            price: item.price,
-            sale_price: null,
-          } : null
-        }));
-        setCartItems(parsedCart);
-      } else {
-        setCartItems([]);
-      }
-      setLoading(false);
-      return;
-    }
-    fetch(`${API_BASE_URL}/cart`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        setCartItems(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Không thể lấy giỏ hàng:", err);
-        setLoading(false);
-      });
-  }, []);
+ 
 
   // Lấy thông báo
   useEffect(() => {
