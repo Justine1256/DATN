@@ -34,18 +34,16 @@ const NotificationDropdown: React.FC = () => {
         return `${Math.floor(diffInHours / 168)} tuần trước`;
     };
 
-    // useEffect để gọi API lấy thông báo khi component được mount
+    // Lấy thông báo khi component mount
     useEffect(() => {
         const token = Cookies.get("authToken");
 
-        // Nếu không có token (người dùng chưa đăng nhập), không làm gì cả
         if (!token) {
             setErrorMessage("Bạn cần đăng nhập để xem thông báo.");
-            setLoading(false); // Dừng loading
-            return; // Không gọi API
+            setLoading(false);
+            return;
         }
 
-        // Nếu có token, gọi API lấy thông báo
         axios
             .get(`${API_BASE_URL}/notification`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -66,25 +64,33 @@ const NotificationDropdown: React.FC = () => {
             });
     }, []);
 
-    // Hàm xử lý khi người dùng nhấp vào một thông báo để đánh dấu là đã đọc
-    const handleNotificationClick = (id: number) => {
-        setNotifications((prevNotifications) =>
-            prevNotifications.map((notification) =>
-                notification.id === id
-                    ? { ...notification, is_read: 1 }
-                    : notification
-            )
-        );
-
-        axios
-            .put(
-                `${API_BASE_URL}/notification/${id}`,
-                { is_read: 1 },
+    // Xử lý click vào thông báo
+    const handleNotificationClick = async (id: number) => {
+        try {
+            const token = Cookies.get("authToken");
+            if (!token) {
+                setErrorMessage("Bạn cần đăng nhập để thực hiện thao tác này.");
+                return;
+            }
+            // Gọi API đánh dấu đã đọc
+            await axios.put(
+                `${API_BASE_URL}/notification/${id}/mark-read`,
+                null,
                 {
-                    headers: { Authorization: `Bearer ${Cookies.get("authToken")}` },
+                    headers: { Authorization: `Bearer ${token}` },
                 }
-            )
-            .catch((err) => console.error("Lỗi khi cập nhật trạng thái thông báo", err));
+            );
+
+            // Cập nhật trạng thái local
+            setNotifications((prevNotifications) =>
+                prevNotifications.map((notification) =>
+                    notification.id === id ? { ...notification, is_read: 1 } : notification
+                )
+            );
+        } catch (err) {
+            console.error("Lỗi khi cập nhật trạng thái thông báo", err);
+            setErrorMessage("Lỗi khi cập nhật trạng thái thông báo.");
+        }
     };
 
     return (
@@ -105,7 +111,9 @@ const NotificationDropdown: React.FC = () => {
                                 Thông Báo
                             </h1>
                             <p className="text-gray-600 text-sm mt-1">
-                                {notifications.length > 0 ? `${notifications.length} thông báo` : 'Chưa có thông báo'}
+                                {notifications.length > 0
+                                    ? `${notifications.length} thông báo`
+                                    : "Chưa có thông báo"}
                             </p>
                         </div>
                         {notifications.filter((note) => note.is_read === 0).length > 0 && (
@@ -123,7 +131,10 @@ const NotificationDropdown: React.FC = () => {
             {loading && (
                 <div className="space-y-6">
                     {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 animate-pulse">
+                        <div
+                            key={i}
+                            className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 animate-pulse"
+                        >
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl"></div>
                                 <div className="flex-grow space-y-3">
@@ -146,19 +157,30 @@ const NotificationDropdown: React.FC = () => {
                                 key={notification.id}
                                 href={notification.link}
                                 className="block group"
-                                onClick={() => handleNotificationClick(notification.id)}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleNotificationClick(notification.id);
+                                    // Sau khi đánh dấu đã đọc, chuyển trang:
+                                    window.location.href = notification.link;
+                                }}
                             >
-                                <div className={`relative rounded-2xl p-6 transition-all duration-300 ${notification.is_read === 0
-                                        ? "bg-gradient-to-r from-blue-50 via-white to-indigo-50"
-                                        : "bg-gradient-to-r from-gray-50 to-slate-50"
-                                    }`}>
+                                <div
+                                    className={`relative rounded-2xl p-6 transition-all duration-300 ${notification.is_read === 0
+                                            ? "bg-gradient-to-r from-blue-50 via-white to-indigo-50"
+                                            : "bg-gradient-to-r from-gray-50 to-slate-50"
+                                        }`}
+                                >
                                     <div className="flex items-start gap-4">
                                         {/* Avatar với gradient border */}
                                         <div className="relative">
                                             <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 p-0.5">
                                                 <div className="w-full h-full rounded-2xl overflow-hidden">
                                                     <img
-                                                        src={notification.image_url ? `${STATIC_BASE_URL}${notification.image_url}` : "/images/default-image.png"}
+                                                        src={
+                                                            notification.image_url
+                                                                ? `${STATIC_BASE_URL}${notification.image_url}`
+                                                                : "/images/default-image.png"
+                                                        }
                                                         alt={notification.title}
                                                         className="w-full h-full object-cover transition-transform duration-300"
                                                         onError={(e) => {
@@ -175,8 +197,12 @@ const NotificationDropdown: React.FC = () => {
                                         {/* Nội dung thông báo */}
                                         <div className="flex-grow min-w-0">
                                             <div className="flex items-start justify-between gap-3">
-                                                <h3 className={`text-base font-semibold leading-snug ${notification.is_read === 0 ? "text-gray-900" : "text-gray-600"
-                                                    }`}>
+                                                <h3
+                                                    className={`text-base font-semibold leading-snug ${notification.is_read === 0
+                                                            ? "text-gray-900"
+                                                            : "text-gray-600"
+                                                        }`}
+                                                >
                                                     {notification.title}
                                                 </h3>
                                                 {notification.is_read === 1 && (
@@ -205,8 +231,12 @@ const NotificationDropdown: React.FC = () => {
                             <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-6">
                                 <Bell className="w-8 h-8 text-gray-400" />
                             </div>
-                            <h3 className="text-xl font-semibold text-gray-800 mb-2">Chưa có thông báo</h3>
-                            <p className="text-gray-600">Hiện tại bạn chưa có thông báo nào để hiển thị</p>
+                            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                                Chưa có thông báo
+                            </h3>
+                            <p className="text-gray-600">
+                                Hiện tại bạn chưa có thông báo nào để hiển thị
+                            </p>
                         </div>
                     )}
                 </div>

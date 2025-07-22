@@ -219,20 +219,29 @@ const Header = () => {
   };
 
   // Click notification
-  const handleNotificationClick = (id: number, link: string) => {
-    setNotifications(prev => {
-      const updated = prev.map(n => n.id === id ? { ...n, is_read: 1 } : n);
-      setUnreadNotificationCount(updated.filter(n => n.is_read === 0).length);
-      return updated;
-    });
-    const token = Cookies.get("authToken");
-    if (token) {
-      axios.put(`${API_BASE_URL}/notification/${id}`, { is_read: 1 }, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(err => console.error("Lỗi cập nhật notification:", err));
+  const handleNotificationClick = async (id: number, link: string) => {
+    try {
+      const token = Cookies.get("authToken");
+      if (token) {
+        // Gọi API đánh dấu đã đọc đúng endpoint và phương thức
+        await axios.put(`${API_BASE_URL}/notification/${id}/mark-read`, null, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Cập nhật local UI ngay lập tức
+        setNotifications(prev => {
+          const updated = prev.map(n => n.id === id ? { ...n, is_read: 1 } : n);
+          setUnreadNotificationCount(updated.filter(n => n.is_read === 0).length);
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.error("Lỗi cập nhật notification:", err);
     }
+
     if (link) router.push(link);
   };
+
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-[100] bg-white transition duration-300 ${isSticky ? "shadow-md" : ""}`}>

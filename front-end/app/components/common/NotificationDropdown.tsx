@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from "react";
 import { FaRegBell } from "react-icons/fa";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { STATIC_BASE_URL, API_BASE_URL } from "@/utils/api";
-import axios from "axios";
+import { STATIC_BASE_URL } from "@/utils/api";
 
 interface Notification {
     id: number;
@@ -20,13 +18,11 @@ interface Notification {
 interface Props {
     notifications: Notification[];
     unreadCount: number;
-    onRead?: () => void; // optional callback
+    onNotificationClick: (id: number, link: string) => void;
 }
 
-export default function NotificationDropdown({ notifications, unreadCount, onRead }: Props) {
+export default function NotificationDropdown({ notifications, unreadCount, onNotificationClick }: Props) {
     const router = useRouter();
-
-    const [readNotifications, setReadNotifications] = useState<number[]>([]);
 
     const formatImageUrl = (img: string | string[]): string => {
         if (Array.isArray(img)) img = img[0];
@@ -35,24 +31,6 @@ export default function NotificationDropdown({ notifications, unreadCount, onRea
         }
         return img.startsWith("http") ? img : `${STATIC_BASE_URL}/${img.startsWith("/") ? img.slice(1) : img}`;
     };
-
-    const markAsRead = async (id: number) => {
-        try {
-            await axios.put(`${API_BASE_URL}/notification/${id}/mark-read`);
-            setReadNotifications(prev => [...prev, id]);
-            onRead?.();
-        } catch (error) {
-            console.error("Failed to mark notification as read", error);
-        }
-    };
-
-    const handleClick = async (id: number, link: string) => {
-        await markAsRead(id);
-        router.push(link);
-    };
-
-    const isUnread = (note: Notification) =>
-        note.is_read === 0 && !readNotifications.includes(note.id);
 
     return (
         <div className="relative group">
@@ -73,9 +51,9 @@ export default function NotificationDropdown({ notifications, unreadCount, onRea
                         <li
                             key={note.id}
                             className="relative flex gap-3 p-3 hover:bg-gray-100 transition cursor-pointer"
-                            onClick={() => handleClick(note.id, note.link)}
+                            onClick={() => onNotificationClick(note.id, note.link)}
                         >
-                            {isUnread(note) && (
+                            {note.is_read === 0 && (
                                 <span className="absolute top-2 left-2 w-2 h-2 bg-[#DB4444] rounded-full"></span>
                             )}
                             <div className="flex justify-center items-center w-[56px] h-[56px] overflow-hidden rounded-md border border-gray-200">
@@ -88,7 +66,7 @@ export default function NotificationDropdown({ notifications, unreadCount, onRea
                                 />
                             </div>
                             <div className="flex-1">
-                                <h4 className={`text-sm font-semibold ${isUnread(note) ? "text-black" : "text-gray-700"}`}>
+                                <h4 className={`text-sm font-semibold ${note.is_read === 0 ? "text-black" : "text-gray-700"}`}>
                                     {note.title}
                                 </h4>
                                 <p className="text-xs text-gray-600 line-clamp-2">{note.content}</p>
