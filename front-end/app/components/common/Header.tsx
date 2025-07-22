@@ -231,7 +231,12 @@ const Header = () => {
 
             <div className="relative group" ref={categoryRef}>
               <button className="relative text-black">
-                Danh Mục
+                 <Link
+                        href={`/category/`}
+                        className="block px-4 py-2 hover:bg-brand/10"
+                      >
+                        Danh mục
+                      </Link>
                 <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
               </button>
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border shadow-lg rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
