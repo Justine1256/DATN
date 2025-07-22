@@ -1,10 +1,11 @@
-'use client'
+'use client';
+
 import { useState } from "react";
 import { FaRegBell } from "react-icons/fa";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { STATIC_BASE_URL } from "@/utils/api";
+import { STATIC_BASE_URL, API_BASE_URL } from "@/utils/api";
+import axios from "axios";
 
 interface Notification {
     id: number;
@@ -19,21 +20,39 @@ interface Notification {
 interface Props {
     notifications: Notification[];
     unreadCount: number;
-    onNotificationClick: (id: number, link: string) => void;
+    onRead?: () => void; // optional callback
 }
 
-export default function NotificationDropdown({ notifications, unreadCount, onNotificationClick }: Props) {
+export default function NotificationDropdown({ notifications, unreadCount, onRead }: Props) {
     const router = useRouter();
 
-    // ✅ Hàm format ảnh nội bộ component
+    const [readNotifications, setReadNotifications] = useState<number[]>([]);
+
     const formatImageUrl = (img: string | string[]): string => {
         if (Array.isArray(img)) img = img[0];
         if (typeof img !== 'string' || !img.trim()) {
             return `${STATIC_BASE_URL}/products/default-product.png`;
         }
-        if (img.startsWith('http')) return img;
-        return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
+        return img.startsWith("http") ? img : `${STATIC_BASE_URL}/${img.startsWith("/") ? img.slice(1) : img}`;
     };
+
+    const markAsRead = async (id: number) => {
+        try {
+            await axios.put(`${API_BASE_URL}/notification/${id}/mark-read`);
+            setReadNotifications(prev => [...prev, id]);
+            onRead?.();
+        } catch (error) {
+            console.error("Failed to mark notification as read", error);
+        }
+    };
+
+    const handleClick = async (id: number, link: string) => {
+        await markAsRead(id);
+        router.push(link);
+    };
+
+    const isUnread = (note: Notification) =>
+        note.is_read === 0 && !readNotifications.includes(note.id);
 
     return (
         <div className="relative group">
@@ -44,19 +63,21 @@ export default function NotificationDropdown({ notifications, unreadCount, onNot
                         {unreadCount}
                     </span>
                 )}
-
             </div>
-
 
             <div className="absolute top-full mt-2 right-0 w-[320px] bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
                 <div className="px-4 py-2 border-b text-base font-semibold text-black">Thông báo mới nhận</div>
+
                 <ul className="divide-y divide-gray-100 max-h-[300px] overflow-y-auto">
-                    {notifications.slice(0, 5).map(note => (
+                    {notifications.map(note => (
                         <li
                             key={note.id}
-                            className="flex gap-3 p-3 hover:bg-gray-100 transition cursor-pointer"
-                            onClick={() => onNotificationClick(note.id, note.link)}
+                            className="relative flex gap-3 p-3 hover:bg-gray-100 transition cursor-pointer"
+                            onClick={() => handleClick(note.id, note.link)}
                         >
+                            {isUnread(note) && (
+                                <span className="absolute top-2 left-2 w-2 h-2 bg-[#DB4444] rounded-full"></span>
+                            )}
                             <div className="flex justify-center items-center w-[56px] h-[56px] overflow-hidden rounded-md border border-gray-200">
                                 <Image
                                     src={formatImageUrl(note.image_url)}
@@ -67,12 +88,17 @@ export default function NotificationDropdown({ notifications, unreadCount, onNot
                                 />
                             </div>
                             <div className="flex-1">
-                                <h4 className={`text-sm font-semibold ${note.is_read === 0 ? "text-black" : "text-gray-700"}`}>{note.title}</h4>
+                                <h4 className={`text-sm font-semibold ${isUnread(note) ? "text-black" : "text-gray-700"}`}>
+                                    {note.title}
+                                </h4>
                                 <p className="text-xs text-gray-600 line-clamp-2">{note.content}</p>
                                 <p className="text-xs text-gray-400 mt-1">
                                     {new Date(note.created_at).toLocaleString('vi-VN', {
-                                        hour: '2-digit', minute: '2-digit',
-                                        day: '2-digit', month: '2-digit', year: 'numeric'
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric'
                                     })}
                                 </p>
                             </div>
@@ -82,8 +108,12 @@ export default function NotificationDropdown({ notifications, unreadCount, onNot
                         <li className="p-3 text-center text-gray-500">Không có thông báo nào.</li>
                     )}
                 </ul>
+
                 <div className="text-center p-2">
-                    <button onClick={() => router.push("/account")} className="text-sm text-brand font-medium hover:underline transition">
+                    <button
+                        onClick={() => router.push("/account")}
+                        className="text-sm text-brand font-medium hover:underline transition"
+                    >
                         Xem tất cả
                     </button>
                 </div>

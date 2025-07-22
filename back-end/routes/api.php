@@ -101,6 +101,8 @@ Route::get('/shop/{slug}', [ShopController::class, 'showShopInfo']);
 Route::get('/notification', [NotificationController::class, 'index']);
 Route::post('/notification', [NotificationController::class, 'store']);
 Route::get('/notification/{id}', [NotificationController::class, 'show']);
+Route::put('/notification/{id}/mark-read', [NotificationController::class, 'markAsRead']);
+
 Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 
 Route::get('/vouchers', [VoucherController::class, 'index']);

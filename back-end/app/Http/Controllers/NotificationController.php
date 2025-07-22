@@ -22,7 +22,22 @@ class NotificationController extends Controller
         }
         return response()->json($notification);
     }
+public function markAsRead($id)
+{
+    $notification = Notification::find($id);
+    if (!$notification) {
+        return response()->json(['message' => 'Notification not found'], 404);
+    }
 
+    if ($notification->is_read == 1) {
+        return response()->json(['message' => 'Already read'], 200);
+    }
+
+    $notification->is_read = 1;
+    $notification->save();
+
+    return response()->json(['message' => 'Notification marked as read'], 200);
+}
     // POST /notification → Thêm mới thông báo
     public function store(Request $request)
     {
