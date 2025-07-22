@@ -35,7 +35,7 @@ interface Shop {
     description: string;
     logo: string;
     phone: string;
-    rating: number | null;
+    rating: string | null; 
     total_sales: number;
     created_at: string;
     status: 'activated' | 'pending' | 'suspended';
@@ -60,6 +60,7 @@ const ShopPage = () => {
     useEffect(() => {
         // Lấy slug từ URL sau khi component đã mount
         const pathSlug = window.location.pathname.split('/').pop();
+       
         setSlug(pathSlug ?? null); // If the slug is undefined, set it to null
     }, []);
 
@@ -84,7 +85,7 @@ const ShopPage = () => {
 
             const shopData = await shopRes.json();
             const categoryData = await categoryRes.json();
-            console.log("✅ Shop info:", shopData?.shop || "Không có dữ liệu");
+         
             if (shopData && shopData.shop) {
                 setShop(shopData.shop);
             } else {
@@ -108,6 +109,7 @@ const ShopPage = () => {
             } else if (Array.isArray(productData.products?.data)) {
                 fetchedProducts = productData.products.data;
             }
+        
 
             const productsWithTs = fetchedProducts.map(p => ({
                 ...p,

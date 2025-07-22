@@ -53,7 +53,10 @@ export default function CategoryPage() {
   useEffect(() => {
     fetch(`${API_BASE_URL}/category`)
       .then((res) => res.json())
-      .then(setCategories)
+      .then((data) => {
+        console.log("Danh mục categories:", data);
+        setCategories(data);
+      })
       .catch(console.error);
   }, []);
 
@@ -72,7 +75,7 @@ export default function CategoryPage() {
       .then((data) => {
         let items: Product[] = slug ? data.products : data;
         if (!Array.isArray(items)) throw new Error("Data format invalid");
-
+        console.log("Danh sách sản phẩm lấy về với shop_slug:", items.map(p => p.shop_slug));
         items = items.filter((product: Product) =>
           (product.price || 0) >= 0 && (product.price || 0) <= filterPriceMax
         );
@@ -90,7 +93,7 @@ export default function CategoryPage() {
             // Logic for sorting by "Best Selling"
           }
         }
-
+        console.log("Fetched total:", items.length);
         setProducts(items);
         setCurrentPage(1);
       })

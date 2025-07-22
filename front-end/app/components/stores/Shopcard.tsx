@@ -44,7 +44,7 @@ interface Shop {
     description: string;
     logo: string;
     phone: string;
-    rating: string;
+    rating: string | null; 
     total_sales: number;
     created_at: string;
     status: 'activated' | 'pending' | 'suspended';
