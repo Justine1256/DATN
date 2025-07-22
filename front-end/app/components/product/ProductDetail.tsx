@@ -44,43 +44,58 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     return value.split(',').map(v => v.trim());
   };
 
-  useEffect(() => 
-    {
+  useEffect(() => {
+    let didRun = false;
+
     async function fetchData() {
-      const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`);
-      const { data } = await res.json();
-      console.log("🚀 Product data:", data);
+      if (didRun) return;
+      didRun = true;
 
-      const gocA = parseOptionValues(data.value1);
-      const gocB = parseOptionValues(data.value2);
-      data.variants.sort((v1: Variant, v2: Variant) => {
-        const score = (v: Variant) => (gocA.includes(v.value1) ? 1 : 0) + (gocB.includes(v.value2) ? 1 : 0);
-        return score(v2) - score(v1);
-      });
+      const token = Cookies.get('authToken') || localStorage.getItem('token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
-      setProduct(data);
-      setMainImage(formatImageUrl(data.image[0] || ''));
-      if (data.variants.length) {
-        setSelectedA(data.variants[0].value1);
-        setSelectedB(data.variants[0].value2);
-        setSelectedVariant(data.variants[0]);
-      } else {
-        setSelectedA(gocA[0] || '');
-        setSelectedB(gocB[0] || '');
+      try {
+        const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`, { headers });
+        const { data } = await res.json();
+
+        setProduct(data);
+        setMainImage(formatImageUrl(data.image[0] || ''));
+
+        // Lưu lịch sử xem (cho cả guest + user)
+        if (data?.id) {
+          await fetch(`${API_BASE_URL}/products/history`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ product_id: data.id }),
+            credentials: 'include'
+          });
+
+        }
+      } catch (error) {
+        console.error('❌ Lỗi khi fetch chi tiết sản phẩm:', error);
       }
     }
+
     fetchData();
-  }, [shopslug, productslug, router]);
+  }, [shopslug, productslug]);
+
+
+
   useEffect(() => {
-  if (!product) return;
+    if (!product) return;
 
-  const matched = product.variants.find(v =>
-    v.value1.trim().toLowerCase() === selectedA.trim().toLowerCase() &&
-    v.value2.trim().toLowerCase() === selectedB.trim().toLowerCase()
-  );
+    const matched = product.variants.find(v =>
+      v.value1.trim().toLowerCase() === selectedA.trim().toLowerCase() &&
+      v.value2.trim().toLowerCase() === selectedB.trim().toLowerCase()
+    );
 
-  setSelectedVariant(matched || null);
-}, [selectedA, selectedB, product]);
+    setSelectedVariant(matched || null);
+  }, [selectedA, selectedB, product]);
   if (!product) return <LoadingProductDetail />;
 
   const ratingValue =
@@ -132,8 +147,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     return product.stock;
   };
 
-const handleSelectA = (a: string) => setSelectedA(a);
-const handleSelectB = (b: string) => setSelectedB(b);
+  const handleSelectA = (a: string) => setSelectedA(a);
+  const handleSelectB = (b: string) => setSelectedB(b);
 
 
 
@@ -144,62 +159,72 @@ const handleSelectB = (b: string) => setSelectedB(b);
   };
 
   const handleAddToCart = async () => {
-  const token = Cookies.get('authToken') || localStorage.getItem('token');
+    const token = Cookies.get('authToken') || localStorage.getItem('token');
 
-  const variant = product?.variants.find(
-    v => v.value1.trim().toLowerCase() === selectedA.trim().toLowerCase() &&
-         v.value2.trim().toLowerCase() === selectedB.trim().toLowerCase()
-  );
-
-  const cartItem: any = {
-    product_id: product.id,
-    quantity,
-    name: product.name,
-    image: formatImageUrl(product.image[0]),
-    price: variant ? variant.sale_price || variant.price : product.sale_price || product.price,
-    value1: selectedA,
-    value2: selectedB,
-  };
-
-  if (variant?.id) {
-    cartItem.variant_id = variant.id;
-  } else {
-    console.warn('⚠️ Không tìm thấy variant phù hợp với lựa chọn hiện tại');
-  }
-
-  console.log('🧪 Add to cart debug:', cartItem);
-
-  if (!token) {
-    const existing = localStorage.getItem('cart');
-    const cart = existing ? JSON.parse(existing) : [];
-
-    const matchedIndex = cart.findIndex((item: any) =>
-      item.product_id === cartItem.product_id &&
-      item.variant_id === cartItem.variant_id
+    const variant = product?.variants.find(
+      v => v.value1.trim().toLowerCase() === selectedA.trim().toLowerCase() &&
+        v.value2.trim().toLowerCase() === selectedB.trim().toLowerCase()
     );
 
-    if (matchedIndex !== -1) {
-      cart[matchedIndex].quantity += cartItem.quantity;
+    const cartItem: any = {
+      product_id: product.id,
+      quantity,
+      name: product.name,
+      image: formatImageUrl(product.image[0]),
+      price: variant ? variant.sale_price || variant.price : product.sale_price || product.price,
+      value1: selectedA,
+      value2: selectedB,
+    };
+
+    if (variant?.id) {
+      cartItem.variant_id = variant.id;
     } else {
-      cart.push(cartItem);
+      console.warn('⚠️ Không tìm thấy variant phù hợp với lựa chọn hiện tại');
     }
 
-    localStorage.setItem('cart', JSON.stringify(cart));
-    commonPopup(`Đã thêm "${cartItem.name}" vào giỏ hàng`);
+    console.log('🧪 Add to cart debug:', cartItem);
+
+if (!token) {
+  const existing = localStorage.getItem('cart');
+  const cart = existing ? JSON.parse(existing) : [];
+
+  const matchedIndex = cart.findIndex((item: any) =>
+    item.product_id === cartItem.product_id &&
+    item.variant_id === cartItem.variant_id
+  );
+
+  if (matchedIndex !== -1) {
+    cart[matchedIndex].quantity += cartItem.quantity;
   } else {
-    const res = await fetch(`${API_BASE_URL}/cart`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(cartItem),
-    });
+    // 👉 Thêm field sale_price để backend dùng được
+    cartItem.sale_price = variant?.sale_price ?? null;
+cartItem.price = Number(cartItem.price);
+cartItem.sale_price = cartItem.sale_price !== null ? Number(cartItem.sale_price) : null;
 
-    if (res.ok) {
-      commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
-    } else {
-      commonPopup('Thêm vào giỏ hàng thất bại');
-    }
+console.log('🧾 Giỏ hàng localStorage sau chuẩn hóa:', cartItem);
+
+
+    cart.push(cartItem);
   }
-};
+
+  console.log('🧾 Giỏ hàng localStorage sau khi thêm:', cart);
+
+  localStorage.setItem('cart', JSON.stringify(cart));
+  commonPopup(`Đã thêm "${cartItem.name}" vào giỏ hàng`);
+    } else {
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(cartItem),
+      });
+
+      if (res.ok) {
+        commonPopup(`Đã thêm "${product.name}" vào giỏ hàng!`);
+      } else {
+        commonPopup('Thêm vào giỏ hàng thất bại');
+      }
+    }
+  };
 
   const toggleLike = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');

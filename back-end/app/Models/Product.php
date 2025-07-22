@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
-
+use Laravel\Scout\Searchable;
 class Product extends Model
 {
     use SoftDeletes;
+    use Searchable;
 
    protected $fillable = [
     'category_id',
@@ -103,5 +104,24 @@ public function approvedReviews()
         'id'
     )->where('reviews.status', 'approved');
 }
+
+public function toSearchableArray()
+{
+    return [
+        'id' => $this->id,
+        'name' => $this->name,
+        'name_normalized' => Str::ascii($this->name),
+        'slug' => $this->slug,
+        'option1' => $this->option1,
+        'value1' => $this->value1,
+        'option2' => $this->option2,
+        'value2' => $this->value2,
+        'sold' => $this->sold,
+        'status' => $this->status,  // thêm trường status
+        'stock' => $this->stock,    // thêm trường stock
+        
+    ];
+}
+
 
 }

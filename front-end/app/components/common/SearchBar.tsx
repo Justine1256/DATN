@@ -39,7 +39,7 @@ export default function SearchBar() {
 
         const delayDebounce = setTimeout(() => {
             axios
-                .get(`${API_BASE_URL}/search?query=${encodeURIComponent(searchQuery)}`)
+                .get(`${API_BASE_URL}/products/search?q=${encodeURIComponent(searchQuery)}`)
                 .then(res => {
                     console.log("DEBUG API RESPONSE:", res.data);
                     setResults(res.data);

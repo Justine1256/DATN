@@ -43,12 +43,10 @@ export default function OrderDetailModal({
 
     return (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50 p-4 overflow-hidden">
-            <div className="bg-white rounded-lg max-w-6xl w-full h-[90vh] flex flex-col">
+            <div className="bg-white rounded-lg max-w-6xl w-full h-[86vh] flex flex-col">
                 <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-[#db4444] to-[#c13838]">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-bold text-white">
-                            Chi tiết đơn hàng #{order.id}
-                        </h2>
+                       
                         <button
                             onClick={onClose}
                             className="text-white hover:text-gray-200 text-2xl font-bold"
@@ -62,7 +60,7 @@ export default function OrderDetailModal({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div className="bg-gray-50 p-4 rounded-lg">
                             <h3 className="font-semibold text-gray-800 mb-3 border-b pb-2">
-                                Thông tin đơn hàng
+                                Thông tin đơn hàng#{order.id}
                             </h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
@@ -172,31 +170,25 @@ export default function OrderDetailModal({
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <div className="text-sm text-gray-900">
-                                                    {detail.product?.value1 ? (
-                                                        <div className="mb-1">
-                                                            <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                                                {detail.product.value1}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-xs text-gray-400">Không có giá trị 1</div>
-                                                    )}
+                                           <td className="px-4 py-4">
+  <div className="text-sm text-gray-900 flex flex-col gap-1">
+    {detail.product_value
+      ? detail.product_value.split(' - ').map((v, i) => (
+          <div
+            key={i}
+            className={`inline-block text-xs px-2 py-1 rounded-full 
+              ${i === 0 ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}
+          >
+            {v}
+          </div>
+        ))
+      : (
+        <div className="text-xs text-gray-400">Không có biến thể</div>
+      )
+    }
+  </div>
+</td>
 
-
-                                                     {detail.product?.value2 ? (
-                                                          <div>
-                                                            <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                                                {detail.product.value2}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-xs text-gray-400">Không có giá trị 2</div>
-                                                    )}
-
-                                                </div>
-                                            </td>
 
                                             <td className="px-4 py-4 text-center">
                                                 <div className="text-sm font-medium text-gray-900">

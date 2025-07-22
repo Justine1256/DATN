@@ -23,9 +23,7 @@ class Shop extends Model
         'rating',
         'status',
     ];
-    protected $casts = [
-    'logo' => 'array',
-];
+
     public $timestamps = true;
 
     public function user()

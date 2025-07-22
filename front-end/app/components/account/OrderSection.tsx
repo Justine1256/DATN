@@ -54,6 +54,18 @@ export default function OrderSection() {
     filterOrders(activeTab, orders);
   }, [activeTab, orders]);
 
+  // Ngăn body cuộn khi popup hiển thị
+  useEffect(() => {
+    if (popupVisible || showConfirmCancelPopup) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+    return () => {
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, [popupVisible, showConfirmCancelPopup]);
+
   const filterOrders = (status: string, sourceOrders?: Order[]) => {
     const list = sourceOrders || orders;
     setActiveTab(status);
@@ -66,7 +78,7 @@ export default function OrderSection() {
     else if (status === "canceled") filtered = list.filter(o => o.order_status === "Canceled");
 
     setFilteredOrders(filtered);
-    setCurrentPage(1); // reset trang khi filter
+    setCurrentPage(1);
   };
 
   const handleViewOrderDetails = (order: Order) => {
@@ -131,7 +143,6 @@ export default function OrderSection() {
     }
   };
 
-  // lấy danh sách phân trang
   const currentOrders = filteredOrders.slice(
     (currentPage - 1) * perPage,
     currentPage * perPage
@@ -150,7 +161,9 @@ export default function OrderSection() {
           <p className="text-center text-gray-500">Đang tải đơn hàng...</p>
         ) : filteredOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[400px] bg-gray-50 rounded-md">
-            <p className="text-lg text-gray-500">Không có đơn hàng phù hợp.</p>
+            <p className="text-lg text-gray-500">
+              Không có đơn hàng phù hợp.
+            </p>
           </div>
         ) : (
           <>
@@ -165,29 +178,27 @@ export default function OrderSection() {
               ))}
             </div>
 
-            {/* Phân trang */}
-                <div className="flex items-center justify-center gap-4 mt-8">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="w-12 h-12 flex items-center justify-center rounded-full border border-gray-300 text-xl text-gray-600 hover:bg-[#db4444] hover:text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    «
-                  </button>
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="w-12 h-12 flex items-center justify-center rounded-full border border-gray-300 text-xl text-gray-600 hover:bg-[#db4444] hover:text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                «
+              </button>
 
-                  <span className="text-sm text-gray-500">
-                    Trang <span className="font-semibold text-gray-700">{currentPage}</span> / {totalPages}
-                  </span>
+              <span className="text-sm text-gray-500">
+                Trang <span className="font-semibold text-gray-700">{currentPage}</span> / {totalPages}
+              </span>
 
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="w-12 h-12 flex items-center justify-center rounded-full border border-gray-300 text-xl text-gray-600 hover:bg-[#db4444] hover:text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    »
-                  </button>
-                </div>
-
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="w-12 h-12 flex items-center justify-center rounded-full border border-gray-300 text-xl text-gray-600 hover:bg-[#db4444] hover:text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                »
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -212,4 +223,4 @@ export default function OrderSection() {
       )}
     </div>
   );
-  }
+}

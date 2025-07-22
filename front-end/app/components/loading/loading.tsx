@@ -3,7 +3,7 @@
 // ✅ Loading khung sản phẩm trong danh sách
 export const LoadingSkeleton = () => {
   return (
-    <div className="w-full max-w-[250px] h-[280px] bg-white rounded-lg border border-gray-200 shadow p-3 animate-pulse flex flex-col">
+    <div className="w-full max-w-[250px] h-[280px] bg-white rounded-lg border border-gray-200 shadow p-10 animate-pulse flex flex-col">
       <div className="w-full h-[140px] bg-gray-200 rounded" />
       <div className="mt-4 h-4 bg-gray-300 rounded w-3/4" />
       <div className="mt-2 h-4 bg-gray-300 rounded w-1/2" />

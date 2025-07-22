@@ -14,6 +14,7 @@ import CartDropdown from "./CartDropdown";
 import { useUser } from "../../context/UserContext";
 import { TbBuildingStore } from "react-icons/tb";
 import { FiSettings } from "react-icons/fi";
+
 // Kiểu dữ liệu thông báo
 interface Notification {
   id: number;
@@ -25,11 +26,55 @@ interface Notification {
   created_at: string;
 }
 
+
+// 🟡 Thêm ngay trong component Header (trước return)
+
+const Popup = ({
+  message,
+  onConfirm,
+  onClose,
+}: {
+  message: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) => {
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
+    >
+      <div className="bg-white rounded-2xl px-6 py-5 max-w-lg w-[90%] sm:w-full shadow-2xl animate-fade-in-up border border-gray-300">
+        <p className="text-gray-800 text-base mb-6 flex items-center gap-2">
+          <span className="text-yellow-500 text-xl"></span>
+          {message}
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm"
+          >
+            Hủy
+          </button>
+          <button
+            onClick={() => {
+              onClose();
+              onConfirm();
+            }}
+            className="px-5 py-2 rounded-lg bg-[#db4444] text-white text-sm hover:bg-[#c33]"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 const Header = () => {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
-
+  const [showVoucherPopup, setShowVoucherPopup] = useState(false);
 
   // State người dùng
   // const [user, setUser] = useState<{ name: string; role: string; avatar?: string } | null>(null);
@@ -263,13 +308,22 @@ const Header = () => {
               <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
             </Link>
 
-            <Link
-              href="/voucher"
-              className="relative group text-black hover:opacity-90"
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                if (!user) {
+                  setShowVoucherPopup(true);
+                } else {
+                  router.push("/voucher");
+                }
+              }}
+              className="relative group text-black hover:opacity-90 cursor-pointer"
             >
               Mã Giảm Giá
               <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
-            </Link>
+            </a>
+
+
 
             {!user && (
               <Link
@@ -346,13 +400,23 @@ const Header = () => {
 
 
                       {(user?.role === "admin" || user?.role === "seller") && (
-                        <li>
-                          <Link href="http://localhost:3001/dashboard"
-                            className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
-                            <FiSettings className="w-5 h-5" /> Trang Quản Trị
-                          </Link>
-                        </li>
+                        <Link
+                          href={
+                            user.role === "admin"
+                              ? "http://localhost:3001/admin/dashboard"
+                              : "http://localhost:3001/shop-admin/dashboard"
+                          }
+                          className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"
+                        >
+                          <FiSettings className="w-5 h-5" />
+                          {user.role === "admin" ? "Trang Quản Trị Tổng" : "Trang Quản Trị Shop"}
+                        </Link>
                       )}
+
+
+
+
+
 
 
                       <li
@@ -362,15 +426,26 @@ const Header = () => {
                         <FiLogOut /> Đăng Xuất
                       </li>
                     </ul>
+                
 
                   </div>
+                  
                 )}
+                
               </div>
+            )}
+            {showVoucherPopup && (
+              <Popup
+                message="⚠️ Bạn cần đăng nhập để xem mã giảm giá."
+                onConfirm={() => router.push("/login")}
+                onClose={() => setShowVoucherPopup(false)}
+              />
             )}
           </div>
         </div>
       </div>
     </header>
+    
   );
 
 };

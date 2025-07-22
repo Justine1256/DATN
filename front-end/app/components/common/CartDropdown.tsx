@@ -38,10 +38,13 @@ export default function CartDropdown({ cartItems, formatImageUrl }: Props) {
             <div className="absolute top-full right-0 mt-2 w-[360px] bg-white border border-gray-200 shadow-xl rounded-lg opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
                 <div className="p-3 border-b text-base font-semibold">Sản Phẩm Mới Thêm</div>
                 <ul className="max-h-[300px] overflow-y-auto divide-y divide-gray-100">
-                    {cartItems.slice(0, 5).map((item) => {
+                    {cartItems.slice(0, 5).map((item, index) => {
                         const price = item.product.sale_price ?? item.product.price;
                         return (
-                            <li key={`${item.product.id}-${item.variant?.id ?? 'no-variant'}`} className="flex items-center p-3 hover:bg-gray-100 transition">
+                            <li
+                                key={`${item.product.id}-${item.variant?.id ?? 'no-variant'}-${index}`}
+                                className="flex items-center p-3 hover:bg-gray-100 transition"
+                            >
                                 <div className="w-[48px] h-[48px] flex-shrink-0 overflow-hidden rounded border">
                                     <Image
                                         src={formatImageUrl(item.product.image)}
@@ -64,6 +67,7 @@ export default function CartDropdown({ cartItems, formatImageUrl }: Props) {
                         <li className="p-3 text-center text-gray-500">Giỏ hàng trống.</li>
                     )}
                 </ul>
+
                 <div className="p-3 border-t flex justify-between items-center">
                     <span className="text-sm text-gray-700">{cartItems.length} sản phẩm</span>
                     <Link href="/cart" className="bg-red-500 text-white px-4 py-1.5 rounded text-sm hover:bg-red-600 transition">

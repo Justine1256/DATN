@@ -41,11 +41,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((res) => {
           const user = res.data;
           if (!["seller", "admin"].includes(user.role)) {
-            console.warn("Vai trò không hợp lệ:", user.role);
             redirectToLogin();
           } else {
             setUser(user);
             setIsAuthReady(true);
+
+            // 🔥 Auto điều hướng sau khi xác thực thành công
+            if (window.location.pathname === "/") {
+              const redirectPath =
+                user.role === "admin" ? "/admin/dashboard" : "/shop-admin/dashboard";
+              window.location.href = redirectPath;
+            }
           }
         })
         .catch((err) => {
@@ -57,10 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     function redirectToLogin() {
-      setIsAuthReady(true); // để tránh treo UI
+      setIsAuthReady(true); // tránh UI bị treo
       window.location.href = "http://localhost:3000/login";
     }
   }, []);
+
 
   return (
     <AuthContext.Provider value={{ user, isAuthReady }}>

@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Notification;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -490,122 +491,124 @@ $carts = Cart::query()
             'redirect_url'  => '/cart'
         ]);
     }
-    public function guestCheckout(Request $request)
-    {
-        $validated = $request->validate([
-            'cart_items' => 'required|array|min:1',
-            'cart_items.*.product_id' => 'required|integer|exists:products,id',
-            'cart_items.*.quantity' => 'required|integer|min:1',
-            'cart_items.*.price' => 'required|numeric|min:0',
-            'cart_items.*.sale_price' => 'nullable|numeric|min:0',
-            'cart_items.*.variant_id' => 'nullable|integer|exists:product_variants,id',
-            'address_manual' => 'required|array',
-            'address_manual.full_name' => 'required|string',
-            'address_manual.address' => 'required|string',
-            'address_manual.city' => 'required|string',
-            'address_manual.phone' => 'required|string',
-            'address_manual.email' => 'required|email',
-            'payment_method' => 'required|in:cod,vnpay',
-        ]);
+public function guestCheckout(Request $request)
+{
+    $validated = $request->validate([
+        'payment_method' => 'required|in:cod,vnpay',
+        'address_manual' => 'required|array',
+        'address_manual.full_name' => 'required|string',
+        'address_manual.address' => 'required|string',
+        'address_manual.city' => 'required|string',
+        'address_manual.phone' => 'required|string',
+        'address_manual.email' => 'required|email',
+        'cart_items' => 'required|array|min:1',
+        'cart_items.*.product_id' => 'required|integer|exists:products,id',
+        'cart_items.*.quantity' => 'required|integer|min:1',
+        'cart_items.*.price' => 'required|numeric',
+        'cart_items.*.sale_price' => 'nullable|numeric',
+        'cart_items.*.variant_id' => 'nullable|integer|exists:product_variants,id',
+    ]);
 
-        $cartItems = $validated['cart_items'];
-        $manual = $validated['address_manual'];
+    $manual = $validated['address_manual'];
+    $fullAddress = "{$manual['address']}, {$manual['city']} ({$manual['full_name']} - {$manual['phone']})";
 
-        $fullAddress = "{$manual['address']}, {$manual['city']} ({$manual['full_name']} - {$manual['phone']})";
+    DB::beginTransaction();
 
-        DB::beginTransaction();
+    try {
+        $cartItems = collect($validated['cart_items']);
 
-        try {
-            // Group cart items by shop
-            $shopGrouped = collect($cartItems)->groupBy(function ($item) {
-                $product = \App\Models\Product::find($item['product_id']);
-                return $product->shop_id ?? 0;
-            });
+        $cartItemsByShop = $cartItems->groupBy(function ($item) {
+            $product = Product::find($item['product_id']);
+            return $product->shop_id ?? 0;
+        });
 
-            $orders = [];
-            $totalFinalAmount = 0;
+        $orders = [];
 
-            foreach ($shopGrouped as $shopId => $items) {
-                $totalAmount = 0;
-                $finalAmount = 0;
+        foreach ($cartItemsByShop as $shopId => $items) {
+            $shopTotalAmount = 0;
 
-                foreach ($items as $item) {
-                    $originalPrice = $item['price'];
-                    $salePrice = $item['sale_price'] ?? $originalPrice;
-                    $quantity = $item['quantity'];
+            $order = Order::create([
+                'user_id' => null, // guest
+                'shop_id' => $shopId,
+                'total_amount' => 0,
+                'final_amount' => 0,
+                'payment_method' => $validated['payment_method'],
+                'payment_status' => 'Pending',
+                'order_status' => 'Pending',
+                'shipping_status' => 'Pending',
+                'shipping_address' => $fullAddress,
+            ]);
 
-                    $totalAmount += $quantity * $originalPrice;
-                    $finalAmount += $quantity * $salePrice;
+            foreach ($items as $item) {
+                $product = Product::findOrFail($item['product_id']);
+                $quantity = $item['quantity'];
+                $salePrice = $item['sale_price'] ?? $item['price'];
+
+                $variant = null;
+                $productOption = null;
+                $productValue = null;
+
+                if ($item['variant_id']) {
+                    $variant = ProductVariant::where('id', $item['variant_id'])
+                        ->where('product_id', $product->id)
+                        ->firstOrFail();
+
+                    if ($quantity > $variant->stock) {
+                        throw new \Exception("Biến thể {$variant->value1} - {$variant->value2} không đủ kho");
+                    }
+
+                    $variant->decrement('stock', $quantity);
+
+                    $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
+                    $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
+                } else {
+                    if ($quantity > $product->stock) {
+                        throw new \Exception("Sản phẩm {$product->name} không đủ kho");
+                    }
+                    $product->decrement('stock', $quantity);
+
+                    $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
+                    $productValue  = trim(implode(' - ', array_filter([$product->value1, $product->value2])));
                 }
 
-                $order = Order::create([
-                    'user_id' => null, // guest
-                    'shop_id' => $shopId,
-                    'total_amount' => $totalAmount,
-                    'final_amount' => $finalAmount,
-                    'payment_method' => $validated['payment_method'],
-                    'payment_status' => 'Pending',
-                    'order_status' => 'Pending',
-                    'shipping_status' => 'Pending',
-                    'shipping_address' => $fullAddress,
+                $product->increment('sold', $quantity);
+
+                OrderDetail::create([
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'variant_id' => $item['variant_id'] ?? null,
+                    'product_option' => $productOption,
+                    'product_value' => $productValue,
+                    'price_at_time' => $salePrice,
+                    'quantity' => $quantity,
+                    'subtotal' => $quantity * $salePrice,
                 ]);
 
-                foreach ($items as $item) {
-                    $product = \App\Models\Product::find($item['product_id']);
-                    if (!$product) throw new \Exception('Sản phẩm không tồn tại');
-
-                    $quantity = $item['quantity'];
-                    $salePrice = $item['sale_price'] ?? $item['price'];
-
-                    if ($item['variant_id']) {
-                        $variant = \App\Models\ProductVariant::find($item['variant_id']);
-                        if (!$variant) throw new \Exception('Biến thể không tồn tại');
-                        if ($quantity > $variant->stock) throw new \Exception("Biến thể '{$variant->value1}' không đủ hàng ({$variant->stock})");
-
-                        $variant->decrement('stock', $quantity);
-                        OrderDetail::create([
-                            'order_id' => $order->id,
-                            'product_id' => $item['product_id'],
-                            'variant_id' => $item['variant_id'],
-                            'price_at_time' => $salePrice,
-                            'quantity' => $quantity,
-                            'subtotal' => $quantity * $salePrice,
-                        ]);
-                    } else {
-                        if ($quantity > $product->stock) throw new \Exception("Sản phẩm '{$product->name}' không đủ hàng ({$product->stock})");
-
-                        $product->decrement('stock', $quantity);
-                        OrderDetail::create([
-                            'order_id' => $order->id,
-                            'product_id' => $item['product_id'],
-                            'variant_id' => null,
-                            'price_at_time' => $salePrice,
-                            'quantity' => $quantity,
-                            'subtotal' => $quantity * $salePrice,
-                        ]);
-                    }
-                    $product->increment('sold', $quantity);
-                }
-
-                $orders[] = $order;
-                $totalFinalAmount += $finalAmount;
+                $shopTotalAmount += $quantity * $salePrice;
             }
 
-            DB::commit();
+            $order->update([
+                'total_amount' => $shopTotalAmount,
+                'final_amount' => $shopTotalAmount
+            ]);
 
-            return response()->json([
-                'message' => 'Đặt hàng thành công',
-                'order_ids' => collect($orders)->pluck('id'),
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Guest checkout error', [
-                'error' => $e->getMessage(),
-                'request' => $request->all()
-            ]);
-            return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
+            $orders[] = $order;
         }
+
+        DB::commit();
+
+        return response()->json([
+            'message' => 'Đặt hàng thành công',
+            'order_ids' => collect($orders)->pluck('id')
+        ]);
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error('Guest Checkout Error: ' . $e->getMessage(), [
+            'request' => $request->all()
+        ]);
+        return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
     }
+}
     public function updateOrderStatus(Request $request, $orderId)
     {
         // Validate input

@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\Broadcast;
 // test api
 // Route::get('/userall', [UserController::class, 'index']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return response()->json($request->user()->load('shop'));
+    return response()->json($request->user()->load('shop')->toArray());
 });
 // routes/api.php
 Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
@@ -82,6 +82,8 @@ Route::get('/bestsellingproducts', [ProductController::class, 'bestSellingProduc
 Route::get('/topdiscountedproducts', [ProductController::class, 'topDiscountedProducts']);
 Route::get('/newproducts', [ProductController::class, 'newProducts']);
 Route::get('/category/{slug}/products', [ProductController::class, 'getCategoryAndProductsBySlug']);
+Route::get('/products/recommended', [ProductController::class, 'recommended']);
+Route::post('/products/history', [ProductController::class, 'storeHistory']);
 
 
 Route::post('/product', [ProductController::class, 'store']);
@@ -103,8 +105,10 @@ Route::delete('/notification/{id}', [NotificationController::class, 'destroy']);
 
 Route::get('/vouchers', [VoucherController::class, 'index']);
 Route::get('/vouchers/by-category/{category_id}', [VoucherCategoryController::class, 'showVouchersByCategory']);
-Route::get('/search', [ProductController::class, 'search']);
+// Route::get('/search', [ProductController::class, 'search']);
+Route::get('/products/search', [ProductController::class, 'search']);
 Route::post('/nologin', [OrderController::class, 'guestCheckout']);// đặt hàng ko cần đăng nhập
+Route::post('/cart/guest', [CartController::class, 'storeGuest']);// thêm vào giỏ hàng ko cần đăng nhập
 Route::get('/orders/{id}/invoice', [OrderController::class, 'downloadInvoice']);
 
 Route::get('/vouchers', [VoucherController::class, 'index']);
@@ -238,6 +242,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
     Route::delete('/shop/product-variants/{id}', [ProductController::class, 'destroyVariant']);
     Route::post('/shop/restore/products/{id}', [ProductController::class, 'restoreProduct']);
+    Route::post('/products/import-stock', [ProductController::class, 'importStock']);
     // quản lý danh mục của shop
     Route::get('/shop/categories/{shop_id}', [CategoryController::class, 'getShopCategories']);
     Route::post('/shop/categories', [CategoryController::class, 'addCategoryByShop']);
