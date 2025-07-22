@@ -17,6 +17,7 @@ import ProductGallery from './ProductGallery';
 import { Product, ProductDetailProps, Variant } from './hooks/Product';
 import ProductReviews from './review';
 import { useCart } from '@/app/context/CartContext';
+import { useWishlist } from "@/app/context/WishlistContext";
 const formatImageUrl = (img: string | string[]): string => {
   if (Array.isArray(img)) img = img[0];
   if (typeof img !== 'string' || !img.trim()) {
@@ -39,6 +40,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState('');
   const { reloadCart } = useCart();
+  const { reloadWishlist } = useWishlist();
+  const { wishlistItems } = useWishlist();
 
 
   const parseOptionValues = (value?: string | string[]): string[] => {
@@ -48,41 +51,31 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   };
 
   useEffect(() => {
-    let didRun = false;
-
-    async function fetchData() {
-      if (didRun) return;
-      didRun = true;
-
+    const fetchData = async () => {
       const token = Cookies.get('authToken') || localStorage.getItem('token');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
       try {
         const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`, { headers });
         const { data } = await res.json();
-
         setProduct(data);
         setMainImage(formatImageUrl(data.image[0] || ''));
 
-        // Lưu lịch sử xem (cho cả guest + user)
         if (data?.id) {
           await fetch(`${API_BASE_URL}/products/history`, {
             method: 'POST',
             headers,
             body: JSON.stringify({ product_id: data.id }),
-            credentials: 'include'
+            credentials: 'include',
           });
-
         }
       } catch (error) {
         console.error('❌ Lỗi khi fetch chi tiết sản phẩm:', error);
       }
-    }
+    };
 
     fetchData();
   }, [shopslug, productslug]);
@@ -221,20 +214,36 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const toggleLike = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
     if (!token) return commonPopup('Vui lòng đăng nhập để yêu thích sản phẩm');
-    if (!liked) {
-      await fetch(`${API_BASE_URL}/wishlist`, {
+
+    try {
+      if (liked) {
+        // ❌ Đã có trong danh sách yêu thích => không thêm nữa
+        commonPopup('Sản phẩm đã có trong danh sách yêu thích');
+        return;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/wishlist`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: product.id })
+        body: JSON.stringify({ product_id: product.id }),
       });
+
+      if (res.status === 409) {
+        commonPopup('Sản phẩm đã có trong danh sách yêu thích');
+        return;
+      }
+
+      if (!res.ok) throw new Error("Không thể thêm vào wishlist!");
+
       setLiked(true);
+      reloadWishlist();
       commonPopup('Đã thêm vào mục yêu thích!');
-    } else {
-      await fetch(`${API_BASE_URL}/wishlist/${product.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-      setLiked(false);
-      commonPopup('Đã xóa khỏi mục yêu thích!');
+    } catch (err) {
+      console.error('❌ Lỗi xử lý wishlist:', err);
+      commonPopup('Có lỗi xảy ra!');
     }
   };
+
   const handleFollow = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
     if (!token) return commonPopup('Vui lòng đăng nhập để theo dõi cửa hàng');

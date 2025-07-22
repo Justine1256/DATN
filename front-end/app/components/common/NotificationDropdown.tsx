@@ -40,11 +40,13 @@ export default function NotificationDropdown({ notifications, unreadCount, onNot
             <div className="relative w-5 h-5 flex items-center justify-center cursor-pointer scale-[0.9]">
                 <FaRegBell className="text-black group-hover:text-brand w-5 h-5 transition duration-200" />
                 {unreadCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
+                    <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[11px] font-semibold min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-center leading-none shadow-sm">
                         {unreadCount}
                     </span>
                 )}
+
             </div>
+
 
             <div className="absolute top-full mt-2 right-0 w-[320px] bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
                 <div className="px-4 py-2 border-b text-base font-semibold text-black">Thông báo mới nhận</div>

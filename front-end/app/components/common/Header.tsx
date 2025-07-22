@@ -15,7 +15,7 @@ import { useUser } from "../../context/UserContext";
 import { TbBuildingStore } from "react-icons/tb";
 import { FiSettings } from "react-icons/fi";
 import { useCart } from "@/app/context/CartContext";
-
+import { useWishlist } from "@/app/context/WishlistContext";
 
 // Kiểu dữ liệu thông báo
 interface Notification {
@@ -77,7 +77,7 @@ const Header = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
   const [showVoucherPopup, setShowVoucherPopup] = useState(false);
-
+  const { wishlistItems } = useWishlist();
   // State người dùng
   // const [user, setUser] = useState<{ name: string; role: string; avatar?: string } | null>(null);
   const { user, setUser } = useUser();
@@ -94,6 +94,15 @@ const Header = () => {
   const [isSticky, setIsSticky] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Lắng nghe sự kiện cập nhật giỏ hàng từ nơi khác
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      reloadCart();
+    };
+
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
+  }, [reloadCart]);
 
   // Lấy danh mục
   useEffect(() => {
@@ -336,17 +345,23 @@ const Header = () => {
               unreadCount={unreadNotificationCount}
               onNotificationClick={handleNotificationClick}
             />
-
-            <Link href="/wishlist">
-              <AiOutlineHeart className="h-5 w-5 text-black hover:text-red-500 transition" />
-            </Link>
-
             <div onClick={() => router.push("/cart")}>
               <CartDropdown
                 cartItems={cartItems}
                 formatImageUrl={formatImageUrl}
               />
             </div>
+            <Link href="/wishlist" className="relative w-5 h-5 block">
+              <AiOutlineHeart className="w-5 h-5 text-black hover:text-red-500 transition" />
+              {wishlistItems.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                  {wishlistItems.length}
+                </span>
+              )}
+            </Link>
+
+
+          
 
             {user && (
               <div className="relative" ref={dropdownRef}>

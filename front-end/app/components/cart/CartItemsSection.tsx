@@ -23,21 +23,21 @@ export default function CartItemsSection({
     const guestCart = localStorage.getItem('cart');
     let localCartItems: CartItem[] = [];
 
-  if (guestCart) {
-    try {
-      const parsed = JSON.parse(guestCart);
-      localCartItems = parsed.map((item: any, index: number) => ({
-        id: item.id || index + 1,
-        quantity: item.quantity,
-        product: {
-          id: item.product_id,
-          name: item.name,
-          image: [formatImageUrl(item.image)],
-          price: item.price,
-          sale_price: null,
-        },
-        variant: item.variant_id
-          ? {
+    if (guestCart) {
+      try {
+        const parsed = JSON.parse(guestCart);
+        localCartItems = parsed.map((item: any, index: number) => ({
+          id: item.id || index + 1,
+          quantity: item.quantity,
+          product: {
+            id: item.product_id,
+            name: item.name,
+            image: [formatImageUrl(item.image)],
+            price: item.price,
+            sale_price: null,
+          },
+          variant: item.variant_id
+            ? {
               id: item.variant_id,
               option1: 'Phân loại 1',
               option2: 'Phân loại 2',
@@ -46,93 +46,86 @@ export default function CartItemsSection({
               price: item.price,
               sale_price: null,
             }
-          : null,
+            : null,
+        }));
+      } catch (err) {
+        console.error('Lỗi parse local cart:', err);
+      }
+    }
+
+    if (!token) {
+      setCartItems(localCartItems);
+      propsSetCartItems(localCartItems);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (localCartItems.length > 0) {
+        await syncLocalCartToApi(localCartItems, token);
+        localStorage.removeItem('cart');
+      }
+
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+
+      if (!res.ok) throw new Error('Không thể tải giỏ hàng từ API');
+
+      const apiCartData = await res.json();
+      const formatted = apiCartData.map((item: any) => ({
+        ...item,
+        product: {
+          ...item.product,
+          image: [formatImageUrl(item.product.image || 'default.jpg')],
+        },
       }));
-    } catch (err) {
-      console.error('Lỗi parse local cart:', err);
-    }
-  }
 
-  // 👉 Nếu chưa login → dùng local
-  if (!token) {
-    setCartItems(localCartItems);
-    propsSetCartItems(localCartItems);
-    setLoading(false);
-    return;
-  }
-
-  try {
-    // 👉 Nếu có local cart, sync lên API
-    if (localCartItems.length > 0) {
-      await syncLocalCartToApi(localCartItems, token);
+      setCartItems(formatted);
+      propsSetCartItems(formatted);
       localStorage.removeItem('cart');
+      window.dispatchEvent(new Event('cartUpdated'));
+    } catch (error) {
+      console.warn('Lỗi API, fallback local:', error);
+      setCartItems(localCartItems);
+      propsSetCartItems(localCartItems);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // 👉 Fetch giỏ hàng từ server sau khi sync
-    const res = await fetch(`${API_BASE_URL}/cart`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    });
+  const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
+    try {
+      const serverRes = await fetch(`${API_BASE_URL}/cart`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
 
-    if (!res.ok) throw new Error('Không thể tải giỏ hàng từ API');
+      const serverItems: CartItem[] = serverRes.ok ? await serverRes.json() : [];
 
-    const apiCartData = await res.json();
-    const formatted = apiCartData.map((item: any) => ({
-      ...item,
-      product: {
-        ...item.product,
-        image: [formatImageUrl(item.product.image || 'default.jpg')],
-      },
-    }));
+      const isSameItem = (local: CartItem, server: CartItem) => {
+        const localOption = `${local.variant?.option1 ?? ''}-${local.variant?.option2 ?? ''}`.toLowerCase().trim();
+        const localValue = `${local.variant?.value1 ?? ''}-${local.variant?.value2 ?? ''}`.toLowerCase().trim();
+        const serverOption = `${server.variant?.option1 ?? ''}-${server.variant?.option2 ?? ''}`.toLowerCase().trim();
+        const serverValue = `${server.variant?.value1 ?? ''}-${server.variant?.value2 ?? ''}`.toLowerCase().trim();
 
-    setCartItems(formatted);
-    propsSetCartItems(formatted);
-    localStorage.removeItem('cart'); // 🔥 đảm bảo xoá sau sync
-  } catch (error) {
-    console.warn('Lỗi API, fallback local:', error);
-    setCartItems(localCartItems);
-    propsSetCartItems(localCartItems);
-  } finally {
-    setLoading(false);
-  }
-};
+        return (
+          local.product.id === server.product.id &&
+          localOption === serverOption &&
+          localValue === serverValue
+        );
+      };
 
-const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
-  try {
-    // 1. Lấy giỏ hàng từ server
-    const serverRes = await fetch(`${API_BASE_URL}/cart`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    });
+      const itemsToSync = localItems.filter((localItem) => {
+        return !serverItems.some((serverItem) => isSameItem(localItem, serverItem));
+      });
 
-    const serverItems: CartItem[] = serverRes.ok ? await serverRes.json() : [];
-
-    const isSameItem = (local: CartItem, server: CartItem) => {
-      const localOption = `${local.variant?.option1 ?? ''}-${local.variant?.option2 ?? ''}`.toLowerCase().trim();
-      const localValue = `${local.variant?.value1 ?? ''}-${local.variant?.value2 ?? ''}`.toLowerCase().trim();
-
-      const serverOption = `${server.variant?.option1 ?? ''}-${server.variant?.option2 ?? ''}`.toLowerCase().trim();
-      const serverValue = `${server.variant?.value1 ?? ''}-${server.variant?.value2 ?? ''}`.toLowerCase().trim();
-
-      return (
-        local.product.id === server.product.id &&
-        localOption === serverOption &&
-        localValue === serverValue
-      );
-    };
-
-    // 2. Lọc ra các item chưa tồn tại trên server
-    const itemsToSync = localItems.filter((localItem) => {
-      return !serverItems.some((serverItem) => isSameItem(localItem, serverItem));
-    });
-
-    // 3. Gửi từng item cần sync
-    for (const item of itemsToSync) {
-      try {
+      for (const item of itemsToSync) {
         const payload = {
           product_id: item.product.id,
           quantity: item.quantity,
@@ -154,19 +147,13 @@ const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
           const err = await res.json();
           console.error(`Sync ${item.product.name} lên API lỗi:`, err);
         }
-      } catch (err) {
-        console.error(`Lỗi khi sync ${item.product.name}:`, err);
       }
+
+      localStorage.removeItem('cart');
+    } catch (err) {
+      console.error('Lỗi khi đồng bộ giỏ hàng:', err);
     }
-
-    localStorage.removeItem('cart');
-  } catch (err) {
-    console.error('Lỗi khi đồng bộ giỏ hàng:', err);
-  }
-};
-
-
-  
+  };
 
   const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];

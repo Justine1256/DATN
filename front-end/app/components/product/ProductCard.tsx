@@ -8,6 +8,7 @@ import { FiHeart, FiShoppingCart, FiEye } from "react-icons/fi";
 import { AiFillHeart, AiFillStar } from "react-icons/ai";
 import { LoadingSkeleton } from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
+import { useWishlist } from "@/app/context/WishlistContext";
 
 export interface Product {
   id: number;
@@ -57,6 +58,8 @@ export default function ProductCard({
 }) {
 
   const router = useRouter();
+  const { addItem, removeItem } = useWishlist();
+
   const isInWishlist = product ? wishlistProductIds.includes(product.id) : false;
 
   const [liked, setLiked] = useState(isInWishlist);
@@ -89,8 +92,6 @@ export default function ProductCard({
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newLiked = !liked;
-    setLiked(newLiked);
     const token = localStorage.getItem("token") || Cookies.get("authToken");
 
     if (!token) {
@@ -99,6 +100,9 @@ export default function ProductCard({
       setTimeout(() => setShowPopup(false), 2000);
       return;
     }
+
+    const newLiked = !liked;
+    setLiked(newLiked); // UI phản hồi ngay lập tức
 
     try {
       if (newLiked) {
@@ -113,35 +117,38 @@ export default function ProductCard({
 
         if (res.status === 409) {
           setPopupMessage("Sản phẩm đã có trong danh sách yêu thích");
-          setShowPopup(true);
-          setTimeout(() => setShowPopup(false), 2000);
-          return;
+        } else if (!res.ok) {
+          throw new Error("Không thể thêm vào wishlist!");
+        } else {
+          setPopupMessage("Đã thêm vào yêu thích");
+          addItem(product);          // ✅ Cập nhật context ngay
+          onLiked?.(product);        // ✅ Gọi callback nếu có
         }
-
-        if (!res.ok) throw new Error("Không thể thêm vào wishlist!");
-
-        setPopupMessage("Đã thêm vào yêu thích");
-        onLiked?.(product);
       } else {
         const res = await fetch(`${API_BASE_URL}/wishlist/${product.id}`, {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
-        if (!res.ok) throw new Error("Không thể xóa khỏi wishlist!");
+        if (!res.ok) {
+          throw new Error("Không thể xóa khỏi wishlist!");
+        }
 
         setPopupMessage("Đã xóa khỏi yêu thích");
-        onUnlike?.(product.id);
+        removeItem(product.id);      // ✅ Cập nhật context ngay
+        onUnlike?.(product.id);      // ✅ Gọi callback nếu có
       }
     } catch (err) {
       console.error("❌ Lỗi xử lý wishlist:", err);
-      setPopupMessage("Lỗi khi xử lý yêu thích");
+      setPopupMessage("Đã xảy ra lỗi khi xử lý yêu thích");
+      setLiked(!newLiked); // Khôi phục trạng thái nếu thất bại
     } finally {
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
-
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const token = localStorage.getItem("token") || Cookies.get("authToken");

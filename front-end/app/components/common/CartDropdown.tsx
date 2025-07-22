@@ -35,10 +35,12 @@ export default function CartDropdown({ cartItems, formatImageUrl }: Props) {
                 )}
             </div>
 
-            <div className="absolute top-full right-0 mt-2 w-[360px] bg-white border border-gray-200 shadow-xl rounded-lg opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
+            <div className="absolute top-full right-0 mt-4 w-[360px] bg-white border border-gray-200 shadow-xl rounded-lg opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
+
                 <div className="p-3 border-b text-base font-semibold">Sản Phẩm Mới Thêm</div>
                 <ul className="max-h-[300px] overflow-y-auto divide-y divide-gray-100">
-                    {cartItems.slice(0, 5).map((item, index) => {
+                    {cartItems.map((item, index) => {
+
                         const price = item.product.sale_price ?? item.product.price;
                         return (
                             <li

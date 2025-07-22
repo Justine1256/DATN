@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import "@/app/globals.css";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
-import LoadingBar from "./components/common/LoadingBar";
-import Header from "./components/common/Header";
-import Footer from "./components/common/Footer";
-import FloatingTools from "./components/chat/FloatingTools";
 import { UserProvider } from "./context/UserContext";
-import { CartProvider } from "./context/CartContext"; // 👈 THÊM DÒNG NÀY
+import { CartProvider } from "./context/CartContext";
+import { WishlistProvider } from "./context/WishlistContext";
+
+import ClientWrapper from "./components/common/ClientWrapper";
 
 export const metadata: Metadata = {
   title: "Marketo",
@@ -18,7 +17,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="vi">
       <head>
-        {/* Thêm Google Font Roboto */}
         <link
           href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
           rel="stylesheet"
@@ -26,18 +24,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-roboto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
         <UserProvider>
-          <CartProvider> {/* 👈 BỌC TOÀN BỘ ỨNG DỤNG TRONG CartProvider */}
-            <LoadingBar />
-            <div id="layout" className="flex flex-col min-h-screen bg-white">
-              <Header />
-              <main className="flex-grow pt-[98px] px-4 sm:px-6 md:px-8">
-                {children}
-              </main>
-              <Footer />
-            </div>
-            <div className="fixed bottom-6 right-6 z-50">
-              <FloatingTools />
-            </div>
+          <CartProvider>
+            <WishlistProvider>
+              <ClientWrapper>{children}</ClientWrapper>
+            </WishlistProvider>
           </CartProvider>
         </UserProvider>
       </body>

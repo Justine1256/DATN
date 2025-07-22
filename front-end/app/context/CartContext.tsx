@@ -1,28 +1,31 @@
-"use client";
+'use client';
+
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import Cookies from "js-cookie";
+import axios from "axios";
 import { API_BASE_URL } from "@/utils/api";
 
+// ---------- Interfaces ----------
 interface Product {
     id: number;
     name: string;
-    image: string[];
+    image: string[] | string;
     price: number;
     sale_price?: number | null;
 }
 
 interface Variant {
     id: number;
-    option1: string;
+    option1?: string;
     option2?: string;
-    value1: string;
+    value1?: string;
     value2?: string;
     price: number;
     sale_price?: number | null;
 }
 
 export interface CartItem {
-    id: number; // cart item id (optional if from API)
+    id: number;
     quantity: number;
     product: Product;
     variant?: Variant | null;
@@ -31,59 +34,45 @@ export interface CartItem {
 interface CartContextType {
     cartItems: CartItem[];
     setCartItems: (items: CartItem[]) => void;
-    reloadCart: () => void;
+    reloadCart: () => Promise<void>;
+    removeCartItem: (itemId: number) => Promise<void>; // ✅ Thêm chức năng xóa
 }
 
+// ---------- Context ----------
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// ---------- Provider ----------
 export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
     const reloadCart = async () => {
         const token = Cookies.get("authToken");
-        if (!token) {
-            const guestCart = localStorage.getItem("cart");
-            if (guestCart) {
-                const parsedCart = JSON.parse(guestCart).map((item: any) => ({
-                    id: item.product_id,
-                    quantity: item.quantity,
-                    product: {
-                        id: item.product_id,
-                        name: item.name,
-                        image: [item.image],
-                        price: item.price,
-                        sale_price: item.sale_price ?? null,
-                    },
-                    variant: item.variant_id
-                        ? {
-                            id: item.variant_id,
-                            option1: "Phân loại 1",
-                            option2: "Phân loại 2",
-                            value1: item.value1,
-                            value2: item.value2,
-                            price: item.price,
-                            sale_price: item.sale_price ?? null,
-                        }
-                        : null,
-                }));
-                setCartItems(parsedCart);
-            } else {
-                setCartItems([]);
-            }
-            return;
-        }
+        if (!token) return setCartItems([]);
 
         try {
-            const res = await fetch(`${API_BASE_URL}/cart`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+            const res = await axios.get(`${API_BASE_URL}/cart`, {
+                headers: { Authorization: `Bearer ${token}` },
+                withCredentials: true,
             });
-            const data = await res.json();
-            setCartItems(data);
-        } catch (error) {
-            console.error("🔴 Lỗi lấy giỏ hàng:", error);
-            setCartItems([]);
+            setCartItems(res.data);
+        } catch (err) {
+            console.error("❌ Lỗi tải giỏ hàng:", err);
+        }
+    };
+
+    const removeCartItem = async (itemId: number) => {
+        const token = Cookies.get("authToken");
+        if (!token) return;
+
+        try {
+            await axios.delete(`${API_BASE_URL}/cart/${itemId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+                withCredentials: true,
+            });
+            // ✅ Cập nhật ngay UI sau khi xoá
+            setCartItems((prev) => prev.filter((item) => item.id !== itemId));
+        } catch (err) {
+            console.error("❌ Lỗi xóa sản phẩm khỏi giỏ hàng:", err);
         }
     };
 
@@ -92,13 +81,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     return (
-        <CartContext.Provider value={{ cartItems, setCartItems, reloadCart }}>
+        <CartContext.Provider value={{ cartItems, setCartItems, reloadCart, removeCartItem }}>
             {children}
         </CartContext.Provider>
     );
 };
 
-export const useCart = (): CartContextType => {
+// ---------- Hook ----------
+export const useCart = () => {
     const context = useContext(CartContext);
     if (!context) {
         throw new Error("useCart must be used within a CartProvider");
