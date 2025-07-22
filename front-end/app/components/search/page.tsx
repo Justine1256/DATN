@@ -15,9 +15,13 @@ export default function SearchPage() {
     if (!query) return;
     axios
       .get(`${API_BASE_URL}/search`, { params: { query } })
-      .then((res) => setResults(res.data))
+      .then((res) => {
+        console.log("🎯 Kết quả tìm kiếm:", res.data); // 🟢 Thêm dòng này
+        setResults(res.data);
+      })
       .catch((err) => console.error('Search error:', err));
   }, [query]);
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">

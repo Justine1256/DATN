@@ -119,6 +119,7 @@ public function toSearchableArray()
         'sold' => $this->sold,
         'status' => $this->status,  // thêm trường status
         'stock' => $this->stock,    // thêm trường stock
+         'shop_slug' => optional($this->shop)->slug,
     ];
 }
 
