@@ -13,7 +13,7 @@ const ProductListHeader = () => {
       {/* Nút & Filter */}
       <div className="flex gap-2">
         <Link
-          href="/product/create"
+          href="/shop-admin/product/create"
           className="bg-[#DC4B47] hover:bg-[#e35e59] text-white px-4 py-2 rounded-md text-sm font-medium transition duration-200"
         >
           Thêm sản phẩm 

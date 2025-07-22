@@ -161,7 +161,7 @@ export default function EditCategoryPage() {
         confirmButtonColor: "#db4444",
       });
 
-      router.push("/category"); // redirect về list
+      router.push("/shop-admin/category"); // redirect về list
     } catch (err: any) {
       if (axios.isAxiosError(err)) {
         console.error("❌ Axios error:", err.response?.data || err.message);

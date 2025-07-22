@@ -133,7 +133,7 @@ export default function EditProductPage() {
         });
       } catch (err) {
         console.error("Lỗi khi tải sản phẩm:", err);
-        router.push("/product");
+        router.push("/shop-admin/product");
       } finally {
         setLoading(false);
       }
@@ -228,6 +228,7 @@ export default function EditProductPage() {
               formValues={formValues}
               variants={variants}
               onPopup={handleShowPopup}
+              
             />
           </div>
 

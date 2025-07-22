@@ -146,7 +146,7 @@ const handleStatusChange = async () => {
             {product.status === "activated" ? <FiEyeOff /> : <FiEye />}
           </button>
           <button
-            onClick={() => router.push(`/product/${product.id}/edit`)}
+            onClick={() => router.push(`/shop-admin/product/${product.id}/edit`)}
             className="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200"
             title="Edit"
           >
