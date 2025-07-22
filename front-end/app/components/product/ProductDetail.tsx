@@ -42,7 +42,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const { reloadCart } = useCart();
   const { reloadWishlist } = useWishlist();
   const { wishlistItems } = useWishlist();
-  const { setCartItems } = useCart();
 
 
   const parseOptionValues = (value?: string | string[]): string[] => {
@@ -188,48 +187,11 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       }
 
       localStorage.setItem("cart", JSON.stringify(cart));
-
-      // Chuẩn hóa dữ liệu cart trước khi set state để tránh lỗi hoặc inconsistency
-      // Sau khi cập nhật cart localStorage xong:
-      const normalizedCart = cart.map((item: any, idx: number) => ({
-        ...item,
-        id: item.id ?? idx, // nếu chưa có id thì cấp id tạm
-        product: {
-          id: item.product_id,
-          name: item.name,
-          image: Array.isArray(item.image) ? item.image : [item.image || ''],
-          price: Number(item.price) || 0,
-          sale_price: item.sale_price ?? null,
-        },
-        variant: item.variant_id
-          ? {
-            id: item.variant_id,
-            value1: item.value1,
-            value2: item.value2,
-            price: Number(item.price) || 0,
-            sale_price: item.sale_price ?? null,
-          }
-          : null,
-        quantity: item.quantity,
-      }));
-
-      setCartItems(normalizedCart);
-
-      reloadCart?.(); // Nếu có hàm reloadCart trong context, gọi để đồng bộ lại
-
+      reloadCart(); // ✅ cập nhật context
       commonPopup(`🛒 Đã thêm "${cartItem.name}" vào giỏ hàng`);
       return;
     }
-    const formatImageUrl = (img: string | string[]): string => {
-      if (Array.isArray(img)) img = img[0];
-      if (typeof img !== 'string' || !img.trim()) {
-        return '/images/no-product-image.png'; // hoặc đường dẫn ảnh mặc định chính xác
-      }
-      if (img.startsWith('http')) return img;
-      return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
-    };
 
-    // Logic khi đã đăng nhập giữ nguyên
     const res = await fetch(`${API_BASE_URL}/cart`, {
       method: "POST",
       headers: {
@@ -246,8 +208,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       commonPopup("❌ Thêm vào giỏ hàng thất bại");
     }
   };
-
-
 
 
 
