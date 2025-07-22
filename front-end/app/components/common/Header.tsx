@@ -170,6 +170,7 @@ const Header = () => {
     })
       .then(res => {
         setNotifications(res.data);
+        console.log("Thông báo lấy về:", res.data); 
         setUnreadNotificationCount(res.data.filter((n: Notification) => n.is_read === 0).length);
       })
       .catch(err => console.error("Lỗi lấy notification:", err));

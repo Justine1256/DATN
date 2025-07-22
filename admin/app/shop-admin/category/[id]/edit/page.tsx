@@ -14,7 +14,7 @@ import { useParams, useRouter } from "next/navigation";
 interface Category {
   id: string;
   shop_id: string;
-  parent_id?: string | null;
+  parent_id: string | null;
   name: string;
   slug: string;
   description: string;

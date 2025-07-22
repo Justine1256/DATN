@@ -89,7 +89,7 @@ export default function ActionButtons({
       }
 
       onPopup("Cập nhật sản phẩm thành công", "success");
-      setTimeout(() => router.push("/product"), 2000);
+      setTimeout(() => router.push("/shop-admin/product"), 2000);
     } catch (err: any) {
       onPopup(err.message || "Đã xảy ra lỗi khi cập nhật", "error");
       console.error("Update error:", err);
