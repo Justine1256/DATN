@@ -126,14 +126,17 @@ public function store(Request $request)
 
         return response()->json(['message' => 'Xoá đánh giá thành công']);
     }
-    public function getByProduct($id)
+public function getByProduct($id)
 {
-    $reviews = Review::with(['user', 'orderDetail'])
+    $query = Review::with(['user', 'orderDetail'])
         ->whereHas('orderDetail', function ($q) use ($id) {
             $q->where('product_id', $id);
         })
-        ->orderByDesc('created_at')
-        ->get();
+        ->orderByDesc('created_at');
+
+    $reviews = $query->get();
+
+    $total = $reviews->count();
 
     $data = $reviews->map(function ($review) {
         return [
@@ -145,10 +148,13 @@ public function store(Request $request)
             'rating' => $review->rating,
             'comment' => $review->comment,
             'created_at' => $review->created_at,
-            'images' => $review->images, // 👈 từ accessor
+            'images' => $review->images, // qua accessor
         ];
     });
 
-    return response()->json(['data' => $data]);
+    return response()->json([
+        'total' => $total,
+        'data' => $data
+    ]);
 }
 }

@@ -42,7 +42,7 @@ export default function CategoryPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 9;
 
   const [currentPriceRangeValue, setCurrentPriceRangeValue] = useState<number>(50000000);
   const [filterPriceMax, setFilterPriceMax] = useState<number>(50000000);
