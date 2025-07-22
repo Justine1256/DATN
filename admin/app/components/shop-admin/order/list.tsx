@@ -1,7 +1,6 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import { Eye, Search, Download } from "lucide-react";
-import Link from "next/link";
 
 type Order = {
   id: number;
@@ -62,14 +61,15 @@ function downloadCSV(data: Order[]) {
 }
 
 export default function OrderListTable({
-  orders, loading, onStatusChange,
+  orders,
+  loading,
+  onStatusChange,
   searchTerm, setSearchTerm,
   filterStatus, setFilterStatus,
   filterPeriod, setFilterPeriod,
   filterExactDate, setFilterExactDate,
   currentPage, setCurrentPage,
-  totalPages, totalItems,
-   onViewDetail
+  onViewDetail,
 }: {
   orders: Order[];
   loading: boolean;
@@ -79,12 +79,38 @@ export default function OrderListTable({
   filterPeriod: string; setFilterPeriod: (v: string) => void;
   filterExactDate: string; setFilterExactDate: (v: string) => void;
   currentPage: number; setCurrentPage: (v: number) => void;
-  totalPages: number; totalItems: number;
-    onViewDetail: (id: number) => void;
+  onViewDetail: (id: number) => void;
 }) {
+  // === FILTER + PAGINATION LOGIC ===
+  const filteredOrders = orders
+    .filter(order =>
+      order.shipping_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.id.toString().includes(searchTerm)
+    )
+    .filter(order =>
+      !filterStatus || order.order_status === filterStatus
+    )
+    .filter(order =>
+      !filterPeriod || order.created_at.startsWith(filterPeriod)
+    )
+    .filter(order =>
+      !filterExactDate || order.created_at.slice(0, 10) === filterExactDate
+    );
+
+  const pageSize = 10;
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+  const totalPages = Math.ceil(filteredOrders.length / pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, filterPeriod, filterExactDate]);
+
   return (
     <div className="space-y-6">
-      {/* Filter */}
+      {/* FILTER */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <div className="relative">
@@ -98,36 +124,29 @@ export default function OrderListTable({
             />
           </div>
           <div className="flex flex-wrap gap-3">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className={`border rounded-xl px-4 py-3 text-sm hover:bg-gray-50 focus:border-gray-300 transition-all outline-none min-w-[160px]
-                ${filterStatus === "Pending" ? "bg-amber-50 text-amber-700 border-amber-200" : ""}
-                ${filterStatus === "Shipped" ? "bg-blue-50 text-blue-700 border-blue-200" : ""}
-                ${filterStatus === "Delivered" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}
-                ${filterStatus === "Canceled" ? "bg-red-50 text-red-700 border-red-200" : ""}
-              `}
+            <input
+              type="month"
+              value={filterPeriod}
+              onChange={(e) => setFilterPeriod(e.target.value)}
+              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none"
+            />
+            <input
+              type="date"
+              value={filterExactDate}
+              onChange={(e) => setFilterExactDate(e.target.value)}
+              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none"
+            />
+            <button
+              onClick={() => downloadCSV(filteredOrders)}
+              className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-3 rounded-xl text-sm font-medium transition-all"
             >
-              <option value="Tất cả">Tất cả trạng thái</option>
-              <option value="Pending">Đang chờ xử lý</option>
-              <option value="Shipped">Đang giao hàng</option>
-              <option value="Delivered">Đã giao hàng</option>
-              <option value="Canceled">Đã hủy</option>
-            </select>
-
-            <input type="month" value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none" />
-            <input type="date" value={filterExactDate} onChange={(e) => setFilterExactDate(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none" />
-            <button onClick={() => downloadCSV(orders)}
-              className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-3 rounded-xl text-sm font-medium transition-all">
               <Download size={16} /> Xuất CSV
             </button>
           </div>
         </div>
       </div>
 
-      {/* Table */}
+      {/* TABLE */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -141,11 +160,10 @@ export default function OrderListTable({
               <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Vận chuyển</th>
               <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[12%]">Trạng thái</th>
               <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[7%]">Chi tiết</th>
-
             </tr>
           </thead>
           <tbody>
-            {orders.map(order => (
+            {paginatedOrders.map(order => (
               <tr key={order.id} className="border-b border-gray-50 hover:bg-[#fff3f3] transition-colors">
                 <td className="py-4 px-3 font-mono text-gray-900 font-medium">#{order.id}</td>
                 <td className="py-4 px-3 text-gray-900 text-xs">{formatDateTime(order.created_at)}</td>
@@ -153,9 +171,7 @@ export default function OrderListTable({
                   {order.shipping_address}
                 </td>
                 <td className="py-4 px-3 text-right font-semibold text-gray-900">{order.final_amount.toLocaleString("vi-VN")} đ</td>
-                <td className="py-4 px-3 text-center font-medium text-gray-900">
-                  {order.total_products > 0 ? order.total_products : "-"}
-                </td>
+                <td className="py-4 px-3 text-center font-medium text-gray-900">{order.total_products > 0 ? order.total_products : "-"}</td>
                 <td className="py-4 px-3 text-center">
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                     {order.payment_method}
@@ -163,40 +179,35 @@ export default function OrderListTable({
                 </td>
                 <td className="py-4 px-3 text-center">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
-            ${shippingConfig[order.shipping_status]?.bg}
-            ${shippingConfig[order.shipping_status]?.text}
-            ${shippingConfig[order.shipping_status]?.border}`}>
-                    {shippingConfig[order.shipping_status]?.label}
+                    ${shippingConfig[order.shipping_status].bg}
+                    ${shippingConfig[order.shipping_status].text}
+                    ${shippingConfig[order.shipping_status].border}`}>
+                    {shippingConfig[order.shipping_status].label}
                   </span>
                 </td>
                 <td className="py-4 px-3 text-center">
-                  {order.order_status === "Delivered" || order.order_status === "Canceled" ? (
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
-        ${statusConfig[order.order_status]?.bg}
-        ${statusConfig[order.order_status]?.text}
-        ${statusConfig[order.order_status]?.border}`}
-                    >
-                      {statusConfig[order.order_status]?.label}
+                  {["Delivered", "Canceled"].includes(order.order_status) ? (
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
+                      ${statusConfig[order.order_status].bg}
+                      ${statusConfig[order.order_status].text}
+                      ${statusConfig[order.order_status].border}`}>
+                      {statusConfig[order.order_status].label}
                     </span>
                   ) : (
                     <select
                       value={order.order_status}
                       onChange={(e) => onStatusChange(order.id, e.target.value)}
                       className={`rounded-full border px-2 py-1 text-xs font-medium transition-all outline-none min-w-[100px]
-        ${statusConfig[order.order_status]?.bg}
-        ${statusConfig[order.order_status]?.text}
-        ${statusConfig[order.order_status]?.border}`}
+                        ${statusConfig[order.order_status].bg}
+                        ${statusConfig[order.order_status].text}
+                        ${statusConfig[order.order_status].border}`}
                     >
-                      {Object.keys(statusConfig).map(status => (
-                        <option key={status} value={status}>
-                          {statusConfig[status as keyof typeof statusConfig].label}
-                        </option>
+                      {Object.entries(statusConfig).map(([status, config]) => (
+                        <option key={status} value={status}>{config.label}</option>
                       ))}
                     </select>
                   )}
                 </td>
-
                 <td className="py-4 px-3 text-center">
                   <button
                     type="button"
@@ -206,83 +217,47 @@ export default function OrderListTable({
                     <Eye size={16} className="text-gray-600 group-hover:text-white" />
                   </button>
                 </td>
-
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div className="flex items-center justify-between p-4 text-sm text-gray-500">
-          <div>Tổng: {totalItems} đơn</div>
-          <div className="flex gap-1 items-center">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
-            >
-              «
-            </button>
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))
-              }
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
-            >
-              ‹
-            </button>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 text-sm text-gray-500">
+            <div>Tổng: {filteredOrders.length} đơn</div>
+            <div className="flex gap-1 items-center">
+              <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50">«</button>
+              <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50">‹</button>
 
-            {/* Tính các page cần hiện */}
-            {Array.from({ length: totalPages })
-              .map((_, i) => i + 1)
-              .filter(
-                page =>
-                  page === 1 ||
-                  page === totalPages ||
-                  (page >= currentPage - 1 && page <= currentPage + 1)
-              )
-              .reduce<number[]>((acc, page, i, arr) => {
-                if (i > 0 && page - arr[i - 1] > 1) acc.push(-1); // dấu ... khi cách xa
-                acc.push(page);
-                return acc;
-              }, [])
-              .map((page, i) =>
-                page === -1 ? (
-                  <span key={`dots-${i}`} className="px-2">...</span>
-                ) : (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 rounded border transition
-              ${page === currentPage
-                        ? "border-[#db4444] bg-[#db4444] text-white"
-                        : "border-gray-200 hover:border-[#db4444] hover:text-[#db4444]"}`}
-                    title={`Trang ${page}`}
-                  >
-                    {page}
-                  </button>
-                )
-              )
-            }
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(page => page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1))
+                .reduce<number[]>((acc, page, i, arr) => {
+                  if (i > 0 && page - arr[i - 1] > 1) acc.push(-1);
+                  acc.push(page);
+                  return acc;
+                }, [])
+                .map((page, i) =>
+                  page === -1 ? (
+                    <span key={`dots-${i}`} className="px-2">...</span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 rounded border transition
+                        ${page === currentPage ? "border-[#db4444] bg-[#db4444] text-white" : "border-gray-200 hover:border-[#db4444] hover:text-[#db4444]"}`}
+                      title={`Trang ${page}`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
 
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))
-}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
-            >
-              ›
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
-            >
-              »
-            </button>
+              <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50">›</button>
+              <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50">»</button>
+            </div>
           </div>
-        </div>
-
-
+        )}
       </div>
     </div>
   );

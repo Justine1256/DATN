@@ -11,6 +11,7 @@ import {
   Warehouse,
   Truck,
   Users,
+  Inbox,
   MessageSquare,
   LayoutDashboard,
   PlusCircle,
@@ -28,6 +29,14 @@ export const menu = [
     children: [
       { label: "Danh sách", href: "/shop-admin/product" },
       { label: "Thêm mới", href: "/shop-admin/product/create", icon: <PlusCircle size={14} /> },
+    ],
+  },
+  {
+    label: "Nhập hàng",
+    icon: <Inbox size={18} />,
+    children: [
+      { label: "Danh sách", href: "/shop-admin/import" },
+      { label: "Thêm đơn nhập", href: "/shop-admin/import/create", icon: <PlusCircle size={14} /> },
     ],
   },
   {
