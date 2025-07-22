@@ -1,6 +1,8 @@
 export interface Variant {
   id: number;
   product_id: number;
+  option1?: string;  // thêm
+  option2?: string;  // thêm
   value1: string;
   value2: string;
   price: string;           // vì API trả về "33000000.00" → string
