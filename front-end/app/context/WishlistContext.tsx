@@ -39,7 +39,11 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
 
     const fetchWishlist = async () => {
         const token = Cookies.get("authToken");
-        if (!token) return;
+        if (!token) {
+            // ✅ Nếu không có token (đã đăng xuất) => reset wishlist
+            setWishlistItems([]);
+            return;
+        }
 
         try {
             const res = await fetch(`${API_BASE_URL}/wishlist`, {
@@ -58,13 +62,15 @@ export const WishlistProvider = ({ children }: { children: React.ReactNode }) =>
     useEffect(() => {
         fetchWishlist();
 
-        // ✅ Lắng nghe sự kiện cập nhật từ nơi khác (ProductCard)
         const handleWishlistUpdate = () => {
             fetchWishlist();
         };
 
         window.addEventListener("wishlistUpdated", handleWishlistUpdate);
-        return () => window.removeEventListener("wishlistUpdated", handleWishlistUpdate);
+
+        return () => {
+            window.removeEventListener("wishlistUpdated", handleWishlistUpdate);
+        };
     }, []);
 
     const addItem = (product: Product) => {

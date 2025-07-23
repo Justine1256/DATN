@@ -414,7 +414,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
               <button
                 onClick={() => {
-                  handleAddToCart();
+               
                   handleBuyNow(); // Trigger buying and redirecting to cart
                 }}
                 className="w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium"

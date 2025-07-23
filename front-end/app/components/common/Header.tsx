@@ -85,7 +85,10 @@ const Header = () => {
   // State các danh mục
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
   // State giỏ hàng
+  
   const { cartItems, setCartItems, reloadCart } = useCart();
+  const [cartCount, setCartCount] = useState(0);
+
   // State thông báo
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
@@ -96,13 +99,23 @@ const Header = () => {
   const [loading, setLoading] = useState(true);
   // Lắng nghe sự kiện cập nhật giỏ hàng từ nơi khác
   useEffect(() => {
+    console.log("👂 Header đang lắng nghe sự kiện cartUpdated");
     const handleCartUpdate = () => {
+    
       reloadCart();
     };
 
     window.addEventListener("cartUpdated", handleCartUpdate);
     return () => window.removeEventListener("cartUpdated", handleCartUpdate);
   }, [reloadCart]);
+
+  useEffect(() => {
+    const total = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+    setCartCount(total); // ⚡ ép cập nhật
+  }, [cartItems]);
+
+
+
 
   // Lấy danh mục
   useEffect(() => {
@@ -157,6 +170,17 @@ const Header = () => {
       });
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const local = localStorage.getItem("cart");
+      const parsed = local ? JSON.parse(local) : [];
+      if (parsed.length !== cartItems.length) {
+        reloadCart();
+      }
+    }, 400); // 👈 kiểm tra mỗi 0.5s
+
+    return () => clearInterval(interval);
+  }, [cartItems.length]);
 
   // Lấy giỏ hàng
  
@@ -217,6 +241,8 @@ const Header = () => {
     setUnreadNotificationCount(0);
     setCartItems([]);
     router.replace("/");
+    window.dispatchEvent(new Event("wishlistUpdated"));
+
   };
 
   // Click notification
@@ -355,12 +381,20 @@ const Header = () => {
               unreadCount={unreadNotificationCount}
               onNotificationClick={handleNotificationClick}
             />
-            <div onClick={() => router.push("/cart")}>
+            <div className="relative" onClick={() => router.push("/cart")}>
               <CartDropdown
+                key={cartItems.length}
                 cartItems={cartItems}
                 formatImageUrl={formatImageUrl}
               />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                  {cartCount}
+                </span>
+              )}
+
             </div>
+
             <Link href="/wishlist" className="relative w-5 h-5 block">
               <AiOutlineHeart className="w-5 h-5 text-black hover:text-red-500 transition" />
               {wishlistItems.length > 0 && (
