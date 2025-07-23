@@ -385,7 +385,8 @@ const Header = () => {
             </div>
 
             <Link href="/wishlist" className="relative w-5 h-5 block">
-              <AiOutlineHeart className="w-5 h-5 text-black hover:text-red-500 transition" />
+              <AiOutlineHeart className="w-5 h-5 text-red-500 transition" />
+
               {wishlistItems.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
                   {wishlistItems.length}
