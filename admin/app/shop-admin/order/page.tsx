@@ -44,39 +44,21 @@ export default function ModernOrderTable() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [stats, setStats] = useState<OrderStats | null>(null);
+    const [filterStatus, setFilterStatus] = useState("Tất cả");
+    const [filterPeriod, setFilterPeriod] = useState("");
+    const [filterExactDate, setFilterExactDate] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-    const [filterStatus, setFilterStatus] = useState<"" | Order["order_status"]>("");
     const [selectedOrderDetail, setSelectedOrderDetail] = useState<{
         buyer?: any;
         products: Product[];
         shippingStatus: Order["shipping_status"];
     } | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
-
-    // NEW filter states
-    const [searchTerm, setSearchTerm] = useState("");
-    const [filterPeriod, setFilterPeriod] = useState("");
-    const [filterExactDate, setFilterExactDate] = useState("");
-
-    const handleCardClick = (status: Order["order_status"]) => {
-        setFilterStatus(status);
-    };
-
-    const filteredOrders = orders
-        .filter(order =>
-            order.shipping_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.id.toString().includes(searchTerm)
-        )
-        .filter(order =>
-            !filterStatus || order.order_status === filterStatus
-        )
-        .filter(order =>
-            !filterPeriod || order.created_at.startsWith(filterPeriod)
-        )
-        .filter(order =>
-            !filterExactDate || order.created_at.slice(0, 10) === filterExactDate
-        );
+    const [activeTab, setActiveTab] = useState("all"); // ✅ bổ sung tránh lỗi
 
     const handleExportInvoice = async () => {
         try {
@@ -115,12 +97,19 @@ export default function ModernOrderTable() {
                     Accept: "application/json",
                 },
             });
+
             const data = await res.json();
+
+            // Log the data to console for debugging
+            console.log("Fetched order statistics:", data);
+
+            // Set the stats with the fetched data
             setStats(data);
         } catch (err) {
             console.error("🚨 Failed to load order statistics:", err);
         }
     };
+
 
     const fetchOrders = async (page = 1) => {
         setLoading(true);
@@ -140,6 +129,7 @@ export default function ModernOrderTable() {
                 final_amount: Number(o.final_amount) || 0,
             }));
             setOrders(mappedOrders);
+            setTotalPages(data.pagination?.last_page || 1);
             setCurrentPage(data.pagination?.current_page || 1);
         } catch (err) {
             console.error("🚨 Failed to load orders:", err);
@@ -197,53 +187,67 @@ export default function ModernOrderTable() {
                 prev.map((o) => (o.id === id ? { ...o, order_status, shipping_status } : o))
             );
 
-            fetchStats();
+            fetchStats(); // Cập nhật lại thống kê
         } catch (err) {
             console.error("🚨 Failed to update order status:", err);
         }
     };
 
     useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    useEffect(() => {
         fetchOrders(currentPage);
         fetchStats();
     }, [currentPage]);
 
+    const filteredOrders = orders.filter((order) => {
+        const matchStatus = filterStatus === "Tất cả" || order.order_status === filterStatus;
+        const matchPeriod = filterPeriod ? order.created_at.startsWith(filterPeriod) : true;
+        const matchExactDate = filterExactDate ? order.created_at.startsWith(filterExactDate) : true;
+        const matchSearch = debouncedSearch
+            ? order.shipping_address.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            `#${order.id}`.toLowerCase().includes(debouncedSearch.toLowerCase())
+            : true;
+        return matchStatus && matchPeriod && matchExactDate && matchSearch;
+    });
+
     return (
         <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-                {stats && (
-                    <>
-                        <OrderStatusCard title="Tổng số đơn" count={stats.total_orders} icon={<ShoppingCart />} colorIndex={0} isActive={filterStatus === ""} onClick={() => setFilterStatus("")} />
-                        <OrderStatusCard title="Tổng tiền" count={stats.total_amount} icon={<Clock />} colorIndex={1} isAmount />
-                        <OrderStatusCard title="Đơn đang chờ" count={stats.pending_orders} icon={<Clock />} colorIndex={2} isActive={filterStatus === "Pending"} onClick={() => handleCardClick("Pending")} />
-                        <OrderStatusCard title="Đơn đang giao" count={stats.shipping_orders} icon={<Truck />} colorIndex={3} isActive={filterStatus === "Shipped"} onClick={() => handleCardClick("Shipped")} />
-                        <OrderStatusCard title="Đơn đã giao" count={stats.delivered_orders} icon={<CheckCircle />} colorIndex={4} isActive={filterStatus === "Delivered"} onClick={() => handleCardClick("Delivered")} />
-                        <OrderStatusCard title="Đơn đã huỷ" count={stats.canceled_orders} icon={<XCircle />} colorIndex={5} isActive={filterStatus === "Canceled"} onClick={() => handleCardClick("Canceled")} />
-                    </>
-                )}
-            </div>
+         
 
+            {/* Bảng đơn hàng */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <OrderListTable
-                        orders={orders}
+                        orders={filteredOrders}
                         loading={loading}
                         onStatusChange={handleStatusChange}
                         onViewDetail={handleViewDetail}
-                        currentPage={currentPage}
-                        setCurrentPage={setCurrentPage}
-                        filterStatus={filterStatus}
-                        setFilterStatus={setFilterStatus}
                         searchTerm={searchTerm}
                         setSearchTerm={setSearchTerm}
+                        filterStatus={filterStatus}
+                        setFilterStatus={(val) => {
+                            setFilterStatus(val);
+                            setActiveTab(val);
+                        }}
                         filterPeriod={filterPeriod}
                         setFilterPeriod={setFilterPeriod}
                         filterExactDate={filterExactDate}
                         setFilterExactDate={setFilterExactDate}
+                        currentPage={currentPage}
+                        setCurrentPage={setCurrentPage}
+                        totalPages={totalPages}
+                        totalItems={filteredOrders.length}
+                        activeTab={activeTab}         // ✅ truyền activeTab
+                        setActiveTab={setActiveTab}   // ✅ truyền setActiveTab
                     />
                 </div>
             </div>
 
+            {/* Popup chi tiết đơn hàng */}
             {isDetailOpen && selectedOrderDetail && selectedOrderId !== null && (
                 <OrderDetailView
                     isOpen={isDetailOpen}

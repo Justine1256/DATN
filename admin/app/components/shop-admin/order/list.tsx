@@ -1,6 +1,9 @@
 "use client";
-import React, { useEffect } from "react";
-import { Eye, Search, Download } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Eye, Search } from "lucide-react";
+import Link from "next/link";
+import Cookies from "js-cookie";
+import { API_BASE_URL } from "@/utils/api";
 
 type Order = {
   id: number;
@@ -13,6 +16,14 @@ type Order = {
   created_at: string;
   total_products: number;
 };
+
+const initialTabConfig = [
+  { key: "all", label: "Tất cả", count: 0, color: "bg-purple-500" },
+  { key: "Pending", label: "Đang chờ xử lý", count: 0, color: "bg-orange-500" },
+  { key: "Shipped", label: "Đang giao hàng", count: 0, color: "bg-blue-500" },
+  { key: "Delivered", label: "Đã giao hàng", count: 0, color: "bg-green-500" },
+  { key: "Canceled", label: "Đã hủy", count: 0, color: "bg-red-500" }
+];
 
 const statusConfig = {
   Pending: { label: "Đang chờ xử lý", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
@@ -37,39 +48,15 @@ function formatDateTime(datetime: string) {
   });
 }
 
-function downloadCSV(data: Order[]) {
-  const csvRows = [["Mã", "Ngày", "Địa chỉ", "Tổng", "Thanh toán", "Trạng thái", "Vận chuyển"]];
-  data.forEach(order => {
-    csvRows.push([
-      `#${order.id}`,
-      formatDateTime(order.created_at),
-      order.shipping_address.replace(/,/g, " "),
-      Number(order.final_amount).toLocaleString("vi-VN"),
-      order.payment_method,
-      order.order_status,
-      order.shipping_status
-    ]);
-  });
-  const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `orders_${Date.now()}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
 export default function OrderListTable({
-  orders,
-  loading,
-  onStatusChange,
+  orders, loading, onStatusChange,
   searchTerm, setSearchTerm,
   filterStatus, setFilterStatus,
   filterPeriod, setFilterPeriod,
   filterExactDate, setFilterExactDate,
   currentPage, setCurrentPage,
-  onViewDetail,
+  totalPages, totalItems,
+  onViewDetail
 }: {
   orders: Order[];
   loading: boolean;
@@ -79,38 +66,51 @@ export default function OrderListTable({
   filterPeriod: string; setFilterPeriod: (v: string) => void;
   filterExactDate: string; setFilterExactDate: (v: string) => void;
   currentPage: number; setCurrentPage: (v: number) => void;
+  totalPages: number; totalItems: number;
   onViewDetail: (id: number) => void;
 }) {
-  // === FILTER + PAGINATION LOGIC ===
-  const filteredOrders = orders
-    .filter(order =>
-      order.shipping_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toString().includes(searchTerm)
-    )
-    .filter(order =>
-      !filterStatus || order.order_status === filterStatus
-    )
-    .filter(order =>
-      !filterPeriod || order.created_at.startsWith(filterPeriod)
-    )
-    .filter(order =>
-      !filterExactDate || order.created_at.slice(0, 10) === filterExactDate
-    );
+  const [tabs, setTabs] = useState(initialTabConfig);
 
-  const pageSize = 10;
-  const paginatedOrders = filteredOrders.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-  const totalPages = Math.ceil(filteredOrders.length / pageSize);
+  const fetchStats = async () => {
+    try {
+      const token = Cookies.get("authToken");
+      const res = await fetch(`${API_BASE_URL}/order-statistics`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      const data = await res.json();
+
+      setTabs(prevTabs => {
+        return prevTabs.map(tab => {
+          switch (tab.key) {
+            case "all":
+              return { ...tab, count: data.total_orders };
+            case "Pending":
+              return { ...tab, count: data.pending_orders };
+            case "Shipped":
+              return { ...tab, count: data.shipping_orders };
+            case "Delivered":
+              return { ...tab, count: data.delivered_orders };
+            case "Canceled":
+              return { ...tab, count: data.canceled_orders };
+            default:
+              return tab;
+          }
+        });
+      });
+    } catch (err) {
+      console.error("Failed to load order statistics:", err);
+    }
+  };
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, filterStatus, filterPeriod, filterExactDate]);
+    fetchStats();
+  }, [orders]);
 
   return (
     <div className="space-y-6">
-      {/* FILTER */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <div className="relative">
@@ -124,114 +124,156 @@ export default function OrderListTable({
             />
           </div>
           <div className="flex flex-wrap gap-3">
-            <input
-              type="month"
-              value={filterPeriod}
-              onChange={(e) => setFilterPeriod(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none"
-            />
-            <input
-              type="date"
-              value={filterExactDate}
-              onChange={(e) => setFilterExactDate(e.target.value)}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none"
-            />
-            <button
-              onClick={() => downloadCSV(filteredOrders)}
-              className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-3 rounded-xl text-sm font-medium transition-all"
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className={`border rounded-xl px-4 py-3 text-sm hover:bg-gray-50 focus:border-gray-300 transition-all outline-none min-w-[160px]
+                ${filterStatus === "Pending" ? "bg-amber-50 text-amber-700 border-amber-200" : ""}
+                ${filterStatus === "Shipped" ? "bg-blue-50 text-blue-700 border-blue-200" : ""}
+                ${filterStatus === "Delivered" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}
+                ${filterStatus === "Canceled" ? "bg-red-50 text-red-700 border-red-200" : ""}
+                ${filterStatus === "all" ? "bg-purple-50 text-purple-700 border-purple-200" : ""}
+              `}
             >
-              <Download size={16} /> Xuất CSV
-            </button>
+              <option value="all">Tất cả trạng thái</option>
+              <option value="Pending">Đang chờ xử lý</option>
+              <option value="Shipped">Đang giao hàng</option>
+              <option value="Delivered">Đã giao hàng</option>
+              <option value="Canceled">Đã hủy</option>
+            </select>
+
+            <input type="month" value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)}
+              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none" />
+            <input type="date" value={filterExactDate} onChange={(e) => setFilterExactDate(e.target.value)}
+              className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none" />
           </div>
         </div>
       </div>
-
-      {/* TABLE */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-100">
-              <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[8%]">Mã đơn</th>
-              <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[12%]">Ngày tạo</th>
-              <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[18%]">Địa chỉ</th>
-              <th className="py-4 px-3 text-right font-semibold text-gray-700 w-[12%]">Tổng tiền</th>
-              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[8%]">Số lượng</th>
-              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Thanh toán</th>
-              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Vận chuyển</th>
-              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[12%]">Trạng thái</th>
-              <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[7%]">Chi tiết</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedOrders.map(order => (
-              <tr key={order.id} className="border-b border-gray-50 hover:bg-[#fff3f3] transition-colors">
-                <td className="py-4 px-3 font-mono text-gray-900 font-medium">#{order.id}</td>
-                <td className="py-4 px-3 text-gray-900 text-xs">{formatDateTime(order.created_at)}</td>
-                <td className="py-4 px-3 text-gray-900 truncate max-w-[160px]" title={order.shipping_address}>
-                  {order.shipping_address}
-                </td>
-                <td className="py-4 px-3 text-right font-semibold text-gray-900">{order.final_amount.toLocaleString("vi-VN")} đ</td>
-                <td className="py-4 px-3 text-center font-medium text-gray-900">{order.total_products > 0 ? order.total_products : "-"}</td>
-                <td className="py-4 px-3 text-center">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                    {order.payment_method}
-                  </span>
-                </td>
-                <td className="py-4 px-3 text-center">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
-                    ${shippingConfig[order.shipping_status].bg}
-                    ${shippingConfig[order.shipping_status].text}
-                    ${shippingConfig[order.shipping_status].border}`}>
-                    {shippingConfig[order.shipping_status].label}
-                  </span>
-                </td>
-                <td className="py-4 px-3 text-center">
-                  {["Delivered", "Canceled"].includes(order.order_status) ? (
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
-                      ${statusConfig[order.order_status].bg}
-                      ${statusConfig[order.order_status].text}
-                      ${statusConfig[order.order_status].border}`}>
-                      {statusConfig[order.order_status].label}
-                    </span>
-                  ) : (
-                    <select
-                      value={order.order_status}
-                      onChange={(e) => onStatusChange(order.id, e.target.value)}
-                      className={`rounded-full border px-2 py-1 text-xs font-medium transition-all outline-none min-w-[100px]
-                        ${statusConfig[order.order_status].bg}
-                        ${statusConfig[order.order_status].text}
-                        ${statusConfig[order.order_status].border}`}
-                    >
-                      {Object.entries(statusConfig).map(([status, config]) => (
-                        <option key={status} value={status}>{config.label}</option>
-                      ))}
-                    </select>
-                  )}
-                </td>
-                <td className="py-4 px-3 text-center">
-                  <button
-                    type="button"
-                    onClick={() => onViewDetail(order.id)}
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#db4444] hover:bg-[#db4444] hover:text-white transition-all group"
-                  >
-                    <Eye size={16} className="text-gray-600 group-hover:text-white" />
-                  </button>
-                </td>
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="flex border-b border-gray-200">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setFilterStatus(tab.key)}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${filterStatus === tab.key
+                  ? "border-blue-500 text-blue-600 bg-blue-50" // Active tab style
+                  : "border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50" // Inactive tab style
+                }`}
+            >
+              {tab.label}
+              <span className={`px-2 py-1 text-xs text-white rounded-full ${tab.color}`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[8%]">Mã đơn</th>
+                <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[12%]">Ngày tạo</th>
+                <th className="py-4 px-3 text-left font-semibold text-gray-700 w-[18%]">Địa chỉ</th>
+                <th className="py-4 px-3 text-right font-semibold text-gray-700 w-[12%]">Tổng tiền</th>
+                <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[8%]">Số lượng</th>
+                <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Thanh toán</th>
+                <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[10%]">Vận chuyển</th>
+                <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[12%]">Trạng thái</th>
+                <th className="py-4 px-3 text-center font-semibold text-gray-700 w-[7%]">Chi tiết</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {orders.map(order => (
+                <tr key={order.id} className="border-b border-gray-50 hover:bg-[#fff3f3] transition-colors">
+                  <td className="py-4 px-3 font-mono text-gray-900 font-medium">#{order.id}</td>
+                  <td className="py-4 px-3 text-gray-900 text-xs">{formatDateTime(order.created_at)}</td>
+                  <td className="py-4 px-3 text-gray-900 truncate max-w-[160px]" title={order.shipping_address}>
+                    {order.shipping_address}
+                  </td>
+                  <td className="py-4 px-3 text-right font-semibold text-gray-900">{order.final_amount.toLocaleString("vi-VN")} đ</td>
+                  <td className="py-4 px-3 text-center font-medium text-gray-900">
+                    {order.total_products > 0 ? order.total_products : "-"}
+                  </td>
+                  <td className="py-4 px-3 text-center">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                      {order.payment_method}
+                    </span>
+                  </td>
+                  <td className="py-4 px-3 text-center">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
+                      ${shippingConfig[order.shipping_status]?.bg}
+                      ${shippingConfig[order.shipping_status]?.text}
+                      ${shippingConfig[order.shipping_status]?.border}`}>
+                      {shippingConfig[order.shipping_status]?.label}
+                    </span>
+                  </td>
+                  <td className="py-4 px-3 text-center">
+                    {order.order_status === "Delivered" || order.order_status === "Canceled" ? (
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border
+                          ${statusConfig[order.order_status]?.bg}
+                          ${statusConfig[order.order_status]?.text}
+                          ${statusConfig[order.order_status]?.border}`}
+                      >
+                        {statusConfig[order.order_status]?.label}
+                      </span>
+                    ) : (
+                      <select
+                        value={order.order_status}
+                        onChange={(e) => onStatusChange(order.id, e.target.value)}
+                        className={`rounded-full border px-2 py-1 text-xs font-medium transition-all outline-none min-w-[100px]
+                          ${statusConfig[order.order_status]?.bg}
+                          ${statusConfig[order.order_status]?.text}
+                          ${statusConfig[order.order_status]?.border}`}
+                      >
+                        {Object.keys(statusConfig).map(status => (
+                          <option key={status} value={status}>
+                            {statusConfig[status as keyof typeof statusConfig].label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
+                  <td className="py-4 px-3 text-center">
+                    <button
+                      type="button"
+                      onClick={() => onViewDetail(order.id)}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 hover:border-[#db4444] hover:bg-[#db4444] hover:text-white transition-all group"
+                    >
+                      <Eye size={16} className="text-gray-600 group-hover:text-white" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
           <div className="flex items-center justify-between p-4 text-sm text-gray-500">
-            <div>Tổng: {filteredOrders.length} đơn</div>
+            <div>Tổng: {totalItems} đơn</div>
             <div className="flex gap-1 items-center">
-              <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50">«</button>
-              <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50">‹</button>
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
+              >
+                «
+              </button>
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
+              >
+                ‹
+              </button>
 
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(page => page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1))
+              {Array.from({ length: totalPages })
+                .map((_, i) => i + 1)
+                .filter(
+                  page =>
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                )
                 .reduce<number[]>((acc, page, i, arr) => {
                   if (i > 0 && page - arr[i - 1] > 1) acc.push(-1);
                   acc.push(page);
@@ -245,19 +287,34 @@ export default function OrderListTable({
                       key={page}
                       onClick={() => setCurrentPage(page)}
                       className={`px-3 py-1 rounded border transition
-                        ${page === currentPage ? "border-[#db4444] bg-[#db4444] text-white" : "border-gray-200 hover:border-[#db4444] hover:text-[#db4444]"}`}
+                        ${page === currentPage
+                          ? "border-[#db4444] bg-[#db4444] text-white"
+                          : "border-gray-200 hover:border-[#db4444] hover:text-[#db4444]"}`}
                       title={`Trang ${page}`}
                     >
                       {page}
                     </button>
                   )
-                )}
+                )
+              }
 
-              <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50">›</button>
-              <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50">»</button>
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
+              >
+                ›
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded border border-gray-200 hover:border-[#db4444] hover:text-[#db4444] disabled:opacity-50"
+              >
+                »
+              </button>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
