@@ -4,9 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useUser } from "../../context/UserContext";
-import Image from "next/image"; // Thêm import Image
+import Image from "next/image"; 
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
-import { Crown, Gem, Medal, User } from "lucide-react";
+import { Crown, Gem, Medal, User } from "lucide-react"; 
+
+// 🟢 Kiểu dữ liệu user từ server
 interface user {
   name: string;
   username: string;
@@ -18,44 +20,51 @@ interface user {
 }
 
 export default function AccountPage() {
-
   const { user, setUser } = useUser();
 
+  // 🟢 Quản lý avatar preview và file chọn mới
   const [previewAvatar, setPreviewAvatar] = useState<string>("");
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
 
+  // 🟢 Quản lý popup hiển thị thông báo
   const [popupMessage, setPopupMessage] = useState("");
   const [popupType, setPopupType] = useState<"success" | "error">("success");
   const [showPopup, setShowPopup] = useState(false);
+
+  // 🟢 Trạng thái loading & chỉnh sửa
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
-
+  // 🟡 Xác định màu nền theo rank
   const getRankBg = (rank: string) => {
     switch (rank) {
-      case 'bronze': return 'bg-[#CD7F32]';
-      case 'silver': return 'bg-[#8BA0B7]';
-      case 'gold': return 'bg-[#C9A602]';
-      case 'diamond': return 'bg-[#FFFFFF] text-[#4283FF]';
-      default: return 'bg-[#DDE9FF] text-[#517191]';
+      case "bronze": return "bg-[#CD7F32]";
+      case "silver": return "bg-[#8BA0B7]";
+      case "gold": return "bg-[#C9A602]";
+      case "diamond": return "bg-[#FFFFFF] text-[#4283FF]";
+      default: return "bg-[#DDE9FF] text-[#517191]";
     }
-  }
+  };
+
+  // 🟡 Lấy icon tương ứng với rank
   const getRankIcon = (rank: string) => {
     switch (rank) {
-      case 'bronze': return <Medal className="w-3 h-3" />;
-      case 'silver': return <Medal className="w-3 h-3" />;
-      case 'gold': return <Crown className="w-3 h-3" />;
-      case 'diamond': return <Gem className="w-3 h-3" />;
+      case "bronze": return <Medal className="w-3 h-3" />;
+      case "silver": return <Medal className="w-3 h-3" />;
+      case "gold": return <Crown className="w-3 h-3" />;
+      case "diamond": return <Gem className="w-3 h-3" />;
       default: return <User className="w-3 h-3" />;
     }
   };
 
+  // 🟢 Hiển thị popup message
   const showPopupMessage = useCallback((msg: string, type: "success" | "error") => {
     setPopupMessage(msg);
     setPopupType(type);
     setShowPopup(true);
   }, []);
 
+  // 🟢 Tự ẩn popup sau 2 giây
   useEffect(() => {
     if (showPopup) {
       const timer = setTimeout(() => setShowPopup(false), 2000);
@@ -63,6 +72,7 @@ export default function AccountPage() {
     }
   }, [showPopup]);
 
+  // 🟢 Gọi API để lấy thông tin người dùng
   const fetchUser = useCallback(async () => {
     const token = Cookies.get("authToken");
     if (!token) return setLoading(false);
@@ -71,7 +81,7 @@ export default function AccountPage() {
       const res = await axios.get(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUser(res.data); // Update user context
+      setUser(res.data);
     } catch {
       showPopupMessage("Không thể tải thông tin người dùng.", "error");
     } finally {
@@ -79,10 +89,12 @@ export default function AccountPage() {
     }
   }, [showPopupMessage]);
 
+  // 🟢 Gọi fetch khi component mount
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
+  // 🟢 Chọn file ảnh mới
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -97,23 +109,29 @@ export default function AccountPage() {
     setSelectedAvatarFile(file);
   };
 
+  // 🟢 Gửi thông tin cập nhật hồ sơ
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = Cookies.get("authToken");
     if (!token) return showPopupMessage("Chưa xác thực.", "error");
 
     if (!user.name.trim()) return showPopupMessage("Vui lòng nhập tên.", "error");
+
     const phoneRegex = /^(0|\+84)[1-9][0-9]{8}$/;
     if (!phoneRegex.test(user.phone.trim())) {
       return showPopupMessage("Số điện thoại không hợp lệ.", "error");
     }
 
     try {
+      // 🟢 Cập nhật tên + số điện thoại
       await axios.put(`${API_BASE_URL}/user`, {
         name: user.name,
         phone: user.phone,
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
+      // 🟢 Nếu có file ảnh thì upload thêm
       if (selectedAvatarFile) {
         const formData = new FormData();
         formData.append("avatar", selectedAvatarFile);
@@ -129,12 +147,13 @@ export default function AccountPage() {
       showPopupMessage("Đã cập nhật thành công!", "success");
       setIsEditing(false);
       fetchUser();
-      setPreviewAvatar(""); // Reset preview after update
+      setPreviewAvatar("");
     } catch (err: any) {
       showPopupMessage(err?.response?.data?.message || "Lỗi cập nhật!", "error");
     }
   };
 
+  // 🟢 Lấy URL ảnh đại diện (ưu tiên preview trước)
   const avatarUrl =
     previewAvatar ||
     (user?.avatar
@@ -142,6 +161,7 @@ export default function AccountPage() {
         ? user.avatar
         : `${STATIC_BASE_URL}${user.avatar.startsWith("/") ? "" : "/"}${user.avatar}`
       : "/default-avatar.jpg");
+
 
 
 

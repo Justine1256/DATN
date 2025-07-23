@@ -1,4 +1,3 @@
-// components/ProductGallery.tsx
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
@@ -6,33 +5,42 @@ import Image from 'next/image';
 import { ChevronLeft, ChevronRight, ZoomIn, X } from 'lucide-react';
 import { STATIC_BASE_URL } from '@/utils/api';
 
+// ✅ Props nhận vào từ cha
 interface ProductGalleryProps {
     images: string[];
     mainImage: string;
     setMainImage: (image: string) => void;
 }
 
+// ✅ Hàm chuẩn hóa đường dẫn ảnh
 const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];
-    if (typeof img !== 'string' || !img.trim()) {
+    if (!img || typeof img !== 'string' || !img.trim()) {
         return `${STATIC_BASE_URL}/products/default-product.png`;
     }
-    if (img.startsWith('http')) return img;
-    return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
+    return img.startsWith('http') ? img : `${STATIC_BASE_URL}/${img.replace(/^\//, '')}`;
 };
 
 export default function ProductGallery({ images, mainImage, setMainImage }: ProductGalleryProps) {
     const thumbnailRef = useRef<HTMLDivElement>(null);
     const mainImageRef = useRef<HTMLDivElement>(null);
+
+    // ✅ Trạng thái hiển thị ảnh
     const [fade, setFade] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [transitionClass, setTransitionClass] = useState('');
+
+    // ✅ Nút scroll trái/phải
     const [showLeft, setShowLeft] = useState(false);
     const [showRight, setShowRight] = useState(false);
+
+    // ✅ Phóng to ảnh
     const [showPreview, setShowPreview] = useState(false);
 
+    // ✅ Tính toán khi chọn ảnh khác
     const scrollToIndex = (index: number) => {
         if (index === currentIndex) return;
+
         const direction = index > currentIndex ? 'right' : 'left';
         setTransitionClass(direction === 'right' ? 'animate-slide-left' : 'animate-slide-right');
         setCurrentIndex(index);
@@ -49,6 +57,7 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
         scrollToIndex(newIndex);
     };
 
+    // ✅ Hiệu ứng chuyển ảnh chính
     useEffect(() => {
         setFade(false);
         const timeout = setTimeout(() => {
@@ -58,6 +67,7 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
         return () => clearTimeout(timeout);
     }, [mainImage]);
 
+    // ✅ Cập nhật trạng thái nút trái/phải
     const updateButtons = () => {
         const ref = thumbnailRef.current;
         if (!ref) return;
@@ -66,24 +76,20 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
     };
 
     const handleScrollLeft = () => {
-        if (thumbnailRef.current) {
-            thumbnailRef.current.scrollBy({ left: -120, behavior: 'smooth' });
-            setTimeout(updateButtons, 300);
-        }
+        thumbnailRef.current?.scrollBy({ left: -120, behavior: 'smooth' });
+        setTimeout(updateButtons, 300);
     };
 
     const handleScrollRight = () => {
-        if (thumbnailRef.current) {
-            thumbnailRef.current.scrollBy({ left: 120, behavior: 'smooth' });
-            setTimeout(updateButtons, 300);
-        }
+        thumbnailRef.current?.scrollBy({ left: 120, behavior: 'smooth' });
+        setTimeout(updateButtons, 300);
     };
 
+    // ✅ Kéo chuột để cuộn thumbnail
     const [isDragging, setIsDragging] = useState(false);
     const [startX, setStartX] = useState(0);
     const [scrollLeft, setScrollLeft] = useState(0);
 
-    // Handle mouse drag to scroll
     const handleMouseDown = (e: React.MouseEvent) => {
         setIsDragging(true);
         setStartX(e.clientX);
@@ -92,18 +98,16 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
 
     const handleMouseMove = (e: React.MouseEvent) => {
         if (!isDragging) return;
-        const x = e.clientX - startX;
-        thumbnailRef.current!.scrollLeft = scrollLeft - x;
+        const deltaX = e.clientX - startX;
+        if (thumbnailRef.current) {
+            thumbnailRef.current.scrollLeft = scrollLeft - deltaX;
+        }
     };
 
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
+    const handleMouseUp = () => setIsDragging(false);
+    const handleMouseLeave = () => setIsDragging(false);
 
-    const handleMouseLeave = () => {
-        setIsDragging(false);
-    };
-
+    // ✅ Theo dõi cuộn thumbnail để hiện nút scroll
     useEffect(() => {
         updateButtons();
         const ref = thumbnailRef.current;
@@ -112,6 +116,10 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
             return () => ref.removeEventListener('scroll', updateButtons);
         }
     }, [images]);
+
+    // ⬇️ JSX hiển thị ảnh sẽ được viết bên dưới
+
+
 
     return (
         <div className="flex flex-col gap-6 relative">

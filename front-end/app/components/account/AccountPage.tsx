@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-import { User } from 'lucide-react';
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
+import { User } from 'lucide-react';
 
+// ✅ Kiểu dữ liệu người dùng
 interface UserData {
   name: string;
   phone: string;
@@ -13,11 +14,13 @@ interface UserData {
   profilePicture?: string;
 }
 
+// ✅ Props: Callback khi cập nhật hồ sơ xong
 interface Props {
   onProfileUpdated?: () => void;
 }
 
 export default function AccountPage({ onProfileUpdated }: Props) {
+  // ✅ State thông tin người dùng
   const [userData, setUserData] = useState<UserData>({
     name: "",
     phone: "",
@@ -25,20 +28,27 @@ export default function AccountPage({ onProfileUpdated }: Props) {
     profilePicture: "",
   });
 
+  // ✅ Ảnh đại diện tạm để preview + file ảnh được chọn
   const [previewAvatar, setPreviewAvatar] = useState<string>("");
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
+
+  // ✅ Trạng thái popup thông báo
   const [popupMessage, setPopupMessage] = useState("");
   const [popupType, setPopupType] = useState<"success" | "error">("success");
   const [showPopup, setShowPopup] = useState(false);
+
+  // ✅ Trạng thái tải dữ liệu + chỉnh sửa
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
+  // ✅ Hiển thị popup
   const showPopupMessage = useCallback((msg: string, type: "success" | "error") => {
     setPopupMessage(msg);
     setPopupType(type);
     setShowPopup(true);
   }, []);
 
+  // ✅ Tự động ẩn popup sau 2 giây
   useEffect(() => {
     if (showPopup) {
       const timer = setTimeout(() => setShowPopup(false), 2000);
@@ -46,6 +56,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
     }
   }, [showPopup]);
 
+  // ✅ API: Lấy thông tin người dùng
   const fetchUser = useCallback(async () => {
     const token = Cookies.get("authToken");
     if (!token) return setLoading(false);
@@ -55,6 +66,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
         headers: { Authorization: `Bearer ${token}` },
       });
       const user = res.data;
+
       setUserData({
         name: user.name,
         phone: user.phone,
@@ -69,29 +81,35 @@ export default function AccountPage({ onProfileUpdated }: Props) {
     }
   }, [showPopupMessage]);
 
+  // ✅ Gọi API khi component mount
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
 
+  // ✅ Tạo URL ảnh avatar hiển thị
   const avatarUrl =
     previewAvatar ||
     (userData.profilePicture
       ? `${STATIC_BASE_URL}/${userData.profilePicture}`
       : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`);
 
+  // ✅ Khi thay đổi input text
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setUserData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ✅ Khi chọn ảnh avatar mới
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // ⚠️ Giới hạn kích thước 1MB
     if (file.size > 1024 * 1024) {
       return showPopupMessage("File vượt quá 1MB!", "error");
     }
 
+    // ✅ Hiển thị preview ảnh
     const reader = new FileReader();
     reader.onload = () => {
       setPreviewAvatar(reader.result as string);
@@ -100,22 +118,25 @@ export default function AccountPage({ onProfileUpdated }: Props) {
     setSelectedAvatarFile(file);
   };
 
+  // ✅ Submit cập nhật hồ sơ
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = Cookies.get("authToken");
     if (!token) return showPopupMessage("Chưa xác thực.", "error");
 
-    // ✅ VALIDATION BẰNG JS
+    // ✅ Kiểm tra tên không rỗng
     if (!userData.name.trim()) {
       return showPopupMessage("Vui lòng nhập họ và tên.", "error");
     }
 
+    // ✅ Regex kiểm tra định dạng số điện thoại
     const phoneRegex = /^(0|\+84)[1-9][0-9]{8}$/;
     if (!phoneRegex.test(userData.phone.trim())) {
       return showPopupMessage("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 số.", "error");
     }
 
     try {
+      // ✅ Gửi thông tin tên & số điện thoại
       await axios.put(
         `${API_BASE_URL}/user`,
         {
@@ -127,6 +148,7 @@ export default function AccountPage({ onProfileUpdated }: Props) {
         }
       );
 
+      // ✅ Nếu có chọn ảnh, gửi ảnh avatar
       if (selectedAvatarFile) {
         const formData = new FormData();
         formData.append("avatar", selectedAvatarFile);
@@ -142,22 +164,23 @@ export default function AccountPage({ onProfileUpdated }: Props) {
       }
 
       showPopupMessage("Đã cập nhật thành công!", "success");
-      onProfileUpdated?.();
+      onProfileUpdated?.(); // Callback để context bên ngoài reload lại
       setIsEditing(false);
-      fetchUser();
+      fetchUser(); // Reload lại thông tin user
     } catch (error: any) {
       console.error("Lỗi cập nhật hồ sơ:", error);
       const message = error?.response?.data?.message || "Lỗi cập nhật thông tin!";
       showPopupMessage(message, "error");
     }
   };
-  
 
+  // ✅ Class input tùy theo trạng thái disabled hay không
   const getInputClass = (enabled: boolean) =>
     `w-full p-3 text-sm rounded-md ${enabled
       ? "bg-gray-100 border border-gray-300 text-black"
       : "bg-gray-50 border border-gray-200 text-gray-600 cursor-not-allowed"
     }`;
+
 
 
 

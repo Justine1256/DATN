@@ -1,25 +1,28 @@
+'use client';
+
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 import { FiHeart } from "react-icons/fi";
 import { AiFillHeart, AiFillStar } from "react-icons/ai";
+
 import { LoadingSkeleton } from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
-import Cookies from "js-cookie";
 
-// Ensure `rating` is always a string
+// ✅ Kiểu dữ liệu sản phẩm
 export interface Product {
   id: number;
   name: string;
   image: string[];
   slug: string;
   price: number;
+  sale_price?: number;
   oldPrice?: number;
   rating: string | number;
   rating_avg?: number;
-  review_count?: number;  // Ensure rating is a string
+  review_count?: number;
   discount?: number;
-  sale_price?: number;
   shop_slug?: string;
   shop_id?: number;
   category_id?: number;
@@ -27,22 +30,22 @@ export interface Product {
   updated_at?: string;
   sold?: number;
 }
+
+// ✅ Rút gọn số (VD: 1000 => 1k)
 const formatNumberShort = (num: number): string => {
   if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
   if (num >= 1_000) return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
   return num.toString();
 };
 
+// ✅ Format URL ảnh
 const formatImageUrl = (img: unknown): string => {
   if (Array.isArray(img)) img = img[0];
   if (typeof img !== "string" || !img.trim()) {
     return `${STATIC_BASE_URL}/products/default-product.png`;
   }
-  if (img.startsWith("http")) return img;
-  return img.startsWith("/")
-    ? `${STATIC_BASE_URL}${img}`
-    : `${STATIC_BASE_URL}/${img}`;
-};
+  return img.startsWith("http") ? img : `${STATIC_BASE_URL}/${img.replace(/^\//, '')}`;
+}
 
 export default function ProductCardCate({
   product,
@@ -54,8 +57,9 @@ export default function ProductCardCate({
   wishlistProductIds?: number[];
 }) {
   const router = useRouter();
-  const isInWishlist = product ? wishlistProductIds.includes(product.id) : false;
 
+  // ✅ Xác định trạng thái yêu thích ban đầu
+  const isInWishlist = product ? wishlistProductIds.includes(product.id) : false;
   const [liked, setLiked] = useState(isInWishlist);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
@@ -64,28 +68,29 @@ export default function ProductCardCate({
     setLiked(isInWishlist);
   }, [isInWishlist, product?.id]);
 
+  // ✅ Loading nếu chưa có product
   if (!product) return <LoadingSkeleton />;
+
+  // ✅ Tính giá trị hiển thị
   const ratingValue = Number(product.rating_avg ?? 0);
   const reviewCount = product.review_count ?? 0;
-
-  const hasDiscount = !!(product.sale_price && product.sale_price > 0);
+  const salePrice = product.sale_price ?? 0;
+  const hasDiscount = salePrice > 0;
   const discountPercentage = hasDiscount
-    ? Math.round(((product.price - product.sale_price!) / product.price) * 100)
+    ? Math.round(((product.price - salePrice) / product.price) * 100)
     : 0;
+
 
   const mainImage = formatImageUrl(product.image?.[0]);
 
   const getPrice = () => {
-    if (product.sale_price && product.sale_price > 0) {
-      return new Intl.NumberFormat("vi-VN").format(product.sale_price);
-    }
-    return new Intl.NumberFormat("vi-VN").format(product.price);
+    const price = product.sale_price && product.sale_price > 0 ? product.sale_price : product.price;
+    return new Intl.NumberFormat("vi-VN").format(price);
   };
 
+  // ✅ Yêu thích sản phẩm
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newLiked = !liked;
-    setLiked(newLiked);
     const token = localStorage.getItem("token") || Cookies.get("authToken");
 
     if (!token) {
@@ -94,6 +99,9 @@ export default function ProductCardCate({
       setTimeout(() => setShowPopup(false), 2000);
       return;
     }
+
+    const newLiked = !liked;
+    setLiked(newLiked);
 
     try {
       if (newLiked) {
@@ -108,15 +116,13 @@ export default function ProductCardCate({
 
         if (res.status === 409) {
           setPopupMessage("Sản phẩm đã có trong danh sách yêu thích");
-          setShowPopup(true);
-          setTimeout(() => setShowPopup(false), 2000);
-          return;
+          setLiked(true);
+        } else if (!res.ok) {
+          throw new Error("Không thể thêm vào wishlist!");
+        } else {
+          setPopupMessage("Đã thêm vào yêu thích");
+          onLiked?.(product);
         }
-
-        if (!res.ok) throw new Error("Không thể thêm vào wishlist!");
-
-        setPopupMessage("Đã thêm vào yêu thích");
-        onLiked?.(product);
       } else {
         const res = await fetch(`${API_BASE_URL}/wishlist/${product.id}`, {
           method: "DELETE",
@@ -127,7 +133,6 @@ export default function ProductCardCate({
         });
 
         if (!res.ok) throw new Error("Không thể xóa khỏi wishlist!");
-
         setPopupMessage("Đã xóa khỏi yêu thích");
       }
     } catch (err) {
@@ -139,6 +144,7 @@ export default function ProductCardCate({
     }
   };
 
+  // ✅ Thêm vào giỏ hàng
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const token = localStorage.getItem("token") || Cookies.get("authToken");
@@ -179,11 +185,16 @@ export default function ProductCardCate({
       setTimeout(() => setShowPopup(false), 2000);
     }
   };
+
+  // ✅ Chuyển đến trang chi tiết sản phẩm
   const handleViewDetail = () => {
     const shopSlug = product.shop_slug || (product as any)?.shop?.slug;
-
     router.push(`/shop/${shopSlug}/product/${product.slug}`);
   };
+
+  // ⬇️ JSX hiển thị sản phẩm sẽ viết ở phần dưới
+
+
 
   return (
     <div
