@@ -1,11 +1,11 @@
-
 'use client';
 
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { API_BASE_URL } from '@/utils/api';
 import { useEffect, useRef, useState } from 'react';
+import { API_BASE_URL } from '@/utils/api';
 
+// ✅ Kiểu dữ liệu cho từng item trong giỏ hàng
 interface CartItem {
   id: number;
   quantity: number;
@@ -21,6 +21,7 @@ interface CartItem {
   };
 }
 
+// ✅ Body gửi lên API khi đặt hàng
 interface OrderRequestBody {
   payment_method: string;
   voucher_code: string | null;
@@ -34,6 +35,7 @@ interface OrderRequestBody {
   };
 }
 
+// ✅ Props truyền vào component
 interface Props {
   cartItems: CartItem[];
   paymentMethod: string;
@@ -58,6 +60,7 @@ export default function OrderSummary({
   manualAddressData,
   setCartItems,
 }: Props) {
+  // ✅ Trạng thái UI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -65,6 +68,7 @@ export default function OrderSummary({
   const [popupType, setPopupType] = useState<'success' | 'error' | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
 
+  // ✅ Tính toán đơn hàng
   const subtotal = cartItems.reduce((sum, item) => {
     const originalPrice = item.variant?.price ?? item.product.price;
     return sum + originalPrice * item.quantity;
@@ -79,10 +83,11 @@ export default function OrderSummary({
   }, 0);
 
   const discountedSubtotal = subtotal - promotionDiscount;
-  const shipping = 20000;
-  const voucherDiscount = 0;
+  const shipping = 20000; // phí vận chuyển cố định
+  const voucherDiscount = 0; // xử lý sau nếu cần
   const finalTotal = discountedSubtotal - voucherDiscount + shipping;
 
+  // ✅ Đặt hàng
   const handlePlaceOrder = async () => {
     if (!addressId && !manualAddressData) {
       setError('Vui lòng chọn hoặc nhập địa chỉ giao hàng.');
@@ -101,6 +106,7 @@ export default function OrderSummary({
       const token = localStorage.getItem('token') || Cookies.get('authToken');
       const isGuest = !token;
 
+      // ✅ Lấy giỏ hàng (login hoặc khách)
       let cartPayload;
       if (isGuest) {
         cartPayload = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -115,6 +121,7 @@ export default function OrderSummary({
         }));
       }
 
+      // ✅ Xử lý đặt hàng (khách hoặc đã đăng nhập)
       if (isGuest) {
         const guestPayload = {
           payment_method: paymentMethod,
@@ -134,6 +141,8 @@ export default function OrderSummary({
           payment_method: paymentMethod,
           voucher_code: voucherCode || null,
         };
+
+        // ✅ Nếu người dùng nhập địa chỉ tay
         if (manualAddressData && Object.values(manualAddressData).some((v) => v.trim() !== '')) {
           requestBody.address_manual = {
             full_name: manualAddressData.full_name,
@@ -150,6 +159,7 @@ export default function OrderSummary({
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        // ✅ Redirect đến trang thanh toán (nếu có)
         if (response.data?.redirect_url) {
           localStorage.removeItem('cart');
           setCartItems([]);
@@ -159,12 +169,14 @@ export default function OrderSummary({
         }
       }
 
+      // ✅ Đặt hàng thành công
       setSuccessMessage('Đặt hàng thành công!');
       setPopupType('success');
       setShowPopup(true);
       localStorage.removeItem('cart');
       setCartItems([]);
       window.dispatchEvent(new Event('cartUpdated'));
+
       setTimeout(() => {
         window.location.href = '/';
       }, 2500);
@@ -178,6 +190,7 @@ export default function OrderSummary({
     }
   };
 
+  // ✅ Tự động ẩn popup sau 4s
   useEffect(() => {
     if (showPopup) {
       const timer = setTimeout(() => {
@@ -188,6 +201,7 @@ export default function OrderSummary({
     }
   }, [showPopup]);
 
+  // ✅ Click ra ngoài popup để đóng
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
@@ -202,6 +216,10 @@ export default function OrderSummary({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showPopup]);
+
+  // ✅ JSX hiển thị sẽ viết phía dưới
+
+
 
   return (
     <div className="space-y-6 text-sm relative">
