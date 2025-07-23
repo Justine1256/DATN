@@ -3,21 +3,21 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AiOutlineHeart } from "react-icons/ai";
-import { FiUser, FiLogOut } from "react-icons/fi";
+import { FiUser, FiLogOut, FiSettings } from "react-icons/fi";
+import { TbBuildingStore } from "react-icons/tb";
 import Image from "next/image";
 import axios from "axios";
 import Cookies from "js-cookie";
+
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import SearchBar from "./SearchBar";
 import NotificationDropdown from "./NotificationDropdown";
 import CartDropdown from "./CartDropdown";
 import { useUser } from "../../context/UserContext";
-import { TbBuildingStore } from "react-icons/tb";
-import { FiSettings } from "react-icons/fi";
 import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
 
-// Kiểu dữ liệu thông báo
+// Interface định nghĩa kiểu dữ liệu thông báo
 interface Notification {
   id: number;
   image_url: string;
@@ -28,9 +28,7 @@ interface Notification {
   created_at: string;
 }
 
-
-// 🟡 Thêm ngay trong component Header (trước return)
-
+// 🔔 Component Popup xác nhận
 const Popup = ({
   message,
   onConfirm,
@@ -41,9 +39,7 @@ const Popup = ({
   onClose: () => void;
 }) => {
   return (
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
-    >
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       <div className="bg-white rounded-2xl px-6 py-5 max-w-lg w-[90%] sm:w-full shadow-2xl animate-fade-in-up border border-gray-300">
         <p className="text-gray-800 text-base mb-6 flex items-center gap-2">
           <span className="text-yellow-500 text-xl"></span>
@@ -71,53 +67,53 @@ const Popup = ({
   );
 };
 
-
+// 🧠 Component chính: Header
 const Header = () => {
   const router = useRouter();
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
-  const [showVoucherPopup, setShowVoucherPopup] = useState(false);
-  const { wishlistItems } = useWishlist();
-  // State người dùng
-  // const [user, setUser] = useState<{ name: string; role: string; avatar?: string } | null>(null);
+
+  // Ref dùng để kiểm tra click ngoài dropdown
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // State liên quan đến người dùng
   const { user, setUser } = useUser();
   const shopSlug = user?.shop?.slug;
-  // State các danh mục
+
+  // State cho danh mục
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
+
   // State giỏ hàng
-  
   const { cartItems, setCartItems, reloadCart } = useCart();
   const [cartCount, setCartCount] = useState(0);
+
+  // State wishlist
+  const { wishlistItems } = useWishlist();
 
   // State thông báo
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
-  // Các state khác
+
+  // State khác
   const [searchQuery, setSearchQuery] = useState("");
   const [isSticky, setIsSticky] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  // Lắng nghe sự kiện cập nhật giỏ hàng từ nơi khác
-  useEffect(() => {
-    console.log("👂 Header đang lắng nghe sự kiện cartUpdated");
-    const handleCartUpdate = () => {
-    
-      reloadCart();
-    };
+  const [showVoucherPopup, setShowVoucherPopup] = useState(false);
 
+  // 🛒 Lắng nghe sự kiện cập nhật giỏ hàng từ nơi khác
+  useEffect(() => {
+    const handleCartUpdate = () => reloadCart();
     window.addEventListener("cartUpdated", handleCartUpdate);
     return () => window.removeEventListener("cartUpdated", handleCartUpdate);
   }, [reloadCart]);
 
+  // 🧮 Tính tổng số lượng sản phẩm trong giỏ
   useEffect(() => {
     const total = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-    setCartCount(total); // ⚡ ép cập nhật
+    setCartCount(total);
   }, [cartItems]);
 
-
-
-
-  // Lấy danh mục
+  // 📦 Lấy danh mục sản phẩm
   useEffect(() => {
     fetch(`${API_BASE_URL}/category`)
       .then(res => res.json())
@@ -125,7 +121,7 @@ const Header = () => {
       .catch(err => console.error("Lỗi lấy category:", err));
   }, []);
 
-  // Lấy thông tin user
+  // 👤 Lấy thông tin người dùng (nếu có token)
   useEffect(() => {
     const token = Cookies.get("authToken");
     if (!token) return;
@@ -137,7 +133,7 @@ const Header = () => {
       .then(async (res) => {
         setUser(res.data);
 
-        // ✅ Merge localStorage cart vào server
+        // 🔄 Merge cart từ localStorage vào server
         const localCart = localStorage.getItem("cart");
         if (localCart) {
           const cart = JSON.parse(localCart);
@@ -157,10 +153,7 @@ const Header = () => {
             }
           }
 
-          // ✅ Xoá local cart sau khi merge
           localStorage.removeItem("cart");
-
-          // ✅ Cập nhật lại giỏ hàng từ server
           reloadCart?.();
         }
       })
@@ -170,6 +163,7 @@ const Header = () => {
       });
   }, []);
 
+  // 🔁 Kiểm tra đồng bộ cart giữa local và server
   useEffect(() => {
     const interval = setInterval(() => {
       const local = localStorage.getItem("cart");
@@ -177,37 +171,34 @@ const Header = () => {
       if (parsed.length !== cartItems.length) {
         reloadCart();
       }
-    }, 400); // 👈 kiểm tra mỗi 0.5s
+    }, 400); // mỗi 0.4 giây
 
     return () => clearInterval(interval);
   }, [cartItems.length]);
 
-  // Lấy giỏ hàng
- 
-
-  // Lấy thông báo
+  // 📨 Lấy danh sách thông báo
   useEffect(() => {
     const token = Cookies.get("authToken");
     if (!token) return;
+
     axios.get(`${API_BASE_URL}/notification`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => {
         setNotifications(res.data);
-        console.log("Thông báo lấy về:", res.data); 
         setUnreadNotificationCount(res.data.filter((n: Notification) => n.is_read === 0).length);
       })
       .catch(err => console.error("Lỗi lấy notification:", err));
   }, []);
 
-  // Sticky header
+  // 📌 Header sticky khi cuộn
   useEffect(() => {
     const onScroll = () => setIsSticky(window.scrollY > 50);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Đóng dropdown khi click ngoài
+  // 👂 Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -218,14 +209,14 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Định dạng ảnh sản phẩm
+  // 📷 Hàm xử lý ảnh (trả về URL đầy đủ)
   const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];
     if (!img || !img.trim()) return `${STATIC_BASE_URL}/products/default-product.png`;
     return img.startsWith('http') ? img : `${STATIC_BASE_URL}${img.startsWith('/') ? '' : '/'}${img}`;
   };
 
-  // Xử lý tìm kiếm
+  // 🔍 Xử lý tìm kiếm
   const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
     const keyword = searchQuery.trim();
@@ -233,7 +224,7 @@ const Header = () => {
     router.push(`/search?query=${encodeURIComponent(keyword)}`);
   };
 
-  // Xử lý logout
+  // 🚪 Xử lý đăng xuất
   const handleLogout = () => {
     Cookies.remove("authToken");
     setUser(null);
@@ -242,20 +233,18 @@ const Header = () => {
     setCartItems([]);
     router.replace("/");
     window.dispatchEvent(new Event("wishlistUpdated"));
-
   };
 
-  // Click notification
+  // 📨 Xử lý khi click vào thông báo
   const handleNotificationClick = async (id: number, link: string) => {
     try {
       const token = Cookies.get("authToken");
       if (token) {
-        // Gọi API đánh dấu đã đọc đúng endpoint và phương thức
         await axios.put(`${API_BASE_URL}/notification/${id}/mark-read`, null, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // Cập nhật local UI ngay lập tức
+        // ✅ Cập nhật local UI
         setNotifications(prev => {
           const updated = prev.map(n => n.id === id ? { ...n, is_read: 1 } : n);
           setUnreadNotificationCount(updated.filter(n => n.is_read === 0).length);
