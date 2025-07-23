@@ -243,10 +243,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
         <InputField label="Email" field="email" required value={formData.email} onChange={handleInputChange} disabled={disableForm} />
       </div>
 
-      <label className="flex items-center gap-2 mt-4">
-        <input type="checkbox" className="w-4 h-4" />
-        <span className="text-sm">Lưu thông tin cho lần sau</span>
-      </label>
+     
     </div>
   );
 }
