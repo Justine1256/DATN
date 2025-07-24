@@ -14,7 +14,7 @@ class CartController extends Controller
     public function index()
     {
         $userId = Auth::id();
-        $carts = Cart::with('product')
+        $carts = Cart::with('product.shop')
             ->where('user_id', $userId)
             ->where('is_active', true)
             ->get();
