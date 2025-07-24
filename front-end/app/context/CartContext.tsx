@@ -73,19 +73,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                     name: item.product?.name ?? item.name ?? '',
                     image: normalizeImage(item.product?.image ?? item.image ?? []),
                     price: Number(item.product?.price ?? item.price) || 0,
-                    sale_price: item.product?.sale_price ?? item.sale_price ?? null,
+                    sale_price: item.product?.sale_price ? Number(item.product.sale_price) : null,
                 },
-                variant: item.variant_id || item.variant?.id
+
+                variant: item.variant?.id
                     ? {
-                        id: item.variant?.id ?? item.variant_id,
-                        option1: item.variant?.option1 ?? '',
-                        option2: item.variant?.option2 ?? '',
-                        value1: item.variant?.value1 ?? '',
-                        value2: item.variant?.value2 ?? '',
-                        price: Number(item.variant?.price ?? item.price) || 0,
-                        sale_price: item.variant?.sale_price ?? item.sale_price ?? null,
+                        id: item.variant.id,
+                        option1: item.variant.option1,
+                        option2: item.variant.option2,
+                        value1: item.variant.value1,
+                        value2: item.variant.value2,
+                        price: Number(item.variant.price || 0),
+                        sale_price: item.variant.sale_price ? Number(item.variant.sale_price) : null,
                     }
                     : null,
+
             }));
             setCartItems(formattedLocal);
             return;

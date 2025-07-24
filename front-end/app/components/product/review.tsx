@@ -16,7 +16,9 @@ interface Review {
 
 export default function ProductReviews({ productId }: { productId: number }) {
     const [reviews, setReviews] = useState<Review[]>([]);
-    const [filter, setFilter] = useState<{ stars?: number; hasImage?: boolean }>({});
+    const [allReviews, setAllReviews] = useState<Review[]>([]);
+    const [filter, setFilter] = useState<{ stars?: number; hasImage?: boolean; hasComment?: boolean }>({});
+
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
@@ -44,6 +46,8 @@ export default function ProductReviews({ productId }: { productId: number }) {
                 }));
 
                 setReviews(mapped);
+                if (page === 1) setAllReviews(mapped);
+                else setAllReviews(prev => [...prev, ...mapped]);
                 setTotalPages(res.data.last_page ?? 1);
             } catch (err: any) {
                 console.error("🚨 Failed to fetch reviews:", err?.response ?? err);
@@ -61,70 +65,130 @@ export default function ProductReviews({ productId }: { productId: number }) {
 
     const filteredReviews = reviews
         .filter((r) => !filter.stars || r.rating === filter.stars)
-        .filter((r) => !filter.hasImage || r.images.length > 0);
+        .filter((r) => !filter.hasImage || r.images.length > 0)
+        .filter((r) => !filter.hasComment || (r.comment && r.comment.trim().length > 0));
+
+
+    // Tính toán thống kê sao
+    const calculateRatingStats = () => {
+        const totalReviews = allReviews.length;
+        if (totalReviews === 0) return { average: 0, distribution: [0, 0, 0, 0, 0], total: 0, withImages: 0 };
+
+        const distribution = [0, 0, 0, 0, 0]; // 1-5 sao
+        let totalRating = 0;
+        let withImages = 0;
+
+        allReviews.forEach(review => {
+            totalRating += review.rating;
+            distribution[review.rating - 1]++;
+            if (review.images.length > 0) withImages++;
+        });
+
+        const average = totalRating / totalReviews;
+        return { average, distribution: distribution.reverse(), total: totalReviews, withImages };
+    };
+
+    const stats = calculateRatingStats();
 
     return (
         <div className="mt-10 mb-12">
             {/* Title */}
             <div className="mb-6 pb-2 flex items-center">
                 <div className="w-[10px] h-[22px] bg-[#db4444] rounded-tl-sm rounded-bl-sm mr-2" />
-                <p className="font-medium text-brand text-base">Đánh giá sản phẩm</p>
+                <p className="font-medium text-[#db4444] text-base">ĐÁNH GIÁ SẢN PHẨM</p>
             </div>
 
-            {/* Card */}
-            <div className="border border-gray-200 rounded-xl shadow-sm p-6 bg-white">
-                {/* Filter */}
-                <div className="flex flex-wrap gap-2 mb-8">
-                    <button
-                        onClick={() => {
-                            setFilter({});
-                            setPage(1);
-                        }}
-                        className={`px-5 py-2.5 rounded-lg border transition-all duration-200 font-medium text-sm ${!filter.stars && !filter.hasImage
-                                ? "bg-[#db4444] text-white border-[#db4444]"
-                                : "bg-white text-gray-700 hover:bg-[#db4444] hover:text-white hover:border-[#db4444]"
-                            }`}
-                    >
-                        Tất cả
-                    </button>
-                    {[5, 4, 3, 2, 1].map((star) => (
-                        <button
-                            key={star}
-                            onClick={() => {
-                                setFilter({ stars: star });
-                                setPage(1);
-                            }}
-                            className={`px-5 py-2.5 rounded-lg border transition-all duration-200 font-medium text-sm ${filter.stars === star
-                                    ? "bg-[#db4444] text-white border-[#db4444]"
-                                    : "bg-white text-gray-700 hover:bg-[#db4444] hover:text-white hover:border-[#db4444]"
-                                }`}
-                        >
-                            {star} Sao
-                        </button>
-                    ))}
-                    <button
-                        onClick={() => {
-                            setFilter({ hasImage: true });
-                            setPage(1);
-                        }}
-                        className={`px-5 py-2.5 rounded-lg border transition-all duration-200 font-medium text-sm ${filter.hasImage
-                                ? "bg-[#db4444] text-white border-[#db4444]"
-                                : "bg-white text-gray-700 hover:bg-[#db4444] hover:text-white hover:border-[#db4444]"
-                            }`}
-                    >
-                        Có hình ảnh
-                    </button>
-                </div>
+            {/* Rating Overview + Filter - gộp chung một khối */}
+            {stats.total > 0 && (
+                <div className="bg-white rounded-lg p-6 mb-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 flex-wrap">
+                        {/* Trung bình sao */}
+                        <div className="flex items-center gap-3">
+                            <span className="text-4xl font-bold text-[#db4444]">{stats.average.toFixed(1)}</span>
+                            <span className="text-gray-600">trên 5</span>
+                            <div className="flex items-center">
+                                {Array(5).fill(0).map((_, i) => (
+                                    <span
+                                        key={i}
+                                        className={`text-xl ${i < Math.floor(stats.average) ? "text-yellow-400" : "text-gray-200"}`}
+                                    >
+                                        ★
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
 
-                {/* List */}
-                <div className="space-y-4">
+                        {/* Filter Buttons */}
+                        <div className="flex flex-wrap gap-3">
+                            <button
+                                onClick={() => {
+                                    setFilter({});
+                                    setPage(1);
+                                }}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${!filter.stars && !filter.hasImage && !filter.hasComment
+                                        ? "bg-[#db4444] text-white"
+                                        : "bg-gray-100 text-gray-700 hover:bg-[#db4444] hover:text-white"
+                                    }`}
+                            >
+                                Tất Cả
+                            </button>
+                            {[5, 4, 3, 2, 1].map((star, index) => (
+                                <button
+                                    key={star}
+                                    onClick={() => {
+                                        setFilter({ stars: star });
+                                        setPage(1);
+                                    }}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${filter.stars === star
+                                            ? "bg-[#db4444] text-white"
+                                            : "bg-gray-100 text-gray-700 hover:bg-[#db4444] hover:text-white"
+                                        }`}
+                                >
+                                    {star} Sao ({stats.distribution[index] || 0})
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => {
+                                    setFilter({ hasImage: true });
+                                    setPage(1);
+                                }}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${filter.hasImage
+                                        ? "bg-[#db4444] text-white"
+                                        : "bg-gray-100 text-gray-700 hover:bg-[#db4444] hover:text-white"
+                                    }`}
+                            >
+                                Có Hình Ảnh ({stats.withImages})
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setFilter({ hasComment: true });
+                                    setPage(1);
+                                }}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${filter.hasComment
+                                        ? "bg-[#db4444] text-white"
+                                        : "bg-gray-100 text-gray-700 hover:bg-[#db4444] hover:text-white"
+                                    }`}
+                            >
+                                Có Bình Luận ({allReviews.filter(r => r.comment?.trim().length > 0).length})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Filter Results */}
+            <div className="bg-white rounded-lg p-6">
+                <div className="space-y-6">
                     {filteredReviews.length === 0 && (
-                        <div className="text-center text-gray-500 py-8">Chưa có đánh giá nào.</div>
+                        <div className="text-center text-gray-500 py-12">
+                            <p className="text-lg">Chưa có đánh giá nào.</p>
+                        </div>
                     )}
                     {filteredReviews.map((review) => (
-                        <div key={review.id} className="bg-white border rounded-xl p-6 hover:border-gray-200 transition-all">
-                            <div className="flex items-center mb-4">
-                                <div className="w-12 h-12 rounded-full overflow-hidden mr-4 flex-shrink-0 bg-gray-100">
+                        <div key={review.id} className="bg-gray-50 rounded-lg p-6 transition-all hover:bg-gray-100">
+                            {/* User Info */}
+                            <div className="flex items-start gap-4 mb-4">
+                                <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
                                     <Image
                                         src={getImageUrl(review.user.avatar)}
                                         alt={review.user.name}
@@ -133,45 +197,46 @@ export default function ProductReviews({ productId }: { productId: number }) {
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
-                                <div className="flex-1">
-                                    <h4 className="font-semibold text-gray-900 text-base">{review.user.name}</h4>
-                                    <p className="text-sm text-gray-500 mt-0.5">
-                                        {new Date(review.created_at).toLocaleDateString("vi-VN", {
-                                            year: "numeric",
-                                            month: "long",
-                                            day: "numeric",
-                                        })}
-                                    </p>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-gray-900 text-base truncate">{review.user.name}</h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className="flex items-center">
+                                            {Array(5).fill(0).map((_, i) => (
+                                                <span
+                                                    key={i}
+                                                    className={`text-lg ${i < review.rating ? "text-yellow-400" : "text-gray-300"}`}
+                                                >
+                                                    ★
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <span className="text-sm text-gray-500">
+                                            {new Date(review.created_at).toLocaleDateString("vi-VN", {
+                                                year: "numeric",
+                                                month: "short",
+                                                day: "numeric",
+                                            })}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex items-center mb-3">
-                                {Array(5)
-                                    .fill(0)
-                                    .map((_, i) => (
-                                        <span
-                                            key={i}
-                                            className={`text-xl mr-1 ${i < review.rating ? "text-yellow-400" : "text-gray-200"}`}
-                                        >
-                                            ★
-                                        </span>
-                                    ))}
-                                <span className="ml-2 text-sm text-gray-600 font-medium">{review.rating}/5</span>
-                            </div>
-                            <p className="text-gray-700 mb-4 leading-relaxed">{review.comment}</p>
+
+                            {/* Comment */}
+                            <p className="text-gray-700 leading-relaxed mb-4">{review.comment}</p>
 
                             {/* Images */}
                             {review.images.length > 0 && (
-                                <div className="flex gap-3 flex-wrap mt-4">
+                                <div className="flex gap-2 flex-wrap">
                                     {review.images.map((img, idx) => (
                                         <div
                                             key={idx}
-                                            className="w-24 h-24 rounded-lg overflow-hidden border cursor-pointer"
+                                            className="w-20 h-20 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                                             onClick={() => setLightbox({ images: review.images, index: idx })}
                                         >
                                             <img
                                                 src={getImageUrl(img)}
                                                 alt={`review-${idx}`}
-                                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                                                className="w-full h-full object-cover"
                                             />
                                         </div>
                                     ))}
@@ -181,20 +246,20 @@ export default function ProductReviews({ productId }: { productId: number }) {
                     ))}
                 </div>
 
-                {/* Pagination – ẩn nếu chỉ có 1 trang */}
-                {totalPages > 1 && (
-                    <div className="flex justify-center items-center mt-8 gap-1">
+                {/* Pagination */}
+                {totalPages > 1 && filteredReviews.length >= 6 && (
+                    <div className="flex justify-center items-center mt-8 gap-2">
                         <button
                             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                             disabled={page === 1}
-                            className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-[#db4444] hover:text-white hover:border-[#db4444] disabled:opacity-50"
+                            className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-[#db4444] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
                         </button>
 
-                        <div className="flex items-center px-4 py-2 mx-2 bg-gray-50 rounded-lg border">
+                        <div className="flex items-center px-4 py-2 mx-3 bg-gray-100 rounded-lg">
                             <span className="text-sm font-medium text-gray-700">
                                 Trang {page} / {totalPages}
                             </span>
@@ -203,7 +268,7 @@ export default function ProductReviews({ productId }: { productId: number }) {
                         <button
                             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                             disabled={page === totalPages}
-                            className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-[#db4444] hover:text-white hover:border-[#db4444] disabled:opacity-50"
+                            className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-[#db4444] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -218,9 +283,9 @@ export default function ProductReviews({ productId }: { productId: number }) {
                 <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center">
                     <button
                         onClick={() => setLightbox(null)}
-                        className="absolute top-6 right-6 text-white text-5xl hover:scale-110 transition"
+                        className="absolute top-6 right-6 text-white text-4xl hover:scale-110 transition-transform z-10"
                     >
-                        &times;
+                        ×
                     </button>
 
                     <button
@@ -229,14 +294,14 @@ export default function ProductReviews({ productId }: { productId: number }) {
                                 prev ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length } : null
                             )
                         }
-                        className="absolute left-6 text-white text-6xl hover:scale-110 transition"
+                        className="absolute left-6 text-white text-5xl hover:scale-110 transition-transform z-10"
                     >
-                        &#8249;
+                        ‹
                     </button>
 
                     <img
                         src={getImageUrl(lightbox.images[lightbox.index])}
-                        className="max-h-[80vh] max-w-[90vw] rounded-lg shadow-2xl object-contain"
+                        className="max-h-[80vh] max-w-[90vw] rounded-lg object-contain"
                         alt="Lightbox"
                     />
 
@@ -246,12 +311,13 @@ export default function ProductReviews({ productId }: { productId: number }) {
                                 prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null
                             )
                         }
-                        className="absolute right-6 text-white text-6xl hover:scale-110 transition"
+                        className="absolute right-6 text-white text-5xl hover:scale-110 transition-transform z-10"
                     >
-                        &#8250;
+                        ›
                     </button>
                 </div>
             )}
         </div>
     );
+
 }

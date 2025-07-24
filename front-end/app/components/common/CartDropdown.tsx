@@ -13,8 +13,11 @@ interface CartItem {
     };
     variant?: {
         id: number;
+        price: number;
+        sale_price?: number | null;
     } | null;
 }
+
 
 interface Props {
     cartItems: CartItem[];
@@ -41,7 +44,13 @@ export default function CartDropdown({ cartItems, formatImageUrl }: Props) {
                 <ul className="max-h-[300px] overflow-y-auto divide-y divide-gray-100">
                     {cartItems.map((item, index) => {
 
-                        const price = item.product.sale_price ?? item.product.price;
+                        let price = item.product.price;
+                        if (item.variant) {
+                            price = (item as any).variant.sale_price ?? (item as any).variant.price ?? price;
+                        } else if (item.product.sale_price) {
+                            price = item.product.sale_price;
+                        }
+
                         return (
                             <li
                                 key={`${item.product.id}-${item.variant?.id ?? 'no-variant'}-${index}`}

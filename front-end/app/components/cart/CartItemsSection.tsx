@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import { CartItem } from './hooks/CartItem';
-
+import Link from 'next/link';
 interface Props {
   cartItems: CartItem[];
   setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
@@ -90,8 +90,10 @@ export default function CartItemsSection({
         product: {
           ...item.product,
           image: [formatImageUrl(item.product.image || 'default.jpg')],
+          shop: item.product.shop ?? {}, // ✅ phòng trường hợp shop bị null
         },
       }));
+
 
       setCartItems(formatted);
       propsSetCartItems(formatted);
@@ -222,9 +224,10 @@ export default function CartItemsSection({
 
   // ✅ Lấy giá sản phẩm ưu tiên sale_price
   const getPriceToUse = (item: CartItem) => {
-    if (item.variant) return item.variant.sale_price ?? item.variant.price ?? 0;
-    return item.product.sale_price ?? item.product.price ?? 0;
+    if (item.variant) return Number(item.variant.sale_price ?? item.variant.price ?? 0);
+    return Number(item.product.sale_price ?? item.product.price ?? 0);
   };
+
 
   // ✅ Hiển thị phân loại sản phẩm
   const renderVariant = (item: CartItem) => {
@@ -279,75 +282,83 @@ export default function CartItemsSection({
           const priceToUse = getPriceToUse(item);
 
           return (
-            <div
-              key={item.id}
-              className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] items-center bg-white p-4 shadow relative"
-            >
-              <div className="flex items-center gap-4 relative text-left">
-                <button
-                  onClick={() => handleRemove(item.id)}
-                  className="absolute -top-2 -left-2 bg-white border border-brand text-brand rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
-                  title="Xoá sản phẩm"
-                >
-                  ✕
-                </button>
+           <div
+  key={item.id}
+  className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:bg-gray-50 transition"
+>
+  {/* 🔺 Tên shop */}
+  {item.product.shop && (
+    <div className="px-4 pt-3 pb-1 text-sm text-gray-500 font-medium border-b">
+      <Link
+        href={`/shop/${item.product.shop.slug || item.product.shop.id}`}
+        className="hover:text-red-500"
+      >
+        🏪 {item.product.shop.name}
+      </Link>
+    </div>
+  )}
 
-                <div className="w-16 h-16 relative shrink-0 ml-3">
-                  <Image
-                    src={formatImageUrl(item.product.image)}
-                    alt={item.product.name}
-                    fill
-                    className="object-contain"
-                  />
+  {/* 🔻 Phần thông tin sản phẩm */}
+  <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] items-center px-4 py-3 gap-2 relative">
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-16 h-16 relative shrink-0">
+                    <Image
+                      src={formatImageUrl(item.product.image)}
+                      alt={item.product.name}
+                      fill
+                      className="object-contain rounded border"
+                    />
+                    <button
+                      onClick={() => handleRemove(item.id)}
+                      className="absolute -top-2 -left-2 bg-white border border-red-500 text-red-500 rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
+                      title="Xoá sản phẩm"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col text-sm font-medium text-black">
+                    <span>{item.product.name}</span>
+                  </div>
                 </div>
 
-                <span className="text-sm font-medium text-black">
-                  {item.product.name}
-                </span>
-              </div>
 
-              <div>{renderVariant(item)}</div>
+    <div>{renderVariant(item)}</div>
 
-              <div className="text-center text-sm text-black">
-                {item.variant?.sale_price || item.product?.sale_price ? (
-                  <div>
-                    <span className="text-red-500 font-semibold">
-                      {formatPrice(priceToUse)} đ
-                    </span>
-                    <br />
-                    <span className="line-through text-gray-400 text-xs">
-                      {formatPrice(
-                        item.variant?.price ?? item.product?.price
-                      )}{' '}
-                      đ
-                    </span>
-                  </div>
-                ) : (
-                  <span className="font-semibold">
-                    {formatPrice(priceToUse)} đ
-                  </span>
-                )}
-              </div>
+    <div className="text-center text-sm text-black">
+      {item.variant?.sale_price || item.product?.sale_price ? (
+        <div>
+          <span className="text-red-500 font-semibold">
+            {formatPrice(priceToUse)} đ
+          </span>
+          <br />
+          <span className="line-through text-gray-400 text-xs">
+            {formatPrice(item.variant?.price ?? item.product?.price)} đ
+          </span>
+        </div>
+      ) : (
+        <span className="font-semibold">{formatPrice(priceToUse)} đ</span>
+      )}
+    </div>
 
-              <div className="text-center">
-                <input
-                  type="number"
-                  min={1}
-                  value={item.quantity}
-                  onChange={(e) =>
-                    handleQuantityChange(
-                      item.id,
-                      parseInt(e.target.value || '1')
-                    )
-                  }
-                  className="w-20 px-3 py-2 border rounded-md text-center text-black"
-                />
-              </div>
+    <div className="text-center">
+      <input
+        type="number"
+        min={1}
+        value={item.quantity}
+        onChange={(e) =>
+          handleQuantityChange(item.id, parseInt(e.target.value || '1'))
+        }
+        className="w-20 px-3 py-2 border rounded-md text-center text-black"
+      />
+    </div>
 
-              <div className="text-right text-sm font-semibold text-red-500">
-                {formatPrice(priceToUse * item.quantity)} đ
-              </div>
-            </div>
+    <div className="text-right text-sm font-semibold text-red-500">
+      {formatPrice(priceToUse * item.quantity)} đ
+    </div>
+  </div>
+</div>
+
           );
         })
       )}

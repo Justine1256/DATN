@@ -92,11 +92,22 @@ const UpdateShop = () => {
             return;
         }
 
+        const token = Cookies.get("authToken");
+
+        if (!token) {
+            setPopupMessage("Bạn chưa đăng nhập.");
+            setPopupType("error");
+            setShowPopup(true);
+            setTimeout(() => setShowPopup(false), 2000);
+            return;
+        }
+
         try {
             const response = await fetch(`${API_BASE_URL}/shop/update`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify(shop),
             });

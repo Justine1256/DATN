@@ -80,7 +80,7 @@ export default function ProductDescription({ html }: ProductDescriptionProps) {
         <>
             <div className="flex items-center">
                 <div className="w-[10px] h-[22px] bg-[#db4444] rounded-tl-sm rounded-bl-sm mr-2" />
-                <p className="font-medium text-brand text-base">Thông tin sản phẩm</p>
+                <p className="font-medium text-brand text-base">THôNG TIN SẢN PHẨM</p>
             </div>
 
             <div className="border rounded-xl p-6 bg-white shadow-sm">

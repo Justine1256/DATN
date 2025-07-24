@@ -81,7 +81,7 @@ export default function ShopProductSlider({ shopSlug }: { shopSlug: string }) {
                         <div className="flex flex-col justify-center !mr-6">
                             <div className="flex items-center gap-2">
                                 <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
-                                <p className="text-brand font-semibold text-sm">Gợi ý cho bạn</p>
+                                <p className="text-brand font-semibold text-sm">GỢI Ý CHO BẠN</p>
                             </div>
                             <h2 className="text-3xl font-bold text-black mt-2">Sản phẩm của shop</h2>
                         </div>

@@ -73,6 +73,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`, { headers });
         const { data } = await res.json();
         setProduct(data);
+        console.log("🔥 Product data:", data);
+
         setMainImage(formatImageUrl(data.image[0] || ''));
 
         if (data?.id) {
@@ -141,11 +143,22 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const isFromProduct = parseOptionValues(product.value1).includes(selectedA)
     && parseOptionValues(product.value2).includes(selectedB);
 
-  // ✅ Lấy giá hiện tại
+  // ✅ Lấy giá hiện tại: Ưu tiên variant, sau đó đến product
   const getPrice = () => {
-    const price = selectedVariant?.sale_price || selectedVariant?.price || product.sale_price || product.price;
-    return Number(price).toLocaleString('vi-VN');
+    if (selectedVariant) {
+      return Number((selectedVariant.sale_price ?? selectedVariant.price) || 0).toLocaleString('vi-VN');
+    }
+
+    if (product.variants?.length > 0) {
+      const first = product.variants[0];
+      return Number((first.sale_price ?? first.price) || 0).toLocaleString('vi-VN');
+    }
+
+    return Number((product.sale_price ?? product.price) || 0).toLocaleString('vi-VN');
   };
+
+
+
 
   // ✅ Lấy tồn kho hiện tại
   const getStock = () => {
@@ -171,18 +184,20 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     const variant = product.variants.find(
       v => v.value1 === selectedA && v.value2 === selectedB
     );
-
+    const price = variant?.price ?? product.price;
+    const sale_price = variant?.sale_price ?? product.sale_price;
     const cartItem = {
       product_id: product.id,
       quantity,
       name: product.name,
       image: product.image[0],
-      price: variant?.sale_price ?? variant?.price ?? product.sale_price ?? product.price,
+      price: Number(price || 0),
+      sale_price: sale_price ? Number(sale_price) : null,
       value1: selectedA,
       value2: selectedB,
       variant_id: variant?.id || null,
-      sale_price: variant?.sale_price ?? null,
     };
+
 
     // ✅ Chưa login => dùng localStorage
     if (!token) {
