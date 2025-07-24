@@ -485,11 +485,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
       {/* Popup */}
       {showPopup && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
+        <div className="fixed top-20 right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
           {popupText ||
             (liked ? 'Đã thêm vào mục yêu thích!' : 'Đã xóa khỏi mục yêu thích!')}
         </div>
       )}
+
 
     </div>
   );

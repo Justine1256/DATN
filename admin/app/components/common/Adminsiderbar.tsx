@@ -19,48 +19,28 @@ import {
 export const menu = [
     {
         label: "Bảng điều khiển",
-        href: "/shop-admin/dashboard",
+        href: "/admin/dashboard",
         icon: <LayoutDashboard size={18} />,
     },
-    {
-        label: "Sản phẩm",
-        icon: <Package size={18} />,
-        children: [
-            { label: "Danh sách", href: "/shop-admin/product" },
-            { label: "Thêm mới", href: "/shop-admin/product/create", icon: <PlusCircle size={14} /> },
-        ],
-    },
-    {
-        label: "Danh mục",
-        icon: <Tags size={18} />,
-        children: [
-            { label: "Danh sách", href: "/shop-admin/category" },
-            { label: "Thêm mới", href: "/shop-admin/category/create", icon: <PlusCircle size={14} /> },
-        ],
-    },
-    {
-        label: "Đơn hàng",
-        icon: <Truck size={18} />,
-        children: [{ label: "Danh sách", href: "/shop-admin/order" }],
-    },
+   
     {
         label: "Quản lý shop",
         icon: <Warehouse size={18} />,
         children: [
-            { label: "Thông tin shop", href: "/shop-admin/shop/info" },
-            { label: "Chỉnh sửa shop", href: "/shop-admin/shop/update" },
-            { label: "Quản lý nhân viên", href: "/shop-admin/shop/employees" },
+            { label: "Thông tin shop", href: "/admin/shop/info" },
+            { label: "Chỉnh sửa shop", href: "/admin/shop/update" },
+            { label: "Quản lý nhân viên", href: "/admin/shop/employees" },
         ],
     },
     {
-        label: "Khách Hàng",
-        icon: <Users size={18} />,
-        href: "/shop-admin/admin/users",
+        label: "Quảng cáo",
+        icon: <MessageSquare size={18} />,
+        href: "/admin/banner",
     },
     {
         label: "Tin nhắn",
         icon: <MessageSquare size={18} />,
-        href: "/shop-admin/chat",
+        href: "/admin/chat",
     },
 ];
 

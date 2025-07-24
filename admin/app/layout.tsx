@@ -5,6 +5,7 @@ import { Roboto } from "next/font/google";
 import "./globals.css";
 import Header from "./components/common/Header";
 import ShopSidebar from "./components/common/ShopSidebar";
+import ModernAdminSidebar from "./components/common/Adminsiderbar";
 import ModernAdminHeader from "./components/common/Header";
 import { AuthProvider, useAuth } from "./AuthContext";
 
@@ -28,7 +29,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   // Xác định layout sidebar
-  const Sidebar = user.role === "admin" ? AdminSidebar : ShopSidebar;
+  const Sidebar = user.role === "admin" ? ModernAdminSidebar : ShopSidebar;
 
   return (
     <div className="flex h-screen overflow-hidden">
