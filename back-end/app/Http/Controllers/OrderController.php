@@ -78,12 +78,12 @@ class OrderController extends Controller
             return response()->json(['message' => 'Phải chọn địa chỉ có sẵn hoặc nhập địa chỉ mới'], 422);
         }
 
-$carts = Cart::query()
-    ->select(['id', 'product_id', 'variant_id', 'product_option', 'product_value', 'quantity'])
-    ->with('product')
-    ->where('user_id', $userId)
-    ->where('is_active', true)
-    ->get();
+        $carts = Cart::query()
+            ->select(['id', 'product_id', 'variant_id', 'product_option', 'product_value', 'quantity'])
+            ->with('product')
+            ->where('user_id', $userId)
+            ->where('is_active', true)
+            ->get();
         if ($carts->isEmpty()) {
             return response()->json(['message' => 'Giỏ hàng trống'], 400);
         }
@@ -160,62 +160,65 @@ $carts = Cart::query()
                 $shopTotalAmount = 0;
 
                 foreach ($shopCarts as $cart) {
-    $product = $cart->product;
+                    $product = $cart->product;
 
-    // Load variant từ DB nếu có variant_id
-    $variant = $cart->variant_id ? ProductVariant::find($cart->variant_id) : null;
+                    // Load variant từ DB nếu có variant_id
+                    $variant = $cart->variant_id ? ProductVariant::find($cart->variant_id) : null;
 
-    // Tính giá tại thời điểm
-    $priceAtTime = $variant
-        ? ($variant->sale_price ?? $variant->price)
-        : ($product->sale_price ?? $product->price);
+                    // Tính giá tại thời điểm
+                    $priceAtTime = $variant
+                        ? ($variant->sale_price ?? $variant->price)
+                        : ($product->sale_price ?? $product->price);
 
-    // Kiểm tra tồn kho
-    if ($variant) {
-        if ($cart->quantity > $variant->stock) {
-            throw new \Exception("Biến thể {$variant->value1} - {$variant->value2} không đủ kho");
-        }
-        $variant->decrement('stock', $cart->quantity);
-    } else {
-        if ($cart->quantity > $product->stock) {
-            throw new \Exception("Sản phẩm {$product->name} không đủ kho");
-        }
-        $product->decrement('stock', $cart->quantity);
-    }
+                    // Kiểm tra tồn kho
+                    if ($variant) {
+                        if ($cart->quantity > $variant->stock) {
+                            throw new \Exception("Biến thể {$variant->value1} - {$variant->value2} không đủ kho");
+                        }
+                        $variant->decrement('stock', $cart->quantity);
+                    } else {
+                        if ($cart->quantity > $product->stock) {
+                            throw new \Exception("Sản phẩm {$product->name} không đủ kho");
+                        }
+                        $product->decrement('stock', $cart->quantity);
+                    }
 
-    $shopTotalAmount += $cart->quantity * $priceAtTime;
+                    $shopTotalAmount += $cart->quantity * $priceAtTime;
+                }
+                    $order = Order::create([
+                        'user_id' => $userId,
+                        'shop_id' => $shopId,
+                        'total_amount' => $shopTotalAmount,
+                        'final_amount' => $shopTotalAmount,
+                        'payment_method' => $validated['payment_method'],
+                        'payment_status' => 'Pending',
+                        'order_status' => 'Pending',
+                        'shipping_status' => 'Pending',
+                        'shipping_address' => $fullAddress,
+                    ]);
+                      foreach ($shopCarts as $cart) {
+        $product = $cart->product;
+        $variant = $cart->variant_id ? ProductVariant::find($cart->variant_id) : null;
+        $priceAtTime = $variant
+            ? ($variant->sale_price ?? $variant->price)
+            : ($product->sale_price ?? $product->price);
 
-    $order = Order::create([
-        'user_id' => $userId,
-        'shop_id' => $shopId,
-        'total_amount' => $shopTotalAmount,
-        'final_amount' => $shopTotalAmount,
-        'payment_method' => $validated['payment_method'],
-        'payment_status' => 'Pending',
-        'order_status' => 'Pending',
-        'shipping_status' => 'Pending',
-        'shipping_address' => $fullAddress,
-    ]);
+                    // Dữ liệu biến thể từ cart hoặc fallback từ variant
+                    OrderDetail::create([
+                        'order_id'        => $order->id,
+                        'product_id'      => $product->id,
+                        'variant_id'      => $cart->variant_id ?? $variant->id ?? null,
+                        'product_option'  => $cart->product_option ?? ($variant ? "{$variant->option1} - {$variant->option2}" : null),
+                        'product_value'   => $cart->product_value ?? ($variant ? "{$variant->value1} - {$variant->value2}" : null),
+                        'price_at_time'   => $priceAtTime,
+                        'quantity'        => $cart->quantity,
+                        'subtotal'        => $cart->quantity * $priceAtTime,
+                    ]);;
 
-    // Dữ liệu biến thể từ cart hoặc fallback từ variant
-   OrderDetail::create([
-    'order_id'        => $order->id,
-    'product_id'      => $product->id,
-    'variant_id'      => $cart->variant_id ?? $variant->id ?? null,
-    'product_option'  => $cart->product_option ?? ($variant ? "{$variant->option1} - {$variant->option2}" : null),
-    'product_value'   => $cart->product_value ?? ($variant ? "{$variant->value1} - {$variant->value2}" : null),
-    'price_at_time'   => $priceAtTime,
-    'quantity'        => $cart->quantity,
-    'subtotal'        => $cart->quantity * $priceAtTime,
-]);
-;
-
-    $product->increment('sold', $cart->quantity);
-    $orders[] = $order;
-}
-
+                    $product->increment('sold', $cart->quantity);
             }
-
+            $orders[] = $order;
+        }
             Cart::where('user_id', $userId)->delete();
             DB::commit();
 
@@ -491,124 +494,124 @@ $carts = Cart::query()
             'redirect_url'  => '/cart'
         ]);
     }
-public function guestCheckout(Request $request)
-{
-    $validated = $request->validate([
-        'payment_method' => 'required|in:cod,vnpay',
-        'address_manual' => 'required|array',
-        'address_manual.full_name' => 'required|string',
-        'address_manual.address' => 'required|string',
-        'address_manual.city' => 'required|string',
-        'address_manual.phone' => 'required|string',
-        'address_manual.email' => 'required|email',
-        'cart_items' => 'required|array|min:1',
-        'cart_items.*.product_id' => 'required|integer|exists:products,id',
-        'cart_items.*.quantity' => 'required|integer|min:1',
-        'cart_items.*.price' => 'required|numeric',
-        'cart_items.*.sale_price' => 'nullable|numeric',
-        'cart_items.*.variant_id' => 'nullable|integer|exists:product_variants,id',
-    ]);
+    public function guestCheckout(Request $request)
+    {
+        $validated = $request->validate([
+            'payment_method' => 'required|in:cod,vnpay',
+            'address_manual' => 'required|array',
+            'address_manual.full_name' => 'required|string',
+            'address_manual.address' => 'required|string',
+            'address_manual.city' => 'required|string',
+            'address_manual.phone' => 'required|string',
+            'address_manual.email' => 'required|email',
+            'cart_items' => 'required|array|min:1',
+            'cart_items.*.product_id' => 'required|integer|exists:products,id',
+            'cart_items.*.quantity' => 'required|integer|min:1',
+            'cart_items.*.price' => 'required|numeric',
+            'cart_items.*.sale_price' => 'nullable|numeric',
+            'cart_items.*.variant_id' => 'nullable|integer|exists:product_variants,id',
+        ]);
 
-    $manual = $validated['address_manual'];
-    $fullAddress = "{$manual['address']}, {$manual['city']} ({$manual['full_name']} - {$manual['phone']})";
+        $manual = $validated['address_manual'];
+        $fullAddress = "{$manual['address']}, {$manual['city']} ({$manual['full_name']} - {$manual['phone']})";
 
-    DB::beginTransaction();
+        DB::beginTransaction();
 
-    try {
-        $cartItems = collect($validated['cart_items']);
+        try {
+            $cartItems = collect($validated['cart_items']);
 
-        $cartItemsByShop = $cartItems->groupBy(function ($item) {
-            $product = Product::find($item['product_id']);
-            return $product->shop_id ?? 0;
-        });
+            $cartItemsByShop = $cartItems->groupBy(function ($item) {
+                $product = Product::find($item['product_id']);
+                return $product->shop_id ?? 0;
+            });
 
-        $orders = [];
+            $orders = [];
 
-        foreach ($cartItemsByShop as $shopId => $items) {
-            $shopTotalAmount = 0;
+            foreach ($cartItemsByShop as $shopId => $items) {
+                $shopTotalAmount = 0;
 
-            $order = Order::create([
-                'user_id' => null, // guest
-                'shop_id' => $shopId,
-                'total_amount' => 0,
-                'final_amount' => 0,
-                'payment_method' => $validated['payment_method'],
-                'payment_status' => 'Pending',
-                'order_status' => 'Pending',
-                'shipping_status' => 'Pending',
-                'shipping_address' => $fullAddress,
-            ]);
-
-            foreach ($items as $item) {
-                $product = Product::findOrFail($item['product_id']);
-                $quantity = $item['quantity'];
-                $salePrice = $item['sale_price'] ?? $item['price'];
-
-                $variant = null;
-                $productOption = null;
-                $productValue = null;
-
-                if ($item['variant_id']) {
-                    $variant = ProductVariant::where('id', $item['variant_id'])
-                        ->where('product_id', $product->id)
-                        ->firstOrFail();
-
-                    if ($quantity > $variant->stock) {
-                        throw new \Exception("Biến thể {$variant->value1} - {$variant->value2} không đủ kho");
-                    }
-
-                    $variant->decrement('stock', $quantity);
-
-                    $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
-                    $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
-                } else {
-                    if ($quantity > $product->stock) {
-                        throw new \Exception("Sản phẩm {$product->name} không đủ kho");
-                    }
-                    $product->decrement('stock', $quantity);
-
-                    $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
-                    $productValue  = trim(implode(' - ', array_filter([$product->value1, $product->value2])));
-                }
-
-                $product->increment('sold', $quantity);
-
-                OrderDetail::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'variant_id' => $item['variant_id'] ?? null,
-                    'product_option' => $productOption,
-                    'product_value' => $productValue,
-                    'price_at_time' => $salePrice,
-                    'quantity' => $quantity,
-                    'subtotal' => $quantity * $salePrice,
+                $order = Order::create([
+                    'user_id' => null, // guest
+                    'shop_id' => $shopId,
+                    'total_amount' => 0,
+                    'final_amount' => 0,
+                    'payment_method' => $validated['payment_method'],
+                    'payment_status' => 'Pending',
+                    'order_status' => 'Pending',
+                    'shipping_status' => 'Pending',
+                    'shipping_address' => $fullAddress,
                 ]);
 
-                $shopTotalAmount += $quantity * $salePrice;
+                foreach ($items as $item) {
+                    $product = Product::findOrFail($item['product_id']);
+                    $quantity = $item['quantity'];
+                    $salePrice = $item['sale_price'] ?? $item['price'];
+
+                    $variant = null;
+                    $productOption = null;
+                    $productValue = null;
+
+                    if ($item['variant_id']) {
+                        $variant = ProductVariant::where('id', $item['variant_id'])
+                            ->where('product_id', $product->id)
+                            ->firstOrFail();
+
+                        if ($quantity > $variant->stock) {
+                            throw new \Exception("Biến thể {$variant->value1} - {$variant->value2} không đủ kho");
+                        }
+
+                        $variant->decrement('stock', $quantity);
+
+                        $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
+                        $productValue  = trim(implode(' - ', array_filter([$variant->value1, $variant->value2])));
+                    } else {
+                        if ($quantity > $product->stock) {
+                            throw new \Exception("Sản phẩm {$product->name} không đủ kho");
+                        }
+                        $product->decrement('stock', $quantity);
+
+                        $productOption = trim(implode(' - ', array_filter([$product->option1, $product->option2])));
+                        $productValue  = trim(implode(' - ', array_filter([$product->value1, $product->value2])));
+                    }
+
+                    $product->increment('sold', $quantity);
+
+                    OrderDetail::create([
+                        'order_id' => $order->id,
+                        'product_id' => $product->id,
+                        'variant_id' => $item['variant_id'] ?? null,
+                        'product_option' => $productOption,
+                        'product_value' => $productValue,
+                        'price_at_time' => $salePrice,
+                        'quantity' => $quantity,
+                        'subtotal' => $quantity * $salePrice,
+                    ]);
+
+                    $shopTotalAmount += $quantity * $salePrice;
+                }
+
+                $order->update([
+                    'total_amount' => $shopTotalAmount,
+                    'final_amount' => $shopTotalAmount
+                ]);
+
+                $orders[] = $order;
             }
 
-            $order->update([
-                'total_amount' => $shopTotalAmount,
-                'final_amount' => $shopTotalAmount
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Đặt hàng thành công',
+                'order_ids' => collect($orders)->pluck('id')
             ]);
-
-            $orders[] = $order;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Guest Checkout Error: ' . $e->getMessage(), [
+                'request' => $request->all()
+            ]);
+            return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
         }
-
-        DB::commit();
-
-        return response()->json([
-            'message' => 'Đặt hàng thành công',
-            'order_ids' => collect($orders)->pluck('id')
-        ]);
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        Log::error('Guest Checkout Error: ' . $e->getMessage(), [
-            'request' => $request->all()
-        ]);
-        return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
     }
-}
     public function updateOrderStatus(Request $request, $orderId)
     {
         // Validate input
