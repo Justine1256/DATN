@@ -124,23 +124,7 @@ export default function OrderListTable({
             />
           </div>
           <div className="flex flex-wrap gap-3">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className={`border rounded-xl px-4 py-3 text-sm hover:bg-gray-50 focus:border-gray-300 transition-all outline-none min-w-[160px]
-                ${filterStatus === "Pending" ? "bg-amber-50 text-amber-700 border-amber-200" : ""}
-                ${filterStatus === "Shipped" ? "bg-blue-50 text-blue-700 border-blue-200" : ""}
-                ${filterStatus === "Delivered" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : ""}
-                ${filterStatus === "Canceled" ? "bg-red-50 text-red-700 border-red-200" : ""}
-                ${filterStatus === "all" ? "bg-purple-50 text-purple-700 border-purple-200" : ""}
-              `}
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="Pending">Đang chờ xử lý</option>
-              <option value="Shipped">Đang giao hàng</option>
-              <option value="Delivered">Đã giao hàng</option>
-              <option value="Canceled">Đã hủy</option>
-            </select>
+      
 
             <input type="month" value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)}
               className="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white hover:bg-gray-50 focus:border-gray-300 transition-all outline-none" />

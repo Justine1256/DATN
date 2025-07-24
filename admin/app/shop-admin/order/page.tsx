@@ -46,7 +46,7 @@ export default function ModernOrderTable() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [stats, setStats] = useState<OrderStats | null>(null);
-    const [filterStatus, setFilterStatus] = useState("Tất cả");
+    const [filterStatus, setFilterStatus] = useState("all");
     const [filterPeriod, setFilterPeriod] = useState("");
     const [filterExactDate, setFilterExactDate] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
@@ -204,7 +204,7 @@ export default function ModernOrderTable() {
     }, [currentPage]);
 
     const filteredOrders = orders.filter((order) => {
-        const matchStatus = filterStatus === "Tất cả" || order.order_status === filterStatus;
+        const matchStatus = filterStatus === "all" || order.order_status === filterStatus;
         const matchPeriod = filterPeriod ? order.created_at.startsWith(filterPeriod) : true;
         const matchExactDate = filterExactDate ? order.created_at.startsWith(filterExactDate) : true;
         const matchSearch = debouncedSearch
@@ -240,7 +240,8 @@ export default function ModernOrderTable() {
                         currentPage={currentPage}
                         setCurrentPage={setCurrentPage}
                         totalPages={totalPages}
-                        totalItems={filteredOrders.length}
+                       totalItems={orders.length}
+
                         activeTab={activeTab}         // ✅ truyền activeTab
                         setActiveTab={setActiveTab}   // ✅ truyền setActiveTab
                     />
