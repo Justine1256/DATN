@@ -133,7 +133,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [UserController::class, 'update']);
     Route::delete('/user', [UserController::class, 'destroy']);
     Route::post('/user/avatar', [UserController::class, 'updateAvatar']);
-
+    Route::get('/admin/users', [UserController::class, 'showAllUsers']);
 
     // Cart
     Route::get('/cart', [CartController::class, 'index']);

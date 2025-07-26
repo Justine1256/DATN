@@ -22,7 +22,13 @@ export const menu = [
         href: "/admin/dashboard",
         icon: <LayoutDashboard size={18} />,
     },
-   
+   {
+        label: "Quản lý người dùng",
+        icon: <Warehouse size={18} />,
+        children: [
+            { label: "Danh sách khách hàng", href: "/admin/client" },
+        ],
+    },
     {
         label: "Quản lý shop",
         icon: <Warehouse size={18} />,

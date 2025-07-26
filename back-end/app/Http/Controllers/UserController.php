@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -98,7 +99,60 @@ public function register(Request $request)
 
     return response()->json(['message' => 'Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP.']);
 }
+    public function showAllUsers(Request $request)
+    {
+        // Query dữ liệu user + thống kê đơn hàng
+        $users = DB::table('users')
+            ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
+            ->select(
+                'users.id',
+                'users.name',
+                'users.email',
+                'users.phone',
+                'users.avatar',
+                'users.status as original_status',
+                'users.created_at as registration_date',
+                DB::raw('COUNT(orders.id) as totalOrders'),
+                DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent')
+            )
+            ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.status', 'users.created_at')
+            ->paginate(10); // hoặc ->get() nếu không phân trang
 
+        // Chuẩn hóa dữ liệu trả về
+        $data = $users->map(function ($u) {
+            // Mapping trạng thái cho frontend
+            $statusMap = [
+                'activated' => 'active',
+                'locked' => 'blocked',
+                'deactivated' => 'inactive',
+                'hidden' => 'hidden'
+            ];
+
+            return [
+                'id' => 'USR' . str_pad($u->id, 3, '0', STR_PAD_LEFT),
+                'name' => $u->name,
+                'email' => $u->email,
+                'phone' => $u->phone,
+                'status' => $statusMap[$u->original_status] ?? 'unknown',
+                'registrationDate' => date('Y-m-d', strtotime($u->registration_date)),
+                'totalOrders' => (int) $u->totalOrders,
+                'totalSpent' => (float) $u->totalSpent,
+                'avatar' => $u->avatar ?? '/placeholder.svg?height=40&width=40',
+            ];
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Danh sách người dùng',
+            'data' => $data,
+            'pagination' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ]
+        ]);
+    }
 public function verifyOtp(Request $request)
 {
     $validator = Validator::make($request->all(), [
