@@ -99,60 +99,66 @@ public function register(Request $request)
 
     return response()->json(['message' => 'Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP.']);
 }
-    public function showAllUsers(Request $request)
-    {
-        // Query dữ liệu user + thống kê đơn hàng
-        $users = DB::table('users')
-            ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
-            ->select(
-                'users.id',
-                'users.name',
-                'users.email',
-                'users.phone',
-                'users.avatar',
-                'users.status as original_status',
-                'users.created_at as registration_date',
-                DB::raw('COUNT(orders.id) as totalOrders'),
-                DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent')
-            )
-            ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.status', 'users.created_at')
-            ->paginate(10); // hoặc ->get() nếu không phân trang
+public function showAllUsers(Request $request)
+{
+    // Lấy page và per_page từ query, gán mặc định nếu không có
+    $perPage = $request->input('per_page', 10); // mặc định 10
+    $page = $request->input('page', 1);
 
-        // Chuẩn hóa dữ liệu trả về
-        $data = $users->map(function ($u) {
-            // Mapping trạng thái cho frontend
-            $statusMap = [
-                'activated' => 'active',
-                'locked' => 'blocked',
-                'deactivated' => 'inactive',
-                'hidden' => 'hidden'
-            ];
+    // Query dữ liệu user + thống kê đơn hàng
+    $query = DB::table('users')
+        ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
+        ->select(
+            'users.id',
+            'users.name',
+            'users.email',
+            'users.phone',
+            'users.avatar',
+            'users.status as original_status',
+            'users.created_at as registration_date',
+            DB::raw('COUNT(orders.id) as totalOrders'),
+            DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent')
+        )
+        ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.status', 'users.created_at');
 
-            return [
-                'id' => 'USR' . str_pad($u->id, 3, '0', STR_PAD_LEFT),
-                'name' => $u->name,
-                'email' => $u->email,
-                'phone' => $u->phone,
-                'status' => $statusMap[$u->original_status] ?? 'unknown',
-                'registrationDate' => date('Y-m-d', strtotime($u->registration_date)),
-                'totalOrders' => (int) $u->totalOrders,
-                'totalSpent' => (float) $u->totalSpent,
-                'avatar' => $u->avatar ?? '/placeholder.svg?height=40&width=40',
-            ];
-        });
+    // Phân trang thủ công với paginate
+    $users = $query->paginate($perPage, ['*'], 'page', $page);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Danh sách người dùng',
-            'data' => $data,
-            'pagination' => [
-                'current_page' => $users->currentPage(),
-                'last_page' => $users->lastPage(),
-                'per_page' => $users->perPage(),
-                'total' => $users->total(),
-            ]
-        ]);
-    }
+    // Chuẩn hóa dữ liệu trả về
+    $data = $users->map(function ($u) {
+        $statusMap = [
+            'activated' => 'active',
+            'locked' => 'blocked',
+            'deactivated' => 'inactive',
+            'hidden' => 'hidden'
+        ];
+
+        return [
+            'id' => 'USR' . str_pad($u->id, 3, '0', STR_PAD_LEFT),
+            'name' => $u->name,
+            'email' => $u->email,
+            'phone' => $u->phone,
+            'status' => $statusMap[$u->original_status] ?? 'unknown',
+            'registrationDate' => date('Y-m-d', strtotime($u->registration_date)),
+            'totalOrders' => (int) $u->totalOrders,
+            'totalSpent' => (float) $u->totalSpent,
+            'avatar' => $u->avatar ?? '/placeholder.svg?height=40&width=40',
+        ];
+    });
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Danh sách người dùng',
+        'data' => $data,
+        'pagination' => [
+            'current_page' => $users->currentPage(),
+            'last_page' => $users->lastPage(),
+            'per_page' => $users->perPage(),
+            'total' => $users->total(),
+        ]
+    ]);
+}
+
 public function verifyOtp(Request $request)
 {
     $validator = Validator::make($request->all(), [

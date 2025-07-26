@@ -48,7 +48,7 @@ interface UserData {
   name: string
   email: string
   phone: string
-  status: "active" | "blocked"
+  status: "active" | "blocked" | "inactive" | "hidden" // Thêm "inactive" | "hidden"
   registrationDate: string
   totalOrders: number
   totalSpent: number
@@ -106,7 +106,8 @@ const mockOrders: OrderData[] = [
     items: 5,
   },
 ]
-
+dayjs.extend(relativeTime);
+dayjs.locale("vi");
 // Dữ liệu mẫu cho lịch sử đăng nhập
 const mockLoginHistory: LoginHistory[] = [
   {
@@ -131,8 +132,6 @@ const mockLoginHistory: LoginHistory[] = [
     location: "Hà Nội, Việt Nam",
   },
 ]
-dayjs.extend(relativeTime);
-dayjs.locale("vi");
 
 export default function UserDetailModal({ user, visible, onClose }: UserDetailModalProps) {
   const [activeTab, setActiveTab] = useState("info")
@@ -334,8 +333,24 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                   <Col span={8}>
                     <Text strong>Trạng thái:</Text>
                     <br />
-                    <Tag color={user.status === "active" ? "green" : "red"}>
-                      {user.status === "active" ? "Hoạt động" : "Bị khóa"}
+                    <Tag
+                      color={
+                        user.status === "active"
+                          ? "green"
+                          : user.status === "blocked"
+                            ? "red"
+                            : user.status === "inactive"
+                              ? "gray"
+                              : "orange"
+                      }
+                    >
+                      {user.status === "active"
+                        ? "Hoạt động"
+                        : user.status === "blocked"
+                          ? "Bị khóa"
+                          : user.status === "inactive"
+                            ? "Không hoạt động"
+                            : "Ẩn"}
                     </Tag>
                   </Col>
                   <Col span={8}>
@@ -537,8 +552,24 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
         <Space>
           <Avatar src={user.avatar} icon={<UserOutlined />} />
           <span>Chi tiết người dùng - {user.name}</span>
-          <Tag color={user.status === "active" ? "green" : "red"}>
-            {user.status === "active" ? "Hoạt động" : "Bị khóa"}
+          <Tag
+            color={
+              user.status === "active"
+                ? "green"
+                : user.status === "blocked"
+                  ? "red"
+                  : user.status === "inactive"
+                    ? "gray"
+                    : "orange"
+            }
+          >
+            {user.status === "active"
+              ? "Hoạt động"
+              : user.status === "blocked"
+                ? "Bị khóa"
+                : user.status === "inactive"
+                  ? "Không hoạt động"
+                  : "Ẩn"}
           </Tag>
         </Space>
       }
