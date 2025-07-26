@@ -134,6 +134,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [UserController::class, 'update']);
     Route::delete('/user', [UserController::class, 'destroy']);
     Route::post('/user/avatar', [UserController::class, 'updateAvatar']);
+
+    // Admin
     Route::get('/admin/users', [UserController::class, 'showAllUsers']);
     Route::get('/admin/shops', [ShopController::class, 'showAllShops']);
     Route::post('/admin/apply', [ShopController::class, 'applyShop']);

@@ -105,36 +105,36 @@ public function showAllUsers(Request $request)
     $page = $request->input('page', 1);
 
     $users = DB::table('users')
-    ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
-    ->leftJoin('shops', 'users.id', '=', 'shops.user_id')
-    ->leftJoin(DB::raw('(
-        SELECT shop_id, COUNT(id) as totalReports,
-               GROUP_CONCAT(DISTINCT reason ORDER BY created_at DESC SEPARATOR " | ") as reportReasons,
-               GROUP_CONCAT(DISTINCT created_at ORDER BY created_at DESC SEPARATOR " | ") as reportDates
-        FROM reports
-        GROUP BY shop_id
-    ) as report_data'), 'users.id', '=', 'report_data.shop_id')
-    ->select(
-        'users.id',
-        'users.name',
-        'users.email',
-        'users.phone',
-        'users.avatar',
-        'users.role',
-        'users.status as original_status',
-        'users.created_at as registration_date',
-        'shops.logo as shop_logo',
-        DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
-        DB::raw("IFNULL(SUM(CASE WHEN orders.order_status = 'Delivered' AND orders.payment_status = 'Completed' THEN orders.final_amount ELSE 0 END), 0) as totalSpent"),
-        DB::raw("SUM(CASE WHEN orders.order_status = 'Canceled' THEN 1 ELSE 0 END) as canceledOrders"),
-        DB::raw('IFNULL(report_data.totalReports, 0) as totalReports'),
-        DB::raw('report_data.reportReasons'),
-        DB::raw('report_data.reportDates')
-    )
-    ->whereNotIn('users.role', ['admin', 'seller'])
-    ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.role', 'users.status', 'users.created_at', 'shops.logo', 'report_data.totalReports', 'report_data.reportReasons', 'report_data.reportDates')
-    ->paginate($perPage, ['*'], 'page', $page);
-
+        ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
+        ->leftJoin('shops', 'users.id', '=', 'shops.user_id')
+        ->leftJoin(DB::raw('(
+            SELECT shop_id, COUNT(id) as totalReports,
+                   GROUP_CONCAT(DISTINCT reason ORDER BY created_at DESC SEPARATOR " | ") as reportReasons,
+                   GROUP_CONCAT(DISTINCT created_at ORDER BY created_at DESC SEPARATOR " | ") as reportDates
+            FROM reports
+            GROUP BY shop_id
+        ) as report_data'), 'users.id', '=', 'report_data.shop_id')
+        ->select(
+            'users.id',
+            'users.name',
+            'users.email',
+            'users.phone',
+            'users.avatar',
+            'users.role',
+            'users.status as original_status',
+            'users.created_at as registration_date',
+            'shops.logo as shop_logo',
+            DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
+            DB::raw("IFNULL(SUM(CASE WHEN orders.order_status = 'Delivered' AND orders.payment_status = 'Completed' THEN orders.final_amount ELSE 0 END), 0) as totalSpent"),
+            // ✅ Chỉ tính đơn bị hủy bởi Customer
+            DB::raw("SUM(CASE WHEN orders.order_status = 'Canceled' AND orders.canceled_by = 'Customer' THEN 1 ELSE 0 END) as canceledOrders"),
+            DB::raw('IFNULL(report_data.totalReports, 0) as totalReports'),
+            DB::raw('report_data.reportReasons'),
+            DB::raw('report_data.reportDates')
+        )
+        ->whereNotIn('users.role', ['admin', 'seller'])
+        ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.role', 'users.status', 'users.created_at', 'shops.logo', 'report_data.totalReports', 'report_data.reportReasons', 'report_data.reportDates')
+        ->paginate($perPage, ['*'], 'page', $page);
 
     $users->getCollection()->transform(function ($u) {
         $statusMap = [
@@ -144,7 +144,7 @@ public function showAllUsers(Request $request)
             'hidden' => 'hidden'
         ];
 
-        // Cảnh báo số đơn hủy
+        // ✅ Cảnh báo chỉ dựa vào đơn hàng bị hủy bởi Customer
         $cancelLevel = 'normal';
         $cancelColor = 'green';
         if ($u->canceledOrders >= 10) {
@@ -155,19 +155,17 @@ public function showAllUsers(Request $request)
             $cancelColor = 'yellow';
         }
 
-        // ✅ Chọn avatar: user_avatar hoặc shop_logo
-
         return [
             'id' => 'USR' . str_pad($u->id, 3, '0', STR_PAD_LEFT),
             'name' => $u->name,
             'email' => $u->email,
             'phone' => $u->phone,
-            'role' => $u->role, // ✅ trả về role
+            'role' => $u->role,
             'status' => $statusMap[$u->original_status] ?? 'unknown',
             'registrationDate' => date('Y-m-d', strtotime($u->registration_date)),
             'totalOrders' => (int)$u->totalOrders,
             'totalSpent' => (float)$u->totalSpent,
-            'canceledOrders' => (int)$u->canceledOrders,
+            'canceledOrders' => (int)$u->canceledOrders, // ✅ Chỉ đơn bị hủy bởi Customer
             'cancelStatus' => [
                 'level' => $cancelLevel,
                 'color' => $cancelColor
@@ -193,6 +191,7 @@ public function showAllUsers(Request $request)
         ]
     ]);
 }
+
 
 
 public function verifyOtp(Request $request)
