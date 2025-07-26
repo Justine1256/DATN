@@ -296,7 +296,7 @@ public function showAllShops(Request $request)
             'users.email as owner_email',
             'users.avatar as owner_avatar',
             DB::raw('(SELECT COUNT(*) FROM products WHERE products.shop_id = shops.id) as totalProducts'),
-            DB::raw('(SELECT COUNT(*) FROM orders WHERE orders.shop_id = shops.id) as totalOrders'),
+            DB::raw('(SELECT COUNT(*) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalOrders'),
             DB::raw('(SELECT IFNULL(SUM(final_amount), 0) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalRevenue')
         )
         ->get();
@@ -342,6 +342,7 @@ public function showAllShops(Request $request)
         'data' => $sortedData
     ]);
 }
+
 
 
 

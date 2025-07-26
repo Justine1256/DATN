@@ -74,7 +74,7 @@ export default function OrderListTable({
   const fetchStats = async () => {
     try {
       const token = Cookies.get("authToken");
-      const res = await fetch(`${API_BASE_URL}/order-statistics`, {
+      const res = await fetch(`${API_BASE_URL}/order-admin-statistics`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",

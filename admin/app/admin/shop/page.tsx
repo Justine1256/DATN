@@ -168,7 +168,7 @@ const ShopDetailModal: React.FC<{
             <p>
               <strong>Trạng thái:</strong>
               <Tag color={shop.status === "activated" ? "green" : shop.status === "hidden" ? "orange" : "red"}>
-                {shop.status === "activated" ? "Hoạt động" : shop.status === "hidden" ? "Ẩn" : "Bị khóa"}
+                {shop.status === "activated" ? "Hoạt động" : shop.status === "hidden" ? " Đã ẩn" : "Đã khóa"}
               </Tag>
             </p>
             <p>
@@ -313,7 +313,7 @@ export default function ShopManagementPage() {
 
   // Actions with authentication
   const handleBlockShop = async (shopId: string, currentStatus: string) => {
-    const newStatus = currentStatus === "blocked" ? "activated" : "blocked"
+    const newStatus = currentStatus === "blocked" || currentStatus === "locked" ? "activated" : "blocked"
     const actionText = newStatus === "blocked" ? "khóa" : "mở khóa"
 
     confirm({
@@ -440,8 +440,8 @@ export default function ShopManagementPage() {
     },
     {
       key: "block",
-      icon: record.status === "blocked" ? <UnlockOutlined /> : <LockOutlined />,
-      label: record.status === "blocked" ? "Mở khóa shop" : "Khóa shop",
+      icon: record.status === "blocked" || record.status === "locked" ? <UnlockOutlined /> : <LockOutlined />,
+      label: record.status === "blocked" || record.status === "locked" ? "Mở khóa shop" : "Khóa shop",
       onClick: () => handleBlockShop(record.id, record.status),
     },
     {
@@ -548,8 +548,9 @@ export default function ShopManagementPage() {
       render: (status: string, record) => {
         const statusConfig = {
           activated: { color: "green", text: "Hoạt động" },
-          hidden: { color: "orange", text: "Ẩn" },
-          blocked: { color: "red", text: "Bị khóa" },
+          hidden: { color: "orange", text: "Đã ẩn" },
+          blocked: { color: "red", text: "Đã khóa" },
+          locked: { color: "red", text: "Đã khóa" },
         }
         const config = statusConfig[status as keyof typeof statusConfig] || { color: "default", text: status }
         return (
@@ -566,8 +567,9 @@ export default function ShopManagementPage() {
       },
       filters: [
         { text: "Hoạt động", value: "activated" },
-        { text: "Ẩn", value: "hidden" },
-        { text: "Bị khóa", value: "blocked" },
+        { text: "Đã ẩn", value: "hidden" },
+        { text: "Đã khóa", value: "blocked" },
+        { text: "Đã khóa", value: "locked" },
       ],
       onFilter: (value: boolean | React.Key, record: ShopData) => {
         return record.status === String(value)
@@ -669,7 +671,7 @@ export default function ShopManagementPage() {
   const stats = useMemo(() => {
     const total = filteredData.length
     const activated = filteredData.filter((s) => s.status === "activated").length
-    const blocked = filteredData.filter((s) => s.status === "blocked").length
+    const blocked = filteredData.filter((s) => s.status === "blocked" || s.status === "locked").length
     const hidden = filteredData.filter((s) => s.status === "hidden").length
     const verified = filteredData.filter((s) => s.isVerified).length
     const totalRevenue = filteredData.reduce((sum, shop) => sum + shop.totalRevenue, 0)
@@ -700,7 +702,7 @@ export default function ShopManagementPage() {
           <Card size="small">
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "24px", fontWeight: "bold", color: "#f5222d" }}>{stats.blocked}</div>
-              <div>Bị khóa</div>
+              <div>Đã khóa</div>
             </div>
           </Card>
         </Col>
@@ -738,8 +740,8 @@ export default function ShopManagementPage() {
             <Select placeholder="Trạng thái" value={statusFilter} onChange={setStatusFilter} style={{ width: "100%" }}>
               <Option value="all">Tất cả trạng thái</Option>
               <Option value="activated">Hoạt động</Option>
-              <Option value="hidden">Ẩn</Option>
-              <Option value="blocked">Bị khóa</Option>
+              <Option value="hidden">Đã ẩn</Option>
+              <Option value="locked">Đã khóa</Option>
             </Select>
           </Col>
           <Col xs={24} sm={24} md={14}>
