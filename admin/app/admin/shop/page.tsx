@@ -35,6 +35,7 @@ import {
   DollarOutlined,
   UserOutlined,
   PhoneOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons"
 import type { ColumnsType } from "antd/es/table"
 import type { MenuProps } from "antd"
@@ -168,7 +169,7 @@ const ShopDetailModal: React.FC<{
             <p>
               <strong>Trạng thái:</strong>
               <Tag color={shop.status === "activated" ? "green" : shop.status === "hidden" ? "orange" : "red"}>
-                {shop.status === "activated" ? "Hoạt động" : shop.status === "hidden" ? " Đã ẩn" : "Đã khóa"}
+                {shop.status === "activated" ? "Hoạt động" : shop.status === "hidden" ? "Đã ẩn" : "Đã khóa"}
               </Tag>
             </p>
             <p>
@@ -431,12 +432,64 @@ export default function ShopManagementPage() {
     })
   }
 
+  const handleApproveShop = async (shopId: string, shopName: string, isVerified: boolean) => {
+    if (isVerified) {
+      message.info("Shop này đã được phê duyệt rồi")
+      return
+    }
+
+    confirm({
+      title: "Xác nhận phê duyệt shop",
+      content: `Bạn có chắc chắn muốn phê duyệt shop "${shopName}"?`,
+      okText: "Phê duyệt",
+      onOk: async () => {
+        try {
+          setActionLoading(shopId)
+
+          // Call API to approve shop
+          const result = await apiCall(`https://api.marketo.info.vn/api/admin/apply`, {
+            method: "PATCH",
+            body: JSON.stringify({ shop_id: Number.parseInt(shopId) }),
+          })
+
+          if (result.status) {
+            // Update local state
+            setAllShops((prevShops) =>
+              prevShops.map((shop) => (shop.id === shopId ? { ...shop, isVerified: true } : shop)),
+            )
+            message.success("Phê duyệt shop thành công")
+          } else {
+            message.error(result.message || "Lỗi khi phê duyệt shop")
+          }
+        } catch (error) {
+          console.error("Error approving shop:", error)
+          if (
+            error instanceof Error &&
+            error.message !== "No authentication token" &&
+            error.message !== "Authentication failed"
+          ) {
+            message.error("Lỗi khi phê duyệt shop")
+          }
+        } finally {
+          setActionLoading(null)
+        }
+      },
+    })
+  }
+
   const getActionItems = (record: ShopData): MenuProps["items"] => [
     {
       key: "view",
       icon: <EyeOutlined />,
       label: "Xem chi tiết",
       onClick: () => showShopDetail(record),
+    },
+    {
+      key: "approve",
+      icon: <CheckCircleOutlined />,
+      label: record.isVerified ? "Đã phê duyệt" : "Phê duyệt shop",
+      disabled: record.isVerified,
+      onClick: () => handleApproveShop(record.id, record.name, record.isVerified),
     },
     {
       key: "block",
@@ -556,12 +609,19 @@ export default function ShopManagementPage() {
         return (
           <div>
             <Tag color={config.color}>{config.text}</Tag>
-            {record.isVerified && (
-              <div style={{ marginTop: 2 }}>
-                <CheckCircleOutlined style={{ color: "#1890ff", fontSize: "12px" }} />
-                <span style={{ fontSize: "11px", marginLeft: 2 }}>Đã xác minh</span>
-              </div>
-            )}
+            <div style={{ marginTop: 2 }}>
+              {record.isVerified ? (
+                <>
+                  <CheckCircleOutlined style={{ color: "#1890ff", fontSize: "12px" }} />
+                  <span style={{ fontSize: "11px", marginLeft: 2 }}>Đã xác minh</span>
+                </>
+              ) : (
+                <>
+                  <CloseCircleOutlined style={{ color: "#ff4d4f", fontSize: "12px" }} />
+                  <span style={{ fontSize: "11px", marginLeft: 2 }}>Chưa xác minh</span>
+                </>
+              )}
+            </div>
           </div>
         )
       },
@@ -741,6 +801,7 @@ export default function ShopManagementPage() {
               <Option value="all">Tất cả trạng thái</Option>
               <Option value="activated">Hoạt động</Option>
               <Option value="hidden">Đã ẩn</Option>
+              <Option value="blocked">Đã khóa</Option>
               <Option value="locked">Đã khóa</Option>
             </Select>
           </Col>
@@ -774,7 +835,7 @@ export default function ShopManagementPage() {
             }}
             size="middle"
             rowClassName={(record) => {
-              if (record.status === "blocked") return "blocked-row"
+              if (record.status === "blocked" || record.status === "locked") return "blocked-row"
               return ""
             }}
           />

@@ -35,7 +35,7 @@ export const menu = [
         icon: <Warehouse size={18} />,
         children: [
             { label: "Danh sách cửa hàng", href: "/admin/shop" },
-            { label: "Chỉnh sửa shop", href: "/admin/shop/update" },
+            { label: "Phê duyệt cửa hàng", href: "/admin/shop/apply" },
             { label: "Quản lý nhân viên", href: "/admin/shop/employees" },
         ],
     },
