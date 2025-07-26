@@ -156,9 +156,6 @@ public function showAllUsers(Request $request)
         }
 
         // ✅ Chọn avatar: user_avatar hoặc shop_logo
-        $avatar = $u->role === 'seller'
-            ? ($u->shop_logo ?? '/placeholder.svg?height=40&width=40')
-            : ($u->user_avatar ?? '/placeholder.svg?height=40&width=40');
 
         return [
             'id' => 'USR' . str_pad($u->id, 3, '0', STR_PAD_LEFT),
@@ -175,7 +172,7 @@ public function showAllUsers(Request $request)
                 'level' => $cancelLevel,
                 'color' => $cancelColor
             ],
-            'avatar' => $avatar,
+            'avatar' => $u->name,
             'reports' => [
                 'total' => (int)$u->totalReports,
                 'reasons' => $u->reportReasons ? explode(' | ', $u->reportReasons) : [],
