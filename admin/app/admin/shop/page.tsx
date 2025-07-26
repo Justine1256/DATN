@@ -36,9 +36,12 @@ import {
   UserOutlined,
   PhoneOutlined,
   CloseCircleOutlined,
+  WarningOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons"
 import type { ColumnsType } from "antd/es/table"
 import type { MenuProps } from "antd"
+import ShopDetailModal from "./modal/ShopDetailModal"
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -52,6 +55,11 @@ interface ShopOwner {
   avatar?: string
 }
 
+interface WarningStatus {
+  level: string
+  color: string
+}
+
 interface ShopData {
   id: string
   name: string
@@ -63,6 +71,8 @@ interface ShopData {
   totalProducts: number
   totalOrders: number
   totalRevenue: number
+  totalReports: number
+  warningStatus: WarningStatus
   address: string
   isVerified: boolean
   rating: number
@@ -129,121 +139,12 @@ const apiCall = async (url: string, options: RequestInit = {}) => {
   return response.json()
 }
 
-// Simple ShopDetailModal component
-const ShopDetailModal: React.FC<{
-  shop: ShopData
-  visible: boolean
-  onClose: () => void
-  onRefresh: () => void
-  onUpdateShop: (shop: ShopData) => void
-}> = ({ shop, visible, onClose, onRefresh, onUpdateShop }) => {
-  return (
-    <Modal
-      title={
-        <Space>
-          <Avatar src={shop.logo} icon={<ShopOutlined />} />
-          {shop.name}
-          {shop.isVerified && <CheckCircleOutlined style={{ color: "#1890ff" }} />}
-        </Space>
-      }
-      open={visible}
-      onCancel={onClose}
-      footer={null}
-      width={800}
-    >
-      <Row gutter={16}>
-        <Col span={12}>
-          <Card title="Thông tin shop" size="small">
-            <p>
-              <strong>ID:</strong> {shop.id}
-            </p>
-            <p>
-              <strong>Tên:</strong> {shop.name}
-            </p>
-            <p>
-              <strong>Mô tả:</strong> {shop.description}
-            </p>
-            <p>
-              <strong>Địa chỉ:</strong> {shop.address}
-            </p>
-            <p>
-              <strong>Trạng thái:</strong>
-              <Tag color={shop.status === "activated" ? "green" : shop.status === "hidden" ? "orange" : "red"}>
-                {shop.status === "activated" ? "Hoạt động" : shop.status === "hidden" ? "Đã ẩn" : "Đã khóa"}
-              </Tag>
-            </p>
-            <p>
-              <strong>Ngày đăng ký:</strong> {new Date(shop.registrationDate).toLocaleDateString("vi-VN")}
-            </p>
-            <p>
-              <strong>Xác minh:</strong> {shop.isVerified ? "Đã xác minh" : "Chưa xác minh"}
-            </p>
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card title="Chủ shop" size="small">
-            <p>
-              <strong>ID:</strong> {shop.owner.id}
-            </p>
-            <p>
-              <strong>Tên:</strong> {shop.owner.name}
-            </p>
-            <p>
-              <strong>Email:</strong> {shop.owner.email}
-            </p>
-            <p>
-              <strong>Điện thoại:</strong> {shop.owner.phone}
-            </p>
-          </Card>
-        </Col>
-      </Row>
-      <Row gutter={16} style={{ marginTop: 16 }}>
-        <Col span={24}>
-          <Card title="Thống kê kinh doanh" size="small">
-            <Row gutter={16}>
-              <Col span={6}>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "20px", fontWeight: "bold", color: "#1890ff" }}>{shop.totalProducts}</div>
-                  <div>Sản phẩm</div>
-                </div>
-              </Col>
-              <Col span={6}>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "20px", fontWeight: "bold", color: "#52c41a" }}>{shop.totalOrders}</div>
-                  <div>Đơn hàng</div>
-                </div>
-              </Col>
-              <Col span={6}>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "20px", fontWeight: "bold", color: "#f5222d" }}>
-                    {shop.totalRevenue > 1000000000
-                      ? `${(shop.totalRevenue / 1000000000).toFixed(1)}B ₫`
-                      : `${(shop.totalRevenue / 1000000).toFixed(1)}M ₫`}
-                  </div>
-                  <div>Doanh thu</div>
-                </div>
-              </Col>
-              <Col span={6}>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "20px", fontWeight: "bold", color: "#faad14" }}>
-                    ⭐ {shop.rating.toFixed(1)}
-                  </div>
-                  <div>Đánh giá</div>
-                </div>
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-      </Row>
-    </Modal>
-  )
-}
-
 export default function ShopManagementPage() {
   const [allShops, setAllShops] = useState<ShopData[]>([])
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [verificationFilter, setVerificationFilter] = useState<string>("all")
   const [selectedShop, setSelectedShop] = useState<ShopData | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -291,7 +192,7 @@ export default function ShopManagementPage() {
     }
   }, [])
 
-  // Filter data (client-side filtering for search and status)
+  // Filter data (client-side filtering for search, status, and verification)
   const filteredData = useMemo(() => {
     return allShops.filter((shop) => {
       const matchesSearch =
@@ -303,13 +204,19 @@ export default function ShopManagementPage() {
 
       const matchesStatus = statusFilter === "all" || shop.status === statusFilter
 
-      return matchesSearch && matchesStatus
+      const matchesVerification =
+        verificationFilter === "all" ||
+        (verificationFilter === "verified" && shop.isVerified) ||
+        (verificationFilter === "unverified" && !shop.isVerified)
+
+      return matchesSearch && matchesStatus && matchesVerification
     })
-  }, [allShops, searchText, statusFilter])
+  }, [allShops, searchText, statusFilter, verificationFilter])
 
   const handleReset = () => {
     setSearchText("")
     setStatusFilter("all")
+    setVerificationFilter("all")
   }
 
   // Actions with authentication
@@ -449,7 +356,7 @@ export default function ShopManagementPage() {
           // Call API to approve shop
           const result = await apiCall(`https://api.marketo.info.vn/api/admin/apply`, {
             method: "PATCH",
-            body: JSON.stringify({ shop_id: Number.parseInt(shopId) }),
+            body: JSON.stringify({ shop_id: Number.parseInt(shopId.replace("SHOP", "")) }),
           })
 
           if (result.status) {
@@ -535,6 +442,12 @@ export default function ShopManagementPage() {
             >
               <Tooltip title={record.name}>{record.name}</Tooltip>
               {record.isVerified && <CheckCircleOutlined style={{ color: "#1890ff", marginLeft: 4 }} />}
+              {record.warningStatus.level === "danger" && (
+                <ExclamationCircleOutlined style={{ color: "#ff4d4f", marginLeft: 4 }} />
+              )}
+              {record.warningStatus.level === "warning" && (
+                <WarningOutlined style={{ color: "#faad14", marginLeft: 4 }} />
+              )}
             </div>
             <div style={{ color: "#666", fontSize: "12px" }}>ID: {record.id}</div>
             <div style={{ color: "#666", fontSize: "11px", marginTop: 2 }}>
@@ -598,7 +511,7 @@ export default function ShopManagementPage() {
       dataIndex: "status",
       key: "status",
       width: 120,
-      render: (status: string, record) => {
+      render: (status: string) => {
         const statusConfig = {
           activated: { color: "green", text: "Hoạt động" },
           hidden: { color: "orange", text: "Đã ẩn" },
@@ -606,24 +519,7 @@ export default function ShopManagementPage() {
           locked: { color: "red", text: "Đã khóa" },
         }
         const config = statusConfig[status as keyof typeof statusConfig] || { color: "default", text: status }
-        return (
-          <div>
-            <Tag color={config.color}>{config.text}</Tag>
-            <div style={{ marginTop: 2 }}>
-              {record.isVerified ? (
-                <>
-                  <CheckCircleOutlined style={{ color: "#1890ff", fontSize: "12px" }} />
-                  <span style={{ fontSize: "11px", marginLeft: 2 }}>Đã xác minh</span>
-                </>
-              ) : (
-                <>
-                  <CloseCircleOutlined style={{ color: "#ff4d4f", fontSize: "12px" }} />
-                  <span style={{ fontSize: "11px", marginLeft: 2 }}>Chưa xác minh</span>
-                </>
-              )}
-            </div>
-          </div>
-        )
+        return <Tag color={config.color}>{config.text}</Tag>
       },
       filters: [
         { text: "Hoạt động", value: "activated" },
@@ -634,6 +530,61 @@ export default function ShopManagementPage() {
       onFilter: (value: boolean | React.Key, record: ShopData) => {
         return record.status === String(value)
       },
+    },
+    {
+      title: "Xác minh",
+      key: "verification",
+      width: 100,
+      render: (_, record) => {
+        return record.isVerified ? (
+          <Tag color="blue" icon={<CheckCircleOutlined />}>
+            Đã xác minh
+          </Tag>
+        ) : (
+          <Tag color="red" icon={<CloseCircleOutlined />}>
+            Chưa xác minh
+          </Tag>
+        )
+      },
+      filters: [
+        { text: "Đã xác minh", value: "verified" },
+        { text: "Chưa xác minh", value: "unverified" },
+      ],
+      onFilter: (value: boolean | React.Key, record: ShopData) => {
+        if (value === "verified") return record.isVerified
+        if (value === "unverified") return !record.isVerified
+        return true
+      },
+    },
+    {
+      title: "Báo cáo",
+      key: "reports",
+      width: 100,
+      render: (_, record) => (
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: "16px",
+              fontWeight: "bold",
+              color: record.totalReports >= 10 ? "#f5222d" : record.totalReports >= 5 ? "#faad14" : "#52c41a",
+            }}
+          >
+            {record.totalReports}
+          </div>
+          <div style={{ fontSize: "11px", color: "#666" }}>báo cáo</div>
+          {record.totalReports >= 10 && (
+            <Tag color="red" style={{ marginTop: 2 }}>
+              Nguy hiểm
+            </Tag>
+          )}
+          {record.totalReports >= 5 && record.totalReports < 10 && (
+            <Tag color="orange" style={{ marginTop: 2 }}>
+              Cảnh báo
+            </Tag>
+          )}
+        </div>
+      ),
+      sorter: (a: ShopData, b: ShopData) => a.totalReports - b.totalReports,
     },
     {
       title: "Sản phẩm",
@@ -693,18 +644,9 @@ export default function ShopManagementPage() {
       sorter: (a: ShopData, b: ShopData) => a.rating - b.rating,
     },
     {
-      title: "Ngày đăng ký",
-      dataIndex: "registrationDate",
-      key: "registrationDate",
-      width: 120,
-      render: (date: string) => <Text style={{ fontSize: "12px" }}>{new Date(date).toLocaleDateString("vi-VN")}</Text>,
-      sorter: (a: ShopData, b: ShopData) =>
-        new Date(a.registrationDate).getTime() - new Date(b.registrationDate).getTime(),
-    },
-    {
       title: "Thao tác",
       key: "action",
-      width: 80,
+      width: 100,
       render: (_, record: ShopData) => (
         <Dropdown menu={{ items: getActionItems(record) }} trigger={["click"]} placement="bottomRight">
           <Button type="text" icon={<MoreOutlined />} loading={actionLoading === record.id} />
@@ -734,15 +676,18 @@ export default function ShopManagementPage() {
     const blocked = filteredData.filter((s) => s.status === "blocked" || s.status === "locked").length
     const hidden = filteredData.filter((s) => s.status === "hidden").length
     const verified = filteredData.filter((s) => s.isVerified).length
+    const unverified = filteredData.filter((s) => !s.isVerified).length
+    const dangerShops = filteredData.filter((s) => s.warningStatus.level === "danger").length
+    const warningShops = filteredData.filter((s) => s.warningStatus.level === "warning").length
     const totalRevenue = filteredData.reduce((sum, shop) => sum + shop.totalRevenue, 0)
-    return { total, activated, blocked, hidden, verified, totalRevenue }
+    return { total, activated, blocked, hidden, verified, unverified, dangerShops, warningShops, totalRevenue }
   }, [filteredData])
 
   return (
     <div style={{ padding: "2px" }}>
       {/* Statistics Overview */}
       <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
+        <Col span={4}>
           <Card size="small">
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "24px", fontWeight: "bold", color: "#1890ff" }}>{stats.total}</div>
@@ -750,44 +695,77 @@ export default function ShopManagementPage() {
             </div>
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card size="small">
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "24px", fontWeight: "bold", color: "#52c41a" }}>{stats.activated}</div>
-              <div>Đang hoạt động</div>
+              <div>Hoạt động</div>
             </div>
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card size="small">
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "24px", fontWeight: "bold", color: "#f5222d" }}>{stats.blocked}</div>
-              <div>Đã khóa</div>
+              <div style={{ fontSize: "24px", fontWeight: "bold", color: "#1890ff" }}>{stats.verified}</div>
+              <div>Đã xác minh</div>
             </div>
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card size="small">
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "20px", fontWeight: "bold", color: "#fa8c16" }}>
-                {stats.totalRevenue > 1000000000
-                  ? `${(stats.totalRevenue / 1000000000).toFixed(1)}B ₫`
-                  : `${(stats.totalRevenue / 1000000).toFixed(1)}M ₫`}
-              </div>
-              <div>Tổng doanh thu</div>
+              <div style={{ fontSize: "24px", fontWeight: "bold", color: "#ff4d4f" }}>{stats.unverified}</div>
+              <div>Chưa xác minh</div>
+            </div>
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card size="small">
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "24px", fontWeight: "bold", color: "#faad14" }}>{stats.warningShops}</div>
+              <div>Cảnh báo</div>
+            </div>
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card size="small">
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "24px", fontWeight: "bold", color: "#f5222d" }}>{stats.dangerShops}</div>
+              <div>Nguy hiểm</div>
             </div>
           </Card>
         </Col>
       </Row>
 
-      {/* Verified shops info */}
-      {stats.verified > 0 && (
-        <Alert message={`${stats.verified} shop đã được xác minh`} type="info" showIcon style={{ marginBottom: 16 }} />
+      {/* Warning alerts */}
+      {stats.dangerShops > 0 && (
+        <Alert
+          message={`${stats.dangerShops} shop có từ 10 báo cáo trở lên - Cần xem xét ngay!`}
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+      {stats.warningShops > 0 && (
+        <Alert
+          message={`${stats.warningShops} shop có từ 5-9 báo cáo - Cần theo dõi`}
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+      {stats.unverified > 0 && (
+        <Alert
+          message={`${stats.unverified} shop chưa được xác minh - Cần phê duyệt`}
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
       )}
 
       <Card style={{ marginBottom: "16px" }}>
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={8} md={6}>
+          <Col xs={24} sm={8} md={5}>
             <Input
               placeholder="Tìm kiếm shop, chủ shop, ID..."
               prefix={<SearchOutlined />}
@@ -805,7 +783,19 @@ export default function ShopManagementPage() {
               <Option value="locked">Đã khóa</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={24} md={14}>
+          <Col xs={24} sm={8} md={4}>
+            <Select
+              placeholder="Xác minh"
+              value={verificationFilter}
+              onChange={setVerificationFilter}
+              style={{ width: "100%" }}
+            >
+              <Option value="all">Tất cả</Option>
+              <Option value="verified">Đã xác minh</Option>
+              <Option value="unverified">Chưa xác minh</Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={24} md={11}>
             <Space>
               <Button icon={<ReloadOutlined />} onClick={handleReset} loading={loading}>
                 Đặt lại
@@ -835,7 +825,8 @@ export default function ShopManagementPage() {
             }}
             size="middle"
             rowClassName={(record) => {
-              if (record.status === "blocked" || record.status === "locked") return "blocked-row"
+              if (record.warningStatus.level === "danger") return "danger-row"
+              if (record.warningStatus.level === "warning") return "warning-row"
               return ""
             }}
           />
@@ -855,11 +846,17 @@ export default function ShopManagementPage() {
       )}
 
       <style jsx global>{`
-        .blocked-row {
+        .danger-row {
           background-color: #fff2f0 !important;
         }
-        .blocked-row:hover {
+        .danger-row:hover {
           background-color: #ffebe6 !important;
+        }
+        .warning-row {
+          background-color: #fffbe6 !important;
+        }
+        .warning-row:hover {
+          background-color: #fff7e6 !important;
         }
       `}</style>
     </div>

@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import {
   Modal,
@@ -19,6 +20,7 @@ import {
   message,
   Spin,
   Alert,
+  Empty,
 } from "antd"
 import {
   ShopOutlined,
@@ -27,7 +29,6 @@ import {
   MailOutlined,
   EnvironmentOutlined,
   StarOutlined,
-  EyeOutlined,
   DollarOutlined,
   ShoppingCartOutlined,
   CalendarOutlined,
@@ -36,6 +37,9 @@ import {
   UnlockOutlined,
   KeyOutlined,
   DeleteOutlined,
+  WarningOutlined,
+  ExclamationCircleOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons"
 import type { ColumnsType } from "antd/es/table"
 
@@ -48,9 +52,11 @@ interface ShopOwner {
   phone: string
   email: string
   avatar?: string
-  address?: string
-  joinDate: string
-  lastLogin?: string
+}
+
+interface WarningStatus {
+  level: string
+  color: string
 }
 
 interface Product {
@@ -80,21 +86,17 @@ interface ShopData {
   name: string
   description: string
   logo?: string
-  banner?: string
   owner: ShopOwner
-  status: "active" | "hidden" | "blocked"
+  status: string
   registrationDate: string
   totalProducts: number
   totalOrders: number
   totalRevenue: number
-  monthlyRevenue: number
-  rating: number
-  totalReviews: number
+  totalReports: number
+  warningStatus: WarningStatus
   address: string
-  category: string
   isVerified: boolean
-  violationCount: number
-  lastActive: string
+  rating: number
 }
 
 interface ShopDetailModalProps {
@@ -105,59 +107,61 @@ interface ShopDetailModalProps {
   onUpdateShop: (shop: ShopData) => void
 }
 
-// Generate mock products
-const generateMockProducts = (shopId: string): Product[] => {
-  const productNames = [
-    "Áo thun nam basic",
-    "Quần jean nữ skinny",
-    "Giày sneaker trắng",
-    "Túi xách da thật",
-    "Đồng hồ thông minh",
-    "Tai nghe bluetooth",
-    "Ốp lưng iPhone",
-    "Bàn phím cơ gaming",
-    "Chuột không dây",
-    "Màn hình 24 inch",
-  ]
+// Utility function to get cookie value
+const getCookie = (name: string): string | null => {
+  if (typeof document === "undefined") return null
 
-  return Array.from({ length: 10 }, (_, index) => ({
-    id: `${shopId}_PROD${String(index + 1).padStart(3, "0")}`,
-    name: productNames[index],
-    image: `/placeholder.svg?height=60&width=60&text=P${index + 1}`,
-    price: Math.floor(Math.random() * 1000000) + 50000,
-    stock: Math.floor(Math.random() * 100),
-    sold: Math.floor(Math.random() * 500),
-    status: ["active", "inactive", "out_of_stock"][Math.floor(Math.random() * 3)] as
-      | "active"
-      | "inactive"
-      | "out_of_stock",
-    category: ["Thời trang", "Điện tử", "Phụ kiện"][Math.floor(Math.random() * 3)],
-    rating: Math.round((Math.random() * 2 + 3) * 10) / 10,
-    reviews: Math.floor(Math.random() * 100) + 10,
-  }))
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return parts.pop()?.split(";").shift() || null
+  }
+  return null
 }
 
-// Generate mock orders
-const generateMockOrders = (shopId: string): Order[] => {
-  const customerNames = ["Nguyễn Văn A", "Trần Thị B", "Lê Hoàng C", "Phạm Thị D", "Hoàng Văn E"]
+// API utility function with authentication
+const apiCall = async (url: string, options: RequestInit = {}) => {
+  const token = getCookie("authToken")
 
-  return Array.from({ length: 15 }, (_, index) => ({
-    id: `${shopId}_ORD${String(index + 1).padStart(4, "0")}`,
-    customerName: customerNames[Math.floor(Math.random() * customerNames.length)],
-    total: Math.floor(Math.random() * 2000000) + 100000,
-    status: ["pending", "processing", "shipped", "delivered", "cancelled"][Math.floor(Math.random() * 5)] as
-      | "pending"
-      | "processing"
-      | "shipped"
-      | "delivered"
-      | "cancelled",
-    orderDate: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
-    items: Math.floor(Math.random() * 5) + 1,
-  }))
+  if (!token) {
+    message.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
+    window.location.href = "/login"
+    throw new Error("No authentication token")
+  }
+
+  const defaultHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+  }
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  }
+
+  const response = await fetch(url, config)
+
+  if (response.status === 401) {
+    message.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
+    document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    window.location.href = "/login"
+    throw new Error("Authentication failed")
+  }
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
 }
 
 export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onUpdateShop }: ShopDetailModalProps) {
   const [loading, setLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<Order[]>([])
   const [activeTab, setActiveTab] = useState("info")
@@ -170,49 +174,111 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
 
   const fetchShopDetails = async () => {
     setLoading(true)
+    try {
+      // Fetch products and orders from API
+      const [productsResponse, ordersResponse] = await Promise.all([
+        apiCall(`https://api.marketo.info.vn/api/admin/shops/${shop.id.replace("SHOP", "")}/products`),
+        apiCall(`https://api.marketo.info.vn/api/admin/shops/${shop.id.replace("SHOP", "")}/orders`),
+      ])
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 500))
+      if (productsResponse.status) {
+        setProducts(productsResponse.data || [])
+      }
 
-    // Generate mock data
-    setProducts(generateMockProducts(shop.id))
-    setOrders(generateMockOrders(shop.id))
-
-    setLoading(false)
+      if (ordersResponse.status) {
+        setOrders(ordersResponse.data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching shop details:", error)
+      // Fallback to empty arrays if API fails
+      setProducts([])
+      setOrders([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleAction = async (action: string) => {
     try {
-      setLoading(true)
-
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      const updatedShop = { ...shop }
+      setActionLoading(action)
+      const shopId = shop.id.replace("SHOP", "")
 
       switch (action) {
         case "block":
-          updatedShop.status = shop.status === "blocked" ? "active" : "blocked"
-          break
-        case "reset-password":
-          message.success("Reset mật khẩu thành công")
-          setLoading(false)
-          return
-        case "delete":
-          message.success("Xóa shop thành công")
-          onRefresh()
-          onClose()
-          setLoading(false)
-          return
-      }
+          const newStatus = shop.status === "blocked" || shop.status === "locked" ? "activated" : "blocked"
+          const result = await apiCall(`https://api.marketo.info.vn/api/admin/shops/${shopId}/status`, {
+            method: "PUT",
+            body: JSON.stringify({ status: newStatus }),
+          })
 
-      onUpdateShop(updatedShop)
-      message.success("Thao tác thành công")
-      onRefresh()
+          if (result.status) {
+            const updatedShop = { ...shop, status: newStatus }
+            onUpdateShop(updatedShop)
+            message.success(`${newStatus === "blocked" ? "Khóa" : "Mở khóa"} shop thành công`)
+            onRefresh()
+          } else {
+            message.error(result.message || "Lỗi khi thực hiện thao tác")
+          }
+          break
+
+        case "reset-password":
+          const resetResult = await apiCall(`https://api.marketo.info.vn/api/admin/shops/${shopId}/reset-password`, {
+            method: "POST",
+          })
+
+          if (resetResult.status) {
+            message.success("Reset mật khẩu thành công")
+          } else {
+            message.error(resetResult.message || "Lỗi khi reset mật khẩu")
+          }
+          break
+
+        case "delete":
+          const deleteResult = await apiCall(`https://api.marketo.info.vn/api/admin/shops/${shopId}`, {
+            method: "DELETE",
+          })
+
+          if (deleteResult.status) {
+            message.success("Xóa shop thành công")
+            onRefresh()
+            onClose()
+          } else {
+            message.error(deleteResult.message || "Lỗi khi xóa shop")
+          }
+          break
+
+        case "approve":
+          if (shop.isVerified) {
+            message.info("Shop này đã được phê duyệt rồi")
+            return
+          }
+
+          const approveResult = await apiCall(`https://api.marketo.info.vn/api/admin/apply`, {
+            method: "PATCH",
+            body: JSON.stringify({ shop_id: Number.parseInt(shopId) }),
+          })
+
+          if (approveResult.status) {
+            const updatedShop = { ...shop, isVerified: true }
+            onUpdateShop(updatedShop)
+            message.success("Phê duyệt shop thành công")
+            onRefresh()
+          } else {
+            message.error(approveResult.message || "Lỗi khi phê duyệt shop")
+          }
+          break
+      }
     } catch (error) {
-      message.error("Có lỗi xảy ra")
+      console.error(`Error ${action} shop:`, error)
+      if (
+        error instanceof Error &&
+        error.message !== "No authentication token" &&
+        error.message !== "Authentication failed"
+      ) {
+        message.error("Có lỗi xảy ra khi thực hiện thao tác")
+      }
     } finally {
-      setLoading(false)
+      setActionLoading(null)
     }
   }
 
@@ -222,7 +288,7 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
       key: "product",
       render: (_, record) => (
         <Space>
-          <Image src={record.image || "/placeholder.svg"} width={40} height={40} />
+          <Image src={record.image || "/placeholder.svg?height=40&width=40&text=P"} width={40} height={40} />
           <div>
             <div style={{ fontWeight: 500 }}>{record.name}</div>
             <Text type="secondary">{record.category}</Text>
@@ -253,7 +319,7 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
           inactive: { color: "red", text: "Ngừng bán" },
           out_of_stock: { color: "orange", text: "Hết hàng" },
         }
-        const config = statusConfig[status as keyof typeof statusConfig]
+        const config = statusConfig[status as keyof typeof statusConfig] || { color: "default", text: status }
         return <Tag color={config.color}>{config.text}</Tag>
       },
     },
@@ -263,6 +329,7 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
     {
       title: "Mã đơn",
       dataIndex: "id",
+      width: 120,
     },
     {
       title: "Khách hàng",
@@ -284,7 +351,7 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
           delivered: { color: "green", text: "Đã giao" },
           cancelled: { color: "red", text: "Đã hủy" },
         }
-        const config = statusConfig[status as keyof typeof statusConfig]
+        const config = statusConfig[status as keyof typeof statusConfig] || { color: "default", text: status }
         return <Tag color={config.color}>{config.text}</Tag>
       },
     },
@@ -295,6 +362,34 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
     },
   ]
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "activated":
+        return "green"
+      case "hidden":
+        return "orange"
+      case "blocked":
+      case "locked":
+        return "red"
+      default:
+        return "default"
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "activated":
+        return "Hoạt động"
+      case "hidden":
+        return "Đã ẩn"
+      case "blocked":
+      case "locked":
+        return "Đã khóa"
+      default:
+        return status
+    }
+  }
+
   return (
     <Modal
       title={
@@ -302,6 +397,8 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
           <Avatar src={shop.logo} icon={<ShopOutlined />} size={32} />
           <span>{shop.name}</span>
           {shop.isVerified && <CheckCircleOutlined style={{ color: "#1890ff" }} />}
+          {shop.warningStatus.level === "danger" && <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />}
+          {shop.warningStatus.level === "warning" && <WarningOutlined style={{ color: "#faad14" }} />}
         </Space>
       }
       open={visible}
@@ -309,18 +406,37 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
       width={1200}
       footer={
         <Space>
+          {!shop.isVerified && (
+            <Button
+              icon={<CheckCircleOutlined />}
+              type="primary"
+              onClick={() => handleAction("approve")}
+              loading={actionLoading === "approve"}
+            >
+              Phê duyệt shop
+            </Button>
+          )}
           <Button
-            icon={shop.status === "blocked" ? <UnlockOutlined /> : <LockOutlined />}
+            icon={shop.status === "blocked" || shop.status === "locked" ? <UnlockOutlined /> : <LockOutlined />}
             onClick={() => handleAction("block")}
-            type={shop.status === "blocked" ? "primary" : "default"}
-            loading={loading}
+            type={shop.status === "blocked" || shop.status === "locked" ? "primary" : "default"}
+            loading={actionLoading === "block"}
           >
-            {shop.status === "blocked" ? "Mở khóa" : "Khóa shop"}
+            {shop.status === "blocked" || shop.status === "locked" ? "Mở khóa" : "Khóa shop"}
           </Button>
-          <Button icon={<KeyOutlined />} onClick={() => handleAction("reset-password")} loading={loading}>
+          <Button
+            icon={<KeyOutlined />}
+            onClick={() => handleAction("reset-password")}
+            loading={actionLoading === "reset-password"}
+          >
             Reset mật khẩu
           </Button>
-          <Button icon={<DeleteOutlined />} danger onClick={() => handleAction("delete")} loading={loading}>
+          <Button
+            icon={<DeleteOutlined />}
+            danger
+            onClick={() => handleAction("delete")}
+            loading={actionLoading === "delete"}
+          >
             Xóa shop
           </Button>
           <Button onClick={onClose}>Đóng</Button>
@@ -336,67 +452,107 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
                   <Descriptions column={2}>
                     <Descriptions.Item label="ID Shop">{shop.id}</Descriptions.Item>
                     <Descriptions.Item label="Tên shop">{shop.name}</Descriptions.Item>
-                    <Descriptions.Item label="Danh mục">{shop.category}</Descriptions.Item>
                     <Descriptions.Item label="Trạng thái">
-                      <Tag color={shop.status === "active" ? "green" : shop.status === "blocked" ? "red" : "orange"}>
-                        {shop.status === "active" ? "Hoạt động" : shop.status === "blocked" ? "Bị khóa" : "Ẩn"}
-                      </Tag>
+                      <Tag color={getStatusColor(shop.status)}>{getStatusText(shop.status)}</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Xác minh">
+                      {shop.isVerified ? (
+                        <Tag color="blue" icon={<CheckCircleOutlined />}>
+                          Đã xác minh
+                        </Tag>
+                      ) : (
+                        <Tag color="red" icon={<CloseCircleOutlined />}>
+                          Chưa xác minh
+                        </Tag>
+                      )}
                     </Descriptions.Item>
                     <Descriptions.Item label="Ngày đăng ký">
-                      {new Date(shop.registrationDate).toLocaleDateString("vi-VN")}
+                      <CalendarOutlined /> {new Date(shop.registrationDate).toLocaleDateString("vi-VN")}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Hoạt động cuối">
-                      {new Date(shop.lastActive).toLocaleDateString("vi-VN")}
+                    <Descriptions.Item label="Đánh giá">
+                      <StarOutlined /> {shop.rating.toFixed(1)}/5.0
                     </Descriptions.Item>
                     <Descriptions.Item label="Địa chỉ" span={2}>
-                      <EnvironmentOutlined /> {shop.address}
+                      <EnvironmentOutlined /> {shop.address || "Chưa cập nhật"}
                     </Descriptions.Item>
                     <Descriptions.Item label="Mô tả" span={2}>
-                      <Paragraph ellipsis={{ rows: 3, expandable: true }}>{shop.description}</Paragraph>
+                      <Paragraph ellipsis={{ rows: 3, expandable: true }}>
+                        {shop.description || "Chưa có mô tả"}
+                      </Paragraph>
                     </Descriptions.Item>
                   </Descriptions>
                 </Card>
 
-                {shop.violationCount > 0 && (
+                {/* Warning alerts */}
+                {shop.totalReports >= 10 && (
                   <Alert
-                    message={`Shop có ${shop.violationCount} vi phạm`}
+                    message="Cảnh báo nghiêm trọng"
+                    description={`Shop này có ${shop.totalReports} báo cáo từ người dùng. Cần xem xét và xử lý ngay!`}
+                    type="error"
+                    showIcon
+                    icon={<ExclamationCircleOutlined />}
+                    style={{ marginTop: 16 }}
+                  />
+                )}
+                {shop.totalReports >= 5 && shop.totalReports < 10 && (
+                  <Alert
+                    message="Cảnh báo"
+                    description={`Shop này có ${shop.totalReports} báo cáo từ người dùng. Cần theo dõi thêm.`}
                     type="warning"
                     showIcon
+                    icon={<WarningOutlined />}
                     style={{ marginTop: 16 }}
                   />
                 )}
               </Col>
 
               <Col span={8}>
-                <Card title="Thống kê" size="small">
-                  <Row gutter={16}>
+                <Card title="Thống kê kinh doanh" size="small">
+                  <Row gutter={[16, 16]}>
                     <Col span={12}>
-                      <Statistic title="Sản phẩm" value={shop.totalProducts} prefix={<ShoppingCartOutlined />} />
+                      <Statistic
+                        title="Sản phẩm"
+                        value={shop.totalProducts}
+                        prefix={<ShoppingCartOutlined />}
+                        valueStyle={{ color: "#1890ff" }}
+                      />
                     </Col>
                     <Col span={12}>
-                      <Statistic title="Đơn hàng" value={shop.totalOrders} prefix={<ShoppingCartOutlined />} />
+                      <Statistic
+                        title="Đơn hàng"
+                        value={shop.totalOrders}
+                        prefix={<ShoppingCartOutlined />}
+                        valueStyle={{ color: "#52c41a" }}
+                      />
                     </Col>
-                    <Col span={24} style={{ marginTop: 16 }}>
+                    <Col span={24}>
                       <Statistic
                         title="Tổng doanh thu"
                         value={shop.totalRevenue}
                         prefix={<DollarOutlined />}
                         suffix="₫"
+                        precision={0}
+                        valueStyle={{ color: "#f5222d" }}
                       />
                     </Col>
-                    <Col span={24} style={{ marginTop: 16 }}>
+                    <Col span={12}>
                       <Statistic
-                        title="Doanh thu tháng này"
-                        value={shop.monthlyRevenue}
-                        prefix={<DollarOutlined />}
-                        suffix="₫"
+                        title="Đánh giá"
+                        value={shop.rating}
+                        precision={1}
+                        prefix={<StarOutlined />}
+                        valueStyle={{ color: "#faad14" }}
                       />
                     </Col>
-                    <Col span={12} style={{ marginTop: 16 }}>
-                      <Statistic title="Đánh giá" value={shop.rating} precision={1} prefix={<StarOutlined />} />
-                    </Col>
-                    <Col span={12} style={{ marginTop: 16 }}>
-                      <Statistic title="Lượt đánh giá" value={shop.totalReviews} prefix={<EyeOutlined />} />
+                    <Col span={12}>
+                      <Statistic
+                        title="Báo cáo"
+                        value={shop.totalReports}
+                        prefix={<WarningOutlined />}
+                        valueStyle={{
+                          color: shop.totalReports >= 10 ? "#f5222d" : shop.totalReports >= 5 ? "#faad14" : "#52c41a",
+                        }}
+                      />
                     </Col>
                   </Row>
                 </Card>
@@ -420,19 +576,16 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
                     <Descriptions.Item label="ID">{shop.owner.id}</Descriptions.Item>
                     <Descriptions.Item label="Tên">{shop.owner.name}</Descriptions.Item>
                     <Descriptions.Item label="Email">
-                      <MailOutlined /> {shop.owner.email}
+                      <Space>
+                        <MailOutlined />
+                        {shop.owner.email}
+                      </Space>
                     </Descriptions.Item>
                     <Descriptions.Item label="Số điện thoại">
-                      <PhoneOutlined /> {shop.owner.phone}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Ngày tham gia">
-                      <CalendarOutlined /> {new Date(shop.owner.joinDate).toLocaleDateString("vi-VN")}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Đăng nhập cuối">
-                      {shop.owner.lastLogin ? new Date(shop.owner.lastLogin).toLocaleDateString("vi-VN") : "Chưa có"}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Địa chỉ" span={2}>
-                      <EnvironmentOutlined /> {shop.owner.address || "Chưa cập nhật"}
+                      <Space>
+                        <PhoneOutlined />
+                        {shop.owner.phone}
+                      </Space>
                     </Descriptions.Item>
                   </Descriptions>
                 </Col>
@@ -440,18 +593,32 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
             </Card>
           </TabPane>
 
-          <TabPane tab="Sản phẩm" key="products">
-            <Table
-              columns={productColumns}
-              dataSource={products}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-              size="small"
-            />
+          <TabPane tab={`Sản phẩm (${products.length})`} key="products">
+            {products.length > 0 ? (
+              <Table
+                columns={productColumns}
+                dataSource={products}
+                rowKey="id"
+                pagination={{ pageSize: 10, showSizeChanger: true }}
+                size="small"
+              />
+            ) : (
+              <Empty description="Chưa có sản phẩm nào" />
+            )}
           </TabPane>
 
-          <TabPane tab="Đơn hàng" key="orders">
-            <Table columns={orderColumns} dataSource={orders} rowKey="id" pagination={{ pageSize: 10 }} size="small" />
+          <TabPane tab={`Đơn hàng (${orders.length})`} key="orders">
+            {orders.length > 0 ? (
+              <Table
+                columns={orderColumns}
+                dataSource={orders}
+                rowKey="id"
+                pagination={{ pageSize: 10, showSizeChanger: true }}
+                size="small"
+              />
+            ) : (
+              <Empty description="Chưa có đơn hàng nào" />
+            )}
           </TabPane>
         </Tabs>
       </Spin>
