@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Shop;
 use Illuminate\Support\Str;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 
 class ShopController extends Controller
 {
@@ -200,7 +201,7 @@ public function update(Request $request)
         return redirect('/');
     }
 
- public function showShopInfo($slug)
+    public function showShopInfo($slug)
     {
         $shop = Shop::where('slug', $slug)->first();
 
@@ -275,4 +276,74 @@ public function update(Request $request)
             ]
         ]);
     }
+public function showAllShops(Request $request)
+{
+    $shops = DB::table('shops')
+        ->leftJoin('users', 'shops.user_id', '=', 'users.id')
+        ->select(
+            'shops.id as shop_id',
+            'shops.name as shop_name',
+            'shops.description',
+            'shops.logo',
+            'shops.address as shop_address',
+            'shops.is_verified',
+            'shops.status as shop_status',
+            'shops.created_at as shop_created_at',
+            'shops.rating',
+            'users.id as owner_id',
+            'users.name as owner_name',
+            'users.phone as owner_phone',
+            'users.email as owner_email',
+            'users.avatar as owner_avatar',
+            DB::raw('(SELECT COUNT(*) FROM products WHERE products.shop_id = shops.id) as totalProducts'),
+            DB::raw('(SELECT COUNT(*) FROM orders WHERE orders.shop_id = shops.id) as totalOrders'),
+            DB::raw('(SELECT IFNULL(SUM(final_amount), 0) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalRevenue')
+        )
+        ->get();
+
+    $data = $shops->map(function ($shop) {
+        return [
+            'id' => 'SHOP' . str_pad($shop->shop_id, 4, '0', STR_PAD_LEFT),
+            'name' => $shop->shop_name,
+            'description' => $shop->description ?? '',
+            'logo' => $shop->logo ? asset('storage/' . $shop->logo) : '/placeholder.svg?height=40&width=40&text=S',
+            'address' => $shop->shop_address ?? '',
+            'isVerified' => (bool)$shop->is_verified,
+            'status' => $shop->shop_status,
+            'registrationDate' => $shop->shop_created_at,
+            'rating' => (float)$shop->rating,
+            'totalProducts' => (int)$shop->totalProducts,
+            'totalOrders' => (int)$shop->totalOrders,
+            'totalRevenue' => (float)$shop->totalRevenue,
+            'owner' => [
+                'id' => 'USER' . str_pad($shop->owner_id, 4, '0', STR_PAD_LEFT),
+                'name' => $shop->owner_name,
+                'phone' => $shop->owner_phone,
+                'email' => $shop->owner_email,
+                'avatar' => $shop->owner_avatar ? asset('storage/' . $shop->owner_avatar) : '/placeholder.svg?height=40&width=40&text=U',
+            ]
+        ];
+    });
+
+    // ✅ Sắp xếp: Doanh thu -> Rating -> Tên (A-Z)
+    $sortedData = $data->sort(function ($a, $b) {
+        if ($a['totalRevenue'] === $b['totalRevenue']) {
+            if ($a['rating'] === $b['rating']) {
+                return strcmp($a['name'], $b['name']); // A-Z
+            }
+            return $b['rating'] <=> $a['rating']; // rating giảm dần
+        }
+        return $b['totalRevenue'] <=> $a['totalRevenue']; // doanh thu giảm dần
+    })->values();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Danh sách cửa hàng',
+        'data' => $sortedData
+    ]);
 }
+
+
+
+}
+
