@@ -15,6 +15,7 @@ import {
     LayoutDashboard,
     PlusCircle,
 } from "lucide-react";
+import { UserOutlined } from "@ant-design/icons";
 
 export const menu = [
     {
@@ -24,7 +25,7 @@ export const menu = [
     },
    {
         label: "Quản lý người dùng",
-        icon: <Warehouse size={18} />,
+        icon: <UserOutlined size={18}/>,
         children: [
             { label: "Danh sách người dùng", href: "/admin/client" },
         ],
