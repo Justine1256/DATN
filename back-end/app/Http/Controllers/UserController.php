@@ -105,24 +105,26 @@ public function showAllUsers(Request $request)
     $page = $request->input('page', 1);
 
     $query = DB::table('users')
-        ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
-        ->leftJoin('reports', 'users.id', '=', 'reports.user_id')
-        ->select(
-            'users.id',
-            'users.name',
-            'users.email',
-            'users.phone',
-            'users.avatar',
-            'users.status as original_status',
-            'users.created_at as registration_date',
-            DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
-            DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent'),
-            DB::raw("SUM(CASE WHEN orders.status = 'canceled' THEN 1 ELSE 0 END) as canceledOrders"),
-            DB::raw('COUNT(reports.id) as totalReports'),
-            DB::raw("GROUP_CONCAT(reports.reason ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportReasons"),
-            DB::raw("GROUP_CONCAT(reports.created_at ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportDates")
-        )
-        ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.status', 'users.created_at');
+    ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
+    ->leftJoin('reports', 'users.id', '=', 'reports.user_id')
+    ->select(
+        'users.id',
+        'users.name',
+        'users.email',
+        'users.phone',
+        'users.avatar',
+        'users.status as original_status',
+        'users.created_at as registration_date',
+        DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
+        DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent'),
+        DB::raw("SUM(CASE WHEN orders.order_status = 'Canceled' THEN 1 ELSE 0 END) as canceledOrders"),
+        DB::raw('COUNT(reports.id) as totalReports'),
+        DB::raw("GROUP_CONCAT(reports.reason ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportReasons"),
+        DB::raw("GROUP_CONCAT(reports.created_at ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportDates")
+    )
+    ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.status', 'users.created_at')
+    ->paginate($perPage, ['*'], 'page', $page);
+
 
     $users = $query->paginate($perPage, ['*'], 'page', $page);
 
