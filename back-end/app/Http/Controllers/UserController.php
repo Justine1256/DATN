@@ -125,7 +125,7 @@ public function showAllUsers(Request $request)
         'users.created_at as registration_date',
         'shops.logo as shop_logo',
         DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
-        DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent'),
+        DB::raw("IFNULL(SUM(CASE WHEN orders.order_status = 'Delivered' AND orders.payment_status = 'Completed' THEN orders.final_amount ELSE 0 END), 0) as totalSpent"),
         DB::raw("SUM(CASE WHEN orders.order_status = 'Canceled' THEN 1 ELSE 0 END) as canceledOrders"),
         DB::raw('IFNULL(report_data.totalReports, 0) as totalReports'),
         DB::raw('report_data.reportReasons'),

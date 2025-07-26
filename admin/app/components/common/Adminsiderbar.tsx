@@ -26,7 +26,7 @@ export const menu = [
         label: "Quản lý người dùng",
         icon: <Warehouse size={18} />,
         children: [
-            { label: "Danh sách khách hàng", href: "/admin/client" },
+            { label: "Danh sách người dùng", href: "/admin/client" },
         ],
     },
     {
