@@ -16,6 +16,8 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Notification;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
+use App\Models\OrderReturnPhoto;
 
 class OrderController extends Controller
 {
@@ -264,6 +266,7 @@ class OrderController extends Controller
         ]);
     }
 
+
     public function cancel(Request $request, $id)
     {
         $order = Order::where('id', $id)->where('user_id', Auth::id())->first();
@@ -271,12 +274,18 @@ class OrderController extends Controller
         if (!$order) {
             return response()->json(['message' => 'Đơn hàng không tồn tại hoặc không thuộc quyền truy cập'], 404);
         }
+
         if ($order->order_status === 'Pending') {
             $order->update([
                 'order_status' => 'Canceled',
+                'order_admin_status' => 'Cancelled by Customer',
                 'cancel_status' => 'Approved',
-                'cancel_reason' => $request->input('cancel_reason') ?? 'Người dùng hủy trước khi xác nhận'
+                'cancel_reason' => $request->input('cancel_reason') ?? 'Người dùng hủy trước khi xác nhận',
+                'canceled_by' => 'Customer',
+                'shipping_status' => 'Failed', // Đồng bộ trạng thái giao hàng
+                'reconciliation_status' => 'Pending', // Giữ nguyên trạng thái đối soát
             ]);
+
             return response()->json(['message' => 'Đơn hàng đã được huỷ thành công']);
         }
 
@@ -287,18 +296,58 @@ class OrderController extends Controller
 
             $order->update([
                 'cancel_status' => 'Requested',
-                'cancel_reason' => $validated['cancel_reason']
+                'cancel_reason' => $validated['cancel_reason'],
+                'order_admin_status' => 'Cancellation Request Pending',
+                'canceled_by' => 'Customer',
             ]);
 
             return response()->json(['message' => 'Yêu cầu huỷ đơn đã được gửi đến shop. Vui lòng chờ phản hồi']);
         }
 
-        if (in_array($order->order_status, ['Shipped', 'Delivered'])) {
-            return response()->json(['message' => 'Đơn hàng đã được vận chuyển. Không thể huỷ đơn'], 400);
+        if (in_array($order->order_status, ['Shipped', 'Delivered', 'Canceled'])) {
+            return response()->json(['message' => 'Không thể huỷ đơn ở trạng thái hiện tại'], 400);
         }
 
         return response()->json(['message' => 'Không thể huỷ đơn ở trạng thái hiện tại'], 400);
     }
+    public function adminCancelOrder(Request $request, $id)
+    {
+        $order = Order::find($id);
+
+        if (!$order) {
+            return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
+        }
+
+        // Các trạng thái không thể huỷ
+        if (in_array($order->order_status, ['Delivered', 'Canceled'])) {
+            return response()->json(['message' => 'Không thể huỷ đơn đã giao hoặc đã huỷ'], 400);
+        }
+
+        $validated = $request->validate([
+            'cancel_reason' => 'required|string|max:255',
+            'cancel_type' => 'required|in:Seller,Payment Gateway,Customer Refused Delivery,System', // Tùy loại huỷ
+        ]);
+
+        // Ánh xạ cancel_type → order_admin_status
+        $adminStatusMap = [
+            'Seller' => 'Cancelled by Seller',
+            'Payment Gateway' => 'Cancelled - Payment Failed',
+            'Customer Refused Delivery' => 'Cancelled - Customer Refused Delivery',
+            'System' => 'Cancelled - System Auto',
+        ];
+
+        $order->update([
+            'order_status'         => 'Canceled',
+            'order_admin_status'   => $adminStatusMap[$validated['cancel_type']],
+            'cancel_status'        => 'Approved',
+            'cancel_reason'        => $validated['cancel_reason'],
+            'canceled_by'          => $validated['cancel_type'],  // Gán đúng người huỷ
+            'shipping_status'      => 'Failed',
+            'reconciliation_status' => 'Pending',
+        ]);
+        return response()->json(['message' => 'Đơn hàng đã được huỷ bởi admin']);
+    }
+
     public function adminShow($id)
     {
         $order = Order::with(['user', 'shop', 'orderDetails.product'])
@@ -733,4 +782,290 @@ class OrderController extends Controller
 
         return $pdf->download("invoice_order_{$order->id}.pdf");
     }
+        public function orderStatisticsByAdminStatus(Request $request)
+{
+    $user = Auth::user();
+    $query = Order::query();
+
+    if ($user->role === 'seller') {
+        $shop = \App\Models\Shop::where('user_id', $user->id)->first();
+        if (!$shop) {
+            return response()->json([
+                'message' => 'Seller chưa có shop',
+                'data' => [
+                    'total_orders' => 0,
+                    'total_amount' => 0,
+                    'formatted_total_amount' => '0 ₫',
+                    'pending_processing' => 0,
+                    'processing' => 0,
+                    'shipping' => 0,
+                    'delivered' => 0,
+                    'returned_requesting' => 0,
+                    'returned_completed' => 0,
+                    'cancelled_by_customer' => 0,
+                ]
+            ]);
+        }
+
+        $query->where('shop_id', $shop->id);
+    }
+    if ($request->filled('from_date') && $request->filled('to_date')) {
+        $from = date($request->input('from_date') . ' 00:00:00');
+        $to   = date($request->input('to_date') . ' 23:59:59');
+        $query->whereBetween('created_at', [$from, $to]);
+    }
+    $totalOrders = $query->count();
+    $totalAmount = $query->sum('final_amount');
+
+    return response()->json([
+        'total_orders'           => $totalOrders,
+        'total_amount'           => $totalAmount,
+        'formatted_total_amount' => number_format($totalAmount, 0, ',', '.') . ' ₫',
+        'pending_processing'     => (clone $query)->where('order_admin_status', 'Pending Processing')->count(),
+        'processing'             => (clone $query)->where('order_admin_status', 'Processing')->count(),
+        'shipping'               => (clone $query)->where('order_admin_status', 'Shipping')->count(),
+        'delivered'              => (clone $query)->where('order_admin_status', 'Delivered')->count(),
+        'returned_requesting'    => (clone $query)->where('order_admin_status', 'Returned - Requesting')->count(),
+        'returned_completed'     => (clone $query)->where('order_admin_status', 'Returned - Completed')->count(),
+        'cancelled_by_customer'  => (clone $query)->where('order_admin_status', 'Cancelled by Customer')->count(),
+    ]);
+}
+    public function updateAdminOrderStatus(Request $request, $orderId)
+    {
+        $validated = $request->validate([
+            'order_admin_status' => 'required|string|max:100',
+            'reconciliation_status' => 'nullable|in:Pending,Done',
+        ]);
+
+        $order = Order::find($orderId);
+
+        if (!$order) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+
+        $adminStatus = $validated['order_admin_status'];
+
+        // ✅ Xác định flow chuẩn theo thứ tự xử lý
+        $orderFlow = [
+            'Pending Processing',
+            'Processing',
+            'Ready for Shipment',
+            'Shipping',
+            'Delivered',
+            'Paid - Reconciliation Pending',
+            'Reconciled',
+        ];
+
+        // ✅ Kiểm tra nếu chuyển lùi trạng thái
+        $currentIndex = array_search($order->order_admin_status, $orderFlow);
+        $newIndex = array_search($adminStatus, $orderFlow);
+
+        if ($currentIndex !== false && $newIndex !== false && $newIndex < $currentIndex) {
+            $allowedBackwardTransitions = [
+                'Ready for Shipment' => ['Processing'],
+                'Processing' => ['Pending Processing'],
+            ];
+
+            if (!in_array($adminStatus, $allowedBackwardTransitions[$order->order_admin_status] ?? [])) {
+                return response()->json(['message' => 'Không được phép chuyển lùi trạng thái đơn hàng này'], 400);
+            }
+        }
+
+        // ✅ Kiểm tra trạng thái đối soát trước khi cập nhật trạng thái đơn
+        if ($request->has('reconciliation_status')) {
+            if (
+                $order->order_status !== 'Delivered' ||
+                !in_array($order->order_admin_status, ['Delivered', 'Reconciled', 'Paid - Reconciliation Pending'])
+            ) {
+                return response()->json(['message' => 'Chỉ đơn hàng đã giao và đã xác nhận nhận hàng mới được đối soát'], 400);
+            }
+
+            if ($order->payment_method !== 'COD') {
+                return response()->json(['message' => 'Chỉ đối soát đơn hàng thanh toán COD'], 400);
+            }
+
+            if (str_starts_with($adminStatus, 'Cancelled')) {
+                return response()->json(['message' => 'Đơn hàng đã huỷ, không thể đối soát'], 400);
+            }
+
+            $order->reconciliation_status = $validated['reconciliation_status'];
+        }
+
+        // ✅ Ánh xạ order_admin_status → order_status
+        $statusMap = [
+            'Pending Processing'              => 'Pending',
+            'Processing'                      => 'order confirmation',
+            'Processed'                       => 'order confirmation',
+            'Cancellation Request Pending'    => 'order confirmation',
+            'Ready for Shipment'              => 'Shipped',
+            'Shipping'                        => 'Shipped',
+            'Delivered'                       => 'Delivered',
+            'Paid - Reconciliation Pending'   => 'Delivered',
+            'Reconciled'                      => 'Delivered',
+            'Returned - Requesting'           => 'Return Requested',
+            'Returned - Approved'             => 'Return Requested',
+            'Returned - Rejected'             => 'Delivered',
+            'Returned - Customer Shipped'     => 'Return Requested',
+            'Returned - Completed'            => 'Refunded',
+            'Unpaid'                          => 'Pending',
+            'Cancelled by Customer'           => 'Canceled',
+            'Cancelled by Seller'             => 'Canceled',
+            'Cancelled - Payment Failed'      => 'Canceled',
+            'Cancelled - Customer Refused Delivery' => 'Canceled',
+        ];
+
+        $order->order_admin_status = $adminStatus;
+
+        if (isset($statusMap[$adminStatus])) {
+            $order->order_status = $statusMap[$adminStatus];
+        }
+
+        // ✅ Ánh xạ shipping_status nếu phù hợp
+        $shippingMap = [
+            'Ready for Shipment' => 'Pending',
+            'Shipping' => 'Shipping',
+            'Delivered' => 'Delivered',
+            'Cancelled by Customer' => 'Failed',
+            'Cancelled by Seller' => 'Failed',
+            'Cancelled - Payment Failed' => 'Failed',
+            'Cancelled - Customer Refused Delivery' => 'Failed',
+        ];
+
+        if (isset($shippingMap[$adminStatus])) {
+            $order->shipping_status = $shippingMap[$adminStatus];
+        }
+
+        // ✅ Ghi nhận người hủy nếu là trạng thái hủy
+        if (str_starts_with($adminStatus, 'Cancelled')) {
+            if ($adminStatus === 'Cancelled by Customer') {
+                $order->canceled_by = 'Customer';
+            } elseif ($adminStatus === 'Cancelled by Seller') {
+                $order->canceled_by = 'Seller';
+            } elseif ($adminStatus === 'Cancelled - Payment Failed') {
+                $order->canceled_by = 'Payment Gateway';
+            } else {
+                $order->canceled_by = 'System';
+            }
+        }
+
+        $order->save();
+
+        return response()->json(['message' => 'Cập nhật đơn hàng thành công']);
+    }
+    // hoàn đơn
+    public function requestRefund(Request $request, $id)
+    {
+        $order = Order::where('id', $id)->where('user_id', Auth::id())->first();
+
+        if (!$order) {
+            return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
+        }
+
+        if ($order->order_status !== 'Delivered') {
+            return response()->json(['message' => 'Chỉ được yêu cầu hoàn đơn khi đã giao hàng'], 400);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:255',
+            'photos' => 'nullable|array',
+            'photos.*' => 'url',
+        ]);
+
+        // Update trạng thái hoàn đơn
+        $order->update([
+            'order_status' => 'Return Requested',
+            'order_admin_status' => 'Return Requested',
+            'cancel_reason' => $validated['reason'],
+            'cancel_status' => 'Requested',
+        ]);
+
+        // Lưu ảnh vào bảng order_return_photos
+        if (!empty($validated['photos'])) {
+            foreach ($validated['photos'] as $url) {
+                \App\Models\OrderReturnPhoto::create([
+                    'order_id' => $order->id,
+                    'image_path' => $url,
+                ]);
+            }
+        }
+
+        return response()->json(['message' => 'Đã gửi yêu cầu hoàn đơn thành công']);
+    }
+    // từ chối hoàn đơn
+    public function rejectRefundRequest(Request $request, $orderId)
+{
+    $validated = $request->validate([
+        'rejection_reason' => 'required|string|max:255',
+    ]);
+
+    $order = Order::find($orderId);
+
+    if (!$order || $order->order_admin_status !== 'Return Requested') {
+        return response()->json(['message' => 'Đơn hàng không hợp lệ để từ chối hoàn đơn'], 400);
+    }
+
+    $order->order_admin_status = 'Return Requested';
+    $order->order_status = 'Delivered'; // Trả lại trạng thái đã giao
+    $order->rejection_reason = $validated['rejection_reason'];
+    $order->save();
+
+    // Gửi thông báo cho user
+    Notification::create([
+        'user_id'   => $order->user_id,
+        'title'     => "Yêu cầu hoàn đơn #{$order->id} bị từ chối",
+        'content'   => "Lý do: {$validated['rejection_reason']}",
+        'image_url' => '/images/refund-rejected.png',
+        'link'      => "/account?section=orders&order_id={$order->id}",
+        'is_read'   => 0,
+    ]);
+
+    return response()->json(['message' => 'Đã từ chối yêu cầu hoàn đơn thành công']);
+}
+// xem chi tiết hoàn đơn
+public function viewRefundRequest($orderId)
+{
+    $order = Order::with('user')->find($orderId);
+
+    if (!$order) {
+        return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
+    }
+
+    $photos = \App\Models\OrderReturnPhoto::where('order_id', $orderId)->pluck('image_path');
+
+    return response()->json([
+        'order_id'           => $order->id,
+        'user'               => [
+            'id'    => $order->user?->id,
+            'name'  => $order->user?->name,
+        ],
+        'cancel_reason'      => $order->cancel_reason,
+        'photos'             => $order->images,
+        'created_at'         => $order->created_at,
+    ]);
+}
+
+// duyệt
+public function approveRefundRequest($orderId)
+{
+    $order = Order::find($orderId);
+
+    if (!$order || $order->order_admin_status !== 'Return Requested') {
+        return response()->json(['message' => 'Không thể duyệt hoàn đơn trong trạng thái hiện tại'], 400);
+    }
+
+    $order->order_admin_status = 'Return Requested';
+    $order->order_status = 'Return Requested';
+    $order->save();
+
+    Notification::create([
+        'user_id' => $order->user_id,
+        'title' => "Yêu cầu hoàn đơn #{$order->id} đã được duyệt",
+        'content' => "Đơn hàng của bạn đã được chấp nhận hoàn trả. Vui lòng làm theo hướng dẫn từ shop.",
+        'image_url' => '/images/refund-approved.png',
+        'link' => "/account?section=orders&order_id={$order->id}",
+        'is_read' => 0,
+    ]);
+
+    return response()->json(['message' => 'Đã duyệt hoàn đơn thành công']);
+}
 }
