@@ -1,9 +1,8 @@
-"use client";
+"use client";  // Đánh dấu file là client component
 
 import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import OrderListTable from "@/app/components/shop-admin/order/list";
-import OrderStatusCard from "@/app/components/shop-admin/order/card";
 import OrderDetailView from "@/app/components/shop-admin/order/OrderDetailView";
 import { API_BASE_URL } from "@/utils/api";
 import { ShoppingCart, Truck, CheckCircle, Clock, XCircle } from "lucide-react";
@@ -58,7 +57,7 @@ export default function ModernOrderTable() {
         shippingStatus: Order["shipping_status"];
     } | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState("all"); // ✅ bổ sung tránh lỗi
+    const [activeTab, setActiveTab] = useState("all");
 
     const handleExportInvoice = async () => {
         try {
@@ -99,44 +98,54 @@ export default function ModernOrderTable() {
             });
 
             const data = await res.json();
-
-            // Log the data to console for debugging
             console.log("Fetched order statistics:", data);
-
-            // Set the stats with the fetched data
             setStats(data);
         } catch (err) {
             console.error("🚨 Failed to load order statistics:", err);
         }
     };
 
+  const fetchOrders = async (page = 1) => {
+    setLoading(true);
+    try {
+        const token = Cookies.get("authToken"); // Lấy token từ cookie
+        console.log("Token:", token); // Log token để kiểm tra
 
-    const fetchOrders = async (page = 1) => {
-        setLoading(true);
-        try {
-            const token = Cookies.get("authToken");
-            const res = await fetch(`${API_BASE_URL}/admin/orders?page=${page}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/json",
-                },
-            });
-            const data = await res.json();
-            const mappedOrders = (data.orders || []).map((o: any) => ({
-                ...o,
-                order_status: (o.order_status ?? "Pending") as Order["order_status"],
-                shipping_status: (o.shipping_status ?? "Pending") as Order["shipping_status"],
-                final_amount: Number(o.final_amount) || 0,
-            }));
-            setOrders(mappedOrders);
-            setTotalPages(data.pagination?.last_page || 1);
-            setCurrentPage(data.pagination?.current_page || 1);
-        } catch (err) {
-            console.error("🚨 Failed to load orders:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+        const res = await fetch(`${API_BASE_URL}/admin/orders?page=${page}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+            },
+        });
+
+        // Kiểm tra phản hồi từ API
+        console.log("API response status:", res.status);
+        
+        const data = await res.json();
+
+        // Log dữ liệu trả về từ API
+        console.log("Fetched data:", data);
+
+        const mappedOrders = (data.orders || []).map((o: any) => ({
+            ...o,
+            order_status: (o.order_status ?? "Pending") as Order["order_status"],
+            shipping_status: (o.shipping_status ?? "Pending") as Order["shipping_status"],
+            final_amount: Number(o.final_amount) || 0,
+        }));
+
+        // Log các đơn hàng đã map
+        console.log("Mapped orders:", mappedOrders);
+
+        setOrders(mappedOrders);
+        setTotalPages(data.pagination?.last_page || 1);
+        setCurrentPage(data.pagination?.current_page || 1);
+    } catch (err) {
+        console.error("🚨 Failed to load orders:", err); // Log lỗi nếu có
+    } finally {
+        setLoading(false);
+    }
+};
+
 
     const handleViewDetail = async (id: number) => {
         setSelectedOrderId(id);
@@ -216,9 +225,6 @@ export default function ModernOrderTable() {
 
     return (
         <div className="max-w-7xl mx-auto">
-         
-
-            {/* Bảng đơn hàng */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <OrderListTable
@@ -240,15 +246,13 @@ export default function ModernOrderTable() {
                         currentPage={currentPage}
                         setCurrentPage={setCurrentPage}
                         totalPages={totalPages}
-                       totalItems={orders.length}
-
-                        activeTab={activeTab}         // ✅ truyền activeTab
-                        setActiveTab={setActiveTab}   // ✅ truyền setActiveTab
+                        totalItems={orders.length}
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
                     />
                 </div>
             </div>
 
-            {/* Popup chi tiết đơn hàng */}
             {isDetailOpen && selectedOrderDetail && selectedOrderId !== null && (
                 <OrderDetailView
                     isOpen={isDetailOpen}
