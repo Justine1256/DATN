@@ -468,6 +468,15 @@ class OrderController extends Controller
                 'order_admin_status' => $order->order_admin_status, // ✅ thêm dòng này
                 'shipping_status' => $order->shipping_status,
                 'shipping_address' => $order->shipping_address,
+                'transaction_id' => $order->transaction_id,
+                'order_status' => $order->order_status,
+                'canceled_by' => $order->canceled_by,
+                'reconciliation_status' => $order->reconciliation_status,
+                'return_status' => $order->return_status,
+                'order_admin_status' => $order->order_admin_status,
+                'cancel_status' => $order->cancel_status,
+                'cancel_reason' => $order->cancel_reason,
+                'rejection_reason' => $order->rejection_reason,
                 'created_at' => $order->created_at,
                 'total_products' => $order->orderDetails->sum('quantity'),
             ];
