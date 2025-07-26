@@ -136,7 +136,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/avatar', [UserController::class, 'updateAvatar']);
     Route::get('/admin/users', [UserController::class, 'showAllUsers']);
     Route::get('/admin/shops', [ShopController::class, 'showAllShops']);
-    Route::post('/admin/apply', [UserController::class, 'applyShop']);
+    Route::post('/admin/apply', [ShopController::class, 'applyShop']);
 
     // Cart
     Route::get('/cart', [CartController::class, 'index']);
