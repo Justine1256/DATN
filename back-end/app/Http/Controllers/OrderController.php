@@ -1004,7 +1004,7 @@ class OrderController extends Controller
     }
         $validated = $request->validate([
             'reason' => 'required|string|max:255',
-            'photos' => 'nullable|array',
+            'photos' => 'required|array|min:1',
             'photos.*' => 'url',
         ]);
 
