@@ -280,6 +280,7 @@ public function showAllShops(Request $request)
 {
     $shops = DB::table('shops')
         ->leftJoin('users', 'shops.user_id', '=', 'users.id')
+        ->leftJoin(DB::raw('(SELECT shop_id, COUNT(*) as totalReports FROM reports GROUP BY shop_id) as r'), 'shops.id', '=', 'r.shop_id')
         ->select(
             'shops.id as shop_id',
             'shops.name as shop_name',
@@ -297,11 +298,24 @@ public function showAllShops(Request $request)
             'users.avatar as owner_avatar',
             DB::raw('(SELECT COUNT(*) FROM products WHERE products.shop_id = shops.id) as totalProducts'),
             DB::raw('(SELECT COUNT(*) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalOrders'),
-            DB::raw('(SELECT IFNULL(SUM(final_amount), 0) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalRevenue')
+            DB::raw('(SELECT IFNULL(SUM(final_amount), 0) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalRevenue'),
+            DB::raw('IFNULL(r.totalReports, 0) as totalReports')
         )
         ->get();
 
     $data = $shops->map(function ($shop) {
+        // ✅ Xác định trạng thái cảnh báo
+        $warningLevel = 'normal';
+        $warningColor = 'green';
+
+        if ($shop->totalReports >= 10) {
+            $warningLevel = 'danger';
+            $warningColor = 'red';
+        } elseif ($shop->totalReports >= 5) {
+            $warningLevel = 'warning';
+            $warningColor = 'yellow';
+        }
+
         return [
             'id' => 'SHOP' . str_pad($shop->shop_id, 4, '0', STR_PAD_LEFT),
             'name' => $shop->shop_name,
@@ -315,6 +329,11 @@ public function showAllShops(Request $request)
             'totalProducts' => (int)$shop->totalProducts,
             'totalOrders' => (int)$shop->totalOrders,
             'totalRevenue' => (float)$shop->totalRevenue,
+            'totalReports' => (int)$shop->totalReports,
+            'warningStatus' => [
+                'level' => $warningLevel,
+                'color' => $warningColor
+            ],
             'owner' => [
                 'id' => 'USER' . str_pad($shop->owner_id, 4, '0', STR_PAD_LEFT),
                 'name' => $shop->owner_name,
@@ -329,11 +348,11 @@ public function showAllShops(Request $request)
     $sortedData = $data->sort(function ($a, $b) {
         if ($a['totalRevenue'] === $b['totalRevenue']) {
             if ($a['rating'] === $b['rating']) {
-                return strcmp($a['name'], $b['name']); // A-Z
+                return strcmp($a['name'], $b['name']);
             }
-            return $b['rating'] <=> $a['rating']; // rating giảm dần
+            return $b['rating'] <=> $a['rating'];
         }
-        return $b['totalRevenue'] <=> $a['totalRevenue']; // doanh thu giảm dần
+        return $b['totalRevenue'] <=> $a['totalRevenue'];
     })->values();
 
     return response()->json([
@@ -344,6 +363,33 @@ public function showAllShops(Request $request)
 }
 
 
+    public function applyShop(Request $request)
+    {
+        // Validate dữ liệu gửi lên
+        $request->validate([
+            'shop_id' => 'required|integer|exists:shops,id'
+        ]);
+
+        $shopId = $request->input('shop_id');
+
+        // Update trạng thái is_verified = 1
+        $updated = DB::table('shops')
+            ->where('id', $shopId)
+            ->update(['is_verified' => 1]);
+
+        if ($updated) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Shop đã được phê duyệt thành công.',
+                'shop_id' => $shopId
+            ]);
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Không thể phê duyệt shop. Vui lòng thử lại sau.'
+        ], 500);
+    }
 
 
 }
