@@ -175,7 +175,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/{id}/refund', [OrderController::class, 'requestRefund']);// yêu cầu hoàn đơn
     Route::post('/orders/{id}/refund/approve', [OrderController::class, 'approveRefundRequest']); // duyệt đơn
     Route::post('/orders/{id}/refund/reject', [OrderController::class, 'rejectRefundRequest']); // từ chối
-    Route::get('/orders/{id}/refund-detail', [OrderController::class, 'viewRefundRequest']); // xem chi tiết lý do hoàn đơn
+        Route::get('/orders/{id}/refund-detail', [OrderController::class, 'viewRefundRequest']); // xem chi tiết lý do hoàn đơn
 
     Route::get('/order-details', [OrderDetailController::class, 'index']);
     Route::post('/order-details', [OrderDetailController::class, 'store']);
