@@ -37,6 +37,8 @@ export const translateShippingStatus = (status: ShippingStatus): string => {
             return "Đang giao";
         case ShippingStatus.Delivered:
             return "Đã giao";
+        case ShippingStatus.Failed:
+            return "Thất bại";
         default:
             return status;
     }

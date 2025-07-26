@@ -69,18 +69,25 @@ export default function OrderSection() {
     const list = sourceOrders || orders
     setActiveTab(status)
     let filtered: Order[] = []
-    if (status === "all") filtered = list
-    else if (status === "processing")
+
+    if (status === "all") {
+      filtered = list
+    } else if (status === "processing") {
       filtered = list.filter((o) => o.order_status === "Pending" || o.order_status === "order confirmation")
-    else if (status === "shipping") filtered = list.filter((o) => o.order_status === "Shipped")
-    else if (status === "delivered") filtered = list.filter((o) => o.order_status === "Delivered")
-    else if (status === "canceled") filtered = list.filter((o) => o.order_status === "Canceled")
-    else if (status === "return_requested") filtered = list.filter((o) => o.order_status === "Return Requested")
-    else if (status === "returning") filtered = list.filter((o) => o.order_status === "Returning")
-    else if (status === "refunded") filtered = list.filter((o) => o.order_status === "Refunded")
+    } else if (status === "shipping") {
+      filtered = list.filter((o) => o.order_status === "Shipped")
+    } else if (status === "delivered") {
+      filtered = list.filter((o) => o.order_status === "Delivered")
+    } else if (status === "canceled") {
+      filtered = list.filter((o) => o.order_status === "Canceled")
+    } else if (status === "return_refund") {  // Gộp Trả hàng và Hoàn tiền
+      filtered = list.filter((o) => o.order_status === "Return Requested" || o.order_status === "Returning" || o.order_status === "Refunded")
+    }
+
     setFilteredOrders(filtered)
     setCurrentPage(1)
   }
+
 
   const handleViewOrderDetails = (order: Order) => {
     setSelectedOrder(order)
