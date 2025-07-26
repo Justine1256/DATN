@@ -974,58 +974,61 @@ class OrderController extends Controller
         return response()->json(['message' => 'Cập nhật đơn hàng thành công']);
     }
     // hoàn đơn
-public function requestRefund(Request $request, $id)
-{
-    $order = Order::where('id', $id)
-        ->where('user_id', Auth::id())
-        ->first();
+    public function requestRefund(Request $request, $id)
+    {
+        $order = Order::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->first();
 
-    if (!$order) {
-        return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
-    }
+        if (!$order) {
+            return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
+        }
 
-    if ($order->order_status !== 'Delivered') {
-        return response()->json(['message' => 'Chỉ được yêu cầu hoàn đơn khi đơn hàng đã giao'], 400);
-    }
+        // Chỉ cho hoàn đơn khi đã giao hàng
+        if ($order->order_status !== 'Delivered') {
+            return response()->json(['message' => 'Chỉ được yêu cầu hoàn đơn khi đơn hàng đã giao'], 400);
+        }
 
-    if (!$order->delivered_at || $order->delivered_at->diffInDays(now()) > 7) {
-        return response()->json(['message' => 'Đơn hàng đã quá hạn 7 ngày kể từ khi giao, không thể hoàn đơn'], 400);
-    }
+        // Không cho hoàn đơn nếu đã quá 15 ngày kể từ ngày tạo
+        if (!$order->delivered_at || $order->delivered_at->diffInDays(now()) > 7) {
+            return response()->json(['message' => 'Đơn hàng đã quá hạn 7 ngày kể từ khi giao, không thể hoàn đơn'], 400);
+        }
 
-    $exists = Review::whereHas('orderDetail', function ($query) use ($order) {
-        $query->where('order_id', $order->id);
-    })->exists();
-    if ($exists) {
+
+        // Không cho hoàn nếu đơn đã được đánh giá (giả sử bảng reviews có order_id)
+        $exists = Review::whereHas('orderDetail', function ($query) use ($order) {
+            $query->where('order_id', $order->id);
+        })->exists();
+        if ($exists) {
         return response()->json(['message' => 'Đơn hàng đã được đánh giá, không thể hoàn đơn'], 400);
     }
+        $validated = $request->validate([
+            'reason' => 'required|string|max:255',
+            'photos' => 'nullable|array',
+            'photos.*' => 'url',
+        ]);
 
-    // Validate FormData
-    $validated = $request->validate([
-        'reason' => 'required|string|max:255',
-        'images' => 'nullable',
-    ]);
+        // Cập nhật trạng thái hoàn đơn
+        $order->update([
+            'order_status' => 'Return Requested',
+            'order_admin_status' => 'Return Requested',
+            'cancel_reason' => $validated['reason'],
+            'cancel_status' => 'Requested',
 
-    // Cập nhật trạng thái hoàn đơn
-    $order->update([
-        'order_status' => 'Return Requested',
-        'order_admin_status' => 'Return Requested',
-        'cancel_reason' => $validated['reason'],
-        'cancel_status' => 'Requested',
-    ]);
+        ]);
 
-    // Nếu có ảnh thì xử lý upload
-    if ($request->hasFile('images')) {
-        foreach ($request->file('images') as $image) {
-            $path = $image->store('refunds', 'public');
-            \App\Models\OrderReturnPhoto::create([
-                'order_id' => $order->id,
-                'image_path' => asset('storage/' . $path),
-            ]);
+        // Lưu ảnh hoàn đơn nếu có
+        if (!empty($validated['photos'])) {
+            foreach ($validated['photos'] as $url) {
+                \App\Models\OrderReturnPhoto::create([
+                    'order_id' => $order->id,
+                    'image_path' => $url,
+                ]);
+            }
         }
-    }
 
-    return response()->json(['message' => 'Đã gửi yêu cầu hoàn đơn thành công']);
-}
+        return response()->json(['message' => 'Đã gửi yêu cầu hoàn đơn thành công']);
+    }
 
     // từ chối hoàn đơn
     public function rejectRefundRequest(Request $request, $orderId)
