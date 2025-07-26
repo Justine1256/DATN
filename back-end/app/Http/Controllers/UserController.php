@@ -147,10 +147,10 @@ public function showAllUsers(Request $request)
         // Cảnh báo số đơn hủy
         $cancelLevel = 'normal';
         $cancelColor = 'green';
-        if ($u->canceledOrders > 10) {
+        if ($u->canceledOrders >= 10) {
             $cancelLevel = 'danger';
             $cancelColor = 'red';
-        } elseif ($u->canceledOrders > 5) {
+        } elseif ($u->canceledOrders >= 5) {
             $cancelLevel = 'warning';
             $cancelColor = 'yellow';
         }

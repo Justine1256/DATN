@@ -216,7 +216,7 @@ export default function UserManagementPage() {
     }
 
     return (
-      <div style={{ maxWidth: 300 }}>
+      <div style={{ maxWidth: 200 }}>
         <Text strong>Tổng số báo cáo: {reports.total}</Text>
         <div style={{ marginTop: 8 }}>
           {reports.reasons.slice(0, 3).map((reason, index) => (
@@ -239,7 +239,7 @@ export default function UserManagementPage() {
     {
       title: "Người dùng",
       key: "user",
-      width: 220,
+      width: 180, // Giảm từ 220 xuống 180
       render: (_, record) => (
         <Space>
           <Avatar src={record.avatar} icon={record.role === "seller" ? <ShopOutlined /> : <UserOutlined />} size={40} />
@@ -251,13 +251,14 @@ export default function UserManagementPage() {
         </Space>
       ),
     },
+    // Thêm cột Liên hệ
     {
       title: "Liên hệ",
       key: "contact",
-      width: 180,
+      width: 160, // Giảm từ 180 xuống 160
       render: (_, record) => (
         <div>
-          <div style={{ marginBottom: 4 }}>{record.email}</div>
+          <div style={{ marginBottom: 4, fontSize: "13px" }}>{record.email}</div>
           <div style={{ color: "#666", fontSize: "12px" }}>{record.phone}</div>
         </div>
       ),
@@ -266,7 +267,7 @@ export default function UserManagementPage() {
       title: "Vai trò",
       dataIndex: "role",
       key: "role",
-      width: 100,
+      width: 90, // Giảm từ 100 xuống 90
       render: (role: string) => renderRole(role),
       filters: [
         { text: "Khách hàng", value: "customer" },
@@ -281,7 +282,7 @@ export default function UserManagementPage() {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      width: 100,
+      width: 90, // Giảm từ 100 xuống 90
       render: (status: string) => {
         const statusConfig = {
           active: { color: "green", text: "Hoạt động" },
@@ -305,16 +306,16 @@ export default function UserManagementPage() {
     {
       title: "Đơn hàng",
       key: "orders",
-      width: 120,
+      width: 100, // Giảm từ 120 xuống 100
       render: (_, record) => (
         <div>
           <div>
             <Badge count={record.totalOrders} showZero color="#1890ff" />
-            <span style={{ marginLeft: 8, fontSize: 12 }}>Tổng</span>
+            <span style={{ marginLeft: 6, fontSize: 11 }}>Tổng</span>
           </div>
           <div style={{ marginTop: 4 }}>
             <Badge count={record.canceledOrders} showZero color={record.cancelStatus.color} />
-            <span style={{ marginLeft: 8, fontSize: 12 }}>Hủy</span>
+            <span style={{ marginLeft: 6, fontSize: 11 }}>Hủy</span>
             {record.cancelStatus.level !== "normal" && (
               <Tooltip
                 title={record.cancelStatus.level === "danger" ? "Cảnh báo: Quá nhiều đơn hủy" : "Chú ý: Số đơn hủy cao"}
@@ -335,9 +336,9 @@ export default function UserManagementPage() {
       title: "Chi tiêu",
       dataIndex: "totalSpent",
       key: "totalSpent",
-      width: 120,
+      width: 100, // Giảm từ 120 xuống 100
       render: (amount: number) => (
-        <Text strong style={{ color: "#52c41a" }}>
+        <Text strong style={{ color: "#52c41a", fontSize: "13px" }}>
           {amount.toLocaleString("vi-VN")} ₫
         </Text>
       ),
@@ -346,7 +347,7 @@ export default function UserManagementPage() {
     {
       title: "Báo cáo",
       key: "reports",
-      width: 80,
+      width: 70, // Giảm từ 80 xuống 70
       render: (_, record) => {
         if (record.reports.total === 0) {
           return (
@@ -370,21 +371,19 @@ export default function UserManagementPage() {
       title: "Ngày đăng ký",
       dataIndex: "registrationDate",
       key: "registrationDate",
-      width: 120,
-      render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
+      width: 100, // Giảm từ 120 xuống 100
+      render: (date: string) => <Text style={{ fontSize: "12px" }}>{new Date(date).toLocaleDateString("vi-VN")}</Text>,
       sorter: (a: UserData, b: UserData) =>
         new Date(a.registrationDate).getTime() - new Date(b.registrationDate).getTime(),
     },
     {
       title: "Thao tác",
       key: "action",
-      width: 120,
+      width: 80, // Giảm từ 120 xuống 80
       render: (_, record: UserData) => (
-        <Space size="middle">
-          <Button type="link" onClick={() => showUserDetail(record)}>
-            Chi tiết
-          </Button>
-        </Space>
+        <Button type="link" size="small" onClick={() => showUserDetail(record)}>
+          Chi tiết
+        </Button>
       ),
     },
   ]
@@ -557,7 +556,7 @@ export default function UserManagementPage() {
               total: filteredData.length,
             }}
             onChange={handleTableChange}
-            scroll={{ x: 1500 }}
+            scroll={{ x: 1200 }}
             size="middle"
             rowClassName={(record) => {
               if (record.cancelStatus.level === "danger") return "danger-row"
