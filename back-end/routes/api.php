@@ -166,9 +166,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/orders', [OrderController::class, 'adminOrderList']);
     Route::get('/admin/order/{id}', [OrderController::class, 'adminShow']);
     Route::patch('/cancel/{id}', [OrderController::class, 'cancel']);
-    Route::post('/admin/orders/{id}/cancel', [OrderController::class, 'adminCancelOrder']);
+    Route::post('/shop/orders/{id}/cancel', [OrderController::class, 'adminCancelOrder']);
     Route::post('/orders/{orderId}/status', [OrderController::class, 'updateOrderStatus']);
-    Route::post('/admin/orders/{id}/status', [OrderController::class, 'updateAdminOrderStatus']);
+    Route::post('/shop/orders/{id}/status', [OrderController::class, 'updateAdminOrderStatus']);
     Route::patch('/ordership/{id}', [OrderController::class, 'updateShippingStatus']);
     Route::post('/reorder/{orderId}', [OrderController::class, 'reorder']);
     Route::post('/orders/{id}/refund', [OrderController::class, 'requestRefund']);// yêu cầu hoàn đơn
