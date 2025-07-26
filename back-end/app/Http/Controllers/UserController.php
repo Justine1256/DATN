@@ -106,7 +106,7 @@ public function showAllUsers(Request $request)
 
     $users = DB::table('users')
         ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
-        ->leftJoin('reports', 'users.id', '=', 'reports.user_id')
+        ->leftJoin('reports', 'users.id', '=', 'reports.shop_id')
         ->select(
             'users.id',
             'users.name',

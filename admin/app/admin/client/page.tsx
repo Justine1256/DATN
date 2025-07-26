@@ -194,9 +194,10 @@ export default function UserManagementPage() {
         <div style={{ marginTop: 8 }}>
           {reports.reasons.slice(0, 3).map((reason, index) => (
             <div key={index} style={{ marginBottom: 4 }}>
-              <Tag color="red" size="small">
-                {reason}
-              </Tag>
+<Tag color="red" className="text-xs px-2 py-1">
+  {reason}
+</Tag>
+
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {new Date(reports.dates[index]).toLocaleDateString("vi-VN")}
               </Text>
@@ -212,7 +213,7 @@ export default function UserManagementPage() {
     {
       title: "Người dùng",
       key: "user",
-      width: 200,
+      width: 160,
       render: (_, record) => (
         <Space>
           <Avatar src={record.avatar} icon={<UserOutlined />} size={40} />
@@ -224,21 +225,10 @@ export default function UserManagementPage() {
       ),
     },
     {
-      title: "Liên hệ",
-      key: "contact",
-      width: 180,
-      render: (_, record) => (
-        <div>
-          <div style={{ marginBottom: 4 }}>{record.email}</div>
-          <div style={{ color: "#666", fontSize: "12px" }}>{record.phone}</div>
-        </div>
-      ),
-    },
-    {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      width: 100,
+      width: 50,
       render: (status: string) => {
         const statusConfig = {
           active: { color: "green", text: "Hoạt động" },
