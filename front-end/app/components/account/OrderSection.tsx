@@ -138,9 +138,10 @@ export default function OrderSection() {
     try {
       const formData = new FormData()
       formData.append("reason", refundData.reason)
-      refundData.images.forEach((image, index) => {
-        formData.append(`images[${index}]`, image)
-      })
+      refundData.images.forEach((image) => {
+        formData.append('images[]', image); // Đổi từ images[0] → images[]
+      });
+
 
       await axios.post(`${API_BASE_URL}/orders/${orderToRefund.id}/refund`, formData, {
         headers: {

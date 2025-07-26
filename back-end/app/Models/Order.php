@@ -51,10 +51,10 @@ class Order extends Model
         return $this->hasMany(OrderReturnPhoto::class);
     }
     public function getImagesAttribute()
-{
-    return $this->returnPhotos()->pluck('image_path')->toArray();
-}
-protected $casts = [
-    'delivered_at' => 'datetime',
-];
+    {
+        return $this->returnPhotos()->pluck('image_path')->toArray();
+    }
+    protected $casts = [
+        'delivered_at' => 'datetime',
+    ];
 }
