@@ -116,4 +116,21 @@ public function uploadShopLogo(Request $request)
         'logo' => [$url] // trả về mảng
     ], 201);
 }
+public function uploadRefundImage(Request $request)
+{
+    $request->validate([
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
+    ]);
+
+    $file = $request->file('image');
+    $path = $file->store('Refund_photos', 'public');
+
+    $url = str_replace(config('app.url'), 'https://files.marketo.info.vn', asset('storage/' . $path));
+
+    return response()->json([
+        'message' => 'Tải ảnh hoàn đơn thành công',
+        'images' => [$url]
+    ], 201);
+}
+
 }

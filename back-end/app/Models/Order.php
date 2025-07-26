@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,11 @@ class Order extends Model
         'payment_status',
         'transaction_id',
         'order_status',
+        'order_admin_status',       // ✅ THÊM
+        'cancel_status',            // ✅ THÊM
+        'cancel_reason',            // ✅ THÊM
+        'canceled_by',              // ✅ THÊM
+        'reconciliation_status',    // ✅ THÊM
         'shipping_status',
         'shipping_address'
     ];
@@ -40,4 +46,13 @@ class Order extends Model
     {
         return $this->hasMany(OrderDetail::class);
     }
+    public function returnPhotos()
+    {
+        return $this->hasMany(OrderReturnPhoto::class);
+    }
+    public function getImagesAttribute()
+{
+    return $this->returnPhotos()->pluck('image_path')->toArray();
+}
+
 }
