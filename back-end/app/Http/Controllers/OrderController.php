@@ -310,7 +310,7 @@ class OrderController extends Controller
 
         return response()->json(['message' => 'Không thể huỷ đơn ở trạng thái hiện tại'], 400);
     }
-    public function adminCancelOrder(Request $request, $id)
+    public function ShopCancelOrder(Request $request, $id)
     {
         $order = Order::find($id);
 
@@ -773,6 +773,7 @@ class OrderController extends Controller
             'canceled_orders'        => $canceledOrders,
         ]);
     }
+
     public function downloadInvoice($id)
     {
         $order = Order::with(['user', 'orderDetails.product', 'shop'])->findOrFail($id);
@@ -785,7 +786,7 @@ class OrderController extends Controller
 
         return $pdf->download("invoice_order_{$order->id}.pdf");
     }
-        public function orderStatisticsByAdminStatus(Request $request)
+        public function orderStatisticsByShopStatus(Request $request)
 {
     $user = Auth::user();
     $query = Order::query();
@@ -837,7 +838,7 @@ class OrderController extends Controller
     'refunded'               => (clone $query)->where('order_admin_status', 'Refunded')->count(),
 ]);
 }
-    public function updateAdminOrderStatus(Request $request, $orderId)
+    public function updateShopOrderStatus(Request $request, $orderId)
     {
         $validated = $request->validate([
             'order_admin_status' => 'required|string|max:100',
