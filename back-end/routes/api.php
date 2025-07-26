@@ -163,13 +163,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/dathang', [OrderController::class, 'checkout']);
     Route::get('/showdh/{id}', [OrderController::class, 'show']);
     Route::get('/order-statistics', [OrderController::class, 'orderStatistics']);
-    Route::get('/order-admin-statistics', [OrderController::class, 'orderStatisticsByAdminStatus']);
-    Route::get('/admin/orders', [OrderController::class, 'adminOrderList']);
+    Route::get('/order-shop-statistics', [OrderController::class, 'orderStatisticsByShopStatus']);
+    Route::get('/shop/orders', [OrderController::class, 'ShopOrderList']);
     Route::get('/admin/order/{id}', [OrderController::class, 'adminShow']);
     Route::patch('/cancel/{id}', [OrderController::class, 'cancel']);
-    Route::post('/admin/orders/{id}/cancel', [OrderController::class, 'adminCancelOrder']);
+    Route::post('/shop/orders/{id}/cancel', [OrderController::class, 'ShopCancelOrder']);
     Route::post('/orders/{orderId}/status', [OrderController::class, 'updateOrderStatus']);
-    Route::post('/admin/orders/{id}/status', [OrderController::class, 'updateAdminOrderStatus']);
+    Route::post('/shop/orders/{id}/status', [OrderController::class, 'updateShopOrderStatus']);
     Route::patch('/ordership/{id}', [OrderController::class, 'updateShippingStatus']);
     Route::post('/reorder/{orderId}', [OrderController::class, 'reorder']);
     Route::post('/orders/{id}/refund', [OrderController::class, 'requestRefund']);// yêu cầu hoàn đơn
