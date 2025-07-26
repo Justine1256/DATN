@@ -1,5 +1,4 @@
 "use client"
-
 import type React from "react"
 import { useState, useMemo, useEffect } from "react"
 import {
@@ -29,14 +28,11 @@ import {
   WarningOutlined,
   ExclamationCircleOutlined,
   CheckCircleOutlined,
-  ShopOutlined,
-  CrownOutlined,
 } from "@ant-design/icons"
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table"
 import UserDetailModal from "./modal/UserDetailModal"
-import { API_BASE_URL } from "@/utils/api"
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
 import Cookies from "js-cookie"
-import Statistic from "antd/es/statistic" // Declare the Statistic variable
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -57,7 +53,7 @@ interface UserData {
   name: string
   email: string
   phone: string
-  role: "customer" | "seller" | "admin" // Thêm role
+  role: "customer" | "seller" | "admin"
   status: "active" | "blocked" | "inactive" | "hidden"
   registrationDate: string
   totalOrders: number
@@ -66,7 +62,6 @@ interface UserData {
   cancelStatus: CancelStatus
   reports: Reports
   avatar?: string
-  // Thêm các field cho modal
   gender?: "male" | "female" | "other"
   birthDate?: string
   address?: string
@@ -90,7 +85,6 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [roleFilter, setRoleFilter] = useState<string>("all") // Thêm role filter
   const [riskFilter, setRiskFilter] = useState<string>("all")
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
@@ -108,7 +102,6 @@ export default function UserManagementPage() {
     try {
       setLoading(true)
       const token = Cookies.get("authToken")
-
       const response = await fetch(`${API_BASE_URL}/admin/users?page=${page}&per_page=${pageSize}`, {
         method: "GET",
         headers: {
@@ -124,7 +117,6 @@ export default function UserManagementPage() {
       }
 
       const result: ApiResponse = await response.json()
-
       if (result.status) {
         setUsers(result.data)
         setPagination((prev) => ({
@@ -158,12 +150,11 @@ export default function UserManagementPage() {
         user.phone.includes(searchText)
 
       const matchesStatus = statusFilter === "all" || user.status === statusFilter
-      const matchesRole = roleFilter === "all" || user.role === roleFilter
       const matchesRisk = riskFilter === "all" || user.cancelStatus.level === riskFilter
 
-      return matchesSearch && matchesStatus && matchesRole && matchesRisk
+      return matchesSearch && matchesStatus && matchesRisk
     })
-  }, [users, searchText, statusFilter, roleFilter, riskFilter])
+  }, [users, searchText, statusFilter, riskFilter])
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
     const newPage = newPagination.current || 1
@@ -173,40 +164,18 @@ export default function UserManagementPage() {
       ...pagination,
       ...newPagination,
     })
-
     fetchUsers(newPage, newPageSize)
   }
 
   const handleReset = () => {
     setSearchText("")
     setStatusFilter("all")
-    setRoleFilter("all")
     setRiskFilter("all")
     setPagination({
       ...pagination,
       current: 1,
     })
     fetchUsers(1, pagination.pageSize)
-  }
-
-  // Render role với icon và màu sắc
-  const renderRole = (role: string) => {
-    const roleConfig = {
-      customer: { color: "blue", text: "Khách hàng", icon: <UserOutlined /> },
-      seller: { color: "green", text: "Người bán", icon: <ShopOutlined /> },
-      admin: { color: "gold", text: "Quản trị", icon: <CrownOutlined /> },
-    }
-    const config = roleConfig[role as keyof typeof roleConfig] || {
-      color: "default",
-      text: role,
-      icon: <UserOutlined />,
-    }
-
-    return (
-      <Tag color={config.color} icon={config.icon}>
-        {config.text}
-      </Tag>
-    )
   }
 
   // Render reports popover content
@@ -221,8 +190,17 @@ export default function UserManagementPage() {
         <div style={{ marginTop: 8 }}>
           {reports.reasons.slice(0, 3).map((reason, index) => (
             <div key={index} style={{ marginBottom: 4 }}>
-              <Tag color="red" size="small">
-                {reason}
+              <Tag
+                color="red"
+                style={{
+                  maxWidth: 150,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  display: "inline-block",
+                }}
+              >
+                <Tooltip title={reason}>{reason}</Tooltip>
               </Tag>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {new Date(reports.dates[index]).toLocaleDateString("vi-VN")}
@@ -239,50 +217,69 @@ export default function UserManagementPage() {
     {
       title: "Người dùng",
       key: "user",
-      width: 180, // Giảm từ 220 xuống 180
+      width: 200,
       render: (_, record) => (
         <Space>
-          <Avatar src={record.avatar} icon={record.role === "seller" ? <ShopOutlined /> : <UserOutlined />} size={40} />
+<Avatar
+  src={`${STATIC_BASE_URL}/${record.avatar}`}
+  icon={<UserOutlined />}
+  size={40}
+/>
           <div>
-            <div style={{ fontWeight: 500 }}>{record.name}</div>
+            <div
+              style={{
+                fontWeight: 500,
+                maxWidth: 140,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Tooltip title={record.name}>{record.name}</Tooltip>
+            </div>
             <div style={{ color: "#666", fontSize: "12px" }}>ID: {record.id}</div>
-            {renderRole(record.role)}
           </div>
         </Space>
       ),
     },
-    // Thêm cột Liên hệ
     {
       title: "Liên hệ",
       key: "contact",
-      width: 160, // Giảm từ 180 xuống 160
+      width: 180,
       render: (_, record) => (
         <div>
-          <div style={{ marginBottom: 4, fontSize: "13px" }}>{record.email}</div>
-          <div style={{ color: "#666", fontSize: "12px" }}>{record.phone}</div>
+          <div
+            style={{
+              marginBottom: 4,
+              fontSize: "13px",
+              maxWidth: 160,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Tooltip title={record.email}>{record.email}</Tooltip>
+          </div>
+          <div
+            style={{
+              color: "#666",
+              fontSize: "12px",
+              maxWidth: 160,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Tooltip title={record.phone}>{record.phone}</Tooltip>
+          </div>
         </div>
       ),
-    },
-    {
-      title: "Vai trò",
-      dataIndex: "role",
-      key: "role",
-      width: 90, // Giảm từ 100 xuống 90
-      render: (role: string) => renderRole(role),
-      filters: [
-        { text: "Khách hàng", value: "customer" },
-        { text: "Người bán", value: "seller" },
-        { text: "Quản trị", value: "admin" },
-      ],
-      onFilter: (value: boolean | React.Key, record: UserData) => {
-        return record.role === String(value)
-      },
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      width: 90, // Giảm từ 100 xuống 90
+      width: 120,
       render: (status: string) => {
         const statusConfig = {
           active: { color: "green", text: "Hoạt động" },
@@ -306,7 +303,7 @@ export default function UserManagementPage() {
     {
       title: "Đơn hàng",
       key: "orders",
-      width: 100, // Giảm từ 120 xuống 100
+      width: 120,
       render: (_, record) => (
         <div>
           <div>
@@ -336,18 +333,34 @@ export default function UserManagementPage() {
       title: "Chi tiêu",
       dataIndex: "totalSpent",
       key: "totalSpent",
-      width: 100, // Giảm từ 120 xuống 100
-      render: (amount: number) => (
-        <Text strong style={{ color: "#52c41a", fontSize: "13px" }}>
-          {amount.toLocaleString("vi-VN")} ₫
-        </Text>
-      ),
+      width: 120,
+      render: (amount: number) => {
+        const formattedAmount = amount.toLocaleString("vi-VN") + " ₫"
+        return (
+          <Tooltip title={formattedAmount}>
+            <Text
+              strong
+              style={{
+                color: "#52c41a",
+                fontSize: "13px",
+                maxWidth: 110,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                display: "inline-block",
+              }}
+            >
+              {formattedAmount}
+            </Text>
+          </Tooltip>
+        )
+      },
       sorter: (a: UserData, b: UserData) => a.totalSpent - b.totalSpent,
     },
     {
       title: "Báo cáo",
       key: "reports",
-      width: 70, // Giảm từ 80 xuống 70
+      width: 80,
       render: (_, record) => {
         if (record.reports.total === 0) {
           return (
@@ -356,7 +369,6 @@ export default function UserManagementPage() {
             </Tooltip>
           )
         }
-
         return (
           <Popover content={renderReportsContent(record.reports)} title="Chi tiết báo cáo" trigger="hover">
             <Badge count={record.reports.total} size="small">
@@ -371,7 +383,7 @@ export default function UserManagementPage() {
       title: "Ngày đăng ký",
       dataIndex: "registrationDate",
       key: "registrationDate",
-      width: 100, // Giảm từ 120 xuống 100
+      width: 120,
       render: (date: string) => <Text style={{ fontSize: "12px" }}>{new Date(date).toLocaleDateString("vi-VN")}</Text>,
       sorter: (a: UserData, b: UserData) =>
         new Date(a.registrationDate).getTime() - new Date(b.registrationDate).getTime(),
@@ -379,7 +391,7 @@ export default function UserManagementPage() {
     {
       title: "Thao tác",
       key: "action",
-      width: 80, // Giảm từ 120 xuống 80
+      width: 100,
       render: (_, record: UserData) => (
         <Button type="link" size="small" onClick={() => showUserDetail(record)}>
           Chi tiết
@@ -401,62 +413,18 @@ export default function UserManagementPage() {
   // Thống kê tổng quan
   const stats = useMemo(() => {
     const total = filteredData.length
-    const customers = filteredData.filter((u) => u.role === "customer").length
-    const sellers = filteredData.filter((u) => u.role === "seller").length
-    const admins = filteredData.filter((u) => u.role === "admin").length
     const dangerUsers = filteredData.filter((u) => u.cancelStatus.level === "danger").length
     const warningUsers = filteredData.filter((u) => u.cancelStatus.level === "warning").length
     const reportedUsers = filteredData.filter((u) => u.reports.total > 0).length
 
-    return { total, customers, sellers, admins, dangerUsers, warningUsers, reportedUsers }
+    return { total, dangerUsers, warningUsers, reportedUsers }
   }, [filteredData])
 
   return (
-    <div style={{ padding: "24px" }}>
-      <Title level={2}>Quản lý người dùng</Title>
-
-      {/* Thống kê vai trò */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
-          <Card size="small">
-            <Statistic
-              title="Khách hàng"
-              value={stats.customers}
-              prefix={<UserOutlined style={{ color: "#1890ff" }} />}
-              valueStyle={{ color: "#1890ff" }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card size="small">
-            <Statistic
-              title="Người bán"
-              value={stats.sellers}
-              prefix={<ShopOutlined style={{ color: "#52c41a" }} />}
-              valueStyle={{ color: "#52c41a" }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card size="small">
-            <Statistic
-              title="Quản trị"
-              value={stats.admins}
-              prefix={<CrownOutlined style={{ color: "#faad14" }} />}
-              valueStyle={{ color: "#faad14" }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card size="small">
-            <Statistic title="Tổng cộng" value={stats.total} valueStyle={{ color: "#722ed1" }} />
-          </Card>
-        </Col>
-      </Row>
-
+    <div style={{ padding: "2px" }}>
       {/* Thống kê cảnh báo */}
       {(stats.dangerUsers > 0 || stats.warningUsers > 0 || stats.reportedUsers > 0) && (
-        <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Row gutter={16} style={{ marginBottom: 2 }}>
           {stats.dangerUsers > 0 && (
             <Col span={8}>
               <Alert
@@ -485,9 +453,9 @@ export default function UserManagementPage() {
         </Row>
       )}
 
-      <Card style={{ marginBottom: "24px" }}>
+      <Card style={{ marginBottom: "2px" }}>
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={8} md={5}>
+          <Col xs={24} sm={8} md={6}>
             <Input
               placeholder="Tìm kiếm theo tên, email, SĐT..."
               prefix={<SearchOutlined />}
@@ -496,15 +464,7 @@ export default function UserManagementPage() {
               allowClear
             />
           </Col>
-          <Col xs={24} sm={8} md={4}>
-            <Select placeholder="Vai trò" value={roleFilter} onChange={setRoleFilter} style={{ width: "100%" }}>
-              <Option value="all">Tất cả vai trò</Option>
-              <Option value="customer">Khách hàng</Option>
-              <Option value="seller">Người bán</Option>
-              <Option value="admin">Quản trị</Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={8} md={4}>
+          <Col xs={24} sm={8} md={5}>
             <Select placeholder="Trạng thái" value={statusFilter} onChange={setStatusFilter} style={{ width: "100%" }}>
               <Option value="all">Tất cả trạng thái</Option>
               <Option value="active">Hoạt động</Option>
@@ -513,7 +473,7 @@ export default function UserManagementPage() {
               <Option value="hidden">Ẩn</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={8} md={4}>
+          <Col xs={24} sm={8} md={5}>
             <Select
               placeholder="Mức độ rủi ro"
               value={riskFilter}
@@ -527,7 +487,7 @@ export default function UserManagementPage() {
               <Option value="danger">Nguy hiểm</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={24} md={7}>
+          <Col xs={24} sm={24} md={8}>
             <Space>
               <Button icon={<ReloadOutlined />} onClick={handleReset} loading={loading}>
                 Đặt lại
@@ -556,7 +516,6 @@ export default function UserManagementPage() {
               total: filteredData.length,
             }}
             onChange={handleTableChange}
-            scroll={{ x: 1200 }}
             size="middle"
             rowClassName={(record) => {
               if (record.cancelStatus.level === "danger") return "danger-row"
