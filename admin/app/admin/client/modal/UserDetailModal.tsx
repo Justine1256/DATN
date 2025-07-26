@@ -34,6 +34,8 @@ import {
   ShoppingCartOutlined,
   LoginOutlined,
   DollarOutlined,
+  ShopOutlined,
+  CrownOutlined,
 } from "@ant-design/icons"
 import type { ColumnsType } from "antd/es/table"
 import dayjs from "dayjs"
@@ -49,6 +51,7 @@ interface UserData {
   name: string
   email: string
   phone: string
+  role: "customer" | "seller" | "admin" // Thêm role
   status: "active" | "blocked" | "inactive" | "hidden"
   registrationDate: string
   totalOrders: number
@@ -120,6 +123,26 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
   const [activeTab, setActiveTab] = useState("info")
   const [editing, setEditing] = useState(false)
   const [form] = Form.useForm()
+
+  // Render role với icon và màu sắc
+  const renderRole = (role: string) => {
+    const roleConfig = {
+      customer: { color: "blue", text: "Khách hàng", icon: <UserOutlined /> },
+      seller: { color: "green", text: "Người bán", icon: <ShopOutlined /> },
+      admin: { color: "gold", text: "Quản trị", icon: <CrownOutlined /> },
+    }
+    const config = roleConfig[role as keyof typeof roleConfig] || {
+      color: "default",
+      text: role,
+      icon: <UserOutlined />,
+    }
+
+    return (
+      <Tag color={config.color} icon={config.icon}>
+        {config.text}
+      </Tag>
+    )
+  }
 
   const orderColumns: ColumnsType<OrderData> = [
     {
@@ -236,6 +259,7 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                 name: user.name,
                 email: user.email,
                 phone: user.phone,
+                role: user.role,
                 gender: user.gender || "male",
                 birthDate: user.birthDate ? dayjs(user.birthDate) : null,
                 address: user.address || "",
@@ -248,11 +272,11 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item label="Giới tính" name="gender">
+                  <Form.Item label="Vai trò" name="role">
                     <Select>
-                      <Option value="male">Nam</Option>
-                      <Option value="female">Nữ</Option>
-                      <Option value="other">Khác</Option>
+                      <Option value="customer">Khách hàng</Option>
+                      <Option value="seller">Người bán</Option>
+                      <Option value="admin">Quản trị</Option>
                     </Select>
                   </Form.Item>
                 </Col>
@@ -270,12 +294,21 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                 </Col>
               </Row>
               <Row gutter={16}>
-                <Col span={12}>
+                <Col span={8}>
+                  <Form.Item label="Giới tính" name="gender">
+                    <Select>
+                      <Option value="male">Nam</Option>
+                      <Option value="female">Nữ</Option>
+                      <Option value="other">Khác</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
                   <Form.Item label="Ngày sinh" name="birthDate">
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
+                <Col span={8}>
                   <Form.Item label="Địa chỉ" name="address">
                     <Input />
                   </Form.Item>
@@ -293,7 +326,19 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
           ) : (
             <Row gutter={16}>
               <Col span={6}>
-                <Avatar src={user.avatar} icon={<UserOutlined />} size={80} />
+                <Avatar
+                  src={user.avatar}
+                  icon={
+                    user.role === "seller" ? (
+                      <ShopOutlined />
+                    ) : user.role === "admin" ? (
+                      <CrownOutlined />
+                    ) : (
+                      <UserOutlined />
+                    )
+                  }
+                  size={80}
+                />
               </Col>
               <Col span={18}>
                 <Row gutter={[16, 12]}>
@@ -301,6 +346,11 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                     <Text strong>Họ và tên:</Text>
                     <br />
                     <Text>{user.name}</Text>
+                  </Col>
+                  <Col span={8}>
+                    <Text strong>Vai trò:</Text>
+                    <br />
+                    {renderRole(user.role)}
                   </Col>
                   <Col span={8}>
                     <Text strong>Email:</Text>
@@ -322,7 +372,7 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                     <br />
                     <Text>{user.birthDate ? dayjs(user.birthDate).format("DD/MM/YYYY") : "Chưa cập nhật"}</Text>
                   </Col>
-                  <Col span={8}>
+                  <Col span={24}>
                     <Text strong>Địa chỉ:</Text>
                     <br />
                     <Text>{user.address || "Chưa cập nhật"}</Text>
@@ -485,8 +535,14 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
     <Modal
       title={
         <Space>
-          <Avatar src={user.avatar} icon={<UserOutlined />} />
+          <Avatar
+            src={user.avatar}
+            icon={
+              user.role === "seller" ? <ShopOutlined /> : user.role === "admin" ? <CrownOutlined /> : <UserOutlined />
+            }
+          />
           <span>Chi tiết người dùng - {user.name}</span>
+          {renderRole(user.role)}
           <Tag
             color={
               user.status === "active"

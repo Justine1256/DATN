@@ -29,11 +29,14 @@ import {
   WarningOutlined,
   ExclamationCircleOutlined,
   CheckCircleOutlined,
+  ShopOutlined,
+  CrownOutlined,
 } from "@ant-design/icons"
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table"
 import UserDetailModal from "./modal/UserDetailModal"
 import { API_BASE_URL } from "@/utils/api"
 import Cookies from "js-cookie"
+import Statistic from "antd/es/statistic" // Declare the Statistic variable
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -54,6 +57,7 @@ interface UserData {
   name: string
   email: string
   phone: string
+  role: "customer" | "seller" | "admin" // Thêm role
   status: "active" | "blocked" | "inactive" | "hidden"
   registrationDate: string
   totalOrders: number
@@ -86,6 +90,7 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [roleFilter, setRoleFilter] = useState<string>("all") // Thêm role filter
   const [riskFilter, setRiskFilter] = useState<string>("all")
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
@@ -153,11 +158,12 @@ export default function UserManagementPage() {
         user.phone.includes(searchText)
 
       const matchesStatus = statusFilter === "all" || user.status === statusFilter
+      const matchesRole = roleFilter === "all" || user.role === roleFilter
       const matchesRisk = riskFilter === "all" || user.cancelStatus.level === riskFilter
 
-      return matchesSearch && matchesStatus && matchesRisk
+      return matchesSearch && matchesStatus && matchesRole && matchesRisk
     })
-  }, [users, searchText, statusFilter, riskFilter])
+  }, [users, searchText, statusFilter, roleFilter, riskFilter])
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
     const newPage = newPagination.current || 1
@@ -174,12 +180,33 @@ export default function UserManagementPage() {
   const handleReset = () => {
     setSearchText("")
     setStatusFilter("all")
+    setRoleFilter("all")
     setRiskFilter("all")
     setPagination({
       ...pagination,
       current: 1,
     })
     fetchUsers(1, pagination.pageSize)
+  }
+
+  // Render role với icon và màu sắc
+  const renderRole = (role: string) => {
+    const roleConfig = {
+      customer: { color: "blue", text: "Khách hàng", icon: <UserOutlined /> },
+      seller: { color: "green", text: "Người bán", icon: <ShopOutlined /> },
+      admin: { color: "gold", text: "Quản trị", icon: <CrownOutlined /> },
+    }
+    const config = roleConfig[role as keyof typeof roleConfig] || {
+      color: "default",
+      text: role,
+      icon: <UserOutlined />,
+    }
+
+    return (
+      <Tag color={config.color} icon={config.icon}>
+        {config.text}
+      </Tag>
+    )
   }
 
   // Render reports popover content
@@ -194,10 +221,9 @@ export default function UserManagementPage() {
         <div style={{ marginTop: 8 }}>
           {reports.reasons.slice(0, 3).map((reason, index) => (
             <div key={index} style={{ marginBottom: 4 }}>
-<Tag color="red" className="text-xs px-2 py-1">
-  {reason}
-</Tag>
-
+              <Tag color="red" size="small">
+                {reason}
+              </Tag>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {new Date(reports.dates[index]).toLocaleDateString("vi-VN")}
               </Text>
@@ -213,22 +239,49 @@ export default function UserManagementPage() {
     {
       title: "Người dùng",
       key: "user",
-      width: 160,
+      width: 220,
       render: (_, record) => (
         <Space>
-          <Avatar src={record.avatar} icon={<UserOutlined />} size={40} />
+          <Avatar src={record.avatar} icon={record.role === "seller" ? <ShopOutlined /> : <UserOutlined />} size={40} />
           <div>
             <div style={{ fontWeight: 500 }}>{record.name}</div>
             <div style={{ color: "#666", fontSize: "12px" }}>ID: {record.id}</div>
+            {renderRole(record.role)}
           </div>
         </Space>
       ),
     },
     {
+      title: "Liên hệ",
+      key: "contact",
+      width: 180,
+      render: (_, record) => (
+        <div>
+          <div style={{ marginBottom: 4 }}>{record.email}</div>
+          <div style={{ color: "#666", fontSize: "12px" }}>{record.phone}</div>
+        </div>
+      ),
+    },
+    {
+      title: "Vai trò",
+      dataIndex: "role",
+      key: "role",
+      width: 100,
+      render: (role: string) => renderRole(role),
+      filters: [
+        { text: "Khách hàng", value: "customer" },
+        { text: "Người bán", value: "seller" },
+        { text: "Quản trị", value: "admin" },
+      ],
+      onFilter: (value: boolean | React.Key, record: UserData) => {
+        return record.role === String(value)
+      },
+    },
+    {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      width: 50,
+      width: 100,
       render: (status: string) => {
         const statusConfig = {
           active: { color: "green", text: "Hoạt động" },
@@ -349,16 +402,58 @@ export default function UserManagementPage() {
   // Thống kê tổng quan
   const stats = useMemo(() => {
     const total = filteredData.length
+    const customers = filteredData.filter((u) => u.role === "customer").length
+    const sellers = filteredData.filter((u) => u.role === "seller").length
+    const admins = filteredData.filter((u) => u.role === "admin").length
     const dangerUsers = filteredData.filter((u) => u.cancelStatus.level === "danger").length
     const warningUsers = filteredData.filter((u) => u.cancelStatus.level === "warning").length
     const reportedUsers = filteredData.filter((u) => u.reports.total > 0).length
 
-    return { total, dangerUsers, warningUsers, reportedUsers }
+    return { total, customers, sellers, admins, dangerUsers, warningUsers, reportedUsers }
   }, [filteredData])
 
   return (
     <div style={{ padding: "24px" }}>
       <Title level={2}>Quản lý người dùng</Title>
+
+      {/* Thống kê vai trò */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title="Khách hàng"
+              value={stats.customers}
+              prefix={<UserOutlined style={{ color: "#1890ff" }} />}
+              valueStyle={{ color: "#1890ff" }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title="Người bán"
+              value={stats.sellers}
+              prefix={<ShopOutlined style={{ color: "#52c41a" }} />}
+              valueStyle={{ color: "#52c41a" }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title="Quản trị"
+              value={stats.admins}
+              prefix={<CrownOutlined style={{ color: "#faad14" }} />}
+              valueStyle={{ color: "#faad14" }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic title="Tổng cộng" value={stats.total} valueStyle={{ color: "#722ed1" }} />
+          </Card>
+        </Col>
+      </Row>
 
       {/* Thống kê cảnh báo */}
       {(stats.dangerUsers > 0 || stats.warningUsers > 0 || stats.reportedUsers > 0) && (
@@ -393,7 +488,7 @@ export default function UserManagementPage() {
 
       <Card style={{ marginBottom: "24px" }}>
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={8} md={6}>
+          <Col xs={24} sm={8} md={5}>
             <Input
               placeholder="Tìm kiếm theo tên, email, SĐT..."
               prefix={<SearchOutlined />}
@@ -402,13 +497,16 @@ export default function UserManagementPage() {
               allowClear
             />
           </Col>
-          <Col xs={24} sm={8} md={5}>
-            <Select
-              placeholder="Lọc theo trạng thái"
-              value={statusFilter}
-              onChange={setStatusFilter}
-              style={{ width: "100%" }}
-            >
+          <Col xs={24} sm={8} md={4}>
+            <Select placeholder="Vai trò" value={roleFilter} onChange={setRoleFilter} style={{ width: "100%" }}>
+              <Option value="all">Tất cả vai trò</Option>
+              <Option value="customer">Khách hàng</Option>
+              <Option value="seller">Người bán</Option>
+              <Option value="admin">Quản trị</Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={8} md={4}>
+            <Select placeholder="Trạng thái" value={statusFilter} onChange={setStatusFilter} style={{ width: "100%" }}>
               <Option value="all">Tất cả trạng thái</Option>
               <Option value="active">Hoạt động</Option>
               <Option value="blocked">Bị khóa</Option>
@@ -416,7 +514,7 @@ export default function UserManagementPage() {
               <Option value="hidden">Ẩn</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={8} md={5}>
+          <Col xs={24} sm={8} md={4}>
             <Select
               placeholder="Mức độ rủi ro"
               value={riskFilter}
@@ -430,7 +528,7 @@ export default function UserManagementPage() {
               <Option value="danger">Nguy hiểm</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={24} md={8}>
+          <Col xs={24} sm={24} md={7}>
             <Space>
               <Button icon={<ReloadOutlined />} onClick={handleReset} loading={loading}>
                 Đặt lại
@@ -459,7 +557,7 @@ export default function UserManagementPage() {
               total: filteredData.length,
             }}
             onChange={handleTableChange}
-            scroll={{ x: 1400 }}
+            scroll={{ x: 1500 }}
             size="middle"
             rowClassName={(record) => {
               if (record.cancelStatus.level === "danger") return "danger-row"

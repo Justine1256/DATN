@@ -105,28 +105,35 @@ public function showAllUsers(Request $request)
     $page = $request->input('page', 1);
 
     $users = DB::table('users')
-        ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
-        ->leftJoin('reports', 'users.id', '=', 'reports.shop_id')
-        ->leftJoin('shops', 'users.id', '=', 'shops.user_id') // ✅ join để lấy logo
-        ->select(
-            'users.id',
-            'users.name',
-            'users.email',
-            'users.phone',
-            'users.avatar as user_avatar',
-            'users.role', // ✅ lấy role
-            'users.status as original_status',
-            'users.created_at as registration_date',
-            'shops.logo as shop_logo', // ✅ lấy logo shop
-            DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
-            DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent'),
-            DB::raw("SUM(CASE WHEN orders.order_status = 'Canceled' THEN 1 ELSE 0 END) as canceledOrders"),
-            DB::raw('COUNT(reports.id) as totalReports'),
-            DB::raw("GROUP_CONCAT(reports.reason ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportReasons"),
-            DB::raw("GROUP_CONCAT(reports.created_at ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportDates")
-        )
-        ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.role', 'users.status', 'users.created_at', 'shops.logo')
-        ->paginate($perPage, ['*'], 'page', $page);
+    ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
+    ->leftJoin('shops', 'users.id', '=', 'shops.user_id')
+    ->leftJoin(DB::raw('(
+        SELECT shop_id, COUNT(id) as totalReports,
+               GROUP_CONCAT(DISTINCT reason ORDER BY created_at DESC SEPARATOR " | ") as reportReasons,
+               GROUP_CONCAT(DISTINCT created_at ORDER BY created_at DESC SEPARATOR " | ") as reportDates
+        FROM reports
+        GROUP BY shop_id
+    ) as report_data'), 'users.id', '=', 'report_data.shop_id')
+    ->select(
+        'users.id',
+        'users.name',
+        'users.email',
+        'users.phone',
+        'users.avatar as user_avatar',
+        'users.role',
+        'users.status as original_status',
+        'users.created_at as registration_date',
+        'shops.logo as shop_logo',
+        DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
+        DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent'),
+        DB::raw("SUM(CASE WHEN orders.order_status = 'Canceled' THEN 1 ELSE 0 END) as canceledOrders"),
+        DB::raw('IFNULL(report_data.totalReports, 0) as totalReports'),
+        DB::raw('report_data.reportReasons'),
+        DB::raw('report_data.reportDates')
+    )
+    ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.role', 'users.status', 'users.created_at', 'shops.logo', 'report_data.totalReports', 'report_data.reportReasons', 'report_data.reportDates')
+    ->paginate($perPage, ['*'], 'page', $page);
+
 
     $users->getCollection()->transform(function ($u) {
         $statusMap = [
