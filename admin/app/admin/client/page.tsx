@@ -31,7 +31,7 @@ import {
 } from "@ant-design/icons"
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table"
 import UserDetailModal from "./modal/UserDetailModal"
-import { API_BASE_URL } from "@/utils/api"
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
 import Cookies from "js-cookie"
 
 const { Title, Text } = Typography
@@ -220,7 +220,11 @@ export default function UserManagementPage() {
       width: 200,
       render: (_, record) => (
         <Space>
-          <Avatar src={record.avatar} icon={<UserOutlined />} size={40} />
+<Avatar
+  src={`${STATIC_BASE_URL}/${record.avatar}`}
+  icon={<UserOutlined />}
+  size={40}
+/>
           <div>
             <div
               style={{
