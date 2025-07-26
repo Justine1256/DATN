@@ -414,7 +414,7 @@ class OrderController extends Controller
             'order' => $response
         ]);
     }
-    public function adminOrderList(Request $request)
+   public function adminOrderList(Request $request)
     {
         $user = Auth::user();
 
@@ -445,8 +445,9 @@ class OrderController extends Controller
         }
 
         if ($request->filled('status')) {
-            $query->where('order_status', $request->input('status'));
+            $query->where('order_admin_status', $request->input('status'));
         }
+
 
         $orders = $query->latest()->paginate(20);
 
@@ -464,12 +465,14 @@ class OrderController extends Controller
                 'final_amount' => $order->final_amount,
                 'payment_method' => $order->payment_method,
                 'order_status' => $order->order_status,
+                'order_admin_status' => $order->order_admin_status, // ✅ thêm dòng này
                 'shipping_status' => $order->shipping_status,
                 'shipping_address' => $order->shipping_address,
                 'created_at' => $order->created_at,
                 'total_products' => $order->orderDetails->sum('quantity'),
             ];
         });
+
 
         return response()->json([
             'orders' => $data,
@@ -833,7 +836,6 @@ class OrderController extends Controller
     'returning'              => (clone $query)->where('order_admin_status', 'Returning')->count(),
     'refunded'               => (clone $query)->where('order_admin_status', 'Refunded')->count(),
 ]);
-
 }
     public function updateAdminOrderStatus(Request $request, $orderId)
     {
