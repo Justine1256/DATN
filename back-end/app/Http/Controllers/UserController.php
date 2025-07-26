@@ -104,31 +104,29 @@ public function showAllUsers(Request $request)
     $perPage = $request->input('per_page', 10);
     $page = $request->input('page', 1);
 
-    $query = DB::table('users')
-    ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
-    ->leftJoin('reports', 'users.id', '=', 'reports.user_id')
-    ->select(
-        'users.id',
-        'users.name',
-        'users.email',
-        'users.phone',
-        'users.avatar',
-        'users.status as original_status',
-        'users.created_at as registration_date',
-        DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
-        DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent'),
-        DB::raw("SUM(CASE WHEN orders.order_status = 'Canceled' THEN 1 ELSE 0 END) as canceledOrders"),
-        DB::raw('COUNT(reports.id) as totalReports'),
-        DB::raw("GROUP_CONCAT(reports.reason ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportReasons"),
-        DB::raw("GROUP_CONCAT(reports.created_at ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportDates")
-    )
-    ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.status', 'users.created_at')
-    ->paginate($perPage, ['*'], 'page', $page);
+    $users = DB::table('users')
+        ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
+        ->leftJoin('reports', 'users.id', '=', 'reports.user_id')
+        ->select(
+            'users.id',
+            'users.name',
+            'users.email',
+            'users.phone',
+            'users.avatar',
+            'users.status as original_status',
+            'users.created_at as registration_date',
+            DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
+            DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent'),
+            DB::raw("SUM(CASE WHEN orders.order_status = 'Canceled' THEN 1 ELSE 0 END) as canceledOrders"),
+            DB::raw('COUNT(reports.id) as totalReports'),
+            DB::raw("GROUP_CONCAT(reports.reason ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportReasons"),
+            DB::raw("GROUP_CONCAT(reports.created_at ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportDates")
+        )
+        ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.status', 'users.created_at')
+        ->paginate($perPage, ['*'], 'page', $page);
 
-
-    $users = $query->paginate($perPage, ['*'], 'page', $page);
-
-    $data = $users->map(function ($u) {
+    // Map dữ liệu nhưng giữ phân trang
+    $users->getCollection()->transform(function ($u) {
         $statusMap = [
             'activated' => 'active',
             'locked' => 'blocked',
@@ -136,8 +134,8 @@ public function showAllUsers(Request $request)
             'hidden' => 'hidden'
         ];
 
-        // Xác định mức độ cảnh báo
-        $cancelLevel = 'normal'; // mặc định
+        // Xác định mức độ cảnh báo cho đơn hủy
+        $cancelLevel = 'normal';
         $cancelColor = 'green';
         if ($u->canceledOrders > 10) {
             $cancelLevel = 'danger';
@@ -154,16 +152,16 @@ public function showAllUsers(Request $request)
             'phone' => $u->phone,
             'status' => $statusMap[$u->original_status] ?? 'unknown',
             'registrationDate' => date('Y-m-d', strtotime($u->registration_date)),
-            'totalOrders' => (int) $u->totalOrders,
-            'totalSpent' => (float) $u->totalSpent,
-            'canceledOrders' => (int) $u->canceledOrders,
+            'totalOrders' => (int)$u->totalOrders,
+            'totalSpent' => (float)$u->totalSpent,
+            'canceledOrders' => (int)$u->canceledOrders,
             'cancelStatus' => [
                 'level' => $cancelLevel,
                 'color' => $cancelColor
             ],
             'avatar' => $u->avatar ?? '/placeholder.svg?height=40&width=40',
             'reports' => [
-                'total' => (int) $u->totalReports,
+                'total' => (int)$u->totalReports,
                 'reasons' => $u->reportReasons ? explode(' | ', $u->reportReasons) : [],
                 'dates' => $u->reportDates ? explode(' | ', $u->reportDates) : [],
             ]
@@ -173,7 +171,7 @@ public function showAllUsers(Request $request)
     return response()->json([
         'status' => true,
         'message' => 'Danh sách người dùng',
-        'data' => $data,
+        'data' => $users->items(),
         'pagination' => [
             'current_page' => $users->currentPage(),
             'last_page' => $users->lastPage(),
@@ -182,7 +180,6 @@ public function showAllUsers(Request $request)
         ]
     ]);
 }
-
 
 public function verifyOtp(Request $request)
 {
