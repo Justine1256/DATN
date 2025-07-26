@@ -280,9 +280,8 @@ public function showAllShops(Request $request)
 {
     $perPage = $request->input('per_page', 10);
     $page = $request->input('page', 1);
-    $search = $request->input('search');
 
-    $query = DB::table('shops')
+    $shops = DB::table('shops')
         ->leftJoin('users', 'shops.user_id', '=', 'users.id')
         ->select(
             'shops.id as shop_id',
@@ -299,68 +298,40 @@ public function showAllShops(Request $request)
             'users.phone as owner_phone',
             'users.email as owner_email',
             'users.avatar as owner_avatar',
-            'users.created_at as owner_created_at'
-        );
-
-    if (!empty($search)) {
-        $query->where('shops.name', 'like', "%$search%");
-    }
-
-    $shops = $query->orderBy('shops.created_at', 'desc')
+            DB::raw('(SELECT COUNT(*) FROM products WHERE products.shop_id = shops.id) as totalProducts'),
+            DB::raw('(SELECT COUNT(*) FROM orders WHERE orders.shop_id = shops.id) as totalOrders'),
+            DB::raw('(SELECT IFNULL(SUM(final_amount), 0) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalRevenue')
+        )
+        ->orderBy('shops.created_at', 'desc')
         ->paginate($perPage, ['*'], 'page', $page);
 
     $shops->getCollection()->transform(function ($shop) {
-        // Lấy thống kê sản phẩm, đơn hàng, doanh thu
-        $totalProducts = DB::table('products')->where('shop_id', $shop->shop_id)->count();
-
-        $totalOrders = DB::table('orders')->where('shop_id', $shop->shop_id)->count();
-        $totalRevenue = DB::table('orders')
-            ->where('shop_id', $shop->shop_id)
-            ->where('order_status', 'Delivered')
-            ->where('payment_status', 'Completed')
-            ->sum('final_amount');
-
-        $monthlyRevenue = DB::table('orders')
-            ->where('shop_id', $shop->shop_id)
-            ->where('order_status', 'Delivered')
-            ->where('payment_status', 'Completed')
-            ->where('created_at', '>=', now()->subDays(30))
-            ->sum('final_amount');
-
-        $totalReviews = DB::table('reviews')->where('shop_id', $shop->shop_id)->count();
-        $violationCount = DB::table('reports')->where('shop_id', $shop->shop_id)->count();
-
         return [
             'id' => 'SHOP' . str_pad($shop->shop_id, 4, '0', STR_PAD_LEFT),
             'name' => $shop->shop_name,
-            'description' => $shop->description ?? 'Chưa có mô tả',
+            'description' => $shop->description ?? '',
             'logo' => $shop->logo ? asset('storage/' . $shop->logo) : '/placeholder.svg?height=40&width=40&text=S',
-            'banner' => '/placeholder.svg?height=200&width=800&text=Banner', // Vì không có banner cột trong DB
-            'address' => $shop->shop_address ?? 'Chưa cập nhật',
+            'address' => $shop->shop_address ?? '',
+            'isVerified' => (bool)$shop->is_verified,
+            'status' => $shop->shop_status,
+            'registrationDate' => $shop->shop_created_at,
+            'rating' => (float)$shop->rating,
+            'totalProducts' => (int)$shop->totalProducts,
+            'totalOrders' => (int)$shop->totalOrders,
+            'totalRevenue' => (float)$shop->totalRevenue,
             'owner' => [
                 'id' => 'USER' . str_pad($shop->owner_id, 4, '0', STR_PAD_LEFT),
                 'name' => $shop->owner_name,
                 'phone' => $shop->owner_phone,
                 'email' => $shop->owner_email,
                 'avatar' => $shop->owner_avatar ? asset('storage/' . $shop->owner_avatar) : '/placeholder.svg?height=40&width=40&text=U',
-                'joinDate' => $shop->owner_created_at
-            ],
-            'status' => $shop->shop_status === 'activated' ? 'active' : $shop->shop_status,
-            'registrationDate' => $shop->shop_created_at,
-            'totalProducts' => $totalProducts,
-            'totalOrders' => $totalOrders,
-            'totalRevenue' => (float)$totalRevenue,
-            'monthlyRevenue' => (float)$monthlyRevenue,
-            'rating' => (float)($shop->rating ?? 0),
-            'totalReviews' => $totalReviews,
-            'isVerified' => (bool)$shop->is_verified,
-            'violationCount' => $violationCount
+            ]
         ];
     });
 
     return response()->json([
         'status' => true,
-        'message' => 'Danh sách tất cả shop',
+        'message' => 'Danh sách cửa hàng',
         'data' => $shops->items(),
         'pagination' => [
             'current_page' => $shops->currentPage(),
@@ -370,7 +341,6 @@ public function showAllShops(Request $request)
         ]
     ]);
 }
-
 
 }
 
