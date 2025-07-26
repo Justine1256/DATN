@@ -119,7 +119,7 @@ public function showAllUsers(Request $request)
         'users.name',
         'users.email',
         'users.phone',
-        'users.avatar as user_avatar',
+        'users.avatar',
         'users.role',
         'users.status as original_status',
         'users.created_at as registration_date',
@@ -172,7 +172,7 @@ public function showAllUsers(Request $request)
                 'level' => $cancelLevel,
                 'color' => $cancelColor
             ],
-            'avatar' => $u->name,
+            'avatar' => $u->avatar,
             'reports' => [
                 'total' => (int)$u->totalReports,
                 'reasons' => $u->reportReasons ? explode(' | ', $u->reportReasons) : [],
