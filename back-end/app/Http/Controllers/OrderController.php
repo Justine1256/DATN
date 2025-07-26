@@ -817,18 +817,23 @@ class OrderController extends Controller
     $totalOrders = $query->count();
     $totalAmount = $query->sum('final_amount');
 
-    return response()->json([
-        'total_orders'           => $totalOrders,
-        'total_amount'           => $totalAmount,
-        'formatted_total_amount' => number_format($totalAmount, 0, ',', '.') . ' ₫',
-        'pending_processing'     => (clone $query)->where('order_admin_status', 'Pending Processing')->count(),
-        'processing'             => (clone $query)->where('order_admin_status', 'Processing')->count(),
-        'shipping'               => (clone $query)->where('order_admin_status', 'Shipping')->count(),
-        'delivered'              => (clone $query)->where('order_admin_status', 'Delivered')->count(),
-        'returned_requesting'    => (clone $query)->where('order_admin_status', 'Returned - Requesting')->count(),
-        'returned_completed'     => (clone $query)->where('order_admin_status', 'Returned - Completed')->count(),
-        'cancelled_by_customer'  => (clone $query)->where('order_admin_status', 'Cancelled by Customer')->count(),
-    ]);
+   return response()->json([
+    'total_orders'           => $totalOrders,
+    'total_amount'           => $totalAmount,
+    'formatted_total_amount' => number_format($totalAmount, 0, ',', '.') . ' ₫',
+    'pending_processing'     => (clone $query)->where('order_admin_status', 'Pending Processing')->count(),
+    'processing'             => (clone $query)->where('order_admin_status', 'Processing')->count(),
+    'ready_for_shipment'     => (clone $query)->where('order_admin_status', 'Ready for Shipment')->count(),
+    'shipping'               => (clone $query)->where('order_admin_status', 'Shipping')->count(),
+    'delivered'              => (clone $query)->where('order_admin_status', 'Delivered')->count(),
+    'cancelled_by_customer'  => (clone $query)->where('order_admin_status', 'Cancelled by Customer')->count(),
+    'cancelled_by_seller'    => (clone $query)->where('order_admin_status', 'Cancelled by Seller')->count(),
+    'cancel_payment_failed'  => (clone $query)->where('order_admin_status', 'Cancelled – Payment Failed')->count(),
+    'return_requested'       => (clone $query)->where('order_admin_status', 'Return Requested')->count(),
+    'returning'              => (clone $query)->where('order_admin_status', 'Returning')->count(),
+    'refunded'               => (clone $query)->where('order_admin_status', 'Refunded')->count(),
+]);
+
 }
     public function updateAdminOrderStatus(Request $request, $orderId)
     {
