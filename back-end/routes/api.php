@@ -134,6 +134,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/user', [UserController::class, 'destroy']);
     Route::post('/user/avatar', [UserController::class, 'updateAvatar']);
     Route::get('/admin/users', [UserController::class, 'showAllUsers']);
+    Route::get('/admin/shops', [ShopController::class, 'showAllShops']);
 
     // Cart
     Route::get('/cart', [CartController::class, 'index']);

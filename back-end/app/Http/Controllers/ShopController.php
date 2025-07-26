@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Shop;
 use Illuminate\Support\Str;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 
 class ShopController extends Controller
 {
@@ -200,7 +201,7 @@ public function update(Request $request)
         return redirect('/');
     }
 
- public function showShopInfo($slug)
+    public function showShopInfo($slug)
     {
         $shop = Shop::where('slug', $slug)->first();
 
@@ -275,4 +276,114 @@ public function update(Request $request)
             ]
         ]);
     }
+    public function showAllShops(Request $request)
+{
+    $perPage = $request->input('per_page', 10);
+    $page = $request->input('page', 1);
+    $search = $request->input('search');
+
+    $query = DB::table('shops')
+        ->leftJoin('users', 'shops.user_id', '=', 'users.id')
+        ->select(
+            'shops.id as shop_id',
+            'shops.name as shop_name',
+            'shops.description',
+            'shops.logo',
+            'shops.banner',
+            'shops.address as shop_address',
+            'shops.category',
+            'shops.is_verified',
+            'shops.status as shop_status',
+            'shops.created_at as shop_created_at',
+            'shops.rating',
+            'users.id as owner_id',
+            'users.name as owner_name',
+            'users.phone as owner_phone',
+            'users.email as owner_email',
+            'users.avatar as owner_avatar',
+            'users.address as owner_address',
+            'users.created_at as owner_created_at',
+            'users.last_login as owner_last_login'
+        );
+
+    if (!empty($search)) {
+        $query->where('shops.name', 'like', "%$search%");
+    }
+
+    $shops = $query
+        ->orderBy('shops.created_at', 'desc')
+        ->paginate($perPage, ['*'], 'page', $page);
+
+    // Gắn thêm thống kê
+    $shops->getCollection()->transform(function ($shop) {
+        // Thống kê sản phẩm
+        $totalProducts = DB::table('products')->where('shop_id', $shop->shop_id)->count();
+
+        // Thống kê đơn hàng
+        $totalOrders = DB::table('orders')->where('shop_id', $shop->shop_id)->count();
+        $totalRevenue = DB::table('orders')
+            ->where('shop_id', $shop->shop_id)
+            ->where('order_status', 'Delivered')
+            ->where('payment_status', 'Completed')
+            ->sum('final_amount');
+
+        $monthlyRevenue = DB::table('orders')
+            ->where('shop_id', $shop->shop_id)
+            ->where('order_status', 'Delivered')
+            ->where('payment_status', 'Completed')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->sum('final_amount');
+
+        // Tổng review
+        $totalReviews = DB::table('reviews')->where('shop_id', $shop->shop_id)->count();
+
+        // Đếm số vi phạm
+        $violationCount = DB::table('reports')->where('shop_id', $shop->shop_id)->count();
+
+        return [
+            'id' => 'SHOP' . str_pad($shop->shop_id, 4, '0', STR_PAD_LEFT),
+            'name' => $shop->shop_name,
+            'description' => $shop->description ?? 'Chưa có mô tả',
+            'logo' => $shop->logo ? asset('storage/' . $shop->logo) : '/placeholder.svg?height=40&width=40&text=S',
+            'banner' => $shop->banner ? asset('storage/' . $shop->banner) : '/placeholder.svg?height=200&width=800&text=Banner',
+            'owner' => [
+                'id' => 'USER' . str_pad($shop->owner_id, 4, '0', STR_PAD_LEFT),
+                'name' => $shop->owner_name,
+                'phone' => $shop->owner_phone,
+                'email' => $shop->owner_email,
+                'avatar' => $shop->owner_avatar ? asset('storage/' . $shop->owner_avatar) : '/placeholder.svg?height=40&width=40&text=U',
+                'address' => $shop->owner_address ?? '',
+                'joinDate' => $shop->owner_created_at,
+                'lastLogin' => $shop->owner_last_login
+            ],
+            'status' => $shop->shop_status === 'activated' ? 'active' : $shop->shop_status,
+            'registrationDate' => $shop->shop_created_at,
+            'totalProducts' => $totalProducts,
+            'totalOrders' => $totalOrders,
+            'totalRevenue' => (float)$totalRevenue,
+            'monthlyRevenue' => (float)$monthlyRevenue,
+            'rating' => (float)($shop->rating ?? 0),
+            'totalReviews' => $totalReviews,
+            'address' => $shop->shop_address ?? '',
+            'category' => $shop->category ?? '',
+            'isVerified' => (bool)$shop->is_verified,
+            'violationCount' => $violationCount,
+            'lastActive' => $shop->owner_last_login
+        ];
+    });
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Danh sách tất cả shop',
+        'data' => $shops->items(),
+        'pagination' => [
+            'current_page' => $shops->currentPage(),
+            'last_page' => $shops->lastPage(),
+            'per_page' => $shops->perPage(),
+            'total' => $shops->total(),
+        ]
+    ]);
 }
+
+}
+

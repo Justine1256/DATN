@@ -33,7 +33,7 @@ export const menu = [
         label: "Quản lý shop",
         icon: <Warehouse size={18} />,
         children: [
-            { label: "Thông tin shop", href: "/admin/shop/info" },
+            { label: "Danh sách cửa hàng", href: "/admin/shop" },
             { label: "Chỉnh sửa shop", href: "/admin/shop/update" },
             { label: "Quản lý nhân viên", href: "/admin/shop/employees" },
         ],
