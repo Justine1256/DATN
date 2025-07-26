@@ -36,7 +36,7 @@ import {
   UserOutlined,
   PhoneOutlined,
 } from "@ant-design/icons"
-import type { ColumnsType, TablePaginationConfig } from "antd/es/table"
+import type { ColumnsType } from "antd/es/table"
 import type { MenuProps } from "antd"
 
 const { Title, Text } = Typography
@@ -71,12 +71,6 @@ interface ApiResponse {
   status: boolean
   message: string
   data: ShopData[]
-  pagination: {
-    current_page: number
-    last_page: number
-    per_page: number
-    total: number
-  }
 }
 
 // Utility function to get cookie value
@@ -245,18 +239,10 @@ const ShopDetailModal: React.FC<{
 }
 
 export default function ShopManagementPage() {
-  const [shops, setShops] = useState<ShopData[]>([])
+  const [allShops, setAllShops] = useState<ShopData[]>([])
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [pagination, setPagination] = useState<TablePaginationConfig>({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-    showSizeChanger: true,
-    showQuickJumper: true,
-    showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} shop`,
-  })
   const [selectedShop, setSelectedShop] = useState<ShopData | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -272,21 +258,13 @@ export default function ShopManagementPage() {
   }, [])
 
   // Fetch shops data from API with authentication
-  const fetchShops = async (page = 1, perPage = 10) => {
+  const fetchShops = async () => {
     try {
       setLoading(true)
-      const result: ApiResponse = await apiCall(
-        `https://api.marketo.info.vn/api/admin/shops`,
-      )
+      const result: ApiResponse = await apiCall("https://api.marketo.info.vn/api/admin/shops")
 
       if (result.status) {
-        setShops(result.data)
-        setPagination((prev) => ({
-          ...prev,
-          current: result.pagination.current_page,
-          total: result.pagination.total,
-          pageSize: result.pagination.per_page,
-        }))
+        setAllShops(result.data)
       } else {
         message.error(result.message || "Không thể tải dữ liệu shop")
       }
@@ -308,13 +286,13 @@ export default function ShopManagementPage() {
   useEffect(() => {
     const token = getCookie("authToken")
     if (token) {
-      fetchShops(1, 10)
+      fetchShops()
     }
   }, [])
 
   // Filter data (client-side filtering for search and status)
   const filteredData = useMemo(() => {
-    return shops.filter((shop) => {
+    return allShops.filter((shop) => {
       const matchesSearch =
         searchText === "" ||
         shop.name.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -326,21 +304,11 @@ export default function ShopManagementPage() {
 
       return matchesSearch && matchesStatus
     })
-  }, [shops, searchText, statusFilter])
-
-  const handleTableChange = (newPagination: TablePaginationConfig) => {
-    const { current, pageSize } = newPagination
-    fetchShops(current || 1, pageSize || 10)
-    setPagination({
-      ...pagination,
-      ...newPagination,
-    })
-  }
+  }, [allShops, searchText, statusFilter])
 
   const handleReset = () => {
     setSearchText("")
     setStatusFilter("all")
-    fetchShops(1, 10)
   }
 
   // Actions with authentication
@@ -363,7 +331,7 @@ export default function ShopManagementPage() {
 
           if (result.status) {
             // Update local state
-            setShops((prevShops) =>
+            setAllShops((prevShops) =>
               prevShops.map((shop) => (shop.id === shopId ? { ...shop, status: newStatus } : shop)),
             )
             message.success(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} shop thành công`)
@@ -442,7 +410,7 @@ export default function ShopManagementPage() {
 
           if (result.status) {
             // Remove from local state
-            setShops((prevShops) => prevShops.filter((shop) => shop.id !== shopId))
+            setAllShops((prevShops) => prevShops.filter((shop) => shop.id !== shopId))
             message.success("Xóa shop thành công")
           } else {
             message.error(result.message || "Lỗi khi xóa shop")
@@ -694,7 +662,7 @@ export default function ShopManagementPage() {
   }
 
   const handleRefresh = () => {
-    fetchShops(pagination.current || 1, pagination.pageSize || 10)
+    fetchShops()
   }
 
   // Statistics
@@ -782,7 +750,9 @@ export default function ShopManagementPage() {
               <Button type="primary" onClick={handleRefresh} loading={loading}>
                 Làm mới
               </Button>
-              <Text type="secondary">Hiển thị {filteredData.length} shop</Text>
+              <Text type="secondary">
+                Hiển thị {filteredData.length} / {allShops.length} shop
+              </Text>
             </Space>
           </Col>
         </Row>
@@ -794,8 +764,12 @@ export default function ShopManagementPage() {
             columns={columns}
             dataSource={filteredData}
             rowKey="id"
-            pagination={pagination}
-            onChange={handleTableChange}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} shop`,
+            }}
             size="middle"
             rowClassName={(record) => {
               if (record.status === "blocked") return "blocked-row"
@@ -812,7 +786,7 @@ export default function ShopManagementPage() {
           onClose={handleCloseModal}
           onRefresh={handleRefresh}
           onUpdateShop={(updatedShop) => {
-            setShops((prevShops) => prevShops.map((shop) => (shop.id === updatedShop.id ? updatedShop : shop)))
+            setAllShops((prevShops) => prevShops.map((shop) => (shop.id === updatedShop.id ? updatedShop : shop)))
           }}
         />
       )}

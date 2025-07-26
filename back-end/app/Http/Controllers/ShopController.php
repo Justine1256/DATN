@@ -299,7 +299,6 @@ public function showAllShops(Request $request)
             DB::raw('(SELECT COUNT(*) FROM orders WHERE orders.shop_id = shops.id) as totalOrders'),
             DB::raw('(SELECT IFNULL(SUM(final_amount), 0) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalRevenue')
         )
-        ->orderBy('shops.created_at', 'desc')
         ->get();
 
     $data = $shops->map(function ($shop) {
@@ -326,12 +325,24 @@ public function showAllShops(Request $request)
         ];
     });
 
+    // ✅ Sắp xếp: Doanh thu -> Rating -> Tên (A-Z)
+    $sortedData = $data->sort(function ($a, $b) {
+        if ($a['totalRevenue'] === $b['totalRevenue']) {
+            if ($a['rating'] === $b['rating']) {
+                return strcmp($a['name'], $b['name']); // A-Z
+            }
+            return $b['rating'] <=> $a['rating']; // rating giảm dần
+        }
+        return $b['totalRevenue'] <=> $a['totalRevenue']; // doanh thu giảm dần
+    })->values();
+
     return response()->json([
         'status' => true,
         'message' => 'Danh sách cửa hàng',
-        'data' => $data
+        'data' => $sortedData
     ]);
 }
+
 
 
 }
