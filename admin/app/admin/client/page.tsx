@@ -22,6 +22,8 @@ import {
 import { SearchOutlined, UserOutlined, FilterOutlined, ReloadOutlined } from "@ant-design/icons"
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table"
 import UserDetailModal from "./modal/UserDetailModal"
+import { API_BASE_URL } from "@/utils/api"
+import Cookies from "js-cookie"
 
 const { Title } = Typography
 const { Option } = Select
@@ -70,26 +72,22 @@ export default function UserManagementPage() {
   })
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
-
   // Fetch users từ API
   const fetchUsers = async (page = 1, pageSize = 10) => {
     try {
       setLoading(true)
 
       // Lấy token từ cookie
-      const token = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("token="))
-        ?.split("=")[1]
+      const token = Cookies.get("authToken");
 
-      const response = await fetch(`/api/admin/users?page=${page}&per_page=${pageSize}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/users?page=${page}&per_page=${pageSize}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
-        credentials: "include", // Để gửi cookie
+        credentials: "include",
       })
 
       if (!response.ok) {

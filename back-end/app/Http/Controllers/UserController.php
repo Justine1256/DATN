@@ -101,13 +101,12 @@ public function register(Request $request)
 }
 public function showAllUsers(Request $request)
 {
-    // Lấy page và per_page từ query, gán mặc định nếu không có
-    $perPage = $request->input('per_page', 10); // mặc định 10
+    $perPage = $request->input('per_page', 10);
     $page = $request->input('page', 1);
 
-    // Query dữ liệu user + thống kê đơn hàng
     $query = DB::table('users')
         ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
+        ->leftJoin('reports', 'users.id', '=', 'reports.user_id')
         ->select(
             'users.id',
             'users.name',
@@ -116,15 +115,17 @@ public function showAllUsers(Request $request)
             'users.avatar',
             'users.status as original_status',
             'users.created_at as registration_date',
-            DB::raw('COUNT(orders.id) as totalOrders'),
-            DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent')
+            DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
+            DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent'),
+            DB::raw("SUM(CASE WHEN orders.status = 'canceled' THEN 1 ELSE 0 END) as canceledOrders"),
+            DB::raw('COUNT(reports.id) as totalReports'),
+            DB::raw("GROUP_CONCAT(reports.reason ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportReasons"),
+            DB::raw("GROUP_CONCAT(reports.created_at ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportDates")
         )
         ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.status', 'users.created_at');
 
-    // Phân trang thủ công với paginate
     $users = $query->paginate($perPage, ['*'], 'page', $page);
 
-    // Chuẩn hóa dữ liệu trả về
     $data = $users->map(function ($u) {
         $statusMap = [
             'activated' => 'active',
@@ -132,6 +133,17 @@ public function showAllUsers(Request $request)
             'deactivated' => 'inactive',
             'hidden' => 'hidden'
         ];
+
+        // Xác định mức độ cảnh báo
+        $cancelLevel = 'normal'; // mặc định
+        $cancelColor = 'green';
+        if ($u->canceledOrders > 10) {
+            $cancelLevel = 'danger';
+            $cancelColor = 'red';
+        } elseif ($u->canceledOrders > 5) {
+            $cancelLevel = 'warning';
+            $cancelColor = 'yellow';
+        }
 
         return [
             'id' => 'USR' . str_pad($u->id, 3, '0', STR_PAD_LEFT),
@@ -142,7 +154,17 @@ public function showAllUsers(Request $request)
             'registrationDate' => date('Y-m-d', strtotime($u->registration_date)),
             'totalOrders' => (int) $u->totalOrders,
             'totalSpent' => (float) $u->totalSpent,
+            'canceledOrders' => (int) $u->canceledOrders,
+            'cancelStatus' => [
+                'level' => $cancelLevel,
+                'color' => $cancelColor
+            ],
             'avatar' => $u->avatar ?? '/placeholder.svg?height=40&width=40',
+            'reports' => [
+                'total' => (int) $u->totalReports,
+                'reasons' => $u->reportReasons ? explode(' | ', $u->reportReasons) : [],
+                'dates' => $u->reportDates ? explode(' | ', $u->reportDates) : [],
+            ]
         ];
     });
 
@@ -158,6 +180,7 @@ public function showAllUsers(Request $request)
         ]
     ]);
 }
+
 
 public function verifyOtp(Request $request)
 {
