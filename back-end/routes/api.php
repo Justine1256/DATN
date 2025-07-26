@@ -164,7 +164,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/showdh/{id}', [OrderController::class, 'show']);
     Route::get('/order-statistics', [OrderController::class, 'orderStatistics']);
     Route::get('/order-shop-statistics', [OrderController::class, 'orderStatisticsByShopStatus']);
-    Route::get('/admin/orders', [OrderController::class, 'adminOrderList']);
+    Route::get('/shop/orders', [OrderController::class, 'ShopOrderList']);
     Route::get('/admin/order/{id}', [OrderController::class, 'adminShow']);
     Route::patch('/cancel/{id}', [OrderController::class, 'cancel']);
     Route::post('/shop/orders/{id}/cancel', [OrderController::class, 'ShopCancelOrder']);

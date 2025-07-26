@@ -414,7 +414,7 @@ class OrderController extends Controller
             'order' => $response
         ]);
     }
-   public function adminOrderList(Request $request)
+   public function ShopOrderList(Request $request)
     {
         $user = Auth::user();
 
