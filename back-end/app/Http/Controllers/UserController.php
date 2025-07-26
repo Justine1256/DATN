@@ -107,14 +107,17 @@ public function showAllUsers(Request $request)
     $users = DB::table('users')
         ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
         ->leftJoin('reports', 'users.id', '=', 'reports.shop_id')
+        ->leftJoin('shops', 'users.id', '=', 'shops.user_id') // ✅ join để lấy logo
         ->select(
             'users.id',
             'users.name',
             'users.email',
             'users.phone',
-            'users.avatar',
+            'users.avatar as user_avatar',
+            'users.role', // ✅ lấy role
             'users.status as original_status',
             'users.created_at as registration_date',
+            'shops.logo as shop_logo', // ✅ lấy logo shop
             DB::raw('COUNT(DISTINCT orders.id) as totalOrders'),
             DB::raw('IFNULL(SUM(orders.final_amount), 0) as totalSpent'),
             DB::raw("SUM(CASE WHEN orders.order_status = 'Canceled' THEN 1 ELSE 0 END) as canceledOrders"),
@@ -122,10 +125,9 @@ public function showAllUsers(Request $request)
             DB::raw("GROUP_CONCAT(reports.reason ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportReasons"),
             DB::raw("GROUP_CONCAT(reports.created_at ORDER BY reports.created_at DESC SEPARATOR ' | ') as reportDates")
         )
-        ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.status', 'users.created_at')
+        ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.role', 'users.status', 'users.created_at', 'shops.logo')
         ->paginate($perPage, ['*'], 'page', $page);
 
-    // Map dữ liệu nhưng giữ phân trang
     $users->getCollection()->transform(function ($u) {
         $statusMap = [
             'activated' => 'active',
@@ -134,7 +136,7 @@ public function showAllUsers(Request $request)
             'hidden' => 'hidden'
         ];
 
-        // Xác định mức độ cảnh báo cho đơn hủy
+        // Cảnh báo số đơn hủy
         $cancelLevel = 'normal';
         $cancelColor = 'green';
         if ($u->canceledOrders > 10) {
@@ -145,11 +147,17 @@ public function showAllUsers(Request $request)
             $cancelColor = 'yellow';
         }
 
+        // ✅ Chọn avatar: user_avatar hoặc shop_logo
+        $avatar = $u->role === 'seller'
+            ? ($u->shop_logo ?? '/placeholder.svg?height=40&width=40')
+            : ($u->user_avatar ?? '/placeholder.svg?height=40&width=40');
+
         return [
             'id' => 'USR' . str_pad($u->id, 3, '0', STR_PAD_LEFT),
             'name' => $u->name,
             'email' => $u->email,
             'phone' => $u->phone,
+            'role' => $u->role, // ✅ trả về role
             'status' => $statusMap[$u->original_status] ?? 'unknown',
             'registrationDate' => date('Y-m-d', strtotime($u->registration_date)),
             'totalOrders' => (int)$u->totalOrders,
@@ -159,7 +167,7 @@ public function showAllUsers(Request $request)
                 'level' => $cancelLevel,
                 'color' => $cancelColor
             ],
-            'avatar' => $u->avatar ?? '/placeholder.svg?height=40&width=40',
+            'avatar' => $avatar,
             'reports' => [
                 'total' => (int)$u->totalReports,
                 'reasons' => $u->reportReasons ? explode(' | ', $u->reportReasons) : [],
@@ -180,6 +188,7 @@ public function showAllUsers(Request $request)
         ]
     ]);
 }
+
 
 public function verifyOtp(Request $request)
 {
