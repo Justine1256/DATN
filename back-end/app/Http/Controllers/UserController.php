@@ -131,7 +131,7 @@ public function showAllUsers(Request $request)
         DB::raw('report_data.reportReasons'),
         DB::raw('report_data.reportDates')
     )
-    ->where('users.role', '!=', 'admin,seller')
+    ->whereNotIn('users.role', ['admin', 'seller'])
     ->groupBy('users.id', 'users.name', 'users.email', 'users.phone', 'users.avatar', 'users.role', 'users.status', 'users.created_at', 'shops.logo', 'report_data.totalReports', 'report_data.reportReasons', 'report_data.reportDates')
     ->paginate($perPage, ['*'], 'page', $page);
 
