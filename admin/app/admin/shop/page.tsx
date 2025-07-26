@@ -17,7 +17,6 @@ import {
   Tooltip,
   Spin,
   message,
-  Badge,
   Alert,
   Modal,
   Dropdown,
@@ -26,7 +25,6 @@ import {
   SearchOutlined,
   ShopOutlined,
   ReloadOutlined,
-  WarningOutlined,
   CheckCircleOutlined,
   EyeOutlined,
   LockOutlined,
@@ -51,9 +49,6 @@ interface ShopOwner {
   phone: string
   email: string
   avatar?: string
-  address?: string
-  joinDate: string
-  lastLogin?: string
 }
 
 interface ShopData {
@@ -61,398 +56,83 @@ interface ShopData {
   name: string
   description: string
   logo?: string
-  banner?: string
   owner: ShopOwner
-  status: "active" | "hidden" | "blocked"
+  status: string
   registrationDate: string
   totalProducts: number
   totalOrders: number
   totalRevenue: number
-  monthlyRevenue: number
-  rating: number
-  totalReviews: number
   address: string
-  category: string
   isVerified: boolean
-  violationCount: number
-  lastActive: string
+  rating: number
 }
 
-// Static data array
-const staticShopsData: ShopData[] = [
-  {
-    id: "SHOP0001",
-    name: "Fashion Store VN",
-    description:
-      "Mô tả chi tiết về Fashion Store VN. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=F",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0001",
-      name: "Nguyễn Văn An",
-      phone: "0901234567",
-      email: "nguyenvanan@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=N",
-      address: "123 Đường 1, Quận 1, TP.HCM",
-      joinDate: "2022-01-15T00:00:00.000Z",
-      lastLogin: "2024-01-20T10:30:00.000Z",
+interface ApiResponse {
+  status: boolean
+  message: string
+  data: ShopData[]
+  pagination: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
+}
+
+// Utility function to get cookie value
+const getCookie = (name: string): string | null => {
+  if (typeof document === "undefined") return null
+
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return parts.pop()?.split(";").shift() || null
+  }
+  return null
+}
+
+// API utility function with authentication
+const apiCall = async (url: string, options: RequestInit = {}) => {
+  const token = getCookie("authToken")
+
+  if (!token) {
+    message.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
+    // Redirect to login page or handle authentication
+    window.location.href = "/login"
+    throw new Error("No authentication token")
+  }
+
+  const defaultHeaders = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+  }
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
     },
-    status: "active",
-    registrationDate: "2022-01-15T00:00:00.000Z",
-    totalProducts: 150,
-    totalOrders: 1250,
-    totalRevenue: 5500000000,
-    monthlyRevenue: 550000000,
-    rating: 4.5,
-    totalReviews: 320,
-    address: "123 Đường 1, Quận 1, TP.HCM",
-    category: "fashion",
-    isVerified: true,
-    violationCount: 0,
-    lastActive: "2024-01-20T10:30:00.000Z",
-  },
-  {
-    id: "SHOP0002",
-    name: "Tech World",
-    description:
-      "Mô tả chi tiết về Tech World. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=T",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0002",
-      name: "Trần Thị Bình",
-      phone: "0902345678",
-      email: "tranthibinh@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=T",
-      address: "456 Đường 2, Quận 2, TP.HCM",
-      joinDate: "2021-03-20T00:00:00.000Z",
-      lastLogin: "2024-01-19T15:45:00.000Z",
-    },
-    status: "active",
-    registrationDate: "2021-03-20T00:00:00.000Z",
-    totalProducts: 89,
-    totalOrders: 890,
-    totalRevenue: 8900000000,
-    monthlyRevenue: 890000000,
-    rating: 4.8,
-    totalReviews: 156,
-    address: "456 Đường 2, Quận 2, TP.HCM",
-    category: "electronics",
-    isVerified: true,
-    violationCount: 0,
-    lastActive: "2024-01-19T15:45:00.000Z",
-  },
-  {
-    id: "SHOP0003",
-    name: "Beauty Paradise",
-    description:
-      "Mô tả chi tiết về Beauty Paradise. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=B",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0003",
-      name: "Lê Hoàng Cường",
-      phone: "0903456789",
-      email: "lehoangcuong@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=L",
-      address: "789 Đường 3, Quận 3, TP.HCM",
-      joinDate: "2020-07-10T00:00:00.000Z",
-      lastLogin: "2024-01-18T09:20:00.000Z",
-    },
-    status: "hidden",
-    registrationDate: "2020-07-10T00:00:00.000Z",
-    totalProducts: 245,
-    totalOrders: 2100,
-    totalRevenue: 3200000000,
-    monthlyRevenue: 320000000,
-    rating: 4.2,
-    totalReviews: 445,
-    address: "789 Đường 3, Quận 3, TP.HCM",
-    category: "beauty",
-    isVerified: true,
-    violationCount: 1,
-    lastActive: "2024-01-18T09:20:00.000Z",
-  },
-  {
-    id: "SHOP0004",
-    name: "Home Decor Plus",
-    description:
-      "Mô tả chi tiết về Home Decor Plus. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=H",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0004",
-      name: "Phạm Thị Dung",
-      phone: "0904567890",
-      email: "phamthidung@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=P",
-      address: "321 Đường 4, Quận 4, TP.HCM",
-      joinDate: "2023-02-28T00:00:00.000Z",
-      lastLogin: "2024-01-21T14:15:00.000Z",
-    },
-    status: "active",
-    registrationDate: "2023-02-28T00:00:00.000Z",
-    totalProducts: 67,
-    totalOrders: 340,
-    totalRevenue: 1800000000,
-    monthlyRevenue: 180000000,
-    rating: 4.0,
-    totalReviews: 89,
-    address: "321 Đường 4, Quận 4, TP.HCM",
-    category: "home",
-    isVerified: false,
-    violationCount: 0,
-    lastActive: "2024-01-21T14:15:00.000Z",
-  },
-  {
-    id: "SHOP0005",
-    name: "Sports Center",
-    description:
-      "Mô tả chi tiết về Sports Center. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=S",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0005",
-      name: "Hoàng Văn Em",
-      phone: "0905678901",
-      email: "hoangvanem@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=H",
-      address: "654 Đường 5, Quận 5, TP.HCM",
-      joinDate: "2021-11-12T00:00:00.000Z",
-      lastLogin: "2024-01-17T11:30:00.000Z",
-    },
-    status: "blocked",
-    registrationDate: "2021-11-12T00:00:00.000Z",
-    totalProducts: 198,
-    totalOrders: 756,
-    totalRevenue: 4500000000,
-    monthlyRevenue: 450000000,
-    rating: 3.8,
-    totalReviews: 234,
-    address: "654 Đường 5, Quận 5, TP.HCM",
-    category: "sports",
-    isVerified: true,
-    violationCount: 2,
-    lastActive: "2024-01-17T11:30:00.000Z",
-  },
-  {
-    id: "SHOP0006",
-    name: "Gadget Hub",
-    description:
-      "Mô tả chi tiết về Gadget Hub. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=G",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0006",
-      name: "Vũ Thị Phương",
-      phone: "0906789012",
-      email: "vuthiphuong@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=V",
-      address: "987 Đường 6, Quận 6, TP.HCM",
-      joinDate: "2022-05-18T00:00:00.000Z",
-      lastLogin: "2024-01-20T16:45:00.000Z",
-    },
-    status: "active",
-    registrationDate: "2022-05-18T00:00:00.000Z",
-    totalProducts: 134,
-    totalOrders: 1890,
-    totalRevenue: 7200000000,
-    monthlyRevenue: 720000000,
-    rating: 4.6,
-    totalReviews: 567,
-    address: "987 Đường 6, Quận 6, TP.HCM",
-    category: "electronics",
-    isVerified: true,
-    violationCount: 0,
-    lastActive: "2024-01-20T16:45:00.000Z",
-  },
-  {
-    id: "SHOP0007",
-    name: "Style Boutique",
-    description:
-      "Mô tả chi tiết về Style Boutique. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=S",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0007",
-      name: "Đặng Minh Giang",
-      phone: "0907890123",
-      email: "dangminhgiang@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=D",
-      address: "147 Đường 7, Quận 7, TP.HCM",
-      joinDate: "2023-08-05T00:00:00.000Z",
-      lastLogin: "2024-01-19T13:20:00.000Z",
-    },
-    status: "active",
-    registrationDate: "2023-08-05T00:00:00.000Z",
-    totalProducts: 78,
-    totalOrders: 456,
-    totalRevenue: 2100000000,
-    monthlyRevenue: 210000000,
-    rating: 4.3,
-    totalReviews: 123,
-    address: "147 Đường 7, Quận 7, TP.HCM",
-    category: "fashion",
-    isVerified: false,
-    violationCount: 0,
-    lastActive: "2024-01-19T13:20:00.000Z",
-  },
-  {
-    id: "SHOP0008",
-    name: "Electronics Pro",
-    description:
-      "Mô tả chi tiết về Electronics Pro. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=E",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0008",
-      name: "Bùi Thị Hoa",
-      phone: "0908901234",
-      email: "buithihoa@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=B",
-      address: "258 Đường 8, Quận 8, TP.HCM",
-      joinDate: "2020-12-03T00:00:00.000Z",
-      lastLogin: "2024-01-21T08:15:00.000Z",
-    },
-    status: "active",
-    registrationDate: "2020-12-03T00:00:00.000Z",
-    totalProducts: 312,
-    totalOrders: 2890,
-    totalRevenue: 9800000000,
-    monthlyRevenue: 980000000,
-    rating: 4.7,
-    totalReviews: 789,
-    address: "258 Đường 8, Quận 8, TP.HCM",
-    category: "electronics",
-    isVerified: true,
-    violationCount: 0,
-    lastActive: "2024-01-21T08:15:00.000Z",
-  },
-  {
-    id: "SHOP0009",
-    name: "Cosmetic House",
-    description:
-      "Mô tả chi tiết về Cosmetic House. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=C",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0009",
-      name: "Ngô Văn Inh",
-      phone: "0909012345",
-      email: "ngovaninh@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=N",
-      address: "369 Đường 9, Quận 9, TP.HCM",
-      joinDate: "2022-09-14T00:00:00.000Z",
-      lastLogin: "2024-01-16T12:00:00.000Z",
-    },
-    status: "hidden",
-    registrationDate: "2022-09-14T00:00:00.000Z",
-    totalProducts: 156,
-    totalOrders: 678,
-    totalRevenue: 2800000000,
-    monthlyRevenue: 280000000,
-    rating: 4.1,
-    totalReviews: 234,
-    address: "369 Đường 9, Quận 9, TP.HCM",
-    category: "beauty",
-    isVerified: true,
-    violationCount: 0,
-    lastActive: "2024-01-16T12:00:00.000Z",
-  },
-  {
-    id: "SHOP0010",
-    name: "Furniture Land",
-    description:
-      "Mô tả chi tiết về Furniture Land. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=F",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0010",
-      name: "Lý Thị Kim",
-      phone: "0910123456",
-      email: "lythikim@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=L",
-      address: "741 Đường 10, Quận 10, TP.HCM",
-      joinDate: "2021-06-25T00:00:00.000Z",
-      lastLogin: "2024-01-22T09:30:00.000Z",
-    },
-    status: "active",
-    registrationDate: "2021-06-25T00:00:00.000Z",
-    totalProducts: 89,
-    totalOrders: 445,
-    totalRevenue: 3600000000,
-    monthlyRevenue: 360000000,
-    rating: 4.4,
-    totalReviews: 167,
-    address: "741 Đường 10, Quận 10, TP.HCM",
-    category: "home",
-    isVerified: true,
-    violationCount: 0,
-    lastActive: "2024-01-22T09:30:00.000Z",
-  },
-  {
-    id: "SHOP0011",
-    name: "Fitness Gear",
-    description:
-      "Mô tả chi tiết về Fitness Gear. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=F",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0011",
-      name: "Phan Văn Long",
-      phone: "0911234567",
-      email: "phanvanlong@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=P",
-      address: "852 Đường 11, Quận 11, TP.HCM",
-      joinDate: "2023-04-12T00:00:00.000Z",
-      lastLogin: "2024-01-15T17:20:00.000Z",
-    },
-    status: "blocked",
-    registrationDate: "2023-04-12T00:00:00.000Z",
-    totalProducts: 234,
-    totalOrders: 567,
-    totalRevenue: 4100000000,
-    monthlyRevenue: 410000000,
-    rating: 3.9,
-    totalReviews: 189,
-    address: "852 Đường 11, Quận 11, TP.HCM",
-    category: "sports",
-    isVerified: false,
-    violationCount: 3,
-    lastActive: "2024-01-15T17:20:00.000Z",
-  },
-  {
-    id: "SHOP0012",
-    name: "Mobile World",
-    description:
-      "Mô tả chi tiết về Mobile World. Chúng tôi chuyên cung cấp các sản phẩm chất lượng cao với giá cả hợp lý.",
-    logo: "/placeholder.svg?height=40&width=40&text=M",
-    banner: "/placeholder.svg?height=200&width=800&text=Banner",
-    owner: {
-      id: "USER0012",
-      name: "Đinh Thị Mai",
-      phone: "0912345678",
-      email: "dinhthimai@gmail.com",
-      avatar: "/placeholder.svg?height=40&width=40&text=D",
-      address: "963 Đường 12, Quận 12, TP.HCM",
-      joinDate: "2020-10-08T00:00:00.000Z",
-      lastLogin: "2024-01-23T11:45:00.000Z",
-    },
-    status: "active",
-    registrationDate: "2020-10-08T00:00:00.000Z",
-    totalProducts: 445,
-    totalOrders: 3456,
-    totalRevenue: 12500000000,
-    monthlyRevenue: 1250000000,
-    rating: 4.9,
-    totalReviews: 1234,
-    address: "963 Đường 12, Quận 12, TP.HCM",
-    category: "electronics",
-    isVerified: true,
-    violationCount: 0,
-    lastActive: "2024-01-23T11:45:00.000Z",
-  },
-]
+  }
+
+  const response = await fetch(url, config)
+
+  // Handle authentication errors
+  if (response.status === 401) {
+    message.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
+    // Clear the invalid token
+    document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    window.location.href = "/login"
+    throw new Error("Authentication failed")
+  }
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
+}
 
 // Simple ShopDetailModal component
 const ShopDetailModal: React.FC<{
@@ -489,24 +169,27 @@ const ShopDetailModal: React.FC<{
               <strong>Mô tả:</strong> {shop.description}
             </p>
             <p>
-              <strong>Danh mục:</strong> {shop.category}
-            </p>
-            <p>
               <strong>Địa chỉ:</strong> {shop.address}
             </p>
             <p>
               <strong>Trạng thái:</strong>
-              <Tag color={shop.status === "active" ? "green" : shop.status === "hidden" ? "orange" : "red"}>
-                {shop.status === "active" ? "Hoạt động" : shop.status === "hidden" ? "Ẩn" : "Bị khóa"}
+              <Tag color={shop.status === "activated" ? "green" : shop.status === "hidden" ? "orange" : "red"}>
+                {shop.status === "activated" ? "Hoạt động" : shop.status === "hidden" ? "Ẩn" : "Bị khóa"}
               </Tag>
             </p>
             <p>
               <strong>Ngày đăng ký:</strong> {new Date(shop.registrationDate).toLocaleDateString("vi-VN")}
             </p>
+            <p>
+              <strong>Xác minh:</strong> {shop.isVerified ? "Đã xác minh" : "Chưa xác minh"}
+            </p>
           </Card>
         </Col>
         <Col span={12}>
           <Card title="Chủ shop" size="small">
+            <p>
+              <strong>ID:</strong> {shop.owner.id}
+            </p>
             <p>
               <strong>Tên:</strong> {shop.owner.name}
             </p>
@@ -516,17 +199,6 @@ const ShopDetailModal: React.FC<{
             <p>
               <strong>Điện thoại:</strong> {shop.owner.phone}
             </p>
-            <p>
-              <strong>Địa chỉ:</strong> {shop.owner.address}
-            </p>
-            <p>
-              <strong>Ngày tham gia:</strong> {new Date(shop.owner.joinDate).toLocaleDateString("vi-VN")}
-            </p>
-            {shop.owner.lastLogin && (
-              <p>
-                <strong>Đăng nhập cuối:</strong> {new Date(shop.owner.lastLogin).toLocaleDateString("vi-VN")}
-              </p>
-            )}
           </Card>
         </Col>
       </Row>
@@ -561,7 +233,7 @@ const ShopDetailModal: React.FC<{
                   <div style={{ fontSize: "20px", fontWeight: "bold", color: "#faad14" }}>
                     ⭐ {shop.rating.toFixed(1)}
                   </div>
-                  <div>({shop.totalReviews} đánh giá)</div>
+                  <div>Đánh giá</div>
                 </div>
               </Col>
             </Row>
@@ -577,7 +249,6 @@ export default function ShopManagementPage() {
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -590,17 +261,58 @@ export default function ShopManagementPage() {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-  // Initialize static data
+  // Check authentication on component mount
   useEffect(() => {
-    setShops(staticShopsData)
-    setPagination((prev) => ({
-      ...prev,
-      total: staticShopsData.length,
-    }))
-    setLoading(false)
+    const token = getCookie("authToken")
+    if (!token) {
+      message.error("Vui lòng đăng nhập để truy cập trang này")
+      window.location.href = "/login"
+      return
+    }
   }, [])
 
-  // Lọc dữ liệu
+  // Fetch shops data from API with authentication
+  const fetchShops = async (page = 1, perPage = 10) => {
+    try {
+      setLoading(true)
+      const result: ApiResponse = await apiCall(
+        `https://api.marketo.info.vn/api/admin/shops`,
+      )
+
+      if (result.status) {
+        setShops(result.data)
+        setPagination((prev) => ({
+          ...prev,
+          current: result.pagination.current_page,
+          total: result.pagination.total,
+          pageSize: result.pagination.per_page,
+        }))
+      } else {
+        message.error(result.message || "Không thể tải dữ liệu shop")
+      }
+    } catch (error) {
+      console.error("Error fetching shops:", error)
+      if (
+        error instanceof Error &&
+        error.message !== "No authentication token" &&
+        error.message !== "Authentication failed"
+      ) {
+        message.error("Lỗi khi tải dữ liệu")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Initialize data
+  useEffect(() => {
+    const token = getCookie("authToken")
+    if (token) {
+      fetchShops(1, 10)
+    }
+  }, [])
+
+  // Filter data (client-side filtering for search and status)
   const filteredData = useMemo(() => {
     return shops.filter((shop) => {
       const matchesSearch =
@@ -611,13 +323,14 @@ export default function ShopManagementPage() {
         shop.id.includes(searchText)
 
       const matchesStatus = statusFilter === "all" || shop.status === statusFilter
-      const matchesCategory = categoryFilter === "all" || shop.category === categoryFilter
 
-      return matchesSearch && matchesStatus && matchesCategory
+      return matchesSearch && matchesStatus
     })
-  }, [shops, searchText, statusFilter, categoryFilter])
+  }, [shops, searchText, statusFilter])
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
+    const { current, pageSize } = newPagination
+    fetchShops(current || 1, pageSize || 10)
     setPagination({
       ...pagination,
       ...newPagination,
@@ -627,16 +340,12 @@ export default function ShopManagementPage() {
   const handleReset = () => {
     setSearchText("")
     setStatusFilter("all")
-    setCategoryFilter("all")
-    setPagination({
-      ...pagination,
-      current: 1,
-    })
+    fetchShops(1, 10)
   }
 
-  // Actions
+  // Actions with authentication
   const handleBlockShop = async (shopId: string, currentStatus: string) => {
-    const newStatus = currentStatus === "blocked" ? "active" : "blocked"
+    const newStatus = currentStatus === "blocked" ? "activated" : "blocked"
     const actionText = newStatus === "blocked" ? "khóa" : "mở khóa"
 
     confirm({
@@ -645,17 +354,31 @@ export default function ShopManagementPage() {
       onOk: async () => {
         try {
           setActionLoading(shopId)
-          // Simulate API delay
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          // Update local state
-          setShops((prevShops) =>
-            prevShops.map((shop) =>
-              shop.id === shopId ? { ...shop, status: newStatus as "active" | "blocked" } : shop,
-            ),
-          )
-          message.success(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} shop thành công`)
+
+          // Call API to update shop status
+          const result = await apiCall(`https://api.marketo.info.vn/api/admin/shops/${shopId}/status`, {
+            method: "PUT",
+            body: JSON.stringify({ status: newStatus }),
+          })
+
+          if (result.status) {
+            // Update local state
+            setShops((prevShops) =>
+              prevShops.map((shop) => (shop.id === shopId ? { ...shop, status: newStatus } : shop)),
+            )
+            message.success(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} shop thành công`)
+          } else {
+            message.error(result.message || `Lỗi khi ${actionText} shop`)
+          }
         } catch (error) {
-          message.error(`Lỗi khi ${actionText} shop`)
+          console.error(`Error ${actionText} shop:`, error)
+          if (
+            error instanceof Error &&
+            error.message !== "No authentication token" &&
+            error.message !== "Authentication failed"
+          ) {
+            message.error(`Lỗi khi ${actionText} shop`)
+          }
         } finally {
           setActionLoading(null)
         }
@@ -670,11 +393,26 @@ export default function ShopManagementPage() {
       onOk: async () => {
         try {
           setActionLoading(shopId)
-          // Simulate API delay
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          message.success("Reset mật khẩu thành công")
+
+          // Call API to reset password
+          const result = await apiCall(`https://api.marketo.info.vn/api/admin/shops/${shopId}/reset-password`, {
+            method: "POST",
+          })
+
+          if (result.status) {
+            message.success("Reset mật khẩu thành công")
+          } else {
+            message.error(result.message || "Lỗi khi reset mật khẩu")
+          }
         } catch (error) {
-          message.error("Lỗi khi reset mật khẩu")
+          console.error("Error resetting password:", error)
+          if (
+            error instanceof Error &&
+            error.message !== "No authentication token" &&
+            error.message !== "Authentication failed"
+          ) {
+            message.error("Lỗi khi reset mật khẩu")
+          }
         } finally {
           setActionLoading(null)
         }
@@ -696,13 +434,28 @@ export default function ShopManagementPage() {
       onOk: async () => {
         try {
           setActionLoading(shopId)
-          // Simulate API delay
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          // Remove from local state
-          setShops((prevShops) => prevShops.filter((shop) => shop.id !== shopId))
-          message.success("Xóa shop thành công")
+
+          // Call API to delete shop
+          const result = await apiCall(`https://api.marketo.info.vn/api/admin/shops/${shopId}`, {
+            method: "DELETE",
+          })
+
+          if (result.status) {
+            // Remove from local state
+            setShops((prevShops) => prevShops.filter((shop) => shop.id !== shopId))
+            message.success("Xóa shop thành công")
+          } else {
+            message.error(result.message || "Lỗi khi xóa shop")
+          }
         } catch (error) {
-          message.error("Lỗi khi xóa shop")
+          console.error("Error deleting shop:", error)
+          if (
+            error instanceof Error &&
+            error.message !== "No authentication token" &&
+            error.message !== "Authentication failed"
+          ) {
+            message.error("Lỗi khi xóa shop")
+          }
         } finally {
           setActionLoading(null)
         }
@@ -745,7 +498,7 @@ export default function ShopManagementPage() {
     {
       title: "Shop",
       key: "shop",
-      width: 220,
+      width: 250,
       render: (_, record) => (
         <Space>
           <Avatar src={record.logo} icon={<ShopOutlined />} size={40} />
@@ -753,7 +506,7 @@ export default function ShopManagementPage() {
             <div
               style={{
                 fontWeight: 500,
-                maxWidth: 150,
+                maxWidth: 180,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -763,9 +516,11 @@ export default function ShopManagementPage() {
               {record.isVerified && <CheckCircleOutlined style={{ color: "#1890ff", marginLeft: 4 }} />}
             </div>
             <div style={{ color: "#666", fontSize: "12px" }}>ID: {record.id}</div>
-            <Tag color="blue">
-              {record.category}
-            </Tag>
+            <div style={{ color: "#666", fontSize: "11px", marginTop: 2 }}>
+              <Tooltip title={record.description}>
+                {record.description.length > 30 ? `${record.description.substring(0, 30)}...` : record.description}
+              </Tooltip>
+            </div>
           </div>
         </Space>
       ),
@@ -773,14 +528,14 @@ export default function ShopManagementPage() {
     {
       title: "Chủ shop",
       key: "owner",
-      width: 180,
+      width: 200,
       render: (_, record) => (
         <div>
           <div
             style={{
               fontWeight: 500,
               marginBottom: 4,
-              maxWidth: 160,
+              maxWidth: 180,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -793,7 +548,7 @@ export default function ShopManagementPage() {
             style={{
               color: "#666",
               fontSize: "12px",
-              maxWidth: 160,
+              maxWidth: 180,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -801,6 +556,18 @@ export default function ShopManagementPage() {
           >
             <PhoneOutlined style={{ marginRight: 4 }} />
             <Tooltip title={record.owner.phone}>{record.owner.phone}</Tooltip>
+          </div>
+          <div
+            style={{
+              color: "#666",
+              fontSize: "11px",
+              maxWidth: 180,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {record.owner.email}
           </div>
         </div>
       ),
@@ -812,7 +579,7 @@ export default function ShopManagementPage() {
       width: 120,
       render: (status: string, record) => {
         const statusConfig = {
-          active: { color: "green", text: "Hoạt động" },
+          activated: { color: "green", text: "Hoạt động" },
           hidden: { color: "orange", text: "Ẩn" },
           blocked: { color: "red", text: "Bị khóa" },
         }
@@ -820,18 +587,17 @@ export default function ShopManagementPage() {
         return (
           <div>
             <Tag color={config.color}>{config.text}</Tag>
-            {record.violationCount > 0 && (
+            {record.isVerified && (
               <div style={{ marginTop: 2 }}>
-                <Badge count={record.violationCount} size="small">
-                  <WarningOutlined style={{ color: "orange" }} />
-                </Badge>
+                <CheckCircleOutlined style={{ color: "#1890ff", fontSize: "12px" }} />
+                <span style={{ fontSize: "11px", marginLeft: 2 }}>Đã xác minh</span>
               </div>
             )}
           </div>
         )
       },
       filters: [
-        { text: "Hoạt động", value: "active" },
+        { text: "Hoạt động", value: "activated" },
         { text: "Ẩn", value: "hidden" },
         { text: "Bị khóa", value: "blocked" },
       ],
@@ -872,16 +638,12 @@ export default function ShopManagementPage() {
           <div style={{ fontWeight: "bold", color: "#f5222d" }}>
             <DollarOutlined style={{ marginRight: 4 }} />
             <Tooltip title={`${record.totalRevenue.toLocaleString("vi-VN")} ₫`}>
-              {record.totalRevenue > 1000000
-                ? `${(record.totalRevenue / 1000000).toFixed(1)}M ₫`
-                : `${(record.totalRevenue / 1000).toFixed(0)}K ₫`}
+              {record.totalRevenue > 1000000000
+                ? `${(record.totalRevenue / 1000000000).toFixed(1)}B ₫`
+                : record.totalRevenue > 1000000
+                  ? `${(record.totalRevenue / 1000000).toFixed(1)}M ₫`
+                  : `${(record.totalRevenue / 1000).toFixed(0)}K ₫`}
             </Tooltip>
-          </div>
-          <div style={{ fontSize: "11px", color: "#666" }}>
-            Tháng này:{" "}
-            {record.monthlyRevenue > 1000000
-              ? `${(record.monthlyRevenue / 1000000).toFixed(1)}M ₫`
-              : `${(record.monthlyRevenue / 1000).toFixed(0)}K ₫`}
           </div>
         </div>
       ),
@@ -893,8 +655,9 @@ export default function ShopManagementPage() {
       width: 100,
       render: (_, record) => (
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "16px", fontWeight: "bold", color: "#faad14" }}>⭐ {record.rating.toFixed(1)}</div>
-          <div style={{ fontSize: "11px", color: "#666" }}>({record.totalReviews} đánh giá)</div>
+          <div style={{ fontSize: "16px", fontWeight: "bold", color: "#faad14" }}>
+            ⭐ {record.rating > 0 ? record.rating.toFixed(1) : "0.0"}
+          </div>
         </div>
       ),
       sorter: (a: ShopData, b: ShopData) => a.rating - b.rating,
@@ -931,27 +694,23 @@ export default function ShopManagementPage() {
   }
 
   const handleRefresh = () => {
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      message.success("Đã làm mới dữ liệu")
-    }, 1000)
+    fetchShops(pagination.current || 1, pagination.pageSize || 10)
   }
 
-  // Thống kê tổng quan
+  // Statistics
   const stats = useMemo(() => {
     const total = filteredData.length
-    const active = filteredData.filter((s) => s.status === "active").length
+    const activated = filteredData.filter((s) => s.status === "activated").length
     const blocked = filteredData.filter((s) => s.status === "blocked").length
     const hidden = filteredData.filter((s) => s.status === "hidden").length
-    const violationShops = filteredData.filter((s) => s.violationCount > 0).length
+    const verified = filteredData.filter((s) => s.isVerified).length
     const totalRevenue = filteredData.reduce((sum, shop) => sum + shop.totalRevenue, 0)
-    return { total, active, blocked, hidden, violationShops, totalRevenue }
+    return { total, activated, blocked, hidden, verified, totalRevenue }
   }, [filteredData])
 
   return (
     <div style={{ padding: "2px" }}>
-      {/* Thống kê tổng quan */}
+      {/* Statistics Overview */}
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}>
           <Card size="small">
@@ -964,7 +723,7 @@ export default function ShopManagementPage() {
         <Col span={6}>
           <Card size="small">
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "24px", fontWeight: "bold", color: "#52c41a" }}>{stats.active}</div>
+              <div style={{ fontSize: "24px", fontWeight: "bold", color: "#52c41a" }}>{stats.activated}</div>
               <div>Đang hoạt động</div>
             </div>
           </Card>
@@ -991,14 +750,9 @@ export default function ShopManagementPage() {
         </Col>
       </Row>
 
-      {/* Cảnh báo vi phạm */}
-      {stats.violationShops > 0 && (
-        <Alert
-          message={`${stats.violationShops} shop có vi phạm cần xem xét`}
-          type="warning"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
+      {/* Verified shops info */}
+      {stats.verified > 0 && (
+        <Alert message={`${stats.verified} shop đã được xác minh`} type="info" showIcon style={{ marginBottom: 16 }} />
       )}
 
       <Card style={{ marginBottom: "16px" }}>
@@ -1015,27 +769,12 @@ export default function ShopManagementPage() {
           <Col xs={24} sm={8} md={4}>
             <Select placeholder="Trạng thái" value={statusFilter} onChange={setStatusFilter} style={{ width: "100%" }}>
               <Option value="all">Tất cả trạng thái</Option>
-              <Option value="active">Hoạt động</Option>
+              <Option value="activated">Hoạt động</Option>
               <Option value="hidden">Ẩn</Option>
               <Option value="blocked">Bị khóa</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={8} md={4}>
-            <Select
-              placeholder="Danh mục"
-              value={categoryFilter}
-              onChange={setCategoryFilter}
-              style={{ width: "100%" }}
-            >
-              <Option value="all">Tất cả danh mục</Option>
-              <Option value="fashion">Thời trang</Option>
-              <Option value="electronics">Điện tử</Option>
-              <Option value="home">Nhà cửa</Option>
-              <Option value="beauty">Làm đẹp</Option>
-              <Option value="sports">Thể thao</Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={24} md={10}>
+          <Col xs={24} sm={24} md={14}>
             <Space>
               <Button icon={<ReloadOutlined />} onClick={handleReset} loading={loading}>
                 Đặt lại
@@ -1043,7 +782,7 @@ export default function ShopManagementPage() {
               <Button type="primary" onClick={handleRefresh} loading={loading}>
                 Làm mới
               </Button>
-              <Text type="secondary">Tìm thấy {filteredData.length} shop</Text>
+              <Text type="secondary">Hiển thị {filteredData.length} shop</Text>
             </Space>
           </Col>
         </Row>
@@ -1055,15 +794,11 @@ export default function ShopManagementPage() {
             columns={columns}
             dataSource={filteredData}
             rowKey="id"
-            pagination={{
-              ...pagination,
-              total: filteredData.length,
-            }}
+            pagination={pagination}
             onChange={handleTableChange}
             size="middle"
             rowClassName={(record) => {
               if (record.status === "blocked") return "blocked-row"
-              if (record.violationCount > 0) return "violation-row"
               return ""
             }}
           />
@@ -1086,14 +821,8 @@ export default function ShopManagementPage() {
         .blocked-row {
           background-color: #fff2f0 !important;
         }
-        .violation-row {
-          background-color: #fffbe6 !important;
-        }
         .blocked-row:hover {
           background-color: #ffebe6 !important;
-        }
-        .violation-row:hover {
-          background-color: #fff7db !important;
         }
       `}</style>
     </div>

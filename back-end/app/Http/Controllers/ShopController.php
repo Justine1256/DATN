@@ -278,9 +278,6 @@ public function update(Request $request)
     }
 public function showAllShops(Request $request)
 {
-    $perPage = $request->input('per_page', 10);
-    $page = $request->input('page', 1);
-
     $shops = DB::table('shops')
         ->leftJoin('users', 'shops.user_id', '=', 'users.id')
         ->select(
@@ -303,9 +300,9 @@ public function showAllShops(Request $request)
             DB::raw('(SELECT IFNULL(SUM(final_amount), 0) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalRevenue')
         )
         ->orderBy('shops.created_at', 'desc')
-        ->paginate($perPage, ['*'], 'page', $page);
+        ->get();
 
-    $shops->getCollection()->transform(function ($shop) {
+    $data = $shops->map(function ($shop) {
         return [
             'id' => 'SHOP' . str_pad($shop->shop_id, 4, '0', STR_PAD_LEFT),
             'name' => $shop->shop_name,
@@ -332,15 +329,10 @@ public function showAllShops(Request $request)
     return response()->json([
         'status' => true,
         'message' => 'Danh sách cửa hàng',
-        'data' => $shops->items(),
-        'pagination' => [
-            'current_page' => $shops->currentPage(),
-            'last_page' => $shops->lastPage(),
-            'per_page' => $shops->perPage(),
-            'total' => $shops->total(),
-        ]
+        'data' => $data
     ]);
 }
+
 
 }
 
