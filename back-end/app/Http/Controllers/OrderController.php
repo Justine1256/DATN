@@ -467,6 +467,7 @@ class OrderController extends Controller
                 ],
                 'final_amount' => $order->final_amount,
                 'payment_method' => $order->payment_method,
+                'payment_status' => $order->payment_status,
                 'order_status' => $order->order_status,
                 'order_admin_status' => $order->order_admin_status,
                 'shipping_status' => $order->shipping_status,
