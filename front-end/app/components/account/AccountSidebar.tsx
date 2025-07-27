@@ -276,7 +276,7 @@ export default function AccountSidebar({
                     getActiveClass('profile')
                   )}
                 >
-                  {/* <Settings className="w-4 h-4" />
+                  <Settings className="w-4 h-4" />
                   <span>Quản Lý Hồ Sơ</span>
                 </button>
                 <button
@@ -286,7 +286,7 @@ export default function AccountSidebar({
                     'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors',
                     getActiveClass('changepassword')
                   )}
-                > */}
+                >
                   <Lock className="w-4 h-4" />
                   <span>Đổi Mật Khẩu</span>
                 </button>

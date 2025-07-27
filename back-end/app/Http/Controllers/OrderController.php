@@ -458,6 +458,8 @@ class OrderController extends Controller
                 'buyer' => [
                     'id' => $order->user?->id,
                     'name' => $order->user?->name,
+                    'email' => $order->user?->email,
+                    'phone' => $order->user?->phone
                 ],
                 'shop' => [
                     'id' => $order->shop?->id,
@@ -465,20 +467,25 @@ class OrderController extends Controller
                 ],
                 'final_amount' => $order->final_amount,
                 'payment_method' => $order->payment_method,
+                'payment_status' => $order->payment_status,
                 'order_status' => $order->order_status,
-                'order_admin_status' => $order->order_admin_status, // ✅ thêm dòng này
+                'order_admin_status' => $order->order_admin_status,
                 'shipping_status' => $order->shipping_status,
                 'shipping_address' => $order->shipping_address,
                 'transaction_id' => $order->transaction_id,
-                'order_status' => $order->order_status,
                 'canceled_by' => $order->canceled_by,
                 'reconciliation_status' => $order->reconciliation_status,
                 'return_status' => $order->return_status,
-                'order_admin_status' => $order->order_admin_status,
                 'cancel_status' => $order->cancel_status,
                 'cancel_reason' => $order->cancel_reason,
                 'rejection_reason' => $order->rejection_reason,
                 'created_at' => $order->created_at,
+                'confirmed_at' => $order->confirmed_at,
+                'shipping_started_at' => $order->shipping_started_at,
+                'canceled_at' => $order->canceled_at,
+                'return_confirmed_at' => $order->return_confirmed_at,
+                'reconciled_at' => $order->reconciled_at,
+                'delivered_at' => $order->	delivered_at,
                 'total_products' => $order->orderDetails->sum('quantity'),
             ];
         });
