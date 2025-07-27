@@ -487,7 +487,7 @@ class OrderController extends Controller
                 'shipping_started_at' => $order->shipping_started_at,
                 'canceled_at' => $order->canceled_at,
                 'return_confirmed_at' => $order->return_confirmed_at,
-                'reconciliation_confirmed_at' => $order->reconciliation_confirmed_at,
+                'reconciled_at' => $order->	reconciled_at,
                 'total_products' => $order->orderDetails->sum('quantity'),
             ];
 
