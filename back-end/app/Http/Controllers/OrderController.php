@@ -427,6 +427,10 @@ class OrderController extends Controller
 
         $query = Order::with(['user', 'shop', 'orderDetails']);
 
+        if ($request->boolean('with_products')) {
+            $query->with(['orderDetails.product']);
+        }
+
         if ($user->role === 'seller') {
             // Lấy shop_id của seller
             $shop = \App\Models\Shop::where('user_id', $user->id)->first();
@@ -448,18 +452,17 @@ class OrderController extends Controller
         if ($request->filled('status')) {
             $query->where('order_admin_status', $request->input('status'));
         }
-
-
         $orders = $query->latest()->paginate(20);
 
-        $data = $orders->map(function ($order) {
-            return [
+        $data = $orders->map(function ($order) use ($request) {
+            $orderData = [
                 'id' => $order->id,
                 'buyer' => [
                     'id' => $order->user?->id,
                     'name' => $order->user?->name,
                     'email' => $order->user?->email,
-                    'phone' => $order->user?->phone
+                    'phone' => $order->user?->phone,
+                    'avatar' => $order->user?->avatar,
                 ],
                 'shop' => [
                     'id' => $order->shop?->id,
@@ -484,13 +487,37 @@ class OrderController extends Controller
                 'shipping_started_at' => $order->shipping_started_at,
                 'canceled_at' => $order->canceled_at,
                 'return_confirmed_at' => $order->return_confirmed_at,
-                'reconciled_at' => $order->reconciled_at,
-                'delivered_at' => $order->delivered_at,
+                'reconciliation_confirmed_at' => $order->reconciliation_confirmed_at,
                 'total_products' => $order->orderDetails->sum('quantity'),
             ];
+
+            // ✅ Nếu có with_products, thì thêm sản phẩm
+            if ($request->boolean('with_products')) {
+                $orderData['products'] = $order->orderDetails->map(function ($detail) {
+                    $firstImage = null;
+                    $images = $detail->product?->image;
+
+                    if (!is_array($images)) {
+                        $images = json_decode($images, true);
+                    }
+
+                    if (is_array($images) && count($images) > 0) {
+                        $firstImage = $images[0];
+                    }
+
+                    return [
+                        'id' => $detail->product->id ?? null,
+                        'name' => $detail->product->name ?? null,
+                        'price_at_time' => $detail->price_at_time,
+                        'quantity' => $detail->quantity,
+                        'subtotal' => $detail->subtotal,
+                        'image' => $firstImage,
+                    ];
+                });
+            }
+
+            return $orderData;
         });
-
-
         return response()->json([
             'orders' => $data,
             'pagination' => [
