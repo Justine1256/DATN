@@ -48,6 +48,11 @@ export default function CategoryPage() {
 
   const [currentPriceRangeValue, setCurrentPriceRangeValue] = useState<number>(50000000);
   const [filterPriceMax, setFilterPriceMax] = useState<number>(50000000);
+  const [startPrice, setStartPrice] = useState<number>(0);
+  const [endPrice, setEndPrice] = useState<number>(50000);
+  // Add string states for input fields
+  const [startPriceInput, setStartPriceInput] = useState<string>("0");
+  const [endPriceInput, setEndPriceInput] = useState<string>("5000");
 
   const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
   const [selectedPriceFilter, setSelectedPriceFilter] = useState<string | null>(null);
@@ -58,7 +63,7 @@ export default function CategoryPage() {
     fetch(`${API_BASE_URL}/category`)
       .then((res) => res.json())
       .then((data) => {
-        console.log("Danh mục categories:", data);
+        // console.log("Danh mục categories:", data);
         setCategories(data);
       })
       .catch(console.error);
@@ -93,9 +98,10 @@ export default function CategoryPage() {
         }
         setShopName(shopInfo);
 
-        items = items.filter((product: Product) =>
-          (product.price || 0) >= 0 && (product.price || 0) <= filterPriceMax
-        );
+        items = items.filter((product: Product) => {
+          const priceToFilter = product.sale_price != null ? product.sale_price : product.price || 0;
+          return priceToFilter >= startPrice && priceToFilter <= filterPriceMax;
+        });
 
         if (selectedPriceFilter === "asc") {
           items.sort((a: Product, b: Product) => (a.sale_price || 0) - (b.sale_price || 0));
@@ -123,15 +129,15 @@ export default function CategoryPage() {
           items = items.filter(product => product.shop?.slug === selectedShopSlug);
         }
 
-        console.log("Fetched total:", items.length);
+        // console.log("Fetched total:", items.length);
         setProducts(items);
         setCurrentPage(1);
-        console.log(selectedShopSlug);
-        
+        // console.log(selectedShopSlug);
+
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [slug, selectedSort, filterPriceMax, selectedPriceFilter, selectedOriginalPriceFilter, selectedShopSlug]);
+  }, [slug, selectedSort, filterPriceMax, startPrice, selectedPriceFilter, selectedOriginalPriceFilter, selectedShopSlug]);
 
   const totalPages = Math.ceil(products.length / itemsPerPage);
   const paginatedProducts = products.slice(
@@ -157,6 +163,13 @@ export default function CategoryPage() {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
   };
 
+
+  const formatInputValue = (value: number | string) => {
+    if (value === null || value === undefined) return "";
+    const num = typeof value === "string" ? Number(value.replace(/\D/g, "")) : value;
+    return num ? num.toLocaleString("vi-VN") : "";
+  };
+
   const handleApplyFilters = () => {
     setFilterPriceMax(currentPriceRangeValue);
   };
@@ -167,6 +180,21 @@ export default function CategoryPage() {
     setCurrentPriceRangeValue(50000000);
     setFilterPriceMax(50000000);
   };
+
+  const filterByPrice = (startPrice: string, endPrice: string) => {
+    // Parse input values to numbers
+    const start = Number(startPriceInput.replace(/\D/g, "")) * 1000;
+    const end = Number(endPriceInput.replace(/\D/g, "")) * 1000;
+    if (start >= 0 && end >= start) {
+      setStartPrice(start);
+      setEndPrice(end);
+      setFilterPriceMax(end);
+      setCurrentPriceRangeValue(end);
+      setError(null);
+    } else {
+      setError("Giá không hợp lệ");
+    }
+  }
 
   return (
     <div className="max-w-[1170px] mx-auto px-4 pt-6 pb-10 text-black">
@@ -229,8 +257,45 @@ export default function CategoryPage() {
               </div>
             </div>
 
-            {/* Sắp xếp */}
-
+            {/* Lọc theo giá */}
+            <div className="flex flex-col space-y-4">
+              <div className="flex gap-2">
+              <h4 className="font-semibold">Giá</h4>
+              <p>(Nghìn đồng)</p>
+              </div>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  name="startPrice"
+                  id="startPrice"
+                  placeholder="Từ"
+                  className="border w-full px-3 py-1 rounded"
+                  value={formatInputValue(startPriceInput)}
+                  onChange={e => {
+                    // Only update input state, not filter state
+                    const raw = e.target.value.replace(/\D/g, "");
+                    setStartPriceInput(raw);
+                  }} />
+                <input
+                  type="text"
+                  name="endPrice"
+                  id="endPrice"
+                  placeholder="Đến"
+                  className="border w-full px-3 py-1 rounded"
+                  value={formatInputValue(endPriceInput)}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/\D/g, "");
+                    setEndPriceInput(raw);
+                  }}
+                />
+              </div>
+              <button
+                className="border border-brand text-brand px-4 py-2 rounded"
+                onClick={() => filterByPrice(startPriceInput, endPriceInput)}
+              >
+                Áp Dụng
+              </button>
+            </div>
 
             {/* Sắp xếp giá */}
             <div className="flex flex-col space-y-4">
