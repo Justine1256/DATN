@@ -21,6 +21,7 @@ interface Product {
   sale_price?: number;
   shop_slug: string;
   shop?: {
+    name: string;
     slug: string;
   };
   createdAt?: number;
@@ -38,6 +39,7 @@ export default function CategoryPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [shopName, setShopName] = useState<Array<{ name: string; slug: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +51,8 @@ export default function CategoryPage() {
 
   const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
   const [selectedPriceFilter, setSelectedPriceFilter] = useState<string | null>(null);
+  const [selectedOriginalPriceFilter, setSelectedOriginalPriceFilter] = useState<string | null>(null);
+  const [selectedShopSlug, setSelectedShopSlug] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/category`)
@@ -75,15 +79,28 @@ export default function CategoryPage() {
       .then((data) => {
         let items: Product[] = slug ? data.products : data;
         if (!Array.isArray(items)) throw new Error("Data format invalid");
-        console.log("Danh sách sản phẩm lấy về với shop_slug:", items.map(p => p.shop_slug));
+
+        const shopInfoRaw = items
+          .map(item => item.shop)
+          .filter((shop): shop is { name: string; slug: string } => !!shop && typeof shop.name === "string" && typeof shop.slug === "string");
+        const shopInfo: { name: string; slug: string }[] = [];
+        const seenSlugs = new Set<string>();
+        for (const shop of shopInfoRaw) {
+          if (!seenSlugs.has(shop.slug)) {
+            shopInfo.push(shop);
+            seenSlugs.add(shop.slug);
+          }
+        }
+        setShopName(shopInfo);
+
         items = items.filter((product: Product) =>
           (product.price || 0) >= 0 && (product.price || 0) <= filterPriceMax
         );
 
         if (selectedPriceFilter === "asc") {
-          items.sort((a: Product, b: Product) => (a.price || 0) - (b.price || 0));
+          items.sort((a: Product, b: Product) => (a.sale_price || 0) - (b.sale_price || 0));
         } else if (selectedPriceFilter === "desc") {
-          items.sort((a: Product, b: Product) => (b.price || 0) - (a.price || 0));
+          items.sort((a: Product, b: Product) => (b.sale_price || 0) - (a.sale_price || 0));
         } else if (selectedPriceFilter === "discount") {
           items.sort((a: Product, b: Product) => (b.discount || 0) - (a.discount || 0));
         } else {
@@ -93,13 +110,28 @@ export default function CategoryPage() {
             // Logic for sorting by "Best Selling"
           }
         }
+
+        if (selectedOriginalPriceFilter === "asc") {
+          items.sort((a: Product, b: Product) => (a.price || 0) - (b.price || 0));
+        } else if (selectedOriginalPriceFilter === "desc") {
+          items.sort((a: Product, b: Product) => (b.price || 0) - (a.price || 0));
+        } else {
+          console.log("No original price filter applied");
+        }
+
+        if (selectedShopSlug) {
+          items = items.filter(product => product.shop?.slug === selectedShopSlug);
+        }
+
         console.log("Fetched total:", items.length);
         setProducts(items);
         setCurrentPage(1);
+        console.log(selectedShopSlug);
+        
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [slug, selectedSort, filterPriceMax, selectedPriceFilter]);
+  }, [slug, selectedSort, filterPriceMax, selectedPriceFilter, selectedOriginalPriceFilter, selectedShopSlug]);
 
   const totalPages = Math.ceil(products.length / itemsPerPage);
   const paginatedProducts = products.slice(
@@ -172,6 +204,31 @@ export default function CategoryPage() {
               </div>
             </div>
 
+            {/* Cửa hàng */}
+            <div className="flex flex-col space-y-4">
+              <h3 className="font-semibold">Cửa hàng</h3>
+
+              <div>
+                <button
+                  onClick={() => handleCategorySelect(null)}
+                  className={`w-full px-3 py-2 transition-colors text-left
+                  ${!selectedShopSlug ? "text-brand font-semibold" : "hover:text-brand"}`}
+                >
+                  Tất Cả
+                </button>
+                {shopName.map((shop) => (
+                  <button
+                    key={shop.slug}
+                    onClick={() => setSelectedShopSlug(shop.slug)}
+                    className={`w-full px-3 py-2 transition-colors text-left
+                    ${shop.slug === selectedShopSlug ? "text-brand font-semibold" : "hover:text-brand"}`}
+                  >
+                    {shop.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Sắp xếp */}
 
 
@@ -190,7 +247,7 @@ export default function CategoryPage() {
                       setSelectedSort("Phổ Biến");
                     }}
                   />
-                  <span>Giá: thấp đến cao</span>
+                  <span>Thấp đến cao</span>
                 </label>
                 <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
                   <input
@@ -203,7 +260,7 @@ export default function CategoryPage() {
                       setSelectedSort("Phổ Biến");
                     }}
                   />
-                  <span>Giá: cao đến thấp</span>
+                  <span>Cao đến thấp</span>
                 </label>
                 <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
                   <input
@@ -216,7 +273,40 @@ export default function CategoryPage() {
                       setSelectedSort("Phổ Biến");
                     }}
                   />
-                  <span>Giảm giá nhiều nhất</span>
+                  <span>Giảm nhiều nhất</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Sắp xếp giá chưa giảm*/}
+            <div className="flex flex-col space-y-4">
+              <h4 className="font-semibold">Giá chưa giảm</h4>
+              <div className="flex flex-col">
+                <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
+                  <input
+                    type="radio"
+                    name="originalPriceFilterOptions"
+                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
+                    checked={selectedOriginalPriceFilter === "asc"}
+                    onChange={() => {
+                      setSelectedOriginalPriceFilter("asc");
+                      setSelectedSort("Phổ Biến");
+                    }}
+                  />
+                  <span>Thấp đến cao</span>
+                </label>
+                <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
+                  <input
+                    type="radio"
+                    name="originalPriceFilterOptions"
+                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
+                    checked={selectedOriginalPriceFilter === "desc"}
+                    onChange={() => {
+                      setSelectedOriginalPriceFilter("desc");
+                      setSelectedSort("Phổ Biến");
+                    }}
+                  />
+                  <span>Cao đến thấp</span>
                 </label>
               </div>
             </div>
@@ -224,6 +314,7 @@ export default function CategoryPage() {
         </div>
 
         <div className="flex-1">
+
           {error ? (
             <p className="text-red-500">{error}</p>
           ) : products.length === 0 && !loading ? (
