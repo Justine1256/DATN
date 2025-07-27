@@ -1,6 +1,4 @@
 "use client"
-
-import type React from "react"
 import { useState, useMemo, useEffect } from "react"
 import {
   Table,
@@ -25,6 +23,7 @@ import {
   Descriptions,
   Steps,
   Timeline,
+  Tabs,
 } from "antd"
 import {
   SearchOutlined,
@@ -106,123 +105,471 @@ interface OrderData {
   shopId: string
 }
 
-// Mock data generator
-const generateMockOrders = (): OrderData[] => {
-  const statuses: OrderData["status"][] = [
-    "pending",
-    "confirmed",
-    "processing",
-    "shipping",
-    "delivered",
-    "cancelled",
-    "returned",
-  ]
-  const paymentStatuses: OrderData["paymentStatus"][] = ["pending", "paid", "failed", "refunded"]
-  const paymentMethods: OrderData["paymentMethod"][] = ["cod", "bank_transfer", "e_wallet", "credit_card"]
-
-  const customers = [
-    { id: "CUST001", name: "Nguyễn Văn An", phone: "0901234567", email: "an.nguyen@email.com" },
-    { id: "CUST002", name: "Trần Thị Bình", phone: "0912345678", email: "binh.tran@email.com" },
-    { id: "CUST003", name: "Lê Văn Cường", phone: "0923456789", email: "cuong.le@email.com" },
-    { id: "CUST004", name: "Phạm Thị Dung", phone: "0934567890", email: "dung.pham@email.com" },
-    { id: "CUST005", name: "Hoàng Văn Em", phone: "0945678901", email: "em.hoang@email.com" },
-  ]
-
-  const products = [
-    { name: "iPhone 15 Pro Max", price: 29990000, image: "/placeholder.svg?height=60&width=60&text=iPhone" },
-    { name: "Samsung Galaxy S24", price: 22990000, image: "/placeholder.svg?height=60&width=60&text=Samsung" },
-    { name: "MacBook Air M3", price: 34990000, image: "/placeholder.svg?height=60&width=60&text=MacBook" },
-    { name: "iPad Pro 12.9", price: 26990000, image: "/placeholder.svg?height=60&width=60&text=iPad" },
-    { name: "AirPods Pro", price: 6990000, image: "/placeholder.svg?height=60&width=60&text=AirPods" },
-    { name: "Apple Watch Series 9", price: 9990000, image: "/placeholder.svg?height=60&width=60&text=Watch" },
-  ]
-
-  const shops = ["TechStore Hà Nội", "Mobile World", "FPT Shop", "CellphoneS", "Thế Giới Di Động", "Viettel Store"]
-
-  const provinces = ["Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ"]
-
-  return Array.from({ length: 150 }, (_, index) => {
-    const customer = customers[Math.floor(Math.random() * customers.length)]
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    const paymentStatus = paymentStatuses[Math.floor(Math.random() * paymentStatuses.length)]
-    const paymentMethod = paymentMethods[Math.floor(Math.random() * paymentMethods.length)]
-    const orderDate = dayjs().subtract(Math.floor(Math.random() * 30), "day")
-
-    // Generate order items
-    const itemCount = Math.floor(Math.random() * 3) + 1
-    const items: OrderItem[] = Array.from({ length: itemCount }, (_, itemIndex) => {
-      const product = products[Math.floor(Math.random() * products.length)]
-      const quantity = Math.floor(Math.random() * 3) + 1
-      const total = product.price * quantity
-
-      return {
-        id: `ITEM${String(index + 1).padStart(3, "0")}_${itemIndex + 1}`,
-        productName: product.name,
-        productImage: product.image,
-        quantity,
-        price: product.price,
-        total,
-        variant: Math.random() > 0.5 ? "256GB - Xanh" : undefined,
-      }
-    })
-
-    const subtotal = items.reduce((sum, item) => sum + item.total, 0)
-    const shippingFee = Math.floor(Math.random() * 50000) + 20000
-    const discount = Math.random() > 0.7 ? Math.floor(subtotal * 0.1) : 0
-    const total = subtotal + shippingFee - discount
-
-    const province = provinces[Math.floor(Math.random() * provinces.length)]
-
-    return {
-      id: `ORDER${String(index + 1).padStart(3, "0")}`,
-      orderNumber: `ORD${String(index + 1).padStart(6, "0")}`,
-      customer,
-      items,
-      status,
-      paymentStatus,
-      paymentMethod,
-      shippingAddress: {
-        fullName: customer.name,
-        phone: customer.phone,
-        address: `${Math.floor(Math.random() * 999) + 1} Đường ${Math.floor(Math.random() * 50) + 1}`,
-        ward: `Phường ${Math.floor(Math.random() * 20) + 1}`,
-        district: `Quận ${Math.floor(Math.random() * 12) + 1}`,
-        province,
+// Static mock data
+const mockOrders: OrderData[] = [
+  {
+    id: "ORDER001",
+    orderNumber: "ORD000001",
+    customer: {
+      id: "CUST001",
+      name: "Nguyễn Văn An",
+      phone: "0901234567",
+      email: "an.nguyen@email.com",
+    },
+    items: [
+      {
+        id: "ITEM001_1",
+        productName: "iPhone 15 Pro Max",
+        productImage: "/placeholder.svg?height=60&width=60&text=iPhone",
+        quantity: 1,
+        price: 29990000,
+        total: 29990000,
+        variant: "256GB - Titan Tự Nhiên",
       },
-      shippingFee,
-      discount,
-      subtotal,
-      total,
-      orderDate: orderDate.toISOString(),
-      confirmedDate: status !== "pending" ? orderDate.add(1, "hour").toISOString() : undefined,
-      shippedDate: ["shipping", "delivered"].includes(status) ? orderDate.add(1, "day").toISOString() : undefined,
-      deliveredDate: status === "delivered" ? orderDate.add(3, "day").toISOString() : undefined,
-      notes: Math.random() > 0.7 ? "Giao hàng ngoài giờ hành chính" : undefined,
-      shopName: shops[Math.floor(Math.random() * shops.length)],
-      shopId: `SHOP${String(Math.floor(Math.random() * 100) + 1).padStart(3, "0")}`,
-    }
-  })
-}
+    ],
+    status: "delivered",
+    paymentStatus: "paid",
+    paymentMethod: "bank_transfer",
+    shippingAddress: {
+      fullName: "Nguyễn Văn An",
+      phone: "0901234567",
+      address: "123 Đường Láng",
+      ward: "Phường Láng Thượng",
+      district: "Quận Đống Đa",
+      province: "Hà Nội",
+    },
+    shippingFee: 30000,
+    discount: 0,
+    subtotal: 29990000,
+    total: 30020000,
+    orderDate: "2024-01-15T10:30:00Z",
+    confirmedDate: "2024-01-15T11:00:00Z",
+    shippedDate: "2024-01-16T09:00:00Z",
+    deliveredDate: "2024-01-18T14:30:00Z",
+    shopName: "TechStore Hà Nội",
+    shopId: "SHOP001",
+  },
+  {
+    id: "ORDER002",
+    orderNumber: "ORD000002",
+    customer: {
+      id: "CUST002",
+      name: "Trần Thị Bình",
+      phone: "0912345678",
+      email: "binh.tran@email.com",
+    },
+    items: [
+      {
+        id: "ITEM002_1",
+        productName: "Samsung Galaxy S24",
+        productImage: "/placeholder.svg?height=60&width=60&text=Samsung",
+        quantity: 1,
+        price: 22990000,
+        total: 22990000,
+      },
+      {
+        id: "ITEM002_2",
+        productName: "AirPods Pro",
+        productImage: "/placeholder.svg?height=60&width=60&text=AirPods",
+        quantity: 1,
+        price: 6990000,
+        total: 6990000,
+      },
+    ],
+    status: "shipping",
+    paymentStatus: "paid",
+    paymentMethod: "e_wallet",
+    shippingAddress: {
+      fullName: "Trần Thị Bình",
+      phone: "0912345678",
+      address: "456 Nguyễn Trãi",
+      ward: "Phường Thanh Xuân Trung",
+      district: "Quận Thanh Xuân",
+      province: "Hà Nội",
+    },
+    shippingFee: 25000,
+    discount: 2998000,
+    subtotal: 29980000,
+    total: 27007000,
+    orderDate: "2024-01-20T14:15:00Z",
+    confirmedDate: "2024-01-20T15:00:00Z",
+    shippedDate: "2024-01-21T08:30:00Z",
+    notes: "Giao hàng ngoài giờ hành chính",
+    shopName: "Mobile World",
+    shopId: "SHOP002",
+  },
+  {
+    id: "ORDER003",
+    orderNumber: "ORD000003",
+    customer: {
+      id: "CUST003",
+      name: "Lê Văn Cường",
+      phone: "0923456789",
+      email: "cuong.le@email.com",
+    },
+    items: [
+      {
+        id: "ITEM003_1",
+        productName: "MacBook Air M3",
+        productImage: "/placeholder.svg?height=60&width=60&text=MacBook",
+        quantity: 1,
+        price: 34990000,
+        total: 34990000,
+        variant: "13 inch - 8GB RAM - 256GB SSD",
+      },
+    ],
+    status: "processing",
+    paymentStatus: "paid",
+    paymentMethod: "credit_card",
+    shippingAddress: {
+      fullName: "Lê Văn Cường",
+      phone: "0923456789",
+      address: "789 Cầu Giấy",
+      ward: "Phường Dịch Vọng",
+      district: "Quận Cầu Giấy",
+      province: "Hà Nội",
+    },
+    shippingFee: 0,
+    discount: 3499000,
+    subtotal: 34990000,
+    total: 31491000,
+    orderDate: "2024-01-22T09:45:00Z",
+    confirmedDate: "2024-01-22T10:30:00Z",
+    shopName: "FPT Shop",
+    shopId: "SHOP003",
+  },
+  {
+    id: "ORDER004",
+    orderNumber: "ORD000004",
+    customer: {
+      id: "CUST004",
+      name: "Phạm Thị Dung",
+      phone: "0934567890",
+      email: "dung.pham@email.com",
+    },
+    items: [
+      {
+        id: "ITEM004_1",
+        productName: "iPad Pro 12.9",
+        productImage: "/placeholder.svg?height=60&width=60&text=iPad",
+        quantity: 1,
+        price: 26990000,
+        total: 26990000,
+        variant: "Wi-Fi - 128GB - Xám",
+      },
+      {
+        id: "ITEM004_2",
+        productName: "Apple Watch Series 9",
+        productImage: "/placeholder.svg?height=60&width=60&text=Watch",
+        quantity: 1,
+        price: 9990000,
+        total: 9990000,
+        variant: "41mm - GPS - Dây Sport",
+      },
+    ],
+    status: "pending",
+    paymentStatus: "pending",
+    paymentMethod: "cod",
+    shippingAddress: {
+      fullName: "Phạm Thị Dung",
+      phone: "0934567890",
+      address: "321 Hoàng Quốc Việt",
+      ward: "Phường Nghĩa Đô",
+      district: "Quận Cầu Giấy",
+      province: "Hà Nội",
+    },
+    shippingFee: 35000,
+    discount: 0,
+    subtotal: 36980000,
+    total: 37015000,
+    orderDate: "2024-01-25T16:20:00Z",
+    shopName: "CellphoneS",
+    shopId: "SHOP004",
+  },
+  {
+    id: "ORDER005",
+    orderNumber: "ORD000005",
+    customer: {
+      id: "CUST005",
+      name: "Hoàng Văn Em",
+      phone: "0945678901",
+      email: "em.hoang@email.com",
+    },
+    items: [
+      {
+        id: "ITEM005_1",
+        productName: "Samsung Galaxy S24",
+        productImage: "/placeholder.svg?height=60&width=60&text=Samsung",
+        quantity: 2,
+        price: 22990000,
+        total: 45980000,
+      },
+    ],
+    status: "confirmed",
+    paymentStatus: "paid",
+    paymentMethod: "bank_transfer",
+    shippingAddress: {
+      fullName: "Hoàng Văn Em",
+      phone: "0945678901",
+      address: "654 Lê Văn Lương",
+      ward: "Phường Nhân Chính",
+      district: "Quận Thanh Xuân",
+      province: "Hà Nội",
+    },
+    shippingFee: 40000,
+    discount: 4598000,
+    subtotal: 45980000,
+    total: 41422000,
+    orderDate: "2024-01-24T11:10:00Z",
+    confirmedDate: "2024-01-24T12:00:00Z",
+    shopName: "Thế Giới Di Động",
+    shopId: "SHOP005",
+  },
+  {
+    id: "ORDER006",
+    orderNumber: "ORD000006",
+    customer: {
+      id: "CUST001",
+      name: "Nguyễn Văn An",
+      phone: "0901234567",
+      email: "an.nguyen@email.com",
+    },
+    items: [
+      {
+        id: "ITEM006_1",
+        productName: "AirPods Pro",
+        productImage: "/placeholder.svg?height=60&width=60&text=AirPods",
+        quantity: 1,
+        price: 6990000,
+        total: 6990000,
+      },
+    ],
+    status: "cancelled",
+    paymentStatus: "refunded",
+    paymentMethod: "e_wallet",
+    shippingAddress: {
+      fullName: "Nguyễn Văn An",
+      phone: "0901234567",
+      address: "123 Đường Láng",
+      ward: "Phường Láng Thượng",
+      district: "Quận Đống Đa",
+      province: "Hà Nội",
+    },
+    shippingFee: 25000,
+    discount: 0,
+    subtotal: 6990000,
+    total: 7015000,
+    orderDate: "2024-01-23T13:45:00Z",
+    confirmedDate: "2024-01-23T14:00:00Z",
+    notes: "Khách hàng yêu cầu hủy đơn",
+    shopName: "Viettel Store",
+    shopId: "SHOP006",
+  },
+  {
+    id: "ORDER007",
+    orderNumber: "ORD000007",
+    customer: {
+      id: "CUST002",
+      name: "Trần Thị Bình",
+      phone: "0912345678",
+      email: "binh.tran@email.com",
+    },
+    items: [
+      {
+        id: "ITEM007_1",
+        productName: "iPhone 15 Pro Max",
+        productImage: "/placeholder.svg?height=60&width=60&text=iPhone",
+        quantity: 1,
+        price: 29990000,
+        total: 29990000,
+        variant: "512GB - Titan Xanh",
+      },
+      {
+        id: "ITEM007_2",
+        productName: "Apple Watch Series 9",
+        productImage: "/placeholder.svg?height=60&width=60&text=Watch",
+        quantity: 1,
+        price: 9990000,
+        total: 9990000,
+        variant: "45mm - GPS + Cellular",
+      },
+    ],
+    status: "returned",
+    paymentStatus: "refunded",
+    paymentMethod: "credit_card",
+    shippingAddress: {
+      fullName: "Trần Thị Bình",
+      phone: "0912345678",
+      address: "456 Nguyễn Trãi",
+      ward: "Phường Thanh Xuân Trung",
+      district: "Quận Thanh Xuân",
+      province: "Hà Nội",
+    },
+    shippingFee: 30000,
+    discount: 3999000,
+    subtotal: 39980000,
+    total: 36011000,
+    orderDate: "2024-01-18T08:30:00Z",
+    confirmedDate: "2024-01-18T09:15:00Z",
+    shippedDate: "2024-01-19T10:00:00Z",
+    deliveredDate: "2024-01-21T15:30:00Z",
+    notes: "Sản phẩm bị lỗi, khách hàng trả lại",
+    shopName: "TechStore Hà Nội",
+    shopId: "SHOP001",
+  },
+  {
+    id: "ORDER008",
+    orderNumber: "ORD000008",
+    customer: {
+      id: "CUST003",
+      name: "Lê Văn Cường",
+      phone: "0923456789",
+      email: "cuong.le@email.com",
+    },
+    items: [
+      {
+        id: "ITEM008_1",
+        productName: "MacBook Air M3",
+        productImage: "/placeholder.svg?height=60&width=60&text=MacBook",
+        quantity: 1,
+        price: 34990000,
+        total: 34990000,
+        variant: "15 inch - 16GB RAM - 512GB SSD",
+      },
+    ],
+    status: "delivered",
+    paymentStatus: "paid",
+    paymentMethod: "bank_transfer",
+    shippingAddress: {
+      fullName: "Lê Văn Cường",
+      phone: "0923456789",
+      address: "789 Cầu Giấy",
+      ward: "Phường Dịch Vọng",
+      district: "Quận Cầu Giấy",
+      province: "Hà Nội",
+    },
+    shippingFee: 0,
+    discount: 0,
+    subtotal: 34990000,
+    total: 34990000,
+    orderDate: "2024-01-16T12:00:00Z",
+    confirmedDate: "2024-01-16T13:30:00Z",
+    shippedDate: "2024-01-17T09:00:00Z",
+    deliveredDate: "2024-01-19T16:45:00Z",
+    shopName: "FPT Shop",
+    shopId: "SHOP003",
+  },
+  {
+    id: "ORDER009",
+    orderNumber: "ORD000009",
+    customer: {
+      id: "CUST004",
+      name: "Phạm Thị Dung",
+      phone: "0934567890",
+      email: "dung.pham@email.com",
+    },
+    items: [
+      {
+        id: "ITEM009_1",
+        productName: "Samsung Galaxy S24",
+        productImage: "/placeholder.svg?height=60&width=60&text=Samsung",
+        quantity: 1,
+        price: 22990000,
+        total: 22990000,
+        variant: "256GB - Tím",
+      },
+    ],
+    status: "processing",
+    paymentStatus: "failed",
+    paymentMethod: "credit_card",
+    shippingAddress: {
+      fullName: "Phạm Thị Dung",
+      phone: "0934567890",
+      address: "321 Hoàng Quốc Việt",
+      ward: "Phường Nghĩa Đô",
+      district: "Quận Cầu Giấy",
+      province: "Hà Nội",
+    },
+    shippingFee: 25000,
+    discount: 2299000,
+    subtotal: 22990000,
+    total: 20716000,
+    orderDate: "2024-01-21T15:20:00Z",
+    confirmedDate: "2024-01-21T16:00:00Z",
+    notes: "Thanh toán thất bại, cần liên hệ khách hàng",
+    shopName: "Mobile World",
+    shopId: "SHOP002",
+  },
+  {
+    id: "ORDER010",
+    orderNumber: "ORD000010",
+    customer: {
+      id: "CUST005",
+      name: "Hoàng Văn Em",
+      phone: "0945678901",
+      email: "em.hoang@email.com",
+    },
+    items: [
+      {
+        id: "ITEM010_1",
+        productName: "iPad Pro 12.9",
+        productImage: "/placeholder.svg?height=60&width=60&text=iPad",
+        quantity: 1,
+        price: 26990000,
+        total: 26990000,
+        variant: "Wi-Fi + Cellular - 256GB",
+      },
+      {
+        id: "ITEM010_2",
+        productName: "AirPods Pro",
+        productImage: "/placeholder.svg?height=60&width=60&text=AirPods",
+        quantity: 2,
+        price: 6990000,
+        total: 13980000,
+      },
+    ],
+    status: "shipping",
+    paymentStatus: "paid",
+    paymentMethod: "cod",
+    shippingAddress: {
+      fullName: "Hoàng Văn Em",
+      phone: "0945678901",
+      address: "654 Lê Văn Lương",
+      ward: "Phường Nhân Chính",
+      district: "Quận Thanh Xuân",
+      province: "Hà Nội",
+    },
+    shippingFee: 35000,
+    discount: 4097000,
+    subtotal: 40970000,
+    total: 36908000,
+    orderDate: "2024-01-19T10:15:00Z",
+    confirmedDate: "2024-01-19T11:00:00Z",
+    shippedDate: "2024-01-20T14:30:00Z",
+    shopName: "CellphoneS",
+    shopId: "SHOP004",
+  },
+]
 
 export default function OrderManagementPage() {
   const [allOrders, setAllOrders] = useState<OrderData[]>([])
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all")
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all")
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<string>("all")
 
-  // Initialize mock data
+  // Initialize static data
   useEffect(() => {
     setLoading(true)
     setTimeout(() => {
-      setAllOrders(generateMockOrders())
+      setAllOrders(mockOrders)
       setLoading(false)
-    }, 1000)
+    }, 500)
   }, [])
 
   // Filter data
@@ -235,7 +582,7 @@ export default function OrderManagementPage() {
         order.customer.phone.includes(searchText) ||
         order.id.includes(searchText)
 
-      const matchesStatus = statusFilter === "all" || order.status === statusFilter
+      const matchesStatus = activeTab === "all" || order.status === activeTab
       const matchesPaymentStatus = paymentStatusFilter === "all" || order.paymentStatus === paymentStatusFilter
       const matchesPaymentMethod = paymentMethodFilter === "all" || order.paymentMethod === paymentMethodFilter
 
@@ -248,11 +595,11 @@ export default function OrderManagementPage() {
 
       return matchesSearch && matchesStatus && matchesPaymentStatus && matchesPaymentMethod && matchesDateRange
     })
-  }, [allOrders, searchText, statusFilter, paymentStatusFilter, paymentMethodFilter, dateRange])
+  }, [allOrders, searchText, activeTab, paymentStatusFilter, paymentMethodFilter, dateRange])
 
   const handleReset = () => {
     setSearchText("")
-    setStatusFilter("all")
+    setActiveTab("all")
     setPaymentStatusFilter("all")
     setPaymentMethodFilter("all")
     setDateRange(null)
@@ -387,40 +734,6 @@ export default function OrderManagementPage() {
       type: "divider",
     },
     {
-      key: "confirm",
-      label: "Xác nhận đơn hàng",
-      disabled: record.status !== "pending",
-      onClick: () => handleUpdateOrderStatus(record.id, "confirmed"),
-    },
-    {
-      key: "process",
-      label: "Bắt đầu xử lý",
-      disabled: record.status !== "confirmed",
-      onClick: () => handleUpdateOrderStatus(record.id, "processing"),
-    },
-    {
-      key: "ship",
-      label: "Giao hàng",
-      disabled: record.status !== "processing",
-      onClick: () => handleUpdateOrderStatus(record.id, "shipping"),
-    },
-    {
-      key: "deliver",
-      label: "Hoàn thành",
-      disabled: record.status !== "shipping",
-      onClick: () => handleUpdateOrderStatus(record.id, "delivered"),
-    },
-    {
-      type: "divider",
-    },
-    {
-      key: "cancel",
-      label: "Hủy đơn hàng",
-      danger: true,
-      disabled: ["delivered", "cancelled", "returned"].includes(record.status),
-      onClick: () => handleUpdateOrderStatus(record.id, "cancelled"),
-    },
-    {
       key: "delete",
       icon: <DeleteOutlined />,
       label: "Xóa đơn hàng",
@@ -433,7 +746,7 @@ export default function OrderManagementPage() {
     {
       title: "Đơn hàng",
       key: "order",
-      width: 200,
+      width: 160,
       render: (_, record) => (
         <div>
           <div style={{ fontWeight: 500, marginBottom: 4 }}>
@@ -450,7 +763,7 @@ export default function OrderManagementPage() {
     {
       title: "Khách hàng",
       key: "customer",
-      width: 180,
+      width: 140,
       render: (_, record) => (
         <div>
           <div style={{ fontWeight: 500, marginBottom: 4 }}>
@@ -467,7 +780,7 @@ export default function OrderManagementPage() {
     {
       title: "Sản phẩm",
       key: "items",
-      width: 200,
+      width: 160,
       render: (_, record) => (
         <div>
           <div style={{ marginBottom: 4 }}>
@@ -486,62 +799,97 @@ export default function OrderManagementPage() {
     {
       title: "Trạng thái xử lý",
       key: "orderStatus",
-      width: 120,
-      render: (_, record) => <Tag color={getStatusColor(record.status)}>{getStatusText(record.status)}</Tag>,
-      filters: [
-        { text: "Chờ xác nhận", value: "pending" },
-        { text: "Đã xác nhận", value: "confirmed" },
-        { text: "Đang xử lý", value: "processing" },
-        { text: "Đang giao", value: "shipping" },
-        { text: "Đã giao", value: "delivered" },
-        { text: "Đã hủy", value: "cancelled" },
-        { text: "Đã trả", value: "returned" },
-      ],
-      onFilter: (value: boolean | React.Key, record: OrderData) => {
-        return record.status === String(value)
-      },
+      width: 100,
+      render: (_, record) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: "pending",
+                label: "Chờ xác nhận",
+                disabled: record.status === "pending",
+                onClick: () => handleUpdateOrderStatus(record.id, "pending"),
+              },
+              {
+                key: "confirmed",
+                label: "Đã xác nhận",
+                disabled: record.status === "confirmed",
+                onClick: () => handleUpdateOrderStatus(record.id, "confirmed"),
+              },
+              {
+                key: "processing",
+                label: "Đang xử lý",
+                disabled: record.status === "processing",
+                onClick: () => handleUpdateOrderStatus(record.id, "processing"),
+              },
+              {
+                key: "shipping",
+                label: "Đang giao",
+                disabled: record.status === "shipping",
+                onClick: () => handleUpdateOrderStatus(record.id, "shipping"),
+              },
+              {
+                key: "delivered",
+                label: "Đã giao",
+                disabled: record.status === "delivered",
+                onClick: () => handleUpdateOrderStatus(record.id, "delivered"),
+              },
+              {
+                key: "cancelled",
+                label: "Đã hủy",
+                disabled: record.status === "cancelled",
+                onClick: () => handleUpdateOrderStatus(record.id, "cancelled"),
+              },
+              {
+                key: "returned",
+                label: "Đã trả",
+                disabled: record.status === "returned",
+                onClick: () => handleUpdateOrderStatus(record.id, "returned"),
+              },
+            ],
+          }}
+          trigger={["click"]}
+        >
+          <Tag color={getStatusColor(record.status)} style={{ cursor: "pointer" }}>
+            {getStatusText(record.status)}
+          </Tag>
+        </Dropdown>
+      ),
     },
     {
       title: "Thanh toán",
       key: "paymentStatus",
-      width: 120,
+      width: 100,
       render: (_, record) => (
         <Tag color={getPaymentStatusColor(record.paymentStatus)}>{getPaymentStatusText(record.paymentStatus)}</Tag>
       ),
-      filters: [
-        { text: "Chờ thanh toán", value: "pending" },
-        { text: "Đã thanh toán", value: "paid" },
-        { text: "Thất bại", value: "failed" },
-        { text: "Đã hoàn tiền", value: "refunded" },
-      ],
-      onFilter: (value: boolean | React.Key, record: OrderData) => {
-        return record.paymentStatus === String(value)
-      },
     },
     {
       title: "Tổng tiền",
       key: "total",
-      width: 120,
-      render: (_, record) => (
-        <div>
-          <div style={{ fontWeight: "bold", color: "#f5222d" }}>
-            <Tooltip title={`${record.total.toLocaleString("vi-VN")} ₫`}>
-              {record.total > 1000000000
-                ? `${(record.total / 1000000000).toFixed(1)}B ₫`
-                : record.total > 1000000
-                  ? `${(record.total / 1000000).toFixed(1)}M ₫`
-                  : `${(record.total / 1000).toFixed(0)}K ₫`}
-            </Tooltip>
+      width: 100,
+      render: (_, record) => {
+        return (
+          <div>
+            <div style={{ fontWeight: "bold", color: "#f5222d" }}>
+              <Tooltip title={`${record.total.toLocaleString("vi-VN")} ₫`}>
+                {record.total > 1000000000
+                  ? `${(record.total / 1000000000).toFixed(1)}B ₫`
+                  : record.total > 1000000
+                    ? `${(record.total / 1000000).toFixed(1)}M ₫`
+                    : `${(record.total / 1000).toFixed(0)}K ₫`}
+              </Tooltip>
+            </div>
+            <div style={{ fontSize: "11px", color: "#666" }}>{getPaymentMethodText(record.paymentMethod)}</div>
           </div>
-          <div style={{ fontSize: "11px", color: "#666" }}>{getPaymentMethodText(record.paymentMethod)}</div>
-        </div>
-      ),
+        )
+      },
       sorter: (a: OrderData, b: OrderData) => a.total - b.total,
     },
     {
       title: "Địa chỉ",
       key: "address",
-      width: 150,
+      width: 120,
       render: (_, record) => (
         <div>
           <div style={{ fontSize: "12px", fontWeight: 500, marginBottom: 2 }}>{record.shippingAddress.fullName}</div>
@@ -559,7 +907,7 @@ export default function OrderManagementPage() {
     {
       title: "Thao tác",
       key: "action",
-      width: 80,
+      width: 60,
       render: (_, record: OrderData) => (
         <Dropdown menu={{ items: getActionItems(record) }} trigger={["click"]} placement="bottomRight">
           <Button type="text" icon={<MoreOutlined />} loading={actionLoading === record.id} />
@@ -581,9 +929,9 @@ export default function OrderManagementPage() {
   const handleRefresh = () => {
     setLoading(true)
     setTimeout(() => {
-      setAllOrders(generateMockOrders())
+      setAllOrders(mockOrders)
       setLoading(false)
-    }, 1000)
+    }, 500)
   }
 
   // Statistics
@@ -601,12 +949,7 @@ export default function OrderManagementPage() {
   }, [filteredData])
 
   return (
-    <div style={{ padding: "24px" }}>
-      <div style={{ marginBottom: 24 }}>
-        <Title level={2}>Quản lý đơn hàng</Title>
-        <Text type="secondary">Quản lý và theo dõi tất cả đơn hàng trong hệ thống</Text>
-      </div>
-
+    <div style={{ padding: "2px" }}>
       {/* Statistics Overview */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={4}>
@@ -665,10 +1008,10 @@ export default function OrderManagementPage() {
               title="Doanh thu"
               value={
                 stats.totalRevenue > 1000000000
-                  ? (stats.totalRevenue / 1000000000).toFixed(1) + "B"
+                  ? `${(stats.totalRevenue / 1000000000).toFixed(1)}B`
                   : stats.totalRevenue > 1000000
-                    ? (stats.totalRevenue / 1000000).toFixed(1) + "M"
-                    : (stats.totalRevenue / 1000).toFixed(0) + "K"
+                    ? `${(stats.totalRevenue / 1000000).toFixed(1)}M`
+                    : `${(stats.totalRevenue / 1000).toFixed(0)}K`
               }
               prefix={<DollarOutlined />}
               suffix="₫"
@@ -679,9 +1022,9 @@ export default function OrderManagementPage() {
       </Row>
 
       {/* Filters */}
-      <Card style={{ marginBottom: 24 }}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={6} md={4}>
+      <Card style={{ marginBottom: 0 }}>
+        <Row gutter={[8, 8]} align="middle">
+          <Col xs={24} sm={12} md={6} lg={4}>
             <Input
               placeholder="Tìm kiếm đơn hàng..."
               prefix={<SearchOutlined />}
@@ -690,24 +1033,7 @@ export default function OrderManagementPage() {
               allowClear
             />
           </Col>
-          <Col xs={24} sm={6} md={4}>
-            <Select
-              placeholder="Trạng thái đơn hàng"
-              value={statusFilter}
-              onChange={setStatusFilter}
-              style={{ width: "100%" }}
-            >
-              <Option value="all">Tất cả trạng thái</Option>
-              <Option value="pending">Chờ xác nhận</Option>
-              <Option value="confirmed">Đã xác nhận</Option>
-              <Option value="processing">Đang xử lý</Option>
-              <Option value="shipping">Đang giao</Option>
-              <Option value="delivered">Đã giao</Option>
-              <Option value="cancelled">Đã hủy</Option>
-              <Option value="returned">Đã trả</Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={6} md={4}>
+          <Col xs={24} sm={12} md={6} lg={4}>
             <Select
               placeholder="Trạng thái thanh toán"
               value={paymentStatusFilter}
@@ -721,7 +1047,7 @@ export default function OrderManagementPage() {
               <Option value="refunded">Đã hoàn tiền</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={6} md={4}>
+          <Col xs={24} sm={12} md={6} lg={4}>
             <Select
               placeholder="Phương thức thanh toán"
               value={paymentMethodFilter}
@@ -735,7 +1061,7 @@ export default function OrderManagementPage() {
               <Option value="credit_card">Thẻ tín dụng</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={12} md={6} lg={4}>
             <RangePicker
               value={dateRange}
               onChange={setDateRange}
@@ -744,14 +1070,21 @@ export default function OrderManagementPage() {
               style={{ width: "100%" }}
             />
           </Col>
-          <Col xs={24} sm={12} md={2}>
-            <Space>
+          <Col xs={24} sm={24} md={12} lg={8}>
+            <Space wrap>
               <Button icon={<FilterOutlined />} onClick={handleReset}>
                 Đặt lại
               </Button>
-              <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
-                Làm mới
-              </Button>
+<Button
+  type="primary"
+  icon={<ReloadOutlined />}
+  onClick={handleRefresh}
+  loading={loading}
+  style={{ backgroundColor: '#ff4d4f', borderColor: '#ff4d4f' }}
+>
+  Làm mới
+</Button>
+              <Button icon={<PrinterOutlined />}>In đơn hàng</Button>
             </Space>
           </Col>
         </Row>
@@ -780,10 +1113,92 @@ export default function OrderManagementPage() {
             </Text>
           </Col>
         </Row>
+
+        {/* Status Tabs - Di chuyển xuống đây */}
+        <div style={{ marginTop: 16, borderTop: "1px solid #f0f0f0", paddingTop: 16 }}>
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            tabBarStyle={{ marginBottom: 0 }}
+            items={[
+              {
+                key: "all",
+                label: (
+                  <span>
+                    <span style={{ color: "#666" }}>⚪</span> Tất cả ({allOrders.length})
+                  </span>
+                ),
+              },
+              {
+                key: "pending",
+                label: (
+                  <span>
+                    <span style={{ color: "#faad14" }}>🟡</span> Chờ xác nhận (
+                    {allOrders.filter((o) => o.status === "pending").length})
+                  </span>
+                ),
+              },
+              {
+                key: "confirmed",
+                label: (
+                  <span>
+                    <span style={{ color: "#1890ff" }}>🔵</span> Đã xác nhận (
+                    {allOrders.filter((o) => o.status === "confirmed").length})
+                  </span>
+                ),
+              },
+              {
+                key: "processing",
+                label: (
+                  <span>
+                    <span style={{ color: "#13c2c2" }}>🟢</span> Đang xử lý (
+                    {allOrders.filter((o) => o.status === "processing").length})
+                  </span>
+                ),
+              },
+              {
+                key: "shipping",
+                label: (
+                  <span>
+                    <span style={{ color: "#722ed1" }}>🟣</span> Đang giao (
+                    {allOrders.filter((o) => o.status === "shipping").length})
+                  </span>
+                ),
+              },
+              {
+                key: "delivered",
+                label: (
+                  <span>
+                    <span style={{ color: "#52c41a" }}>✅</span> Đã giao (
+                    {allOrders.filter((o) => o.status === "delivered").length})
+                  </span>
+                ),
+              },
+              {
+                key: "cancelled",
+                label: (
+                  <span>
+                    <span style={{ color: "#f5222d" }}>❌</span> Đã hủy (
+                    {allOrders.filter((o) => o.status === "cancelled").length})
+                  </span>
+                ),
+              },
+              {
+                key: "returned",
+                label: (
+                  <span>
+                    <span style={{ color: "#eb2f96" }}>↩️</span> Đã trả (
+                    {allOrders.filter((o) => o.status === "returned").length})
+                  </span>
+                ),
+              },
+            ]}
+          />
+        </div>
       </Card>
 
-      {/* Orders Table */}
-      <Card>
+      {/* Orders Table - Liền với tabs */}
+      <Card style={{ marginTop: 0 }}>
         <Spin spinning={loading}>
           <Table
             columns={columns}
@@ -796,7 +1211,7 @@ export default function OrderManagementPage() {
               showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} đơn hàng`,
             }}
             size="middle"
-            scroll={{ x: 1200 }}
+            scroll={{ x: "max-content" }}
           />
         </Spin>
       </Card>
