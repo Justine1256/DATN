@@ -21,7 +21,6 @@ import {
   Badge,
   Image,
   Descriptions,
-  Steps,
   Timeline,
   Tabs,
 } from "antd"
@@ -45,17 +44,64 @@ import {
   PrinterOutlined,
   DownloadOutlined,
   FilterOutlined,
+  DownOutlined,
 } from "@ant-design/icons"
 import type { ColumnsType } from "antd/es/table"
 import type { MenuProps } from "antd"
 import dayjs from "dayjs"
+import Cookies from "js-cookie"
 
 const { Title, Text } = Typography
 const { Option } = Select
 const { RangePicker } = DatePicker
 const { confirm } = Modal
-const { Step } = Steps
 
+// API Response interfaces
+interface APIBuyer {
+  id: number
+  name: string
+  email: string
+  phone: string
+}
+
+interface APIShop {
+  id: number
+  name: string
+}
+
+interface APIOrder {
+  id: number
+  buyer: APIBuyer
+  shop: APIShop
+  final_amount: string
+  payment_method: string
+  payment_status: string
+  order_status: string
+  order_admin_status: string
+  shipping_status: string
+  shipping_address: string
+  transaction_id: string | null
+  canceled_by: string | null
+  reconciliation_status: string
+  return_status: string
+  cancel_status: string
+  cancel_reason: string | null
+  rejection_reason: string | null
+  created_at: string
+  confirmed_at: string | null
+  shipping_started_at: string | null
+  canceled_at: string | null
+  return_confirmed_at: string | null
+  reconciled_at: string | null
+  delivered_at: string | null
+  total_products: number
+}
+
+interface APIResponse {
+  orders: APIOrder[]
+}
+
+// Internal interfaces (converted from API)
 interface OrderItem {
   id: string
   productName: string
@@ -103,453 +149,221 @@ interface OrderData {
   notes?: string
   shopName: string
   shopId: string
+  originalData?: APIOrder
 }
 
-// Static mock data
-const mockOrders: OrderData[] = [
-  {
-    id: "ORDER001",
-    orderNumber: "ORD000001",
+// Fixed interface for cancel order - API still requires cancel_type
+interface CancelOrderData {
+  cancel_reason: string
+  cancel_type: "Seller" | "Payment Gateway" | "Customer Refused Delivery" | "System"
+}
+
+const token = Cookies.get("token")
+
+// API Service
+const orderService = {
+  async fetchOrders(): Promise<APIResponse> {
+    try {
+      const response = await fetch("https://api.marketo.info.vn/api/shopadmin/show/orders", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error("Error fetching orders:", error)
+      throw error // Throw error instead of returning mock data
+    }
+  },
+  async updateOrderStatus(orderId: number, orderAdminStatus: string, reconciliationStatus?: string): Promise<any> {
+    try {
+      const body: any = {
+        order_admin_status: orderAdminStatus,
+      }
+
+      if (reconciliationStatus) {
+        body.reconciliation_status = reconciliationStatus
+      }
+
+      console.log("Calling API:", `https://api.marketo.info.vn/api/shop/orders/${orderId}/status`)
+      console.log("Request body:", body)
+      console.log("Token:", token)
+
+      const response = await fetch(`https://api.marketo.info.vn/api/shop/orders/${orderId}/status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify(body),
+      })
+
+      console.log("Response status:", response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.log("Error response:", errorData)
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log("Success response:", result)
+      return result
+    } catch (error) {
+      console.error("Error updating order status:", error)
+      throw error
+    }
+  },
+  async cancelOrder(orderId: number, cancelData: CancelOrderData): Promise<any> {
+    try {
+      const response = await fetch(`https://api.marketo.info.vn/api/shop/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify(cancelData),
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      }
+      return await response.json()
+    } catch (error) {
+      console.error("Error canceling order:", error)
+      throw error
+    }
+  },
+}
+
+// Generate items based on total_products - simplified without mock products
+const generateMockItems = (totalProducts: number, totalAmount: number, orderId: number): OrderItem[] => {
+  const items: OrderItem[] = []
+
+  for (let i = 0; i < totalProducts; i++) {
+    const price = Math.floor(totalAmount / totalProducts)
+
+    items.push({
+      id: `ITEM${orderId}_${i + 1}`,
+      productName: `Sản phẩm ${i + 1}`,
+      productImage: "/placeholder.svg?height=60&width=60&text=Product",
+      quantity: 1,
+      price,
+      total: price,
+    })
+  }
+
+  return items
+}
+
+// Conversion functions
+const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
+  // Parse address
+  const addressParts = apiOrder.shipping_address.split(", ")
+  const address = addressParts[0] || ""
+  const ward = addressParts[1] || ""
+  const district = addressParts[2] || ""
+  const province = addressParts[3] || ""
+
+  // Convert status based on order_status from API
+  const convertStatus = (status: string): OrderData["status"] => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "pending"
+      case "order confirmation":
+        return "confirmed"
+      case "shipped":
+        return "shipping"
+      case "delivered":
+        return "delivered"
+      case "canceled":
+        return "cancelled"
+      case "return requested":
+      case "returning":
+      case "refunded":
+        return "returned"
+      default:
+        return "pending"
+    }
+  }
+
+  // Convert payment method
+  const convertPaymentMethod = (method: string): OrderData["paymentMethod"] => {
+    switch (method.toLowerCase()) {
+      case "cod":
+        return "cod"
+      case "vnpay":
+        return "e_wallet"
+      default:
+        return "cod"
+    }
+  }
+
+  // Convert payment status based on API payment_status
+  const convertPaymentStatus = (paymentStatus: string, orderStatus: string): OrderData["paymentStatus"] => {
+    switch (paymentStatus.toLowerCase()) {
+      case "completed":
+        return "paid"
+      case "failed":
+        return "failed"
+      case "pending":
+        return orderStatus.toLowerCase() === "canceled" ? "failed" : "pending"
+      default:
+        return "pending"
+    }
+  }
+
+  const totalAmount = Number.parseFloat(apiOrder.final_amount)
+  const items = generateMockItems(apiOrder.total_products, totalAmount, apiOrder.id)
+  const subtotal = items.reduce((sum, item) => sum + item.total, 0)
+  const shippingFee = Math.max(0, totalAmount - subtotal)
+
+  return {
+    id: `ORDER${apiOrder.id}`,
+    orderNumber: `ORD${String(apiOrder.id).padStart(6, "0")}`,
     customer: {
-      id: "CUST001",
-      name: "Nguyễn Văn An",
-      phone: "0901234567",
-      email: "an.nguyen@email.com",
+      id: `CUST${apiOrder.buyer.id}`,
+      name: apiOrder.buyer.name,
+      phone: apiOrder.buyer.phone,
+      email: apiOrder.buyer.email,
     },
-    items: [
-      {
-        id: "ITEM001_1",
-        productName: "iPhone 15 Pro Max",
-        productImage: "/placeholder.svg?height=60&width=60&text=iPhone",
-        quantity: 1,
-        price: 29990000,
-        total: 29990000,
-        variant: "256GB - Titan Tự Nhiên",
-      },
-    ],
-    status: "delivered",
-    paymentStatus: "paid",
-    paymentMethod: "bank_transfer",
+    items,
+    status: convertStatus(apiOrder.order_status),
+    paymentStatus: convertPaymentStatus(apiOrder.payment_status, apiOrder.order_status),
+    paymentMethod: convertPaymentMethod(apiOrder.payment_method),
     shippingAddress: {
-      fullName: "Nguyễn Văn An",
-      phone: "0901234567",
-      address: "123 Đường Láng",
-      ward: "Phường Láng Thượng",
-      district: "Quận Đống Đa",
-      province: "Hà Nội",
+      fullName: apiOrder.buyer.name,
+      phone: apiOrder.buyer.phone,
+      address,
+      ward,
+      district,
+      province,
     },
-    shippingFee: 30000,
+    shippingFee,
     discount: 0,
-    subtotal: 29990000,
-    total: 30020000,
-    orderDate: "2024-01-15T10:30:00Z",
-    confirmedDate: "2024-01-15T11:00:00Z",
-    shippedDate: "2024-01-16T09:00:00Z",
-    deliveredDate: "2024-01-18T14:30:00Z",
-    shopName: "TechStore Hà Nội",
-    shopId: "SHOP001",
-  },
-  {
-    id: "ORDER002",
-    orderNumber: "ORD000002",
-    customer: {
-      id: "CUST002",
-      name: "Trần Thị Bình",
-      phone: "0912345678",
-      email: "binh.tran@email.com",
-    },
-    items: [
-      {
-        id: "ITEM002_1",
-        productName: "Samsung Galaxy S24",
-        productImage: "/placeholder.svg?height=60&width=60&text=Samsung",
-        quantity: 1,
-        price: 22990000,
-        total: 22990000,
-      },
-      {
-        id: "ITEM002_2",
-        productName: "AirPods Pro",
-        productImage: "/placeholder.svg?height=60&width=60&text=AirPods",
-        quantity: 1,
-        price: 6990000,
-        total: 6990000,
-      },
-    ],
-    status: "shipping",
-    paymentStatus: "paid",
-    paymentMethod: "e_wallet",
-    shippingAddress: {
-      fullName: "Trần Thị Bình",
-      phone: "0912345678",
-      address: "456 Nguyễn Trãi",
-      ward: "Phường Thanh Xuân Trung",
-      district: "Quận Thanh Xuân",
-      province: "Hà Nội",
-    },
-    shippingFee: 25000,
-    discount: 2998000,
-    subtotal: 29980000,
-    total: 27007000,
-    orderDate: "2024-01-20T14:15:00Z",
-    confirmedDate: "2024-01-20T15:00:00Z",
-    shippedDate: "2024-01-21T08:30:00Z",
-    notes: "Giao hàng ngoài giờ hành chính",
-    shopName: "Mobile World",
-    shopId: "SHOP002",
-  },
-  {
-    id: "ORDER003",
-    orderNumber: "ORD000003",
-    customer: {
-      id: "CUST003",
-      name: "Lê Văn Cường",
-      phone: "0923456789",
-      email: "cuong.le@email.com",
-    },
-    items: [
-      {
-        id: "ITEM003_1",
-        productName: "MacBook Air M3",
-        productImage: "/placeholder.svg?height=60&width=60&text=MacBook",
-        quantity: 1,
-        price: 34990000,
-        total: 34990000,
-        variant: "13 inch - 8GB RAM - 256GB SSD",
-      },
-    ],
-    status: "processing",
-    paymentStatus: "paid",
-    paymentMethod: "credit_card",
-    shippingAddress: {
-      fullName: "Lê Văn Cường",
-      phone: "0923456789",
-      address: "789 Cầu Giấy",
-      ward: "Phường Dịch Vọng",
-      district: "Quận Cầu Giấy",
-      province: "Hà Nội",
-    },
-    shippingFee: 0,
-    discount: 3499000,
-    subtotal: 34990000,
-    total: 31491000,
-    orderDate: "2024-01-22T09:45:00Z",
-    confirmedDate: "2024-01-22T10:30:00Z",
-    shopName: "FPT Shop",
-    shopId: "SHOP003",
-  },
-  {
-    id: "ORDER004",
-    orderNumber: "ORD000004",
-    customer: {
-      id: "CUST004",
-      name: "Phạm Thị Dung",
-      phone: "0934567890",
-      email: "dung.pham@email.com",
-    },
-    items: [
-      {
-        id: "ITEM004_1",
-        productName: "iPad Pro 12.9",
-        productImage: "/placeholder.svg?height=60&width=60&text=iPad",
-        quantity: 1,
-        price: 26990000,
-        total: 26990000,
-        variant: "Wi-Fi - 128GB - Xám",
-      },
-      {
-        id: "ITEM004_2",
-        productName: "Apple Watch Series 9",
-        productImage: "/placeholder.svg?height=60&width=60&text=Watch",
-        quantity: 1,
-        price: 9990000,
-        total: 9990000,
-        variant: "41mm - GPS - Dây Sport",
-      },
-    ],
-    status: "pending",
-    paymentStatus: "pending",
-    paymentMethod: "cod",
-    shippingAddress: {
-      fullName: "Phạm Thị Dung",
-      phone: "0934567890",
-      address: "321 Hoàng Quốc Việt",
-      ward: "Phường Nghĩa Đô",
-      district: "Quận Cầu Giấy",
-      province: "Hà Nội",
-    },
-    shippingFee: 35000,
-    discount: 0,
-    subtotal: 36980000,
-    total: 37015000,
-    orderDate: "2024-01-25T16:20:00Z",
-    shopName: "CellphoneS",
-    shopId: "SHOP004",
-  },
-  {
-    id: "ORDER005",
-    orderNumber: "ORD000005",
-    customer: {
-      id: "CUST005",
-      name: "Hoàng Văn Em",
-      phone: "0945678901",
-      email: "em.hoang@email.com",
-    },
-    items: [
-      {
-        id: "ITEM005_1",
-        productName: "Samsung Galaxy S24",
-        productImage: "/placeholder.svg?height=60&width=60&text=Samsung",
-        quantity: 2,
-        price: 22990000,
-        total: 45980000,
-      },
-    ],
-    status: "confirmed",
-    paymentStatus: "paid",
-    paymentMethod: "bank_transfer",
-    shippingAddress: {
-      fullName: "Hoàng Văn Em",
-      phone: "0945678901",
-      address: "654 Lê Văn Lương",
-      ward: "Phường Nhân Chính",
-      district: "Quận Thanh Xuân",
-      province: "Hà Nội",
-    },
-    shippingFee: 40000,
-    discount: 4598000,
-    subtotal: 45980000,
-    total: 41422000,
-    orderDate: "2024-01-24T11:10:00Z",
-    confirmedDate: "2024-01-24T12:00:00Z",
-    shopName: "Thế Giới Di Động",
-    shopId: "SHOP005",
-  },
-  {
-    id: "ORDER006",
-    orderNumber: "ORD000006",
-    customer: {
-      id: "CUST001",
-      name: "Nguyễn Văn An",
-      phone: "0901234567",
-      email: "an.nguyen@email.com",
-    },
-    items: [
-      {
-        id: "ITEM006_1",
-        productName: "AirPods Pro",
-        productImage: "/placeholder.svg?height=60&width=60&text=AirPods",
-        quantity: 1,
-        price: 6990000,
-        total: 6990000,
-      },
-    ],
-    status: "cancelled",
-    paymentStatus: "refunded",
-    paymentMethod: "e_wallet",
-    shippingAddress: {
-      fullName: "Nguyễn Văn An",
-      phone: "0901234567",
-      address: "123 Đường Láng",
-      ward: "Phường Láng Thượng",
-      district: "Quận Đống Đa",
-      province: "Hà Nội",
-    },
-    shippingFee: 25000,
-    discount: 0,
-    subtotal: 6990000,
-    total: 7015000,
-    orderDate: "2024-01-23T13:45:00Z",
-    confirmedDate: "2024-01-23T14:00:00Z",
-    notes: "Khách hàng yêu cầu hủy đơn",
-    shopName: "Viettel Store",
-    shopId: "SHOP006",
-  },
-  {
-    id: "ORDER007",
-    orderNumber: "ORD000007",
-    customer: {
-      id: "CUST002",
-      name: "Trần Thị Bình",
-      phone: "0912345678",
-      email: "binh.tran@email.com",
-    },
-    items: [
-      {
-        id: "ITEM007_1",
-        productName: "iPhone 15 Pro Max",
-        productImage: "/placeholder.svg?height=60&width=60&text=iPhone",
-        quantity: 1,
-        price: 29990000,
-        total: 29990000,
-        variant: "512GB - Titan Xanh",
-      },
-      {
-        id: "ITEM007_2",
-        productName: "Apple Watch Series 9",
-        productImage: "/placeholder.svg?height=60&width=60&text=Watch",
-        quantity: 1,
-        price: 9990000,
-        total: 9990000,
-        variant: "45mm - GPS + Cellular",
-      },
-    ],
-    status: "returned",
-    paymentStatus: "refunded",
-    paymentMethod: "credit_card",
-    shippingAddress: {
-      fullName: "Trần Thị Bình",
-      phone: "0912345678",
-      address: "456 Nguyễn Trãi",
-      ward: "Phường Thanh Xuân Trung",
-      district: "Quận Thanh Xuân",
-      province: "Hà Nội",
-    },
-    shippingFee: 30000,
-    discount: 3999000,
-    subtotal: 39980000,
-    total: 36011000,
-    orderDate: "2024-01-18T08:30:00Z",
-    confirmedDate: "2024-01-18T09:15:00Z",
-    shippedDate: "2024-01-19T10:00:00Z",
-    deliveredDate: "2024-01-21T15:30:00Z",
-    notes: "Sản phẩm bị lỗi, khách hàng trả lại",
-    shopName: "TechStore Hà Nội",
-    shopId: "SHOP001",
-  },
-  {
-    id: "ORDER008",
-    orderNumber: "ORD000008",
-    customer: {
-      id: "CUST003",
-      name: "Lê Văn Cường",
-      phone: "0923456789",
-      email: "cuong.le@email.com",
-    },
-    items: [
-      {
-        id: "ITEM008_1",
-        productName: "MacBook Air M3",
-        productImage: "/placeholder.svg?height=60&width=60&text=MacBook",
-        quantity: 1,
-        price: 34990000,
-        total: 34990000,
-        variant: "15 inch - 16GB RAM - 512GB SSD",
-      },
-    ],
-    status: "delivered",
-    paymentStatus: "paid",
-    paymentMethod: "bank_transfer",
-    shippingAddress: {
-      fullName: "Lê Văn Cường",
-      phone: "0923456789",
-      address: "789 Cầu Giấy",
-      ward: "Phường Dịch Vọng",
-      district: "Quận Cầu Giấy",
-      province: "Hà Nội",
-    },
-    shippingFee: 0,
-    discount: 0,
-    subtotal: 34990000,
-    total: 34990000,
-    orderDate: "2024-01-16T12:00:00Z",
-    confirmedDate: "2024-01-16T13:30:00Z",
-    shippedDate: "2024-01-17T09:00:00Z",
-    deliveredDate: "2024-01-19T16:45:00Z",
-    shopName: "FPT Shop",
-    shopId: "SHOP003",
-  },
-  {
-    id: "ORDER009",
-    orderNumber: "ORD000009",
-    customer: {
-      id: "CUST004",
-      name: "Phạm Thị Dung",
-      phone: "0934567890",
-      email: "dung.pham@email.com",
-    },
-    items: [
-      {
-        id: "ITEM009_1",
-        productName: "Samsung Galaxy S24",
-        productImage: "/placeholder.svg?height=60&width=60&text=Samsung",
-        quantity: 1,
-        price: 22990000,
-        total: 22990000,
-        variant: "256GB - Tím",
-      },
-    ],
-    status: "processing",
-    paymentStatus: "failed",
-    paymentMethod: "credit_card",
-    shippingAddress: {
-      fullName: "Phạm Thị Dung",
-      phone: "0934567890",
-      address: "321 Hoàng Quốc Việt",
-      ward: "Phường Nghĩa Đô",
-      district: "Quận Cầu Giấy",
-      province: "Hà Nội",
-    },
-    shippingFee: 25000,
-    discount: 2299000,
-    subtotal: 22990000,
-    total: 20716000,
-    orderDate: "2024-01-21T15:20:00Z",
-    confirmedDate: "2024-01-21T16:00:00Z",
-    notes: "Thanh toán thất bại, cần liên hệ khách hàng",
-    shopName: "Mobile World",
-    shopId: "SHOP002",
-  },
-  {
-    id: "ORDER010",
-    orderNumber: "ORD000010",
-    customer: {
-      id: "CUST005",
-      name: "Hoàng Văn Em",
-      phone: "0945678901",
-      email: "em.hoang@email.com",
-    },
-    items: [
-      {
-        id: "ITEM010_1",
-        productName: "iPad Pro 12.9",
-        productImage: "/placeholder.svg?height=60&width=60&text=iPad",
-        quantity: 1,
-        price: 26990000,
-        total: 26990000,
-        variant: "Wi-Fi + Cellular - 256GB",
-      },
-      {
-        id: "ITEM010_2",
-        productName: "AirPods Pro",
-        productImage: "/placeholder.svg?height=60&width=60&text=AirPods",
-        quantity: 2,
-        price: 6990000,
-        total: 13980000,
-      },
-    ],
-    status: "shipping",
-    paymentStatus: "paid",
-    paymentMethod: "cod",
-    shippingAddress: {
-      fullName: "Hoàng Văn Em",
-      phone: "0945678901",
-      address: "654 Lê Văn Lương",
-      ward: "Phường Nhân Chính",
-      district: "Quận Thanh Xuân",
-      province: "Hà Nội",
-    },
-    shippingFee: 35000,
-    discount: 4097000,
-    subtotal: 40970000,
-    total: 36908000,
-    orderDate: "2024-01-19T10:15:00Z",
-    confirmedDate: "2024-01-19T11:00:00Z",
-    shippedDate: "2024-01-20T14:30:00Z",
-    shopName: "CellphoneS",
-    shopId: "SHOP004",
-  },
-]
+    subtotal,
+    total: totalAmount,
+    orderDate: apiOrder.created_at,
+    confirmedDate: apiOrder.confirmed_at || undefined,
+    shippedDate: apiOrder.shipping_started_at || undefined,
+    deliveredDate: apiOrder.delivered_at || undefined,
+    notes: apiOrder.cancel_reason || apiOrder.rejection_reason || undefined,
+    shopName: apiOrder.shop.name,
+    shopId: `SHOP${apiOrder.shop.id}`,
+    originalData: apiOrder,
+  }
+}
 
 export default function OrderManagementPage() {
   const [allOrders, setAllOrders] = useState<OrderData[]>([])
@@ -563,13 +377,41 @@ export default function OrderManagementPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<string>("all")
 
-  // Initialize static data
+  // Fixed state for cancel order - include cancel_type with default value
+  const [cancelModalVisible, setCancelModalVisible] = useState(false)
+  const [orderToCancel, setOrderToCancel] = useState<OrderData | null>(null)
+  const [cancelForm, setCancelForm] = useState<CancelOrderData>({
+    cancel_reason: "",
+    cancel_type: "Seller", // Default value for API requirement
+  })
+
   useEffect(() => {
+    console.log("Current token:", token)
+    if (!token) {
+      message.error("Không tìm thấy token xác thực")
+    }
+  }, [])
+
+  // Fetch data from API
+  const fetchOrders = async () => {
     setLoading(true)
-    setTimeout(() => {
-      setAllOrders(mockOrders)
+    try {
+      const apiResponse = await orderService.fetchOrders()
+      const convertedOrders = apiResponse.orders.map(convertAPIToOrderData)
+      setAllOrders(convertedOrders)
+      message.success(`Đã tải ${convertedOrders.length} đơn hàng`)
+    } catch (error) {
+      message.error("Lỗi khi tải dữ liệu đơn hàng")
+      console.error("Error fetching orders:", error)
+      setAllOrders([]) // Set empty array instead of mock data
+    } finally {
       setLoading(false)
-    }, 500)
+    }
+  }
+
+  // Initialize data
+  useEffect(() => {
+    fetchOrders()
   }, [])
 
   // Filter data
@@ -583,7 +425,9 @@ export default function OrderManagementPage() {
         order.id.includes(searchText)
 
       const matchesStatus = activeTab === "all" || order.status === activeTab
+
       const matchesPaymentStatus = paymentStatusFilter === "all" || order.paymentStatus === paymentStatusFilter
+
       const matchesPaymentMethod = paymentMethodFilter === "all" || order.paymentMethod === paymentMethodFilter
 
       const matchesDateRange =
@@ -606,24 +450,67 @@ export default function OrderManagementPage() {
   }
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderData["status"]) => {
+    const order = allOrders.find((o) => o.id === orderId)
+    if (!order || !order.originalData) {
+      message.error("Không tìm thấy thông tin đơn hàng")
+      return
+    }
+
+    // Map internal status to API admin status - Updated to match your database
+    const statusToAdminStatusMap: Record<OrderData["status"], string> = {
+      pending: "Pending Processing",
+      confirmed: "Processing",
+      processing: "Ready for Shipment",
+      shipping: "Shipping",
+      delivered: "Delivered",
+      cancelled: "Cancelled by Seller",
+      returned: "Returned - Completed",
+    }
+
+    const adminStatus = statusToAdminStatusMap[newStatus]
+    if (!adminStatus) {
+      message.error("Trạng thái không hợp lệ")
+      return
+    }
+
+    console.log("Attempting to update order:", {
+      orderId: order.originalData.id,
+      currentStatus: order.originalData.order_admin_status,
+      newStatus: adminStatus,
+    })
+
     confirm({
       title: "Xác nhận cập nhật trạng thái",
-      content: `Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng này?`,
+      content: `Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng này thành "${getStatusText(newStatus)}"?`,
       onOk: async () => {
+        console.log("Confirm OK clicked - starting update process")
         try {
           setActionLoading(orderId)
-          // Simulate API call
-          await new Promise((resolve) => setTimeout(resolve, 1000))
+          console.log("About to call updateOrderStatus API...")
 
+          const result = await orderService.updateOrderStatus(order.originalData!.id, adminStatus)
+          console.log("Update result:", result)
+
+          // Update local state
           setAllOrders((prevOrders) =>
             prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)),
           )
           message.success("Cập nhật trạng thái thành công")
-        } catch (error) {
-          message.error("Lỗi khi cập nhật trạng thái")
+
+          // Refresh data to get latest from server
+          setTimeout(() => {
+            fetchOrders()
+          }, 1000)
+        } catch (error: any) {
+          console.error("Update failed:", error)
+          message.error(`Lỗi: ${error.message || "Không thể cập nhật trạng thái"}`)
         } finally {
+          console.log("Finally block - clearing loading state")
           setActionLoading(null)
         }
+      },
+      onCancel: () => {
+        console.log("Confirm cancelled")
       },
     })
   }
@@ -642,7 +529,7 @@ export default function OrderManagementPage() {
       onOk: async () => {
         try {
           setActionLoading(orderId)
-          // Simulate API call
+          // TODO: Call API to delete order
           await new Promise((resolve) => setTimeout(resolve, 1000))
 
           setAllOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId))
@@ -654,6 +541,69 @@ export default function OrderManagementPage() {
         }
       },
     })
+  }
+
+  // Fixed handle cancel order function - ensure cancel_type is sent
+  const handleCancelOrder = async () => {
+    if (!orderToCancel) return
+
+    // Validate cancel reason
+    if (!cancelForm.cancel_reason.trim()) {
+      message.error("Vui lòng nhập lý do hủy đơn hàng")
+      return
+    }
+
+    try {
+      setActionLoading(orderToCancel.id)
+      const originalOrderId = orderToCancel.originalData?.id
+
+      if (!originalOrderId) {
+        throw new Error("Không tìm thấy ID đơn hàng gốc")
+      }
+
+      // Ensure both fields are sent to API
+      const cancelData: CancelOrderData = {
+        cancel_reason: cancelForm.cancel_reason.trim(),
+        cancel_type: cancelForm.cancel_type, // This is required by API
+      }
+
+      await orderService.cancelOrder(originalOrderId, cancelData)
+
+      // Update local state
+      setAllOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === orderToCancel.id
+            ? {
+                ...order,
+                status: "cancelled",
+                paymentStatus: "refunded",
+                notes: cancelForm.cancel_reason,
+              }
+            : order,
+        ),
+      )
+
+      message.success("Hủy đơn hàng thành công")
+      setCancelModalVisible(false)
+      setOrderToCancel(null)
+      setCancelForm({ cancel_reason: "", cancel_type: "Seller" })
+    } catch (error: any) {
+      message.error(error.message || "Lỗi khi hủy đơn hàng")
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // Updated show cancel modal function
+  const showCancelModal = (order: OrderData) => {
+    // Kiểm tra trạng thái có thể hủy
+    if (order.status === "delivered" || order.status === "cancelled") {
+      message.warning("Không thể hủy đơn hàng đã giao hoặc đã hủy")
+      return
+    }
+
+    setOrderToCancel(order)
+    setCancelModalVisible(true)
   }
 
   const getStatusColor = (status: OrderData["status"]) => {
@@ -724,6 +674,13 @@ export default function OrderManagementPage() {
       icon: <EditOutlined />,
       label: "Chỉnh sửa",
       disabled: ["delivered", "cancelled", "returned"].includes(record.status),
+    },
+    {
+      key: "cancel",
+      icon: <DeleteOutlined />,
+      label: "Hủy đơn hàng",
+      disabled: ["delivered", "cancelled", "returned"].includes(record.status),
+      onClick: () => showCancelModal(record),
     },
     {
       key: "print",
@@ -800,61 +757,77 @@ export default function OrderManagementPage() {
       title: "Trạng thái xử lý",
       key: "orderStatus",
       width: 100,
-      render: (_, record) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "pending",
-                label: "Chờ xác nhận",
-                disabled: record.status === "pending",
-                onClick: () => handleUpdateOrderStatus(record.id, "pending"),
-              },
-              {
-                key: "confirmed",
-                label: "Đã xác nhận",
-                disabled: record.status === "confirmed",
-                onClick: () => handleUpdateOrderStatus(record.id, "confirmed"),
-              },
-              {
-                key: "processing",
-                label: "Đang xử lý",
-                disabled: record.status === "processing",
-                onClick: () => handleUpdateOrderStatus(record.id, "processing"),
-              },
-              {
-                key: "shipping",
-                label: "Đang giao",
-                disabled: record.status === "shipping",
-                onClick: () => handleUpdateOrderStatus(record.id, "shipping"),
-              },
-              {
-                key: "delivered",
-                label: "Đã giao",
-                disabled: record.status === "delivered",
-                onClick: () => handleUpdateOrderStatus(record.id, "delivered"),
-              },
-              {
-                key: "cancelled",
-                label: "Đã hủy",
-                disabled: record.status === "cancelled",
-                onClick: () => handleUpdateOrderStatus(record.id, "cancelled"),
-              },
-              {
-                key: "returned",
-                label: "Đã trả",
-                disabled: record.status === "returned",
-                onClick: () => handleUpdateOrderStatus(record.id, "returned"),
-              },
-            ],
-          }}
-          trigger={["click"]}
-        >
-          <Tag color={getStatusColor(record.status)} style={{ cursor: "pointer" }}>
-            {getStatusText(record.status)}
-          </Tag>
-        </Dropdown>
-      ),
+      render: (_, record) => {
+        const isDisabled = ["delivered", "cancelled", "returned"].includes(record.status)
+
+        return (
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "pending",
+                  label: "Chờ xử lý",
+                  disabled: record.status === "pending",
+                  onClick: () => handleUpdateOrderStatus(record.id, "pending"),
+                },
+                {
+                  key: "confirmed",
+                  label: "Đang xử lý",
+                  disabled: record.status === "confirmed",
+                  onClick: () => handleUpdateOrderStatus(record.id, "confirmed"),
+                },
+                {
+                  key: "processing",
+                  label: "Đã xử lý",
+                  disabled: record.status === "processing",
+                  onClick: () => handleUpdateOrderStatus(record.id, "processing"),
+                },
+                {
+                  key: "shipping",
+                  label: "Đang giao hàng",
+                  disabled: record.status === "shipping",
+                  onClick: () => handleUpdateOrderStatus(record.id, "shipping"),
+                },
+                {
+                  key: "delivered",
+                  label: "Đã giao hàng",
+                  disabled: record.status === "delivered",
+                  onClick: () => handleUpdateOrderStatus(record.id, "delivered"),
+                },
+                {
+                  key: "cancelled",
+                  label: "Hủy bởi Seller",
+                  disabled: record.status === "cancelled",
+                  onClick: () => handleUpdateOrderStatus(record.id, "cancelled"),
+                },
+                {
+                  key: "returned",
+                  label: "Đã trả hàng",
+                  disabled: record.status === "returned",
+                  onClick: () => handleUpdateOrderStatus(record.id, "returned"),
+                },
+              ],
+            }}
+            trigger={["click"]}
+            disabled={isDisabled}
+          >
+            <Tag
+              color={getStatusColor(record.status)}
+              style={{
+                cursor: isDisabled ? "not-allowed" : "pointer",
+                opacity: isDisabled ? 0.6 : 1,
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                width: "fit-content",
+              }}
+            >
+              {getStatusText(record.status)}
+              {!isDisabled && <DownOutlined style={{ fontSize: "10px" }} />}
+            </Tag>
+          </Dropdown>
+        )
+      },
     },
     {
       title: "Thanh toán",
@@ -927,11 +900,7 @@ export default function OrderManagementPage() {
   }
 
   const handleRefresh = () => {
-    setLoading(true)
-    setTimeout(() => {
-      setAllOrders(mockOrders)
-      setLoading(false)
-    }, 500)
+    fetchOrders()
   }
 
   // Statistics
@@ -1075,19 +1044,20 @@ export default function OrderManagementPage() {
               <Button icon={<FilterOutlined />} onClick={handleReset}>
                 Đặt lại
               </Button>
-<Button
-  type="primary"
-  icon={<ReloadOutlined />}
-  onClick={handleRefresh}
-  loading={loading}
-  style={{ backgroundColor: '#ff4d4f', borderColor: '#ff4d4f' }}
->
-  Làm mới
-</Button>
+              <Button
+                type="primary"
+                icon={<ReloadOutlined />}
+                onClick={handleRefresh}
+                loading={loading}
+                style={{ backgroundColor: "#1890ff", borderColor: "#1890ff" }}
+              >
+                Làm mới
+              </Button>
               <Button icon={<PrinterOutlined />}>In đơn hàng</Button>
             </Space>
           </Col>
         </Row>
+
         <Row style={{ marginTop: 16 }}>
           <Col span={24}>
             <Text type="secondary">
@@ -1114,7 +1084,7 @@ export default function OrderManagementPage() {
           </Col>
         </Row>
 
-        {/* Status Tabs - Di chuyển xuống đây */}
+        {/* Status Tabs */}
         <div style={{ marginTop: 16, borderTop: "1px solid #f0f0f0", paddingTop: 16 }}>
           <Tabs
             activeKey={activeTab}
@@ -1197,7 +1167,7 @@ export default function OrderManagementPage() {
         </div>
       </Card>
 
-      {/* Orders Table - Liền với tabs */}
+      {/* Orders Table */}
       <Card style={{ marginTop: 0 }}>
         <Spin spinning={loading}>
           <Table
@@ -1215,6 +1185,76 @@ export default function OrderManagementPage() {
           />
         </Spin>
       </Card>
+
+      {/* Cancel Order Modal - UI simplified but API gets required fields */}
+      <Modal
+        title="Hủy đơn hàng"
+        open={cancelModalVisible}
+        onOk={handleCancelOrder}
+        onCancel={() => {
+          setCancelModalVisible(false)
+          setOrderToCancel(null)
+          setCancelForm({ cancel_reason: "", cancel_type: "Seller" })
+        }}
+        okText="Xác nhận hủy"
+        cancelText="Hủy bỏ"
+        okButtonProps={{
+          danger: true,
+          loading: actionLoading === orderToCancel?.id,
+          disabled: !cancelForm.cancel_reason.trim(),
+        }}
+        width={600}
+      >
+        {orderToCancel && (
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>Đơn hàng: </Text>
+              <Text>{orderToCancel.orderNumber}</Text>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>Khách hàng: </Text>
+              <Text>{orderToCancel.customer.name}</Text>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>Tổng tiền: </Text>
+              <Text style={{ color: "#f5222d" }}>{orderToCancel.total.toLocaleString("vi-VN")} ₫</Text>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>
+                Lý do hủy: <span style={{ color: "#f5222d" }}>*</span>
+              </Text>
+              <Input.TextArea
+                value={cancelForm.cancel_reason}
+                onChange={(e) => setCancelForm({ ...cancelForm, cancel_reason: e.target.value })}
+                placeholder="Nhập lý do hủy đơn hàng..."
+                rows={4}
+                maxLength={255}
+                showCount
+                style={{ marginTop: 8 }}
+                status={!cancelForm.cancel_reason.trim() ? "error" : ""}
+              />
+              {!cancelForm.cancel_reason.trim() && (
+                <Text type="danger" style={{ fontSize: "12px" }}>
+                  Vui lòng nhập lý do hủy đơn hàng
+                </Text>
+              )}
+            </div>
+            <div
+              style={{
+                padding: 12,
+                backgroundColor: "#fff2f0",
+                border: "1px solid #ffccc7",
+                borderRadius: 6,
+                marginTop: 16,
+              }}
+            >
+              <Text type="danger" style={{ fontWeight: "bold" }}>
+                ⚠️ Cảnh báo: Hành động này sẽ hủy đơn hàng và không thể hoàn tác!
+              </Text>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Order Detail Modal */}
       {selectedOrder && (
@@ -1400,6 +1440,15 @@ export default function OrderManagementPage() {
               {selectedOrder.notes && (
                 <Card title="Ghi chú" size="small">
                   <Text>{selectedOrder.notes}</Text>
+                </Card>
+              )}
+
+              {/* API Data Debug */}
+              {selectedOrder.originalData && (
+                <Card title="Dữ liệu API gốc" size="small" style={{ marginTop: 16 }}>
+                  <pre style={{ fontSize: 10, maxHeight: 200, overflow: "auto" }}>
+                    {JSON.stringify(selectedOrder.originalData, null, 2)}
+                  </pre>
                 </Card>
               )}
             </Col>
