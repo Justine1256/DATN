@@ -188,23 +188,23 @@ class OrderController extends Controller
 
                     $shopTotalAmount += $cart->quantity * $priceAtTime;
                 }
-                    $order = Order::create([
-                        'user_id' => $userId,
-                        'shop_id' => $shopId,
-                        'total_amount' => $shopTotalAmount,
-                        'final_amount' => $shopTotalAmount,
-                        'payment_method' => $validated['payment_method'],
-                        'payment_status' => 'Pending',
-                        'order_status' => 'Pending',
-                        'shipping_status' => 'Pending',
-                        'shipping_address' => $fullAddress,
-                    ]);
-                      foreach ($shopCarts as $cart) {
-        $product = $cart->product;
-        $variant = $cart->variant_id ? ProductVariant::find($cart->variant_id) : null;
-        $priceAtTime = $variant
-            ? ($variant->sale_price ?? $variant->price)
-            : ($product->sale_price ?? $product->price);
+                $order = Order::create([
+                    'user_id' => $userId,
+                    'shop_id' => $shopId,
+                    'total_amount' => $shopTotalAmount,
+                    'final_amount' => $shopTotalAmount,
+                    'payment_method' => $validated['payment_method'],
+                    'payment_status' => 'Pending',
+                    'order_status' => 'Pending',
+                    'shipping_status' => 'Pending',
+                    'shipping_address' => $fullAddress,
+                ]);
+                foreach ($shopCarts as $cart) {
+                    $product = $cart->product;
+                    $variant = $cart->variant_id ? ProductVariant::find($cart->variant_id) : null;
+                    $priceAtTime = $variant
+                        ? ($variant->sale_price ?? $variant->price)
+                        : ($product->sale_price ?? $product->price);
 
                     // Dữ liệu biến thể từ cart hoặc fallback từ variant
                     OrderDetail::create([
@@ -219,9 +219,9 @@ class OrderController extends Controller
                     ]);;
 
                     $product->increment('sold', $cart->quantity);
+                }
+                $orders[] = $order;
             }
-            $orders[] = $order;
-        }
             Cart::where('user_id', $userId)->delete();
             DB::commit();
 
@@ -415,7 +415,7 @@ class OrderController extends Controller
             'order' => $response
         ]);
     }
-   public function ShopOrderList(Request $request)
+    public function ShopOrderList(Request $request)
     {
         $user = Auth::user();
 
@@ -485,7 +485,7 @@ class OrderController extends Controller
                 'canceled_at' => $order->canceled_at,
                 'return_confirmed_at' => $order->return_confirmed_at,
                 'reconciled_at' => $order->reconciled_at,
-                'delivered_at' => $order->	delivered_at,
+                'delivered_at' => $order->delivered_at,
                 'total_products' => $order->orderDetails->sum('quantity'),
             ];
         });
@@ -803,58 +803,58 @@ class OrderController extends Controller
 
         return $pdf->download("invoice_order_{$order->id}.pdf");
     }
-        public function orderStatisticsByShopStatus(Request $request)
-{
-    $user = Auth::user();
-    $query = Order::query();
+    public function orderStatisticsByShopStatus(Request $request)
+    {
+        $user = Auth::user();
+        $query = Order::query();
 
-    if ($user->role === 'seller') {
-        $shop = \App\Models\Shop::where('user_id', $user->id)->first();
-        if (!$shop) {
-            return response()->json([
-                'message' => 'Seller chưa có shop',
-                'data' => [
-                    'total_orders' => 0,
-                    'total_amount' => 0,
-                    'formatted_total_amount' => '0 ₫',
-                    'pending_processing' => 0,
-                    'processing' => 0,
-                    'shipping' => 0,
-                    'delivered' => 0,
-                    'returned_requesting' => 0,
-                    'returned_completed' => 0,
-                    'cancelled_by_customer' => 0,
-                ]
-            ]);
+        if ($user->role === 'seller') {
+            $shop = \App\Models\Shop::where('user_id', $user->id)->first();
+            if (!$shop) {
+                return response()->json([
+                    'message' => 'Seller chưa có shop',
+                    'data' => [
+                        'total_orders' => 0,
+                        'total_amount' => 0,
+                        'formatted_total_amount' => '0 ₫',
+                        'pending_processing' => 0,
+                        'processing' => 0,
+                        'shipping' => 0,
+                        'delivered' => 0,
+                        'returned_requesting' => 0,
+                        'returned_completed' => 0,
+                        'cancelled_by_customer' => 0,
+                    ]
+                ]);
+            }
+
+            $query->where('shop_id', $shop->id);
         }
+        if ($request->filled('from_date') && $request->filled('to_date')) {
+            $from = date($request->input('from_date') . ' 00:00:00');
+            $to   = date($request->input('to_date') . ' 23:59:59');
+            $query->whereBetween('created_at', [$from, $to]);
+        }
+        $totalOrders = $query->count();
+        $totalAmount = $query->sum('final_amount');
 
-        $query->where('shop_id', $shop->id);
+        return response()->json([
+            'total_orders'           => $totalOrders,
+            'total_amount'           => $totalAmount,
+            'formatted_total_amount' => number_format($totalAmount, 0, ',', '.') . ' ₫',
+            'pending_processing'     => (clone $query)->where('order_admin_status', 'Pending Processing')->count(),
+            'processing'             => (clone $query)->where('order_admin_status', 'Processing')->count(),
+            'ready_for_shipment'     => (clone $query)->where('order_admin_status', 'Ready for Shipment')->count(),
+            'shipping'               => (clone $query)->where('order_admin_status', 'Shipping')->count(),
+            'delivered'              => (clone $query)->where('order_admin_status', 'Delivered')->count(),
+            'cancelled_by_customer'  => (clone $query)->where('order_admin_status', 'Cancelled by Customer')->count(),
+            'cancelled_by_seller'    => (clone $query)->where('order_admin_status', 'Cancelled by Seller')->count(),
+            'cancel_payment_failed'  => (clone $query)->where('order_admin_status', 'Cancelled – Payment Failed')->count(),
+            'return_requested'       => (clone $query)->where('order_admin_status', 'Return Requested')->count(),
+            'returning'              => (clone $query)->where('order_admin_status', 'Returning')->count(),
+            'refunded'               => (clone $query)->where('order_admin_status', 'Refunded')->count(),
+        ]);
     }
-    if ($request->filled('from_date') && $request->filled('to_date')) {
-        $from = date($request->input('from_date') . ' 00:00:00');
-        $to   = date($request->input('to_date') . ' 23:59:59');
-        $query->whereBetween('created_at', [$from, $to]);
-    }
-    $totalOrders = $query->count();
-    $totalAmount = $query->sum('final_amount');
-
-   return response()->json([
-    'total_orders'           => $totalOrders,
-    'total_amount'           => $totalAmount,
-    'formatted_total_amount' => number_format($totalAmount, 0, ',', '.') . ' ₫',
-    'pending_processing'     => (clone $query)->where('order_admin_status', 'Pending Processing')->count(),
-    'processing'             => (clone $query)->where('order_admin_status', 'Processing')->count(),
-    'ready_for_shipment'     => (clone $query)->where('order_admin_status', 'Ready for Shipment')->count(),
-    'shipping'               => (clone $query)->where('order_admin_status', 'Shipping')->count(),
-    'delivered'              => (clone $query)->where('order_admin_status', 'Delivered')->count(),
-    'cancelled_by_customer'  => (clone $query)->where('order_admin_status', 'Cancelled by Customer')->count(),
-    'cancelled_by_seller'    => (clone $query)->where('order_admin_status', 'Cancelled by Seller')->count(),
-    'cancel_payment_failed'  => (clone $query)->where('order_admin_status', 'Cancelled – Payment Failed')->count(),
-    'return_requested'       => (clone $query)->where('order_admin_status', 'Return Requested')->count(),
-    'returning'              => (clone $query)->where('order_admin_status', 'Returning')->count(),
-    'refunded'               => (clone $query)->where('order_admin_status', 'Refunded')->count(),
-]);
-}
     public function updateShopOrderStatus(Request $request, $orderId)
     {
         $validated = $request->validate([
@@ -944,6 +944,24 @@ class OrderController extends Controller
         if (isset($statusMap[$adminStatus])) {
             $order->order_status = $statusMap[$adminStatus];
         }
+        if (in_array($adminStatus, ['Processing', 'Processed', 'Ready for Shipment']) && !$order->confirmed_at) {
+            $order->confirmed_at = now();
+        }
+        if ($adminStatus === 'Shipping' && !$order->shipping_started_at) {
+            $order->shipping_started_at = now();
+        }
+        if (str_starts_with($adminStatus, 'Cancelled') && !$order->canceled_at) {
+            $order->canceled_at = now();
+        }
+        if ($order->order_status === 'Delivered' && !$order->delivered_at) {
+            $order->delivered_at = now();
+        }
+        if ($adminStatus === 'Return Approved' && !$order->return_confirmed_at) {
+            $order->return_confirmed_at = now();
+        }
+        if ($adminStatus === 'Reconciled' && !$order->reconciled_at) {
+            $order->reconciled_at = now();
+        }
 
         // ✅ Ánh xạ shipping_status nếu phù hợp
         $shippingMap = [
@@ -1007,8 +1025,8 @@ class OrderController extends Controller
             $query->where('order_id', $order->id);
         })->exists();
         if ($exists) {
-        return response()->json(['message' => 'Đơn hàng đã được đánh giá, không thể hoàn đơn'], 400);
-    }
+            return response()->json(['message' => 'Đơn hàng đã được đánh giá, không thể hoàn đơn'], 400);
+        }
         $validated = $request->validate([
             'reason' => 'required|string|max:255',
             'photos' => 'required|array|min:1',
@@ -1039,79 +1057,79 @@ class OrderController extends Controller
 
     // từ chối hoàn đơn
     public function rejectRefundRequest(Request $request, $orderId)
-{
-    $validated = $request->validate([
-        'rejection_reason' => 'required|string|max:255',
-    ]);
+    {
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:255',
+        ]);
 
-    $order = Order::find($orderId);
+        $order = Order::find($orderId);
 
-    if (!$order || $order->order_admin_status !== 'Return Requested') {
-        return response()->json(['message' => 'Đơn hàng không hợp lệ để từ chối hoàn đơn'], 400);
+        if (!$order || $order->order_admin_status !== 'Return Requested') {
+            return response()->json(['message' => 'Đơn hàng không hợp lệ để từ chối hoàn đơn'], 400);
+        }
+
+        $order->order_admin_status = 'Return Requested';
+        $order->order_status = 'Delivered'; // Trả lại trạng thái đã giao
+        $order->rejection_reason = $validated['rejection_reason'];
+        $order->save();
+
+        // Gửi thông báo cho user
+        Notification::create([
+            'user_id'   => $order->user_id,
+            'title'     => "Yêu cầu hoàn đơn #{$order->id} bị từ chối",
+            'content'   => "Lý do: {$validated['rejection_reason']}",
+            'image_url' => '/images/refund-rejected.png',
+            'link'      => "/account?section=orders&order_id={$order->id}",
+            'is_read'   => 0,
+        ]);
+
+        return response()->json(['message' => 'Đã từ chối yêu cầu hoàn đơn thành công']);
+    }
+    // xem chi tiết hoàn đơn
+    public function viewRefundRequest($orderId)
+    {
+        $order = Order::with('user')->find($orderId);
+
+        if (!$order) {
+            return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
+        }
+
+        $photos = \App\Models\OrderReturnPhoto::where('order_id', $orderId)->pluck('image_path');
+
+        return response()->json([
+            'order_id'           => $order->id,
+            'user'               => [
+                'id'    => $order->user?->id,
+                'name'  => $order->user?->name,
+            ],
+            'cancel_reason'      => $order->cancel_reason,
+            'photos'             => $order->images,
+            'created_at'         => $order->created_at,
+        ]);
     }
 
-    $order->order_admin_status = 'Return Requested';
-    $order->order_status = 'Delivered'; // Trả lại trạng thái đã giao
-    $order->rejection_reason = $validated['rejection_reason'];
-    $order->save();
+    // duyệt
+    public function approveRefundRequest($orderId)
+    {
+        $order = Order::find($orderId);
 
-    // Gửi thông báo cho user
-    Notification::create([
-        'user_id'   => $order->user_id,
-        'title'     => "Yêu cầu hoàn đơn #{$order->id} bị từ chối",
-        'content'   => "Lý do: {$validated['rejection_reason']}",
-        'image_url' => '/images/refund-rejected.png',
-        'link'      => "/account?section=orders&order_id={$order->id}",
-        'is_read'   => 0,
-    ]);
+        if (!$order || $order->order_admin_status !== 'Return Requested') {
+            return response()->json(['message' => 'Không thể duyệt hoàn đơn trong trạng thái hiện tại'], 400);
+        }
 
-    return response()->json(['message' => 'Đã từ chối yêu cầu hoàn đơn thành công']);
-}
-// xem chi tiết hoàn đơn
-public function viewRefundRequest($orderId)
-{
-    $order = Order::with('user')->find($orderId);
+        $order->order_admin_status = 'Return Requested';
+        $order->order_status = 'Return Requested';
+        $order->save();
 
-    if (!$order) {
-        return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
+        Notification::create([
+            'user_id' => $order->user_id,
+            'title' => "Yêu cầu hoàn đơn #{$order->id} đã được duyệt",
+            'content' => "Đơn hàng của bạn đã được chấp nhận hoàn trả. Vui lòng làm theo hướng dẫn từ shop.",
+            'image_url' => '/images/refund-approved.png',
+            'link' => "/account?section=orders&order_id={$order->id}",
+            'is_read' => 0,
+        ]);
+
+        return response()->json(['message' => 'Đã duyệt hoàn đơn thành công']);
     }
-
-    $photos = \App\Models\OrderReturnPhoto::where('order_id', $orderId)->pluck('image_path');
-
-    return response()->json([
-        'order_id'           => $order->id,
-        'user'               => [
-            'id'    => $order->user?->id,
-            'name'  => $order->user?->name,
-        ],
-        'cancel_reason'      => $order->cancel_reason,
-        'photos'             => $order->images,
-        'created_at'         => $order->created_at,
-    ]);
-}
-
-// duyệt
-public function approveRefundRequest($orderId)
-{
-    $order = Order::find($orderId);
-
-    if (!$order || $order->order_admin_status !== 'Return Requested') {
-        return response()->json(['message' => 'Không thể duyệt hoàn đơn trong trạng thái hiện tại'], 400);
-    }
-
-    $order->order_admin_status = 'Return Requested';
-    $order->order_status = 'Return Requested';
-    $order->save();
-
-    Notification::create([
-        'user_id' => $order->user_id,
-        'title' => "Yêu cầu hoàn đơn #{$order->id} đã được duyệt",
-        'content' => "Đơn hàng của bạn đã được chấp nhận hoàn trả. Vui lòng làm theo hướng dẫn từ shop.",
-        'image_url' => '/images/refund-approved.png',
-        'link' => "/account?section=orders&order_id={$order->id}",
-        'is_read' => 0,
-    ]);
-
-    return response()->json(['message' => 'Đã duyệt hoàn đơn thành công']);
-}
 }
