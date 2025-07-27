@@ -52,7 +52,7 @@ export default function CategoryPage() {
   const [endPrice, setEndPrice] = useState<number>(50000);
   // Add string states for input fields
   const [startPriceInput, setStartPriceInput] = useState<string>("0");
-  const [endPriceInput, setEndPriceInput] = useState<string>("5000");
+  const [endPriceInput, setEndPriceInput] = useState<string>("50000");
 
   const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
   const [selectedPriceFilter, setSelectedPriceFilter] = useState<string | null>(null);
@@ -260,8 +260,8 @@ export default function CategoryPage() {
             {/* Lọc theo giá */}
             <div className="flex flex-col space-y-4">
               <div className="flex gap-2">
-              <h4 className="font-semibold">Giá</h4>
-              <p>(Nghìn đồng)</p>
+                <h4 className="font-semibold">Giá</h4>
+                <p>(Nghìn đồng)</p>
               </div>
               <div className="flex gap-3">
                 <input
@@ -295,85 +295,33 @@ export default function CategoryPage() {
               >
                 Áp Dụng
               </button>
-            </div>
 
-            {/* Sắp xếp giá */}
-            <div className="flex flex-col space-y-4">
-              <h4 className="font-semibold">Giá</h4>
-              <div className="flex flex-col">
-                <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
-                  <input
-                    type="radio"
-                    name="priceFilterOptions"
-                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
-                    checked={selectedPriceFilter === "asc"}
-                    onChange={() => {
-                      setSelectedPriceFilter("asc");
-                      setSelectedSort("Phổ Biến");
-                    }}
-                  />
-                  <span>Thấp đến cao</span>
-                </label>
-                <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
-                  <input
-                    type="radio"
-                    name="priceFilterOptions"
-                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
-                    checked={selectedPriceFilter === "desc"}
-                    onChange={() => {
-                      setSelectedPriceFilter("desc");
-                      setSelectedSort("Phổ Biến");
-                    }}
-                  />
-                  <span>Cao đến thấp</span>
-                </label>
-                <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
-                  <input
-                    type="radio"
-                    name="priceFilterOptions"
-                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
-                    checked={selectedPriceFilter === "discount"}
-                    onChange={() => {
-                      setSelectedPriceFilter("discount");
-                      setSelectedSort("Phổ Biến");
-                    }}
-                  />
-                  <span>Giảm nhiều nhất</span>
-                </label>
-              </div>
-            </div>
+              <select
+                className="border w-full px-3 py-2 rounded cursor-pointer"
+                value={selectedPriceFilter || ""}
+                onChange={e => {
+                  setSelectedPriceFilter(e.target.value);
+                  setSelectedSort("Phổ Biến");
+                }}
+              >
+                <option value="">-- Sắp xếp giá --</option>
+                <option value="asc">Thấp đến cao</option>
+                <option value="desc">Cao đến thấp</option>
+                <option value="discount">Giảm nhiều nhất</option>
+              </select>
 
-            {/* Sắp xếp giá chưa giảm*/}
-            <div className="flex flex-col space-y-4">
-              <h4 className="font-semibold">Giá chưa giảm</h4>
-              <div className="flex flex-col">
-                <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
-                  <input
-                    type="radio"
-                    name="originalPriceFilterOptions"
-                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
-                    checked={selectedOriginalPriceFilter === "asc"}
-                    onChange={() => {
-                      setSelectedOriginalPriceFilter("asc");
-                      setSelectedSort("Phổ Biến");
-                    }}
-                  />
-                  <span>Thấp đến cao</span>
-                </label>
-                <label className="space-x-2 cursor-pointer w-full px-3 py-2 transition-colors hover:text-brand">
-                  <input
-                    type="radio"
-                    name="originalPriceFilterOptions"
-                    className="form-radio text-brand rounded-sm focus:ring-0 accent-[#DB4444]"
-                    checked={selectedOriginalPriceFilter === "desc"}
-                    onChange={() => {
-                      setSelectedOriginalPriceFilter("desc");
-                      setSelectedSort("Phổ Biến");
-                    }}
-                  />
-                  <span>Cao đến thấp</span>
-                </label>
-              </div>
+              <select
+                className="border w-full px-3 py-2 rounded cursor-pointer"
+                value={selectedOriginalPriceFilter || ""}
+                onChange={e => {
+                  setSelectedOriginalPriceFilter(e.target.value);
+                  setSelectedSort("Phổ Biến");
+                }}
+              >
+                <option value="">-- Sắp xếp giá chưa giảm --</option>
+                <option value="asc">Thấp đến cao</option>
+                <option value="desc">Cao đến thấp</option>
+              </select>
             </div>
           </div>
         </div>
