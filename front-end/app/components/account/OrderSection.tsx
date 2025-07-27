@@ -162,7 +162,7 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
     // Step 2: Gửi lý do + danh sách ảnh URL đến API refund
     const payload = {
       reason: refundData.reason,
-      photos: imageUrls,
+      images: imageUrls,
     }
 
     await axios.post(`${API_BASE_URL}/orders/${orderToRefund.id}/refund`, payload, {
