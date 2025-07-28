@@ -144,6 +144,8 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
       const imgForm = new FormData();
       imgForm.append("image", image);
 
+      console.log("📤 Uploading image:", image); // Xem file ảnh đang upload
+
       const res = await axios.post(`${API_BASE_URL}/upload-refund-image`, imgForm, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -152,6 +154,9 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
       });
 
       const uploaded = res.data?.images?.[0];
+
+      console.log("✅ Image uploaded, got URL:", uploaded);
+
       if (uploaded) {
         imageUrls.push(uploaded);
       } else {
@@ -162,15 +167,19 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
     // ✅ Step 2: Gửi reason + danh sách URL ảnh (images)
     const payload = {
       reason: refundData.reason,
-      images: imageUrls, 
+      images: imageUrls,
     };
 
-    await axios.post(`${API_BASE_URL}/orders/${orderToRefund.id}/refund`, payload, {
+    console.log("📦 Payload gửi qua API hoàn đơn:", payload);
+
+    const response = await axios.post(`${API_BASE_URL}/orders/${orderToRefund.id}/refund`, payload, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });
+
+    console.log("✅ Phản hồi từ API hoàn đơn:", response.data);
 
     // Step 3: UI cập nhật
     setOrders((prev) =>
@@ -186,6 +195,7 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
     setIsProcessingRefund(false);
   }
 };
+
 
   const handleReorder = async (order: Order) => {
     if (!token) return
