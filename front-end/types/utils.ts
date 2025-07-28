@@ -24,10 +24,17 @@ export const translateOrderStatus = (status: OrderStatus): string => {
             return "Đã giao";
         case OrderStatus.Canceled:
             return "Đã hủy";
+        case OrderStatus.ReturnRequested:
+            return "Yêu cầu hoàn đơn";
+        case OrderStatus.Returning:
+            return "Đang hoàn đơn";
+        case OrderStatus.Refunded:
+            return "Đã hoàn tiền";
         default:
-            return status;
+            return "Không xác định";
     }
 };
+
 
 export const translateShippingStatus = (status: ShippingStatus): string => {
     switch (status) {

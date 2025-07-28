@@ -201,7 +201,10 @@ export default function OrderListItem({
                                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}
                             >
                                 <StatusIcon className={`w-4 h-4 ${statusConfig.iconColor}`} />
-                                <span className="font-semibold text-sm">{translateOrderStatus(order.order_status)}</span>
+                                <span className="font-semibold text-sm whitespace-nowrap">
+                                    {translateOrderStatus(order.order_status)}
+                                </span>
+
                             </div>
                         </div>
 
@@ -225,9 +228,11 @@ export default function OrderListItem({
                                 </div>
                                 <div>
                                     <span className="text-xs text-gray-500 font-medium block">Trạng thái</span>
-                                    <span className="font-semibold text-gray-900 text-sm">
+                                    <span className="font-semibold text-gray-900 text-sm whitespace-nowrap leading-none">
                                         {translateOrderStatus(order.order_status)}
                                     </span>
+
+
                                 </div>
                             </div>
 

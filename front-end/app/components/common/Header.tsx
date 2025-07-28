@@ -301,7 +301,7 @@ const Header = () => {
               <button className="relative text-black">
                  <Link
                         href={`/category/`}
-                        className="block px-4 py-2 hover:bg-brand/10"
+                        className="block px-4 py-2 "
                       >
                         Danh mục
                       </Link>

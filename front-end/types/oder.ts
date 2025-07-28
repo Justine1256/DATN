@@ -19,7 +19,14 @@ export enum ShippingStatus {
     Delivered = "Delivered", // Đã giao
     Failed = "Failed", // Thất bại
 }
-
+export enum ReturnStatus {
+    None = "None",           // Không có yêu cầu
+    Requested = "Requested", // Người dùng đã gửi yêu cầu
+    Approved = "Approved",   // Admin duyệt hoàn đơn
+    Rejected = "Rejected",   // Admin từ chối hoàn đơn
+    Returning = "Returning", // Người dùng đang gửi hàng
+    Refunded = "Refunded",   // Đã hoàn tiền
+}
 // Trạng thái thanh toán
 export enum PaymentStatus {
     Pending = "pending", // Chờ thanh toán
@@ -84,6 +91,93 @@ export interface ShippingInfo {
     recipient_name: string
     recipient_phone: string
 }
+export const getOrderStatusLabel = (status: OrderStatus): string => {
+    switch (status) {
+        case OrderStatus.Pending:
+            return "Đang chờ xử lý"
+        case OrderStatus.OrderConfirmation:
+            return "Đang xác nhận"
+        case OrderStatus.Shipped:
+            return "Đã gửi hàng"
+        case OrderStatus.Delivered:
+            return "Đã giao hàng"
+        case OrderStatus.Canceled:
+            return "Đã hủy"
+        case OrderStatus.ReturnRequested:
+            return "Yêu cầu hoàn đơn"
+        case OrderStatus.Returning:
+            return "Đang hoàn hàng"
+        case OrderStatus.Refunded:
+            return "Đã hoàn tiền"
+        default:
+            return "Không xác định"
+    }
+}
+
+export const getShippingStatusLabel = (status: ShippingStatus): string => {
+    switch (status) {
+        case ShippingStatus.Pending:
+            return "Chờ giao hàng"
+        case ShippingStatus.Shipping:
+            return "Đang giao"
+        case ShippingStatus.Delivered:
+            return "Đã giao"
+        case ShippingStatus.Failed:
+            return "Giao thất bại"
+        default:
+            return "Không xác định"
+    }
+}
+export const getPaymentMethodLabel = (method: PaymentMethod): string => {
+    switch (method) {
+        case PaymentMethod.COD:
+            return "Thanh toán khi nhận hàng"
+        case PaymentMethod.BankTransfer:
+            return "Chuyển khoản ngân hàng"
+        case PaymentMethod.CreditCard:
+            return "Thẻ tín dụng"
+        case PaymentMethod.EWallet:
+            return "Ví điện tử"
+        case PaymentMethod.Momo:
+            return "Ví MoMo"
+        case PaymentMethod.ZaloPay:
+            return "Ví ZaloPay"
+        default:
+            return "Không xác định"
+    }
+}
+export const getPaymentStatusLabel = (status: PaymentStatus): string => {
+    switch (status) {
+        case PaymentStatus.Pending:
+            return "Chờ thanh toán"
+        case PaymentStatus.Paid:
+            return "Đã thanh toán"
+        case PaymentStatus.Failed:
+            return "Thanh toán thất bại"
+        case PaymentStatus.Refunded:
+            return "Đã hoàn tiền"
+        case PaymentStatus.PartiallyRefunded:
+            return "Hoàn tiền một phần"
+        default:
+            return "Không xác định"
+    }
+}
+export const translateReturnStatus = (status: string): string => {
+    switch (status) {
+        case "Return Requested":
+            return "Yêu cầu hoàn hàng"
+        case "Returning":
+            return "Đang gửi trả hàng"
+        case "Refunded":
+            return "Đã hoàn tiền"
+        case "Rejected":
+            return "Từ chối hoàn hàng"
+        case "None":
+            return "Không hoàn"
+        default:
+            return status
+    }
+}
 
 export interface Order {
     id: number
@@ -144,6 +238,40 @@ export const getOrderStatusColor = (status: OrderStatus): string => {
             return "text-green-700 bg-green-50 border-green-200"
         default:
             return "text-gray-700 bg-gray-50 border-gray-200"
+    }
+}
+export const getReturnStatusColor = (status: ReturnStatus): string => {
+    switch (status) {
+        case ReturnStatus.Requested:
+            return "text-orange-700 bg-orange-50 border-orange-200"
+        case ReturnStatus.Approved:
+            return "text-blue-700 bg-blue-50 border-blue-200"
+        case ReturnStatus.Rejected:
+            return "text-red-700 bg-red-50 border-red-200"
+        case ReturnStatus.Returning:
+            return "text-purple-700 bg-purple-50 border-purple-200"
+        case ReturnStatus.Refunded:
+            return "text-green-700 bg-green-50 border-green-200"
+        case ReturnStatus.None:
+        default:
+            return "text-gray-700 bg-gray-50 border-gray-200"
+    }
+}
+export const getReturnStatusLabel = (status: ReturnStatus): string => {
+    switch (status) {
+        case ReturnStatus.Requested:
+            return "Yêu cầu hoàn"
+        case ReturnStatus.Approved:
+            return "Đã duyệt"
+        case ReturnStatus.Rejected:
+            return "Từ chối hoàn"
+        case ReturnStatus.Returning:
+            return "Đang gửi hàng"
+        case ReturnStatus.Refunded:
+            return "Hoàn tất hoàn tiền"
+        case ReturnStatus.None:
+        default:
+            return "Không có"
     }
 }
 
