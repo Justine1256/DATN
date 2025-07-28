@@ -27,7 +27,8 @@ interface OrderListItemProps {
     onViewDetails: (order: Order) => void
     onReorder: (order: Order) => void
     onCancelOrder: (orderId: number, reason: string) => void
-    onRefundRequest: (order: Order, data: { reason: string; images: File[] }) => Promise<void>
+    onRefundRequest: (order: Order) => void;
+
 }
 
 export default function OrderListItem({
@@ -358,7 +359,7 @@ export default function OrderListItem({
                         {canRefund ? (
                             <button
                                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg shadow-purple-500/20"
-                                onClick={() => setShowRefundModal(true)}
+                                onClick={() => onRefundRequest(order)}
                             >
                                 <RotateCcw className="w-4 h-4" />
                                 Hoàn đơn
@@ -414,16 +415,6 @@ export default function OrderListItem({
                 </div>
             )}
 
-            {/* Refund Request Modal */}
-            <RefundRequestModal
-                order={order}
-                isVisible={showRefundModal}
-                onClose={() => {
-                    setShowRefundModal(false)
-                }}
-                onSubmit={handleRefundRequest}
-                isProcessing={isProcessingRefund}
-            />
         </div>
     )
 }

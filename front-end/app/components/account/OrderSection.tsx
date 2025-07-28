@@ -132,19 +132,28 @@ export default function OrderSection() {
   }
 
 const handleSubmitRefund = async (refundData: { reason: string; images: File[] }) => {
-  if (!orderToRefund || isProcessingRefund) return;
+  console.log("🧪 Bắt đầu gọi handleSubmitRefund");
+
+  if (!orderToRefund) {
+    console.warn("⚠️ Không có orderToRefund");
+    return;
+  }
+
+  if (isProcessingRefund) {
+    console.warn("⚠️ Đang xử lý refund, vui lòng đợi...");
+    return;
+  }
 
   setIsProcessingRefund(true);
 
   try {
     const imageUrls: string[] = [];
 
-    // Step 1: Upload từng ảnh → nhận URL
     for (const image of refundData.images) {
       const imgForm = new FormData();
       imgForm.append("image", image);
 
-      console.log("📤 Uploading image:", image); // Xem file ảnh đang upload
+      console.log("📤 Uploading image:", image);
 
       const res = await axios.post(`${API_BASE_URL}/upload-refund-image`, imgForm, {
         headers: {
@@ -153,18 +162,19 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
         },
       });
 
+      console.log("📥 Phản hồi từ API upload ảnh:", res.data);
+
       const uploaded = res.data?.images?.[0];
 
-      console.log("✅ Image uploaded, got URL:", uploaded);
-
       if (uploaded) {
+        console.log("✅ Image uploaded successfully:", uploaded);
         imageUrls.push(uploaded);
       } else {
+        console.error("❌ Không nhận được URL ảnh sau khi upload:", res.data);
         throw new Error("Không nhận được URL ảnh sau khi upload");
       }
     }
 
-    // ✅ Step 2: Gửi reason + danh sách URL ảnh (images)
     const payload = {
       reason: refundData.reason,
       images: imageUrls,
@@ -181,15 +191,18 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
 
     console.log("✅ Phản hồi từ API hoàn đơn:", response.data);
 
-    // Step 3: UI cập nhật
     setOrders((prev) =>
       prev.map((o) => (o.id === orderToRefund.id ? { ...o, refund_requested: true } : o))
     );
     setShowRefundModal(false);
     setOrderToRefund(null);
     alert("✅ Yêu cầu hoàn đơn đã được gửi thành công!");
-  } catch (err) {
+  } catch (err: any) {
     console.error("❌ Lỗi khi gửi yêu cầu hoàn đơn:", err);
+    console.error("📩 Chi tiết lỗi từ server:", err.response?.data);
+    if (err?.response) {
+      console.error("📩 Chi tiết lỗi từ server:", err.response.data);
+    }
     alert("Đã xảy ra lỗi khi gửi yêu cầu hoàn đơn.");
   } finally {
     setIsProcessingRefund(false);
@@ -234,7 +247,7 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
                   onViewDetails={handleViewOrderDetails}
                   onReorder={handleReorder}
                   onCancelOrder={handleCancelOrder}
-                  onRefundRequest={handleSubmitRefund}
+                  onRefundRequest={handleRefundRequest}
                 />
               ))}
             </div>

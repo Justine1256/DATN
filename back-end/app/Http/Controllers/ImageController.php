@@ -125,7 +125,7 @@ public function uploadRefundImage(Request $request)
     $file = $request->file('image');
     $path = $file->store('Refund_photos', 'public');
 
-    $url = str_replace(config('app.url'), 'https://files.marketo.info.vn', asset('storage/' . $path));
+    $url = asset('storage/' . $path);
 
     return response()->json([
         'message' => 'Tải ảnh hoàn đơn thành công',
