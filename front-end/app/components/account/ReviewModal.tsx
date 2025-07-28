@@ -81,6 +81,10 @@ const handleSubmit = async (orderDetailId: number) => {
 
     try {
         const token = Cookies.get("authToken");
+        if (!token) {
+            showPopup("error", "Bạn chưa đăng nhập.");
+            return;
+        }
 
         let imageUrls: string[] = [];
         if (review.images && review.images.length > 0) {
