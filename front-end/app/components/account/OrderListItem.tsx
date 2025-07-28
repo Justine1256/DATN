@@ -128,11 +128,15 @@ export default function OrderListItem({
 
     const handleReorder = (order: Order) => {
         if (order.order_status === "Canceled") {
-            onReorder(order)
             setAddToCartSuccess(true)
+
             const cartItems = JSON.parse(localStorage.getItem("cart") || "[]")
+
+            // Push từng item, kiểm tra trùng nếu cần
             cartItems.push(...order.order_details)
+
             localStorage.setItem("cart", JSON.stringify(cartItems))
+
             setTimeout(() => {
                 setAddToCartSuccess(false)
                 router.push("/cart")
@@ -141,6 +145,7 @@ export default function OrderListItem({
             alert("Đơn hàng này không thể đặt lại.")
         }
     }
+
 
     const handleCancelOrder = async (reason: string) => {
         setIsCancelling(true)
