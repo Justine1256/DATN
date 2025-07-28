@@ -26,6 +26,7 @@ export default function OrderSection() {
   const [showRefundModal, setShowRefundModal] = useState(false)
   const [orderToRefund, setOrderToRefund] = useState<Order | null>(null)
   const [isProcessingRefund, setIsProcessingRefund] = useState(false)
+  const [popup, setPopup] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
   const token = Cookies.get("authToken")
 
@@ -196,7 +197,9 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
     );
     setShowRefundModal(false);
     setOrderToRefund(null);
-    alert("✅ Yêu cầu hoàn đơn đã được gửi thành công!");
+    setPopup({ type: "success", message: "✅ Yêu cầu hoàn đơn đã được gửi thành công!" })
+    setTimeout(() => setPopup(null), 3000)
+
   } catch (err: any) {
     console.error("❌ Lỗi khi gửi yêu cầu hoàn đơn:", err);
     console.error("📩 Chi tiết lỗi từ server:", err.response?.data);
@@ -298,6 +301,19 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
           isProcessing={isProcessingRefund}
         />
       )}
+      {popup && (
+        <div
+          className={`fixed top-20 right-5 z-[10001] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade
+      ${popup.type === "success"
+              ? "bg-white text-black border-green-500"
+              : "bg-white text-red-600 border-red-500"
+            }`}
+        >
+          {popup.message}
+        </div>
+      )}
+
     </div>
+    
   )
 }
