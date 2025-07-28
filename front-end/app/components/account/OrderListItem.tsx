@@ -179,7 +179,8 @@ export default function OrderListItem({
     const canCancel = order.order_status === "Pending" || order.order_status === "order confirmation"
 
     // Check if can request refund
-    const canRefund = order.order_status === "Delivered" && !order.refund_requested
+    const canRefund = order.order_status === "Delivered" && !order.refund_requested && !order.order_details.every((detail) => detail.reviewed)
+
 
     const statusConfig = getStatusConfig(order.order_status)
     const StatusIcon = statusConfig.icon
@@ -361,20 +362,23 @@ export default function OrderListItem({
                             ))}
 
                         {/* Refund Button - Chỉ hiện khi có thể hoàn đơn */}
-                        {canRefund ? (
-                            <button
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg shadow-purple-500/20"
-                                onClick={() => onRefundRequest(order)}
-                            >
-                                <RotateCcw className="w-4 h-4" />
-                                Hoàn đơn
-                            </button>
-                        ) : order.refund_requested ? (
-                            <div className="inline-flex items-center gap-2 text-purple-600 font-semibold px-4 py-3">
-                                <RotateCcw className="w-4 h-4" />
-                                Đã yêu cầu hoàn đơn
-                            </div>
+                        {order.order_status === "Delivered" ? (
+                            order.refund_requested ? (
+                                <div className="inline-flex items-center gap-2 text-purple-600 font-semibold px-4 py-3">
+                                    <RotateCcw className="w-4 h-4" />
+                                    Đã yêu cầu hoàn đơn
+                                </div>
+                            ) : order.order_details.every((detail) => detail.reviewed) ? null : (
+                                <button
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg shadow-purple-500/20"
+                                    onClick={() => onRefundRequest(order)}
+                                >
+                                    <RotateCcw className="w-4 h-4" />
+                                    Hoàn đơn
+                                </button>
+                            )
                         ) : null}
+
 
                         {order.order_status === "Canceled" && (
                             <button
