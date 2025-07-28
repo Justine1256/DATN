@@ -80,7 +80,9 @@ export default function OrderFilterTabs({ activeTab, onFilterChange }: OrderFilt
             </div>
 
             {/* Desktop Tabs */}
-            <div className="hidden sm:flex flex-wrap justify-center gap-3">
+            <div className="hidden sm:flex flex-nowrap justify-center gap-3 overflow-x-auto scrollbar-hide">
+
+
                 {tabs.map((tab) => {
                     const Icon = tab.icon
                     const isActive = activeTab === tab.key
@@ -90,16 +92,19 @@ export default function OrderFilterTabs({ activeTab, onFilterChange }: OrderFilt
                             key={tab.key}
                             onClick={() => onFilterChange(tab.key)}
                             className={`
-                inline-flex items-center gap-2 px-4 py-2.5 lg:px-5 lg:py-3
-                rounded-full font-medium text-sm
-                transition-colors duration-200
-                whitespace-nowrap
-                ${isActive ? tab.activeColors : `bg-white text-gray-600 border border-gray-200 ${tab.hoverColors}`}
-              `}
+    inline-flex items-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5
+    rounded-full font-normal text-[13px]
+    transition-colors duration-200
+    whitespace-nowrap
+    ${isActive
+                                    ? tab.activeColors
+                                    : `bg-white text-gray-600 border border-gray-200 ${tab.hoverColors}`}
+  `}
                         >
-                            <Icon className="w-4 h-4" />
+                            <Icon className="w-[14px] h-[14px]" />
                             <span>{tab.label}</span>
                         </button>
+
                     )
                 })}
             </div>

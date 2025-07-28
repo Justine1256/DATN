@@ -149,7 +149,9 @@ export default function AccountSidebar({
   };
 
   return (
-    <div className="w-[253px] ">
+    <div className="w-[253px]">
+
+
 
 
       {/* 🔹 Thông tin người dùng + ảnh đại diện */}
@@ -192,7 +194,10 @@ export default function AccountSidebar({
             {/* Tên người dùng + Rank + Trạng thái */}
             <div className="flex-1 space-y-1">
               {/* Tên */}
-              <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
+              {user?.name && (
+                <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
+              )}
+
 
               {/* Rank badge */}
               <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRankBg(user.rank)}`}>
