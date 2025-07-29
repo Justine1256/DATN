@@ -296,25 +296,18 @@ const Header = () => {
               Trang Chủ
               <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
             </Link>
-
             <div className="relative group" ref={categoryRef}>
-              <button className="relative text-black">
-                 <Link
-                        href={`/category/`}
-                        className="block px-4 py-2 "
-                      >
-                        Danh mục
-                      </Link>
+              <Link href="/category" className="relative block text-black group">
+                Danh mục
                 <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
-              </button>
+              </Link>
+
+              {/* Dropdown list */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border shadow-lg rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
                 <ul>
                   {categories.map(cat => (
                     <li key={cat.id}>
-                      <Link
-                        href={`/category/${cat.slug}`}
-                        className="block px-4 py-2 hover:bg-brand/10"
-                      >
+                      <Link href={`/category/${cat.slug}`} className="block px-4 py-2 hover:bg-brand/10">
                         {cat.name}
                       </Link>
                     </li>
@@ -322,6 +315,7 @@ const Header = () => {
                 </ul>
               </div>
             </div>
+
 
             <Link
               href="/about"
@@ -385,7 +379,8 @@ const Header = () => {
             </div>
 
             <Link href="/wishlist" className="relative w-5 h-5 block">
-              <AiOutlineHeart className="w-5 h-5 text-red-500 transition" />
+              <AiOutlineHeart className="w-5 h-5 text-black hover:text-red-500 transition-colors duration-300" />
+
 
               {wishlistItems.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">

@@ -6,16 +6,25 @@ import CheckoutForm from '@/app/components/checkout/CheckoutForm';
 import OrderSummary from '@/app/components/checkout/OrderSummary';
 import { useState } from 'react';
 
-interface CartItem {
-  id: number;
+// types/CartItem.ts
+export interface CartItem {
+  id: number | string;
   quantity: number;
   product: {
+    id: number;
     name: string;
-    image: string;
+    image: string | string[];
     price: number;
+    sale_price?: number | null;
     original_price?: number;
   };
+  variant?: {
+    id: number;
+    price?: number;
+    sale_price?: number | null;
+  };
 }
+
 
 export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -51,9 +60,9 @@ export default function CheckoutPage() {
         </div>
         <div className="space-y-8 pl-6">
           <CartAndPayment
-            onPaymentInfoChange={({ paymentMethod, totalPrice }) => {
+            onPaymentInfoChange={({ paymentMethod, total }) => {
               setPaymentMethod(paymentMethod);
-              setTotalPrice(totalPrice);
+              setTotalPrice(total);
             }}
             onCartChange={(items) => setCartItems(items as any)}
           />

@@ -35,7 +35,7 @@ interface Shop {
     description: string;
     logo: string;
     phone: string;
-    rating: string | null; 
+    rating: string; // <-- sửa từ string | null thành string
     total_sales: number;
     created_at: string;
     status: 'activated' | 'pending' | 'suspended';
@@ -43,6 +43,7 @@ interface Shop {
     slug: string;
     followers_count: number;
 }
+
 
 const ShopPage = () => {
     const [shop, setShop] = useState<Shop | null>(null);

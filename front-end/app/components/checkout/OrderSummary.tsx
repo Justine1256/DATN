@@ -6,13 +6,16 @@ import { useEffect, useRef, useState } from 'react';
 import { API_BASE_URL } from '@/utils/api';
 
 // ✅ Kiểu dữ liệu cho từng item trong giỏ hàng
-interface CartItem {
-  id: number;
+export interface CartItem {
+  id: number | string;
   quantity: number;
   product: {
     id: number;
+    name: string;
+    image: string | string[];
     price: number;
     sale_price?: number | null;
+    original_price?: number;
   };
   variant?: {
     id: number;

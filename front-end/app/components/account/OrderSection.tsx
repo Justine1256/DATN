@@ -280,12 +280,13 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
           order={selectedOrder}
           isVisible={popupVisible}
           onClose={closePopup}
-          onShowConfirmCancel={null}
+          onShowConfirmCancel={() => { }} // ✅ sửa tại đây
           onCancelOrder={handleCancelOrder}
           onRefundRequest={handleRefundRequest}
           isCancelling={isCancelling}
         />
       )}
+
 
       {showRefundModal && orderToRefund && (
         <RefundRequestModal

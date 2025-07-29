@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { FiHeart } from "react-icons/fi";
 import { AiFillHeart, AiFillStar } from "react-icons/ai";
-
+import { AiOutlineHeart } from "react-icons/ai";
 import { LoadingSkeleton } from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 
@@ -215,15 +215,11 @@ export default function ProductCardCate({
       )}
 
       <button
-        onClick={handleLike}
-        className="absolute top-2 right-2 text-xl z-20 pointer-events-auto"
-      >
-        {liked ? (
-          <AiFillHeart className="text-brand transition" />
-        ) : (
-          <FiHeart className="text-gray-500 transition" />
-        )}
-      </button>
+              onClick={handleLike}
+              className="absolute top-2 right-2 text-xl z-20 pointer-events-auto"
+            >
+              <AiOutlineHeart className="text-red-500 transition" />
+            </button>
 
       <div className="w-full h-[150px] mt-4 flex items-center justify-center overflow-hidden">
         <Image

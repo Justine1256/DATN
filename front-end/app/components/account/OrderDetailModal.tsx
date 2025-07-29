@@ -10,8 +10,12 @@ interface OrderDetailModalProps {
     isVisible: boolean
     onClose: () => void
     onShowConfirmCancel: (orderId: number) => void
+    onCancelOrder: (orderId: number, reason: string) => Promise<void>
+    onRefundRequest: (order: Order) => void // ✅ Thêm dòng này
     isCancelling: boolean
 }
+
+
 
 const getStatusColor = (status: string) => {
     const cleanStatus = status?.toString().trim()
@@ -38,9 +42,11 @@ export default function OrderDetailModal({
     order,
     isVisible,
     onClose,
+    onCancelOrder, // 🟢 thêm dòng này
     onShowConfirmCancel,
     isCancelling,
-}: OrderDetailModalProps) {
+}: OrderDetailModalProps)
+ {
     if (!isVisible || !order) return null
 
     return (
