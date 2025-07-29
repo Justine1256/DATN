@@ -1026,7 +1026,7 @@ class OrderController extends Controller
         return response()->json(['message' => 'Cập nhật đơn hàng thành công']);
     }
     // hoàn đơn
-        public function requestRefund(Request $request, $id)
+    public function requestRefund(Request $request, $id)
     {
         $order = Order::where('id', $id)
             ->where('user_id', Auth::id())
@@ -1060,11 +1060,16 @@ class OrderController extends Controller
 
         // Cập nhật trạng thái hoàn đơn
         $order->update([
+            'return_status' => 'Requested',
             'order_status' => 'Return Requested',
             'order_admin_status' => 'Return Requested',
             'cancel_reason' => $validated['reason'],
             'cancel_status' => 'Requested',
         ]);
+        if (!$order->return_confirmed_at) {
+            $order->return_confirmed_at = now();
+            $order->save();
+        }
 
         // Nếu có ảnh thì xử lý upload
         if (!empty($validated['images'])) {
@@ -1093,9 +1098,10 @@ class OrderController extends Controller
             return response()->json(['message' => 'Đơn hàng không hợp lệ để từ chối hoàn đơn'], 400);
         }
 
-        $order->order_admin_status = 'Return Requested';
+        $order->order_admin_status = 'Delivered';
         $order->order_status = 'Delivered'; // Trả lại trạng thái đã giao
         $order->rejection_reason = $validated['rejection_reason'];
+        $order->return_status = 'Requested';
         $order->save();
 
         // Gửi thông báo cho user
@@ -1142,8 +1148,9 @@ class OrderController extends Controller
             return response()->json(['message' => 'Không thể duyệt hoàn đơn trong trạng thái hiện tại'], 400);
         }
 
-        $order->order_admin_status = 'Return Requested';
-        $order->order_status = 'Return Requested';
+        $order->order_admin_status = 'Return Approved';
+        $order->order_status = 'Returning';
+        $order->return_status = 'Approved';
         $order->save();
 
         Notification::create([
