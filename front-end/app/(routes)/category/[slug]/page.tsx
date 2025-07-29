@@ -258,44 +258,91 @@ export default function CategoryPage() {
             </div>
 
             {/* Lọc theo giá */}
+            {/* Lọc theo giá */}
             <div className="flex flex-col space-y-4">
+              
               <div className="flex gap-2">
                 <h4 className="font-semibold">Giá</h4>
-                <p>(Nghìn đồng)</p>
+                <p>(VNĐ)</p>
               </div>
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  name="startPrice"
-                  id="startPrice"
-                  placeholder="Từ"
-                  className="border w-full px-3 py-1 rounded"
-                  value={formatInputValue(startPriceInput)}
-                  onChange={e => {
-                    // Only update input state, not filter state
-                    const raw = e.target.value.replace(/\D/g, "");
-                    setStartPriceInput(raw);
-                  }} />
-                <input
-                  type="text"
-                  name="endPrice"
-                  id="endPrice"
-                  placeholder="Đến"
-                  className="border w-full px-3 py-1 rounded"
-                  value={formatInputValue(endPriceInput)}
-                  onChange={e => {
-                    const raw = e.target.value.replace(/\D/g, "");
-                    setEndPriceInput(raw);
+
+              {/* Hiển thị khoảng giá */}
+              <div className="flex justify-between text-sm text-gray-700">
+                <span>{formatCurrency(startPrice)}</span>
+                <span>{formatCurrency(filterPriceMax)}</span>
+              </div>
+
+              {/* Thanh lọc 2 đầu */}
+              <div className="relative h-8 mt-2 mb-4">
+                {/* Thanh nền */}
+                <div className="absolute top-1/2 left-0 right-0 h-2 bg-gray-200 rounded-full transform -translate-y-1/2" />
+
+                {/* Thanh vùng chọn đỏ */}
+                <div
+                  className="absolute top-1/2 h-2 bg-[#DB4444] rounded-full transform -translate-y-1/2"
+                  style={{
+                    left: `${(startPrice / 50000000) * 100}%`,
+                    right: `${100 - (filterPriceMax / 50000000) * 100}%`,
                   }}
                 />
-              </div>
-              <button
-                className="border border-brand text-brand px-4 py-2 rounded"
-                onClick={() => filterByPrice(startPriceInput, endPriceInput)}
-              >
-                Áp Dụng
-              </button>
 
+                {/* Slider trái */}
+                <input
+                  type="range"
+                  min={0}
+                  max={50000000}
+                  step={100000}
+                  value={startPrice}
+                  onChange={(e) => {
+                    const newStart = Number(e.target.value);
+                    if (newStart <= filterPriceMax) setStartPrice(newStart);
+                  }}
+                  className="absolute w-full h-8 appearance-none bg-transparent pointer-events-none
+      [&::-webkit-slider-thumb]:pointer-events-auto
+      [&::-webkit-slider-thumb]:appearance-none
+      [&::-webkit-slider-thumb]:h-5
+      [&::-webkit-slider-thumb]:w-5
+      [&::-webkit-slider-thumb]:rounded-full
+      [&::-webkit-slider-thumb]:bg-white
+      [&::-webkit-slider-thumb]:border
+      [&::-webkit-slider-thumb]:border-[#DB4444]
+      [&::-webkit-slider-thumb]:shadow
+      [&::-webkit-slider-thumb]:hover:scale-110
+      transition-transform duration-200"
+                />
+
+                {/* Slider phải */}
+                <input
+                  type="range"
+                  min={0}
+                  max={50000000}
+                  step={100000}
+                  value={filterPriceMax}
+                  onChange={(e) => {
+                    const newEnd = Number(e.target.value);
+                    if (newEnd >= startPrice) {
+                      setFilterPriceMax(newEnd);
+                      setCurrentPriceRangeValue(newEnd);
+                    }
+                  }}
+                  className="absolute w-full h-8 appearance-none bg-transparent pointer-events-none
+      [&::-webkit-slider-thumb]:pointer-events-auto
+      [&::-webkit-slider-thumb]:appearance-none
+      [&::-webkit-slider-thumb]:h-5
+      [&::-webkit-slider-thumb]:w-5
+      [&::-webkit-slider-thumb]:rounded-full
+      [&::-webkit-slider-thumb]:bg-white
+      [&::-webkit-slider-thumb]:border
+      [&::-webkit-slider-thumb]:border-[#DB4444]
+      [&::-webkit-slider-thumb]:shadow
+      [&::-webkit-slider-thumb]:hover:scale-110
+      transition-transform duration-200"
+                />
+              </div>
+
+
+
+              {/* Dropdown sắp xếp giá */}
               <select
                 className="border w-full px-3 py-2 rounded cursor-pointer"
                 value={selectedPriceFilter || ""}
@@ -318,11 +365,28 @@ export default function CategoryPage() {
                   setSelectedSort("Phổ Biến");
                 }}
               >
+
                 <option value="">-- Sắp xếp giá chưa giảm --</option>
                 <option value="asc">Thấp đến cao</option>
                 <option value="desc">Cao đến thấp</option>
               </select>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={handleApplyFilters}
+                  className="w-1/2 bg-[#DB4444] text-white px-4 py-3 rounded text-base font-semibold hover:opacity-90"
+                >
+                  Áp dụng
+                </button>
+                <button
+                  onClick={handleResetFilters}
+                  className="w-1/2 text-gray-600 border px-4 py-3 rounded text-base font-semibold hover:text-black"
+                >
+                  Đặt lại
+                </button>
+              </div>
+
             </div>
+
           </div>
         </div>
 
