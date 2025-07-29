@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Order;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
@@ -390,7 +392,99 @@ public function showAllShops(Request $request)
             'message' => 'Không thể phê duyệt shop. Vui lòng thử lại sau.'
         ], 500);
     }
+public function getMyShopCustomers(Request $request)
+{
+    $user = Auth::user();
+    $shop = $user->shop;
 
+    if (!$shop) {
+        return response()->json(['message' => 'Bạn chưa sở hữu shop nào.'], 403);
+    }
+
+    $cancelStatuses = [
+        'Cancelled by Customer',
+        'Cancelled by Seller',
+        'Cancelled - Payment Failed',
+        'Cancelled - Customer Refused Delivery'
+    ];
+
+    $userIds = Order::where('shop_id', $shop->id)
+        ->whereNotNull('user_id')
+        ->distinct()
+        ->pluck('user_id');
+
+    $users = User::whereIn('id', $userIds)
+        ->with('defaultAddress')
+        ->get();
+
+    $data = $users->map(function ($user) use ($shop, $cancelStatuses) {
+        $orders = Order::where('shop_id', $shop->id)
+            ->where('user_id', $user->id)
+            ->get();
+
+        $cancelledOrders = $orders->filter(function ($order) use ($cancelStatuses) {
+            return $order->order_status === 'Canceled' ||
+                   in_array($order->order_admin_status, $cancelStatuses);
+        });
+
+        return [
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => optional($user->defaultAddress)?->phone,
+            'shipping_address' => optional($user->defaultAddress)?->full_address,
+            'total_orders' => $orders->count(),
+            'total_spent' => $orders->sum('final_amount'),
+            'last_order_at' => optional($orders->sortByDesc('created_at')->first())->created_at,
+            'has_cancelled_order' => $cancelledOrders->isNotEmpty(),
+            'cancelled_orders_count' => $cancelledOrders->count(),
+            'cancel_details' => $cancelledOrders->map(function ($order) {
+    // Eager load orderDetails.product cho đơn bị hủy
+    $order->loadMissing('orderDetails.product');
+
+    $products = $order->orderDetails->map(function ($detail) {
+        $firstImage = null;
+
+        if (!empty($detail->product?->image)) {
+            $images = $detail->product->image;
+
+            if (!is_array($images)) {
+                $decoded = json_decode($images, true);
+                if (is_array($decoded)) {
+                    $images = $decoded;
+                }
+            }
+
+            if (is_array($images) && count($images) > 0) {
+                $firstImage = $images[0];
+            }
+        }
+
+        return [
+            'id' => $detail->product->id ?? null,
+            'name' => $detail->product->name ?? null,
+            'price_at_time' => $detail->price_at_time,
+            'quantity' => $detail->quantity,
+            'subtotal' => $detail->subtotal,
+            'image' => $firstImage,
+        ];
+    });
+
+    return [
+        'order_id' => $order->id,
+        'cancel_reason' => $order->cancel_reason,
+        'canceled_at' => $order->canceled_at,
+        'products' => $products,
+    ];
+})->values(),
+
+        ];
+    });
+
+    return response()->json([
+        'data' => $data
+    ]);
+}
 
 }
 

@@ -29,7 +29,8 @@ class Order extends Model
         'canceled_by',              // ✅ THÊM
         'reconciliation_status',    // ✅ THÊM
         'shipping_status',
-        'shipping_address'
+        'shipping_address',
+        'return_status'
     ];
 
     public function user()
@@ -51,10 +52,14 @@ class Order extends Model
         return $this->hasMany(OrderReturnPhoto::class);
     }
     public function getImagesAttribute()
-    {
-        return $this->returnPhotos()->pluck('image_path')->toArray();
-    }
-    protected $casts = [
-        'delivered_at' => 'datetime',
-    ];
+{
+    return $this->returnPhotos()->pluck('image_path')->toArray();
+}
+protected $casts = [
+    'delivered_at' => 'datetime',
+    'shipping_started_at' => 'datetime',
+    'canceled_at' => 'datetime',
+    'return_confirmed_at' => 'datetime',
+    'reconciled_at' => 'datetime',
+];
 }

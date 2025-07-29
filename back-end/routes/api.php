@@ -153,7 +153,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/shopdashboard', [ShopController::class, 'index']);
     Route::post('/shopexit', [ShopController::class, 'exitShop']);
     Route::post('/shop/update', [ShopController::class, 'update']);
-
+    Route::get('/buy/order/customers', [ShopController::class, 'getMyShopCustomers']);// user đã mua hàng
 
     Route::get('/addresses', [AddressController::class, 'index']);
     Route::get('/addressesUser/{id}', [AddressController::class, 'getAddressesByUser']);

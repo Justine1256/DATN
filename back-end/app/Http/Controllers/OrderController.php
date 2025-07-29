@@ -266,8 +266,6 @@ class OrderController extends Controller
             'details' => $orderDetails
         ]);
     }
-
-
     public function cancel(Request $request, $id)
     {
         $order = Order::where('id', $id)->where('user_id', Auth::id())->first();
@@ -301,6 +299,10 @@ class OrderController extends Controller
                 'order_admin_status' => 'Cancellation Request Pending',
                 'canceled_by' => 'Customer',
             ]);
+            if (!$order->canceled_at) {
+            $order->canceled_at = now();
+            $order->save();
+        }
 
             return response()->json(['message' => 'Yêu cầu huỷ đơn đã được gửi đến shop. Vui lòng chờ phản hồi']);
         }
