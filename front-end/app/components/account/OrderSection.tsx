@@ -134,7 +134,6 @@ export default function OrderSection() {
 
 const handleSubmitRefund = async (refundData: { reason: string; images: File[] }) => {
   console.log("🧪 Bắt đầu gọi handleSubmitRefund");
-
   if (!orderToRefund) {
     console.warn("⚠️ Không có orderToRefund");
     return;
@@ -162,7 +161,6 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
           "Content-Type": "multipart/form-data",
         },
       });
-
       console.log("📥 Phản hồi từ API upload ảnh:", res.data);
 
       const uploaded = res.data?.images?.[0];
