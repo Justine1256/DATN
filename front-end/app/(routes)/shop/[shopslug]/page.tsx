@@ -57,11 +57,15 @@ const ShopPage = () => {
     const [selectedPriceFilter, setSelectedPriceFilter] = useState<string | null>(null);
     const [showAllCategories, setShowAllCategories] = useState(false);
     const [slug, setSlug] = useState<string | null>(null); // state for slug
+    const [filterPriceMax, setFilterPriceMax] = useState<number>(50000000);
+    const [startPrice, setStartPrice] = useState<number>(0);
+    const [currentPriceRangeValue, setCurrentPriceRangeValue] = useState<number>(50000000);
+    const [selectedOriginalPriceFilter, setSelectedOriginalPriceFilter] = useState<string | null>(null);
 
     useEffect(() => {
         // Lấy slug từ URL sau khi component đã mount
         const pathSlug = window.location.pathname.split('/').pop();
-       
+
         setSlug(pathSlug ?? null); // If the slug is undefined, set it to null
     }, []);
 
@@ -86,7 +90,7 @@ const ShopPage = () => {
 
             const shopData = await shopRes.json();
             const categoryData = await categoryRes.json();
-         
+
             if (shopData && shopData.shop) {
                 setShop(shopData.shop);
             } else {
@@ -110,7 +114,7 @@ const ShopPage = () => {
             } else if (Array.isArray(productData.products?.data)) {
                 fetchedProducts = productData.products.data;
             }
-        
+
 
             const productsWithTs = fetchedProducts.map(p => ({
                 ...p,
@@ -168,6 +172,10 @@ const ShopPage = () => {
         setSelectedCategory(null);
         setProducts(initialProducts);
         fetchData();
+    };
+
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
     };
 
     if (error) return <div className="flex items-center justify-center min-h-screen text-xl text-red-600">{error}</div>;
@@ -246,32 +254,131 @@ const ShopPage = () => {
                                     </label>
                                 </div>
                             ))}
-                            <h4 className="text-[15px] font-medium mt-4 mb-2">Giá</h4>
-                            {[{ label: "Giá: thấp đến cao", value: "asc" },
-                            { label: "Giá: cao đến thấp", value: "desc" },
-                            { label: "Giảm giá nhiều nhất", value: "discount" }
-                            ].map(option => (
-                                <div key={option.value} className="px-3 py-1 hover:text-brand">
-                                    <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="priceFilterOptions"
-                                            checked={selectedPriceFilter === option.value}
-                                            onChange={() => { setSelectedPriceFilter(option.value); setSelectedSort("Phổ Biến"); }}
-                                        />
-                                        <span>{option.label}</span>
-                                    </label>
+
+                            {/* Lọc theo giá */}
+                            <div className="flex flex-col space-y-4">
+
+                                <div className="flex gap-2">
+                                    <h4 className="text-[15px] font-medium mt-4 mb-2">Giá</h4>
+                                    <p>(VNĐ)</p>
                                 </div>
-                            ))}
-                            <div className="flex flex-col gap-2 mt-4">
-                                <button onClick={handleApplyFilters}
-                                    className="py-1.5 bg-[#DB4444] text-white rounded hover:bg-red-600 text-sm w-full">
-                                    Lọc
-                                </button>
-                                <button onClick={handleResetFilters}
-                                    className="py-1.5 border border-gray-300 text-black rounded hover:bg-gray-100 text-sm w-full">
-                                    Đặt lại
-                                </button>
+
+                                {/* Hiển thị khoảng giá */}
+                                <div className="flex justify-between text-sm text-gray-700">
+                                    <span>{formatCurrency(startPrice)}</span>
+                                    <span>{formatCurrency(filterPriceMax)}</span>
+                                </div>
+
+                                {/* Thanh lọc 2 đầu */}
+                                <div className="relative h-8 mt-2 mb-4">
+                                    {/* Thanh nền */}
+                                    <div className="absolute top-1/2 left-0 right-0 h-2 bg-gray-200 rounded-full transform -translate-y-1/2" />
+
+                                    {/* Thanh vùng chọn đỏ */}
+                                    <div
+                                        className="absolute top-1/2 h-2 bg-[#DB4444] rounded-full transform -translate-y-1/2"
+                                        style={{
+                                            left: `${(startPrice / 50000000) * 100}%`,
+                                            right: `${100 - (filterPriceMax / 50000000) * 100}%`,
+                                        }}
+                                    />
+
+                                    {/* Slider trái */}
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={50000000}
+                                        step={100000}
+                                        value={startPrice}
+                                        onChange={(e) => {
+                                            const newStart = Number(e.target.value);
+                                            if (newStart <= filterPriceMax) setStartPrice(newStart);
+                                        }}
+                                        className="absolute w-full h-8 appearance-none bg-transparent pointer-events-none
+                                            [&::-webkit-slider-thumb]:pointer-events-auto
+                                            [&::-webkit-slider-thumb]:appearance-none
+                                            [&::-webkit-slider-thumb]:h-5
+                                            [&::-webkit-slider-thumb]:w-5
+                                            [&::-webkit-slider-thumb]:rounded-full
+                                            [&::-webkit-slider-thumb]:bg-white
+                                            [&::-webkit-slider-thumb]:border
+                                            [&::-webkit-slider-thumb]:border-[#DB4444]
+                                            [&::-webkit-slider-thumb]:shadow
+                                            [&::-webkit-slider-thumb]:hover:scale-110
+                                            transition-transform duration-200"
+                                    />
+
+                                    {/* Slider phải */}
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={50000000}
+                                        step={100000}
+                                        value={filterPriceMax}
+                                        onChange={(e) => {
+                                            const newEnd = Number(e.target.value);
+                                            if (newEnd >= startPrice) {
+                                                setFilterPriceMax(newEnd);
+                                                setCurrentPriceRangeValue(newEnd);
+                                            }
+                                        }}
+                                        className="absolute w-full h-8 appearance-none bg-transparent pointer-events-none
+                                                    [&::-webkit-slider-thumb]:pointer-events-auto
+                                                    [&::-webkit-slider-thumb]:appearance-none
+                                                    [&::-webkit-slider-thumb]:h-5
+                                                    [&::-webkit-slider-thumb]:w-5
+                                                    [&::-webkit-slider-thumb]:rounded-full
+                                                    [&::-webkit-slider-thumb]:bg-white
+                                                    [&::-webkit-slider-thumb]:border
+                                                    [&::-webkit-slider-thumb]:border-[#DB4444]
+                                                    [&::-webkit-slider-thumb]:shadow
+                                                    [&::-webkit-slider-thumb]:hover:scale-110
+                                                    transition-transform duration-200"/>
+                                </div>
+
+                                {/* Dropdown sắp xếp giá */}
+                                <select
+                                    className="border w-full px-3 py-2 rounded cursor-pointer"
+                                    value={selectedPriceFilter || ""}
+                                    onChange={e => {
+                                        setSelectedPriceFilter(e.target.value);
+                                        setSelectedSort("Phổ Biến");
+                                    }}
+                                >
+                                    <option value="">-- Sắp xếp giá --</option>
+                                    <option value="asc">Thấp đến cao</option>
+                                    <option value="desc">Cao đến thấp</option>
+                                    <option value="discount">Giảm nhiều nhất</option>
+                                </select>
+
+                                <select
+                                    className="border w-full px-3 py-2 rounded cursor-pointer"
+                                    value={selectedOriginalPriceFilter || ""}
+                                    onChange={e => {
+                                        setSelectedOriginalPriceFilter(e.target.value);
+                                        setSelectedSort("Phổ Biến");
+                                    }}
+                                >
+
+                                    <option value="">-- Sắp xếp giá chưa giảm --</option>
+                                    <option value="asc">Thấp đến cao</option>
+                                    <option value="desc">Cao đến thấp</option>
+                                </select>
+                                <div className="flex gap-2 mt-2">
+                                    <button
+                                        onClick={handleApplyFilters}
+                                        className="w-full bg-brand text-white py-1.5 rounded text-sm hover:opacity-90"
+                                    >
+                                        Áp dụng
+                                    </button>
+                                    <button
+                                        onClick={handleResetFilters}
+                                        className="w-full text-gray-600 border py-1.5 rounded text-sm hover:text-black"
+                                    >
+                                        Đặt lại
+                                    </button>
+                                </div>
+
                             </div>
                         </div>
                     </div>

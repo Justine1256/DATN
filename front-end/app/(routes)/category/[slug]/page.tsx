@@ -210,7 +210,6 @@ export default function CategoryPage() {
             {/* Danh mục */}
             <div className="flex flex-col space-y-4">
               <h3 className="font-semibold">Danh mục</h3>
-
               <div>
                 <button
                   onClick={() => handleCategorySelect(null)}
@@ -258,9 +257,8 @@ export default function CategoryPage() {
             </div>
 
             {/* Lọc theo giá */}
-            {/* Lọc theo giá */}
             <div className="flex flex-col space-y-4">
-              
+
               <div className="flex gap-2">
                 <h4 className="font-semibold">Giá</h4>
                 <p>(VNĐ)</p>
@@ -373,20 +371,19 @@ export default function CategoryPage() {
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={handleApplyFilters}
-                  className="w-1/2 bg-[#DB4444] text-white px-4 py-3 rounded text-base font-semibold hover:opacity-90"
+                  className="w-full bg-brand text-white py-1.5 rounded text-sm hover:opacity-90"
                 >
                   Áp dụng
                 </button>
                 <button
                   onClick={handleResetFilters}
-                  className="w-1/2 text-gray-600 border px-4 py-3 rounded text-base font-semibold hover:text-black"
+                  className="w-full text-gray-600 border py-1.5 rounded text-sm hover:text-black"
                 >
                   Đặt lại
                 </button>
               </div>
 
             </div>
-
           </div>
         </div>
 
