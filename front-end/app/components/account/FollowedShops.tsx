@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import FollowedShopLoading from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import Image from "next/image";
-
+import Link from "next/link"; 
 // ✅ Interface cho đối tượng Shop
 interface Shop {
     id: number;
@@ -130,6 +130,7 @@ export default function FollowedShopsSection() {
                                         className="relative bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 transform"
                                     >
                                         {/* Card Header */}
+                                        <Link href={`/shop/${shop.slug}`} className="block">
                                         <div className="p-6 pb-4 flex items-start gap-4">
                                             {/* Avatar with gradient border */}
                                             <div className="relative">
@@ -205,7 +206,7 @@ export default function FollowedShopsSection() {
                                                 </div>
                                             </div>
                                         </div>
-
+                                       </Link>
                                         {/* Card Footer */}
                                         <div className="px-6 pb-6">
                                             <button
