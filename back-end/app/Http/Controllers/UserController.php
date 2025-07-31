@@ -460,7 +460,7 @@ public function getStatistics()
     $totalCommission   = DB::table('commissions')->where('status', 'Paid')->sum('amount');
     $totalVouchers     = DB::table('vouchers')->count();
     $totalCategories   = DB::table('categories')->count();
-    $totalParentCategories = DB::table('categories')->whereNull('parent')->count();
+    $totalParentCategories = DB::table('categories')->whereNull('parent_id')->count();
 
     // User bị cảnh báo (dựa trên số đơn bị hủy)
     $userCancelStats = DB::table('orders')
