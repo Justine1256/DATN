@@ -55,57 +55,48 @@ export const menu = [
 ];
 
 export default function ModernAdminSidebar() {
-    const pathname = usePathname();
-    const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
+    const pathname = usePathname()
+    const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set())
 
     useEffect(() => {
-        const newOpenDropdowns = new Set<string>();
+        const newOpenDropdowns = new Set<string>()
         menu.forEach((item) => {
             if (item.children && item.children.length > 0) {
-                const isChildActive = item.children.some(
-                    (child) => child.href === pathname
-                );
-                const isParentActive = item.href === pathname;
-
+                const isChildActive = item.children.some((child) => child.href === pathname)
+                const isParentActive = item.href === pathname
                 if (isChildActive || isParentActive) {
-                    newOpenDropdowns.add(item.label);
+                    newOpenDropdowns.add(item.label)
                 }
             }
-        });
-        setOpenDropdowns(newOpenDropdowns);
-    }, [pathname]);
+        })
+        setOpenDropdowns(newOpenDropdowns)
+    }, [pathname])
 
     const toggleDropdown = (label: string) => {
-        const newOpenDropdowns = new Set(openDropdowns);
+        const newOpenDropdowns = new Set(openDropdowns)
         if (newOpenDropdowns.has(label)) {
-            newOpenDropdowns.delete(label);
+            newOpenDropdowns.delete(label)
         } else {
-            newOpenDropdowns.add(label);
+            newOpenDropdowns.add(label)
         }
-        setOpenDropdowns(newOpenDropdowns);
-    };
+        setOpenDropdowns(newOpenDropdowns)
+    }
 
     return (
         <div className="h-screen w-72 bg-[#1e293b] text-[#e2e8f0] border-r border-[#334155] flex flex-col">
             <div className="px-6 py-6 border-b border-[#334155] flex justify-center">
                 <img src="/logo.png" alt="MarketO Logo" className="w-32 h-auto" />
             </div>
-
             <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="px-4 py-6">
                     <div className="mb-6">
-                        <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider mb-4 px-3">
-                            Điều hướng
-                        </p>
-
+                        <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider mb-4 px-3">Điều hướng</p>
                         <nav className="space-y-1">
                             {menu.map((item) => {
                                 const isActive =
-                                    pathname === item.href ||
-                                    (item.children &&
-                                        item.children.some((child) => pathname === child.href));
-                                const isOpen = openDropdowns.has(item.label);
-                                const hasChildren = item.children && item.children.length > 0;
+                                    pathname === item.href || (item.children && item.children.some((child) => pathname === child.href))
+                                const isOpen = openDropdowns.has(item.label)
+                                const hasChildren = item.children && item.children.length > 0
 
                                 return (
                                     <div key={item.label} className="relative">
@@ -113,15 +104,10 @@ export default function ModernAdminSidebar() {
                                             <button
                                                 onClick={() => toggleDropdown(item.label)}
                                                 className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200
-                          ${isOpen || isActive
-                                                        ? "bg-[#db4444] text-white"
-                                                        : "hover:bg-[#7f1d1d] hover:text-white"
-                                                    }`}
+                          ${isOpen || isActive ? "bg-[#db4444] text-white" : "hover:bg-[#7f1d1d] hover:text-white"}`}
                                             >
                                                 <div className="flex items-center">
-                                                    <span
-                                                        className={`text-lg mr-3 ${isOpen || isActive ? "text-white" : "text-[#9ca3af]"}`}
-                                                    >
+                                                    <span className={`text-lg mr-3 ${isOpen || isActive ? "text-white" : "text-[#9ca3af]"}`}>
                                                         {item.icon}
                                                     </span>
                                                     <span>{item.label}</span>
@@ -134,24 +120,18 @@ export default function ModernAdminSidebar() {
                                             <Link
                                                 href={item.href || "#"}
                                                 className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200
-                          ${isActive
-                                                        ? "bg-[#db4444] text-white"
-                                                        : "hover:bg-[#7f1d1d] hover:text-white"
-                                                    }`}
+                          ${isActive ? "bg-[#db4444] text-white" : "hover:bg-[#7f1d1d] hover:text-white"}`}
                                             >
-                                                <span
-                                                    className={`text-lg mr-3 ${isActive ? "text-white" : "text-[#9ca3af]"}`}
-                                                >
+                                                <span className={`text-lg mr-3 ${isActive ? "text-white" : "text-[#9ca3af]"}`}>
                                                     {item.icon}
                                                 </span>
                                                 <span>{item.label}</span>
                                             </Link>
                                         )}
-
                                         {hasChildren && isOpen && (
                                             <div className="mt-1 ml-4 pl-6 border-l-2 border-[#1f2937]">
                                                 {item.children.map((child) => {
-                                                    const isChildActive = pathname === child.href;
+                                                    const isChildActive = pathname === child.href
                                                     return (
                                                         <Link
                                                             key={child.href}
@@ -163,21 +143,22 @@ export default function ModernAdminSidebar() {
                                                                 }`}
                                                         >
                                                             <div
-                                                                className={`w-2 h-2 rounded-full mr-3 ${isChildActive ? "bg-[#db4444]" : "bg-[#9ca3af]"}`}
+                                                                className={`w-2 h-2 rounded-full mr-3 ${isChildActive ? "bg-[#db4444]" : "bg-[#9ca3af]"
+                                                                    }`}
                                                             ></div>
                                                             <span>{child.label}</span>
                                                         </Link>
-                                                    );
+                                                    )
                                                 })}
                                             </div>
                                         )}
                                     </div>
-                                );
+                                )
                             })}
                         </nav>
                     </div>
                 </div>
             </div>
         </div>
-    );
+    )
 }
