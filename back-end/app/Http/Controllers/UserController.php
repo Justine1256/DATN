@@ -450,49 +450,52 @@ public function destroy(Request $request)
     }
 
 public function getStatistics()
-    {
-        // Tổng quan
-        $totalUsers        = DB::table('users')->where('role', 'user')->count();
-        $totalShops        = DB::table('shops')->count();
-        $totalProducts     = DB::table('products')->count();
-        $totalOrders       = DB::table('orders')->count();
-        $totalRevenue      = DB::table('orders')->where('payment_status', 'Completed')->sum('final_amount');
-        $totalCommission   = DB::table('commissions')->where('status', 'Paid')->sum('amount');
-        $totalVouchers     = DB::table('vouchers')->count();
-        $totalCategories   = DB::table('categories')->count();
+{
+    // Tổng quan
+    $totalUsers        = DB::table('users')->where('role', 'user')->count();
+    $totalShops        = DB::table('shops')->count();
+    $totalProducts     = DB::table('products')->count();
+    $totalOrders       = DB::table('orders')->count();
+    $totalRevenue      = DB::table('orders')->where('payment_status', 'Completed')->sum('final_amount');
+    $totalCommission   = DB::table('commissions')->where('status', 'Paid')->sum('amount');
+    $totalVouchers     = DB::table('vouchers')->count();
+    $totalCategories   = DB::table('categories')->count();
+    $totalParentCategories = DB::table('categories')->whereNull('parent')->count();
 
-        // User bị cảnh báo (dựa trên số đơn bị hủy)
-        $userCancelStats = DB::table('orders')
-            ->select('user_id', DB::raw('COUNT(*) as cancel_count'))
-            ->where('order_status', 'Canceled')
-            ->groupBy('user_id')
-            ->get();
+    // User bị cảnh báo (dựa trên số đơn bị hủy)
+    $userCancelStats = DB::table('orders')
+        ->select('user_id', DB::raw('COUNT(*) as cancel_count'))
+        ->where('order_status', 'Canceled')
+        ->groupBy('user_id')
+        ->get();
 
-        $warningUsers = $userCancelStats->where('cancel_count', '>=', 5)->where('cancel_count', '<', 10)->count();
-        $dangerUsers  = $userCancelStats->where('cancel_count', '>=', 10)->count();
+    $warningUsers = $userCancelStats->where('cancel_count', '>=', 5)->where('cancel_count', '<', 10)->count();
+    $dangerUsers  = $userCancelStats->where('cancel_count', '>=', 10)->count();
 
-        // Shop bị cảnh báo (dựa trên số lần bị report)
-        $shopReportStats = DB::table('reports')
-            ->select('shop_id', DB::raw('COUNT(*) as report_count'))
-            ->groupBy('shop_id')
-            ->get();
+    // Shop bị cảnh báo (dựa trên số lần bị report)
+    $shopReportStats = DB::table('reports')
+        ->select('shop_id', DB::raw('COUNT(*) as report_count'))
+        ->groupBy('shop_id')
+        ->get();
 
-        $warningShops = $shopReportStats->where('report_count', '>=', 5)->where('report_count', '<', 10)->count();
-        $dangerShops  = $shopReportStats->where('report_count', '>=', 10)->count();
+    $warningShops = $shopReportStats->where('report_count', '>=', 5)->where('report_count', '<', 10)->count();
+    $dangerShops  = $shopReportStats->where('report_count', '>=', 10)->count();
 
-        return response()->json([
-            'total_users'         => $totalUsers,
-            'total_shops'         => $totalShops,
-            'total_products'      => $totalProducts,
-            'total_orders'        => $totalOrders,
-            'total_revenue'       => $totalRevenue,
-            'total_commission'    => $totalCommission,
-            'total_vouchers'      => $totalVouchers,
-            'total_categories'    => $totalCategories,
-            'warning_users'       => $warningUsers,
-            'danger_users'        => $dangerUsers,
-            'warning_shops'       => $warningShops,
-            'danger_shops'        => $dangerShops,
-        ]);
-    }
+    return response()->json([
+        'total_users'            => $totalUsers,
+        'total_shops'            => $totalShops,
+        'total_products'         => $totalProducts,
+        'total_orders'           => $totalOrders,
+        'total_revenue'          => $totalRevenue,
+        'total_commission'       => $totalCommission,
+        'total_vouchers'         => $totalVouchers,
+        'total_categories'       => $totalCategories,
+        'total_parent_categories'=> $totalParentCategories,
+        'warning_users'          => $warningUsers,
+        'danger_users'           => $dangerUsers,
+        'warning_shops'          => $warningShops,
+        'danger_shops'           => $dangerShops,
+    ]);
+}
+
 }
