@@ -47,7 +47,7 @@ export const menu = [
     children: [
       { label: "Thông tin shop", href: "/shop-admin/shop/info" },
       { label: "Chỉnh sửa shop", href: "/shop-admin/shop/update" },
-      { label: "Quản lý nhân viên", href: "/shop-admin/shop/employees" },
+
     ],
   },
   {
