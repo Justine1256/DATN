@@ -537,8 +537,8 @@ public function getMyShopCustomers(Request $request)
 }
    public function stats(Request $request)
     {
-        $shopId = auth()->user()->shop->id ?? null;
-
+        $user = Auth::user();
+    $shopId = $user->shop->id ?? null;
         if (!$shopId) {
             return response()->json(['error' => 'Shop not found'], 404);
         }
