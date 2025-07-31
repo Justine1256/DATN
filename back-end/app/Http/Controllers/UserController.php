@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -449,50 +450,72 @@ public function destroy(Request $request)
         return view('emails.verify_result', ['message' => 'Token không hợp lệ.']);
     }
 
-public function getStatistics()
-    {
-        // Tổng quan
-        $totalUsers        = DB::table('users')->where('role', 'user')->count();
-        $totalShops        = DB::table('shops')->count();
-        $totalProducts     = DB::table('products')->count();
-        $totalOrders       = DB::table('orders')->count();
-        $totalRevenue      = DB::table('orders')->where('payment_status', 'Completed')->sum('final_amount');
-        $totalCommission   = DB::table('commissions')->where('status', 'Paid')->sum('amount');
-        $totalVouchers     = DB::table('vouchers')->count();
-        $totalCategories   = DB::table('categories')->count();
+public function getStatistics(Request $request)
+{
+    $from = $request->query('from_date')
+        ? Carbon::parse($request->query('from_date'))->startOfDay()
+        : Carbon::now()->subYear()->startOfDay(); // mặc định 1 năm
 
-        // User bị cảnh báo (dựa trên số đơn bị hủy)
-        $userCancelStats = DB::table('orders')
-            ->select('user_id', DB::raw('COUNT(*) as cancel_count'))
-            ->where('order_status', 'Canceled')
-            ->groupBy('user_id')
-            ->get();
+    $to = $request->query('to_date')
+        ? Carbon::parse($request->query('to_date'))->endOfDay()
+        : Carbon::now()->endOfDay();
 
-        $warningUsers = $userCancelStats->where('cancel_count', '>=', 5)->where('cancel_count', '<', 10)->count();
-        $dangerUsers  = $userCancelStats->where('cancel_count', '>=', 10)->count();
+    // Các thống kê được lọc theo khoảng thời gian:
+    $totalOrders = DB::table('orders')
+        ->whereBetween('created_at', [$from, $to])
+        ->count();
 
-        // Shop bị cảnh báo (dựa trên số lần bị report)
-        $shopReportStats = DB::table('reports')
-            ->select('shop_id', DB::raw('COUNT(*) as report_count'))
-            ->groupBy('shop_id')
-            ->get();
+    $totalRevenue = DB::table('orders')
+        ->where('payment_status', 'Completed')
+        ->whereBetween('created_at', [$from, $to])
+        ->sum('final_amount');
 
-        $warningShops = $shopReportStats->where('report_count', '>=', 5)->where('report_count', '<', 10)->count();
-        $dangerShops  = $shopReportStats->where('report_count', '>=', 10)->count();
+    $totalCommission = DB::table('commissions')
+        ->where('status', 'Paid')
+        ->whereBetween('created_at', [$from, $to])
+        ->sum('amount');
 
-        return response()->json([
-            'total_users'         => $totalUsers,
-            'total_shops'         => $totalShops,
-            'total_products'      => $totalProducts,
-            'total_orders'        => $totalOrders,
-            'total_revenue'       => $totalRevenue,
-            'total_commission'    => $totalCommission,
-            'total_vouchers'      => $totalVouchers,
-            'total_categories'    => $totalCategories,
-            'warning_users'       => $warningUsers,
-            'danger_users'        => $dangerUsers,
-            'warning_shops'       => $warningShops,
-            'danger_shops'        => $dangerShops,
-        ]);
-    }
+    $userCancelStats = DB::table('orders')
+        ->select('user_id', DB::raw('COUNT(*) as cancel_count'))
+        ->where('order_status', 'Canceled')
+        ->whereBetween('created_at', [$from, $to])
+        ->groupBy('user_id')
+        ->get();
+
+    $warningUsers = $userCancelStats->where('cancel_count', '>=', 5)->where('cancel_count', '<', 10)->count();
+    $dangerUsers  = $userCancelStats->where('cancel_count', '>=', 10)->count();
+
+    $shopReportStats = DB::table('reports')
+        ->select('shop_id', DB::raw('COUNT(*) as report_count'))
+        ->whereBetween('created_at', [$from, $to])
+        ->groupBy('shop_id')
+        ->get();
+
+    $warningShops = $shopReportStats->where('report_count', '>=', 5)->where('report_count', '<', 10)->count();
+    $dangerShops  = $shopReportStats->where('report_count', '>=', 10)->count();
+
+    // Các số liệu không phụ thuộc thời gian:
+    $totalUsers      = DB::table('users')->where('role', 'user')->count();
+    $totalShops      = DB::table('shops')->count();
+    $totalProducts   = DB::table('products')->count();
+    $totalVouchers   = DB::table('vouchers')->count();
+    $totalCategories = DB::table('categories')->count();
+
+    return response()->json([
+        'total_users'       => $totalUsers,
+        'total_shops'       => $totalShops,
+        'total_products'    => $totalProducts,
+        'total_orders'      => $totalOrders,
+        'total_revenue'     => $totalRevenue,
+        'total_commission'  => $totalCommission,
+        'total_vouchers'    => $totalVouchers,
+        'total_categories'  => $totalCategories,
+        'warning_users'     => $warningUsers,
+        'danger_users'      => $dangerUsers,
+        'warning_shops'     => $warningShops,
+        'danger_shops'      => $dangerShops,
+        'from_date'         => $from->toDateString(),
+        'to_date'           => $to->toDateString(),
+    ]);
+}
 }
