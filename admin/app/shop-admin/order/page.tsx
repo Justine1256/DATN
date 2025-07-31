@@ -159,7 +159,7 @@ interface CancelOrderData {
   cancel_type: "Seller" | "Payment Gateway" | "Customer Refused Delivery" | "System"
 }
 
-const token = Cookies.get("token")
+      const token = Cookies.get("authToken")
 
 // API Service
 const orderService = {
