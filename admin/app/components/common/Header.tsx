@@ -1,38 +1,38 @@
-"use client"
-import { useState, useEffect, useRef } from "react"
-import Cookies from "js-cookie"
-import axios from "axios"
-import { FiSearch, FiLogOut, FiBell, FiSettings, FiMenu, FiShoppingBag, FiUser} from "react-icons/fi"
-import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
+"use client";
+import { useState, useEffect, useRef } from "react";
+import Cookies from "js-cookie";
+import axios from "axios";
+import { FiSearch, FiLogOut, FiBell, FiSettings, FiMenu, FiShoppingBag, FiUser } from "react-icons/fi";
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { FiStar } from "react-icons/fi"; // Đổi từ FiCrown sang FiStar
 
 export default function ModernAdminHeader() {
-  const [user, setUser] = useState<any>(null)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [searchFocused, setSearchFocused] = useState(false)
-  const [searchValue, setSearchValue] = useState("")
-  const [notificationCount, setNotificationCount] = useState(3)
-  const dropdownRef = useRef<HTMLDivElement | null>(null)
+  const [user, setUser] = useState<any>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [notificationCount, setNotificationCount] = useState(3);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Hàm lấy thông tin logo shop hoặc ảnh mặc định cho admin không có shop
   const getUserLogo = (logoUrl: string | null) => {
     if (logoUrl) {
-      return `${STATIC_BASE_URL}/${logoUrl}?t=${Date.now()}` // Cache busting
+      return `${STATIC_BASE_URL}/${logoUrl}?t=${Date.now()}`; // Cache busting
     }
-    return "/placeholder.svg?height=40&width=40" // Logo mặc định
-  }
+    return "/placeholder.svg?height=40&width=40"; // Logo mặc định
+  };
 
   // Hàm lấy logo admin nếu không có shop
   const getAdminLogo = (avatarsUrl: string | null) => {
     if (avatarsUrl) {
-      return `${STATIC_BASE_URL}/${avatarsUrl}?t=${Date.now()}` // Cache busting
+      return `${STATIC_BASE_URL}/${avatarsUrl}?t=${Date.now()}`; // Cache busting
     }
-    return "/placeholder.svg?height=40&width=40" // Avatar mặc định
-  }
+    return "/placeholder.svg?height=40&width=40"; // Avatar mặc định
+  };
 
   useEffect(() => {
-    const token = Cookies.get("authToken")
-    if (!token) return
+    const token = Cookies.get("authToken");
+    if (!token) return;
 
     axios
       .get(`${API_BASE_URL}/user`, {
@@ -40,33 +40,33 @@ export default function ModernAdminHeader() {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        console.log("Kết quả API /user:", res.data)
-        setUser(res.data)
+        console.log("Kết quả API /user:", res.data);
+        setUser(res.data);
       })
       .catch((err) => {
-        console.error("Lỗi gọi API /user:", err)
-        Cookies.remove("authToken")
-        setUser(null)
-      })
-  }, [])
+        console.error("Lỗi gọi API /user:", err);
+        Cookies.remove("authToken");
+        setUser(null);
+      });
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: any) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setDropdownOpen(false)
+        setDropdownOpen(false);
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
-    Cookies.remove("authToken")
-    setUser(null)
-    window.location.href = "/login"
-  }
+    Cookies.remove("authToken");
+    setUser(null);
+    window.location.href = "/login";
+  };
 
-  const clearSearch = () => setSearchValue("")
+  const clearSearch = () => setSearchValue("");
 
   return (
     <header className="sticky top-0 z-50 bg-gradient-to-r from-white via-gray-50 to-white border-b border-gray-200/60 backdrop-blur-xl shadow-sm">
@@ -223,26 +223,7 @@ export default function ModernAdminHeader() {
                       <p className="text-xs text-gray-500">Xem và chỉnh sửa thông tin</p>
                     </div>
                   </button>
-
-                  <button className="w-full flex items-center space-x-4 px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-700 transition-all duration-200 group">
-                    <div className="p-2 rounded-xl bg-green-100 text-green-600 group-hover:bg-green-200 transition-colors duration-200">
-                      <FiShoppingBag className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-medium">{user?.shop ? "Quản lý shop" : "Quản lý hệ thống"}</p>
-                      <p className="text-xs text-gray-500">Cài đặt và quản lý</p>
-                    </div>
-                  </button>
-
-                  <button className="w-full flex items-center space-x-4 px-6 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 hover:text-purple-700 transition-all duration-200 group">
-                    <div className="p-2 rounded-xl bg-purple-100 text-purple-600 group-hover:bg-purple-200 transition-colors duration-200">
-                      <FiSettings className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-medium">Cài đặt tài khoản</p>
-                      <p className="text-xs text-gray-500">Bảo mật và tùy chỉnh</p>
-                    </div>
-                  </button>
+                  {/* More buttons go here */}
                 </div>
 
                 {/* Logout Section */}
@@ -266,5 +247,5 @@ export default function ModernAdminHeader() {
         </div>
       </div>
     </header>
-  )
+  );
 }
