@@ -360,12 +360,10 @@ public function updateAvatar(Request $request)
     $user = Auth::user();
 
     $request->validate([
-    'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-], [
+    'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',], [
     'avatar.required' => 'Bạn chưa tải ảnh lên.',
     'avatar.image' => 'Ảnh đại diện phải là định dạng hình ảnh.',
-    'avatar.max' => 'Kích thước ảnh tối đa là 2MB.',
-]);
+    'avatar.max' => 'Kích thước ảnh tối đa là 2MB.',]);
 
 
     // Xoá ảnh cũ nếu có
@@ -449,5 +447,46 @@ public function destroy(Request $request)
         }
 
         return view('emails.verify_result', ['message' => 'Token không hợp lệ.']);
+    }
+
+        public function getStatistics()
+    {
+        $totalUsers = DB::table('users')->where('role', 'user')->count();
+        $totalShops = DB::table('shops')->count();
+        $totalProducts = DB::table('products')->count();
+        $totalOrders = DB::table('orders')->count();
+        $completedOrders = DB::table('orders')->where('payment_status', 'Completed')->count();
+        $deliveredOrders = DB::table('orders')->where('order_status', 'Delivered')->count();
+        $cancelledOrders = DB::table('orders')->where('order_status', 'Canceled')->count();
+        $returnOrders = DB::table('orders')->whereIn('return_status', ['Returning', 'Refunded'])->count();
+        $totalRevenue = DB::table('orders')->where('payment_status', 'Completed')->sum('final_amount');
+        $totalCommission = DB::table('commissions')->where('status', 'Paid')->sum('amount');
+        $totalVouchers = DB::table('vouchers')->count();
+        $totalReviews = DB::table('reviews')->count();
+        $totalFollows = DB::table('follows')->count();
+
+        // Optional: top 5 best selling products
+        $topProducts = DB::table('products')
+            ->select('name', 'sold')
+            ->orderByDesc('sold')
+            ->limit(5)
+            ->get();
+
+        return response()->json([
+            'total_users'       => $totalUsers,
+            'total_shops'       => $totalShops,
+            'total_products'    => $totalProducts,
+            'total_orders'      => $totalOrders,
+            'completed_orders'  => $completedOrders,
+            'delivered_orders'  => $deliveredOrders,
+            'cancelled_orders'  => $cancelledOrders,
+            'return_orders'     => $returnOrders,
+            'total_revenue'     => $totalRevenue,
+            'total_commission'  => $totalCommission,
+            'total_vouchers'    => $totalVouchers,
+            'total_reviews'     => $totalReviews,
+            'total_follows'     => $totalFollows,
+            'top_products'      => $topProducts,
+        ]);
     }
 }

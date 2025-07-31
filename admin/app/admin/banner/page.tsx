@@ -80,7 +80,7 @@ const BannerManagement = () => {
       link: 'https://example.com/new-products',
       status: 1,
       start_date: '2025-01-10 00:00:00',
-      end_date: 'null',
+      end_date: null,
       created_at: '2025-01-10 14:30:00',
       updated_at: '2025-01-20 09:15:00'
     },
@@ -88,7 +88,7 @@ const BannerManagement = () => {
       id: 3,
       title: 'Banner Giảm Giá 50%',
       image: 'https://picsum.photos/400/200?random=3',
-      link: 'abc.com',
+      link: null,
       status: 0,
       start_date: '2025-01-05 00:00:00',
       end_date: '2025-01-31 23:59:59',
@@ -232,18 +232,21 @@ const BannerManagement = () => {
       key: 'id',
       width: 60,
       sorter: (a, b) => a.id - b.id,
+      sortDirections: ['ascend', 'descend'],
+      align: 'center',
     },
     {
-      title: 'Hình ảnh',
+      title: 'Ảnh',
       dataIndex: 'image',
       key: 'image',
-      width: 120,
+      width: 80,
+      align: 'center',
       render: (image: string) => (
         <Image
           src={image}
           alt="banner"
-          width={80}
-          height={40}
+          width={60}
+          height={35}
           style={{ objectFit: 'cover', borderRadius: 4 }}
           preview={{
             mask: <EyeOutlined />
@@ -258,9 +261,11 @@ const BannerManagement = () => {
       ellipsis: {
         showTitle: false,
       },
+      sorter: (a, b) => a.title.localeCompare(b.title),
+      sortDirections: ['ascend', 'descend'],
       render: (title: string) => (
         <Tooltip placement="topLeft" title={title}>
-          {title}
+          <span style={{ fontWeight: 500, fontSize: '13px' }}>{title}</span>
         </Tooltip>
       ),
     },
@@ -268,15 +273,22 @@ const BannerManagement = () => {
       title: 'Link',
       dataIndex: 'link',
       key: 'link',
-      width: 150,
+      width: 160,
       ellipsis: true,
       render: (link: string | null) => (
         link ? (
-          <a href={link} target="_blank" rel="noopener noreferrer">
-            {link}
-          </a>
+          <Tooltip title={link}>
+            <a 
+              href={link} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: '#1890ff', fontSize: '12px' }}
+            >
+              {link.length > 20 ? `${link.substring(0, 20)}...` : link}
+            </a>
+          </Tooltip>
         ) : (
-          <span style={{ color: '#999' }}>Không có</span>
+          <span style={{ color: '#999', fontStyle: 'italic', fontSize: '12px' }}>-</span>
         )
       ),
     },
@@ -284,23 +296,54 @@ const BannerManagement = () => {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      width: 120,
+      width: 90,
+      align: 'center',
+      filters: [
+        { text: 'Hoạt động', value: 1 },
+        { text: 'Tạm dừng', value: 0 },
+      ],
+      onFilter: (value, record) => record.status === value,
       render: (status: number, record: Banner) => (
         <Switch
           checked={status === 1}
           onChange={() => handleToggleStatus(record.id, status)}
-          checkedChildren="Hoạt động"
-          unCheckedChildren="Tạm dừng"
+          size="small"
         />
       ),
     },
     {
-      title: 'Thời gian hiển thị',
+      title: 'Hiển thị',
       key: 'display_time',
-      width: 180,
+      width: 120,
+      align: 'center',
+      filters: [
+        { text: 'Vĩnh viễn', value: 'permanent' },
+        { text: 'Hoạt động', value: 'active' },
+        { text: 'Chờ', value: 'pending' },
+        { text: 'Hết hạn', value: 'expired' },
+      ],
+      onFilter: (value, record) => {
+        if (value === 'permanent') {
+          return !record.start_date && !record.end_date;
+        }
+        
+        const now = dayjs();
+        const start = record.start_date ? dayjs(record.start_date) : null;
+        const end = record.end_date ? dayjs(record.end_date) : null;
+        
+        if (value === 'pending') {
+          return start && now.isBefore(start);
+        } else if (value === 'expired') {
+          return end && now.isAfter(end);
+        } else if (value === 'active') {
+          return (!start || now.isAfter(start)) && (!end || now.isBefore(end));
+        }
+        
+        return false;
+      },
       render: (record: Banner) => {
         if (!record.start_date && !record.end_date) {
-          return <Tag color="blue">Vĩnh viễn</Tag>;
+          return <Tag color="blue" style={{ fontSize: '11px', padding: '1px 6px' }}>Vĩnh viễn</Tag>;
         }
         
         const now = dayjs();
@@ -308,53 +351,80 @@ const BannerManagement = () => {
         const end = record.end_date ? dayjs(record.end_date) : null;
         
         let status = 'processing';
-        let text = 'Đang hiển thị';
+        let text = 'Hoạt động';
         
         if (start && now.isBefore(start)) {
           status = 'default';
-          text = 'Chưa bắt đầu';
+          text = 'Chờ';
         } else if (end && now.isAfter(end)) {
           status = 'error';
-          text = 'Đã kết thúc';
+          text = 'Hết hạn';
         }
         
         return (
           <div>
-            <Tag color={status}>{text}</Tag>
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              {start && <div>Từ: {start.format('DD/MM/YYYY')}</div>}
-              {end && <div>Đến: {end.format('DD/MM/YYYY')}</div>}
+            <Tag color={status} style={{ fontSize: '11px', padding: '1px 6px' }}>{text}</Tag>
+            <div style={{ fontSize: '10px', color: '#666', marginTop: 2 }}>
+              {start && <div>{start.format('DD/MM')}</div>}
+              {end && start && <div>-{end.format('DD/MM')}</div>}
             </div>
           </div>
         );
       },
     },
     {
-      title: 'Ngày tạo',
+      title: 'Tạo',
       dataIndex: 'created_at',
       key: 'created_at',
-      width: 120,
-      render: (date: string) => dayjs(date).format('DD/MM/YYYY'),
+      width: 80,
+      align: 'center',
+      render: (date: string) => (
+        <div style={{ fontSize: '12px' }}>
+          <div>{dayjs(date).format('DD/MM/YY')}</div>
+          <div style={{ fontSize: '10px', color: '#666' }}>
+            {dayjs(date).format('HH:mm')}
+          </div>
+        </div>
+      ),
       sorter: (a, b) => dayjs(a.created_at).unix() - dayjs(b.created_at).unix(),
+      sortDirections: ['ascend', 'descend'],
+      defaultSortOrder: 'descend',
+    },
+    {
+      title: 'Cập nhật',
+      dataIndex: 'updated_at',
+      key: 'updated_at',
+      width: 80,
+      align: 'center',
+      render: (date: string) => (
+        <div style={{ fontSize: '12px' }}>
+          <div>{dayjs(date).format('DD/MM/YY')}</div>
+          <div style={{ fontSize: '10px', color: '#666' }}>
+            {dayjs(date).format('HH:mm')}
+          </div>
+        </div>
+      ),
+      sorter: (a, b) => dayjs(a.updated_at).unix() - dayjs(b.updated_at).unix(),
+      sortDirections: ['ascend', 'descend'],
     },
     {
       title: 'Thao tác',
       key: 'action',
-      width: 120,
-      fixed: 'right',
+      width: 80,
+      align: 'center',
       render: (_, record: Banner) => (
-        <Space size="small">
-          <Tooltip title="Chỉnh sửa">
+        <Space size={4}>
+          <Tooltip title="Sửa">
             <Button
               type="text"
               icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
               size="small"
+              style={{ color: '#1890ff', padding: '2px' }}
             />
           </Tooltip>
           <Popconfirm
-            title="Xóa banner"
-            description="Bạn có chắc chắn muốn xóa banner này?"
+            title="Xóa?"
             onConfirm={() => handleDelete(record.id)}
             okText="Xóa"
             cancelText="Hủy"
@@ -366,6 +436,7 @@ const BannerManagement = () => {
                 icon={<DeleteOutlined />}
                 danger
                 size="small"
+                style={{ padding: '2px' }}
               />
             </Tooltip>
           </Popconfirm>
@@ -382,9 +453,25 @@ const BannerManagement = () => {
   );
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Card>
-        <div style={{ marginBottom: '16px' }}>
+    <div style={{ 
+      padding: '12px', 
+      width: '100%', 
+      height: '100vh',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <Card style={{ 
+        width: '100%', 
+        height: '100%',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        display: 'flex',
+        flexDirection: 'column'
+      }} bodyStyle={{ padding: '12px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ 
+          marginBottom: '12px',
+          flexShrink: 0
+        }}>
           <Row justify="space-between" align="middle">
             <Col>
               <Title level={3} style={{ margin: 0 }}>
@@ -419,21 +506,38 @@ const BannerManagement = () => {
           </Row>
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={filteredBanners}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            total: filteredBanners.length,
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} của ${total} banner`,
-          }}
-          scroll={{ x: 1200 }}
-        />
+        <div style={{ 
+          flex: 1,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <Table
+            columns={columns}
+            dataSource={filteredBanners}
+            rowKey="id"
+            loading={loading}
+            size="small"
+            bordered
+            pagination={{
+              total: filteredBanners.length,
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} của ${total} banner`,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              size: 'small',
+            }}
+            scroll={{ 
+              y: 'calc(100vh - 240px)'
+            }}
+            style={{ 
+              width: '100%',
+              height: '100%'
+            }}
+          />
+        </div>
       </Card>
 
       {/* Modal thêm/sửa banner */}
