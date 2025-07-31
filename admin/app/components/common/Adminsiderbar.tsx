@@ -23,6 +23,11 @@ export const menu = [
         href: "/admin/dashboard",
         icon: <LayoutDashboard size={18} />,
     },
+    {
+        label: "Quản lý banner",
+        href: "/admin/banner",
+        icon: <LayoutDashboard size={18} />,
+    },
    {
         label: "Quản lý người dùng",
         icon: <UserOutlined size={18}/>,

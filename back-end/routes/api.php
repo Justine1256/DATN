@@ -139,6 +139,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/users', [UserController::class, 'showAllUsers']);
     Route::get('/admin/shops', [ShopController::class, 'showAllShops']);
     Route::post('/admin/apply', [ShopController::class, 'applyShop']);
+    Route::post('/admin/dasboard', [ShopController::class, 'dashboard']);
+    Route::get('/shop/dashboard/stats', [ShopController::class, 'stats']);
 
     // Cart
     Route::get('/cart', [CartController::class, 'index']);
