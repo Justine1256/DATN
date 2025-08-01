@@ -129,7 +129,6 @@ export default function UserManagementPage() {
         message.error(result.message || "Có lỗi xảy ra khi tải dữ liệu")
       }
     } catch (error) {
-      console.error("Error fetching users:", error)
       message.error("Không thể tải danh sách người dùng")
     } finally {
       setLoading(false)

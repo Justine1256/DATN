@@ -189,7 +189,6 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
         setOrders(ordersResponse.data || [])
       }
     } catch (error) {
-      console.error("Error fetching shop details:", error)
       // Fallback to empty arrays if API fails
       setProducts([])
       setOrders([])
@@ -269,7 +268,6 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
           break
       }
     } catch (error) {
-      console.error(`Error ${action} shop:`, error)
       if (
         error instanceof Error &&
         error.message !== "No authentication token" &&

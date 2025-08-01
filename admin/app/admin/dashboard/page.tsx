@@ -217,7 +217,6 @@ export default function AdminDashboard() {
         setData(result)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Có lỗi xảy ra khi tải dữ liệu")
-        console.error("Error fetching dashboard data:", err)
       } finally {
         setLoading(false)
       }

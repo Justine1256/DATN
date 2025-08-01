@@ -74,7 +74,6 @@ export default function EditProductPage() {
       setVariants((prev) => prev.filter((item) => item.id !== variantId));
       handleShowPopup("Đã xoá biến thể", "success");
     } catch (err) {
-      console.error("Lỗi xoá biến thể:", err);
       handleShowPopup("Xoá biến thể thất bại", "error");
     }
   };
@@ -132,7 +131,6 @@ export default function EditProductPage() {
           description: p.description || "",
         });
       } catch (err) {
-        console.error("Lỗi khi tải sản phẩm:", err);
         router.push("/shop-admin/product");
       } finally {
         setLoading(false);

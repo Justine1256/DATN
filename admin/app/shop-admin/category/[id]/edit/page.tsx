@@ -138,7 +138,6 @@ export default function EditCategoryPage() {
       return;
     }
 
-    console.log("🚀 Data update:", { ...formData });
 
     setSubmitting(true);
     try {

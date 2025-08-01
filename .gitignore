@@ -1,0 +1,4 @@
+filebrowser.db
+front-end/deploy.sh
+front-end/ecosystem.config.js
+*.log

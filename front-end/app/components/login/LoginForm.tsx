@@ -18,32 +18,45 @@ export default function LoginForm() {
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    const { email, password } = formData;
+  e.preventDefault();
+  setError('');
+  const { email, password } = formData;
 
-    if (!email.trim()) return setError('Vui lòng nhập email.');
-    if (!isValidEmail(email.trim())) return setError('Email không đúng định dạng.');
-    if (!password.trim()) return setError('Vui lòng nhập mật khẩu.');
-    if (password.length < 6) return setError('Mật khẩu phải có ít nhất 6 ký tự.');
+  if (!email.trim()) return setError('Vui lòng nhập email.');
+  if (!isValidEmail(email.trim())) return setError('Email không đúng định dạng.');
+  if (!password.trim()) return setError('Vui lòng nhập mật khẩu.');
+  if (password.length < 6) return setError('Mật khẩu phải có ít nhất 6 ký tự.');
 
-    setIsLoading(true);
+  setIsLoading(true);
 
-    try {
-      const res = await axios.post(`${API_BASE_URL}/login`, formData);
-      const { token } = res.data;
+  try {
+    const res = await axios.post(`${API_BASE_URL}/login`, formData);
+    const { token } = res.data;
 
-      Cookies.set('authToken', token, { expires: 7 });
-      setShowPopup(true);
-      window.location.href = 'http://localhost:3000';
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
-      setError(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // ✅ Lưu cookie dùng cho mọi subdomain
+    Cookies.set('authToken', token, {
+      domain: '.marketo.info.vn',
+      path: '/',
+      secure: true,
+      sameSite: 'None',
+      expires: 7,
+    });
+
+    setShowPopup(true);
+const redirectTo = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : 'https://marketo.info.vn';
+
+window.location.href = redirectTo;
+  } catch (err: any) {
+    const msg =
+      err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+    setError(msg);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   useEffect(() => {
     const token = Cookies.get('authToken');
@@ -53,8 +66,6 @@ export default function LoginForm() {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         })
-        .then((res) => console.log('User data:', res.data))
-        .catch((err) => console.error('Token không hợp lệ hoặc hết hạn:', err));
     }
   }, []);
 

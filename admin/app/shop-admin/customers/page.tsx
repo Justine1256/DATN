@@ -35,8 +35,7 @@ import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
 import Cookies from "js-cookie"
 import { Order } from "@/app/ts/oder"
 import { formatDistanceToNow } from 'date-fns'
-import { vi } from 'date-fns/locale'
-
+import { vi } from 'date-fns/locale/vi'
 const { Title, Text } = Typography
 const { Option } = Select
 
@@ -117,7 +116,6 @@ export default function UserManagementPage() {
       }
 
       const rawResult = await response.json()
-      console.log("rawResult", rawResult.data);
       
 
       // Transform the raw response to match ApiResponse interface

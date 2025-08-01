@@ -130,8 +130,6 @@ export default function RefundReportsPage() {
                 throw new Error("Không tìm thấy token xác thực")
             }
 
-            console.log("🔄 Fetching refund reports...")
-
             const response = await fetch("https://api.marketo.info.vn/api/admin/orders/refund-reports", {
                 method: "GET",
                 headers: {
@@ -143,16 +141,13 @@ export default function RefundReportsPage() {
                 signal: AbortSignal.timeout(30000), // 30 second timeout
             })
 
-            console.log("📋 Refund Reports Response Status:", response.status)
 
             if (!response.ok) {
                 const errorText = await response.text()
-                console.error("📋 Refund Reports Error Response:", errorText)
                 throw new Error(`HTTP ${response.status}: ${errorText || "Lỗi từ server"}`)
             }
 
             const result = await response.json()
-            console.log("📋 Refund Reports Data:", result)
 
             const reports = result.data || []
 
@@ -171,7 +166,6 @@ export default function RefundReportsPage() {
 
             showNotification("Đã tải dữ liệu thành công!", "success")
         } catch (err) {
-            console.error("❌ Error fetching refund reports:", err)
 
             let errorMessage = "Có lỗi xảy ra khi tải dữ liệu"
 
@@ -210,21 +204,18 @@ export default function RefundReportsPage() {
                 },
             })
 
-            console.log("🔍 Refund Report Detail Response Status:", response.status)
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
 
             const result = await response.json()
-            console.log("🔍 Refund Report Detail Data:", result)
 
             // Handle both direct data and nested data structure
             const detailData = result.data || result
             setSelectedReport(detailData)
             setShowDetailModal(true)
         } catch (err) {
-            console.error("❌ Error fetching refund report detail:", err)
             const errorMessage = err instanceof Error ? err.message : "Có lỗi xảy ra khi tải chi tiết"
             showNotification(errorMessage, "error")
         } finally {
@@ -251,7 +242,6 @@ export default function RefundReportsPage() {
                 throw new Error("Không tìm thấy token xác thực")
             }
 
-            console.log("🔄 Rejecting refund report for order:", selectedOrderForReject)
 
             const response = await fetch(
                 `https://api.marketo.info.vn/api/admin/orders/${selectedOrderForReject}/refund-report/reject`,
@@ -270,17 +260,13 @@ export default function RefundReportsPage() {
                 },
             )
 
-            console.log("❌ Reject Refund Response Status:", response.status)
 
             if (!response.ok) {
                 const errorText = await response.text()
-                console.error("❌ Reject Refund Error Response:", errorText)
                 throw new Error(`HTTP ${response.status}: ${errorText || "Lỗi từ server"}`)
             }
 
             const data = await response.json()
-            console.log("❌ Reject Refund Data:", data)
-            console.log("❌ Expected status should be 'Rejected'")
 
             // Close modals and refresh data
             setShowRejectModal(false)
@@ -291,7 +277,6 @@ export default function RefundReportsPage() {
 
             showNotification("Đã từ chối đơn khiếu nại!", "warning")
         } catch (err) {
-            console.error("❌ Error rejecting refund report:", err)
 
             let errorMessage = "Có lỗi xảy ra khi từ chối đơn khiếu nại"
 
@@ -325,7 +310,6 @@ export default function RefundReportsPage() {
                 throw new Error("Không tìm thấy token xác thực")
             }
 
-            console.log("🔄 Approving refund report for order:", orderId)
 
             const response = await fetch(`https://api.marketo.info.vn/api/admin/orders/${orderId}/refund-report/approve`, {
                 method: "POST",
@@ -341,18 +325,14 @@ export default function RefundReportsPage() {
                 signal: AbortSignal.timeout(30000), // 30 second timeout
             })
 
-            console.log("✅ Approve Refund Response Status:", response.status)
-            console.log("✅ Approve Refund Response Headers:", response.headers)
 
             if (!response.ok) {
                 const errorText = await response.text()
-                console.error("✅ Approve Refund Error Response:", errorText)
                 throw new Error(`HTTP ${response.status}: ${errorText || "Lỗi từ server"}`)
             }
 
             const data = await response.json()
-            console.log("✅ Approve Refund Data:", data)
-            console.log("✅ Expected status should be 'Resolved'")
+
 
             // Refresh data
             await fetchRefundReports()
@@ -361,7 +341,6 @@ export default function RefundReportsPage() {
 
             showNotification("Đã duyệt đơn khiếu nại thành công!", "success")
         } catch (err) {
-            console.error("❌ Error approving refund report:", err)
 
             let errorMessage = "Có lỗi xảy ra khi duyệt đơn khiếu nại"
 

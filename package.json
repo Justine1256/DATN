@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "ckeditor5": "^46.0.0",
-    "date-fns": "^4.1.0",
-    "react-slider": "^2.0.6"
-  }
-}

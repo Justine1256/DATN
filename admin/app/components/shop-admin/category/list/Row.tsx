@@ -46,7 +46,6 @@ const CategoryRow = ({ category, productCount }: CategoryRowProps) => {
       setStatus(newStatus);
       setShowDetail(false);
     } catch (error) {
-      console.error("❌ Lỗi cập nhật trạng thái danh mục:", error);
       alert("Không thể cập nhật trạng thái danh mục.");
     }
   };

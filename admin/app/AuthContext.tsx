@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
@@ -22,16 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tokenFromUrl = params.get("token");
-
-    if (tokenFromUrl) {
-      Cookies.set("authToken", tokenFromUrl, { expires: 7 });
-      params.delete("token");
-      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
-    }
-
-    const token = tokenFromUrl || Cookies.get("authToken");
+    const token = Cookies.get("authToken");
 
     if (token) {
       axios
@@ -39,35 +31,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => {
-          const user = res.data;
-          if (!["seller", "admin"].includes(user.role)) {
-            redirectToLogin();
-          } else {
-            setUser(user);
-            setIsAuthReady(true);
-
-            // 🔥 Auto điều hướng sau khi xác thực thành công
-            if (window.location.pathname === "/") {
-              const redirectPath =
-                user.role === "admin" ? "/admin/dashboard" : "/shop-admin/dashboard";
-              window.location.href = redirectPath;
-            }
-          }
+          setUser(res.data);
         })
         .catch((err) => {
-          console.error("Xác thực thất bại:", err);
-          redirectToLogin();
+          setUser(null); // Có thể giữ user null để hiển thị UI riêng cho user chưa login
+        })
+        .finally(() => {
+          setIsAuthReady(true);
         });
     } else {
-      redirectToLogin();
-    }
-
-    function redirectToLogin() {
-      setIsAuthReady(true); // tránh UI bị treo
-      window.location.href = "http://localhost:3000/login";
+      // Không có token vẫn đánh dấu isAuthReady để không chặn UI
+      setIsAuthReady(true);
     }
   }, []);
-
 
   return (
     <AuthContext.Provider value={{ user, isAuthReady }}>
@@ -75,3 +51,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+

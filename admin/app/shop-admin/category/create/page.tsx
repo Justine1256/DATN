@@ -116,7 +116,6 @@ export default function CreateCategoryPage() {
             return;
         }
 
-        console.log("🚀 Data gửi lên:", { ...formData, shop_id: shopId });
 
         setSubmitting(true);
         try {

@@ -87,7 +87,6 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
               data={data.description || ""}
               onChange={(event, editor) => {
                 const html = editor.getData();
-                console.log("CKEditor HTML:", html);
                 setData("description", html);
               }}
             />
