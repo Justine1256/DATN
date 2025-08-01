@@ -38,6 +38,13 @@ export const menu = [
         ],
     },
     {
+        label: "Đơn hàng khiếu nại",
+        icon: <Warehouse size={18} />,
+        children: [
+            { label: "Danh sách đơn hàng", href: "/admin/refund-reports" },
+        ],
+    },
+    {
         label: "Quảng cáo",
         icon: <MessageSquare size={18} />,
         children: [
