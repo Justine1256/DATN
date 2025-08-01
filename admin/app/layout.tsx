@@ -6,7 +6,7 @@ import "./globals.css";
 import Header from "./components/common/Header";
 import ShopSidebar from "./components/common/ShopSidebar";
 import ModernAdminSidebar from "./components/common/Adminsiderbar";
-import ModernAdminHeader from "./components/common/Header";
+
 import { AuthProvider, useAuth } from "./AuthContext";
 
 const roboto = Roboto({

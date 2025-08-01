@@ -427,6 +427,10 @@ public function getMyShopCustomers(Request $request)
                    in_array($order->order_admin_status, $cancelStatuses);
         });
 
+        $completedOrders = $orders->filter(function ($order) {
+            return $order->order_status === 'Delivered';
+        });
+
         return [
             'user_id' => $user->id,
             'name' => $user->name,
@@ -438,46 +442,92 @@ public function getMyShopCustomers(Request $request)
             'last_order_at' => optional($orders->sortByDesc('created_at')->first())->created_at,
             'has_cancelled_order' => $cancelledOrders->isNotEmpty(),
             'cancelled_orders_count' => $cancelledOrders->count(),
+
+            // Đơn hủy
             'cancel_details' => $cancelledOrders->map(function ($order) {
-    // Eager load orderDetails.product cho đơn bị hủy
-    $order->loadMissing('orderDetails.product');
+                $order->loadMissing('orderDetails.product');
 
-    $products = $order->orderDetails->map(function ($detail) {
-        $firstImage = null;
+                $products = $order->orderDetails->map(function ($detail) {
+                    $firstImage = null;
 
-        if (!empty($detail->product?->image)) {
-            $images = $detail->product->image;
+                    if (!empty($detail->product?->image)) {
+                        $images = $detail->product->image;
 
-            if (!is_array($images)) {
-                $decoded = json_decode($images, true);
-                if (is_array($decoded)) {
-                    $images = $decoded;
-                }
-            }
+                        if (!is_array($images)) {
+                            $decoded = json_decode($images, true);
+                            if (is_array($decoded)) {
+                                $images = $decoded;
+                            }
+                        }
 
-            if (is_array($images) && count($images) > 0) {
-                $firstImage = $images[0];
-            }
-        }
+                        if (is_array($images) && count($images) > 0) {
+                            $firstImage = $images[0];
+                        }
+                    }
 
-        return [
-            'id' => $detail->product->id ?? null,
-            'name' => $detail->product->name ?? null,
-            'price_at_time' => $detail->price_at_time,
-            'quantity' => $detail->quantity,
-            'subtotal' => $detail->subtotal,
-            'image' => $firstImage,
-        ];
-    });
+                    return [
+                        'id' => $detail->product->id ?? null,
+                        'name' => $detail->product->name ?? null,
+                        'price_at_time' => $detail->price_at_time,
+                        'quantity' => $detail->quantity,
+                        'subtotal' => $detail->subtotal,
+                        'image' => $firstImage,
+                    ];
+                });
 
-    return [
-        'order_id' => $order->id,
-        'cancel_reason' => $order->cancel_reason,
-        'canceled_at' => $order->canceled_at,
-        'products' => $products,
-    ];
-})->values(),
+                return [
+                    'order_id' => $order->id,
+                    'cancel_reason' => $order->cancel_reason,
+                    'canceled_at' => $order->canceled_at,
+                    'order_status' => $order->order_status,
+                    'order_admin_status' => $order->order_admin_status,
+                    'payment_status' => $order->payment_status,
+                    'shipping_status' => $order->shipping_status,
+                    'products' => $products,
+                ];
+            })->values(),
 
+            // Đơn đã giao thành công
+            'completed_orders' => $completedOrders->map(function ($order) {
+                $order->loadMissing('orderDetails.product');
+
+                $products = $order->orderDetails->map(function ($detail) {
+                    $firstImage = null;
+
+                    if (!empty($detail->product?->image)) {
+                        $images = $detail->product->image;
+
+                        if (!is_array($images)) {
+                            $decoded = json_decode($images, true);
+                            if (is_array($decoded)) {
+                                $images = $decoded;
+                            }
+                        }
+
+                        if (is_array($images) && count($images) > 0) {
+                            $firstImage = $images[0];
+                        }
+                    }
+
+                    return [
+                        'id' => $detail->product->id ?? null,
+                        'name' => $detail->product->name ?? null,
+                        'price_at_time' => $detail->price_at_time,
+                        'quantity' => $detail->quantity,
+                        'subtotal' => $detail->subtotal,
+                        'image' => $firstImage,
+                    ];
+                });
+
+                return [
+                    'order_id' => $order->id,
+                    'delivered_at' => $order->delivered_at,
+                    'order_status' => $order->order_status,
+                    'payment_status' => $order->payment_status,
+                    'shipping_status' => $order->shipping_status,
+                    'products' => $products,
+                ];
+            })->values(),
         ];
     });
 
@@ -485,6 +535,97 @@ public function getMyShopCustomers(Request $request)
         'data' => $data
     ]);
 }
+   public function stats(Request $request)
+{
+        $user = Auth::user();
+    $shopId = $user->shop->id ?? null;
+        if (!$shopId) {
+            return response()->json(['error' => 'Shop not found'], 404);
+        }
 
+        // Tổng doanh thu đơn hàng đã giao thành công
+        $totalSales = DB::table('orders')
+            ->where('shop_id', $shopId)
+            ->where('order_status', 'Delivered')
+            ->sum('final_amount');
+
+        // Tổng số đơn hàng
+        $totalOrders = DB::table('orders')
+            ->where('shop_id', $shopId)
+            ->count();
+
+        // Đơn đã giao
+        $completedOrders = DB::table('orders')
+            ->where('shop_id', $shopId)
+            ->where('order_status', 'Delivered')
+            ->count();
+
+        // Đơn đã huỷ
+        $canceledOrders = DB::table('orders')
+            ->where('shop_id', $shopId)
+            ->where('order_status', 'Canceled')
+            ->count();
+
+        // Tổng sản phẩm đang bán
+        $totalProducts = DB::table('products')
+            ->where('shop_id', $shopId)
+            ->where('status', 'activated')
+            ->count();
+
+        // Sản phẩm sắp hết hàng (tồn kho < 5)
+        $lowStockProducts = DB::table('products')
+            ->where('shop_id', $shopId)
+            ->where('stock', '<', 5)
+            ->count();
+
+        // Sản phẩm bán chạy nhất
+        $topSellingProducts = DB::table('products')
+            ->where('shop_id', $shopId)
+            ->orderByDesc('sold')
+            ->limit(5)
+            ->select('id', 'name', 'sold', 'stock')
+            ->get();
+
+        // Trung bình đánh giá shop
+        $averageRating = DB::table('products')
+            ->where('shop_id', $shopId)
+            ->avg('rating');
+
+        // Tổng đánh giá
+        $totalReviews = DB::table('reviews')
+            ->join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
+            ->join('products', 'order_details.product_id', '=', 'products.id')
+            ->where('products.shop_id', $shopId)
+            ->count();
+
+        // Tổng số người theo dõi
+        $totalFollowers = DB::table('follows')
+            ->where('shop_id', $shopId)
+            ->count();
+
+        // Doanh thu theo tháng (6 tháng gần nhất)
+        $monthlyRevenue = DB::table('orders')
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, SUM(final_amount) as revenue")
+            ->where('shop_id', $shopId)
+            ->where('order_status', 'Delivered')
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
+            ->orderBy('month')
+            ->get();
+
+        return response()->json([
+            'total_sales' => $totalSales,
+            'total_orders' => $totalOrders,
+            'completed_orders' => $completedOrders,
+            'canceled_orders' => $canceledOrders,
+            'total_products' => $totalProducts,
+            'low_stock_products' => $lowStockProducts,
+            'top_selling_products' => $topSellingProducts,
+            'average_rating' => round($averageRating, 1),
+            'total_reviews' => $totalReviews,
+            'total_followers' => $totalFollowers,
+            'monthly_revenue' => $monthlyRevenue,
+        ]);
+}
 }
 
