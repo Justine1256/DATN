@@ -141,6 +141,7 @@ interface OrderDetailAPI {
     variant_id: number | null
     product_option: string
     product_value: string
+    product_name: string
   }>
 }
 
@@ -329,29 +330,6 @@ const orderService = {
       throw error
     }
   },
-  async fetchProductName(productId: number): Promise<string> {
-    const token = Cookies.get("authToken")
-
-    try {
-      const response = await fetch(`https://api.marketo.info.vn/api/products/${productId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        return `${productId} ID: ${productId}`
-      }
-
-      const data = await response.json()
-      return data.name || `Sản phẩm ID: ${productId}`
-    } catch (error) {
-      return `Sản phẩm ID: ${productId}`
-    }
-  },
 }
 
 // Generate items based on total_products
@@ -494,7 +472,8 @@ export default function OrderManagementPage() {
 
   const [orderDetail, setOrderDetail] = useState<OrderDetailAPI | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
-  const [productNames, setProductNames] = useState<Record<number, string>>({})
+  // Xóa dòng này:
+  // const [productNames, setProductNames] = useState<Record<number, string>>({})
 
   // Check token on mount
   useEffect(() => {
@@ -1038,15 +1017,6 @@ export default function OrderManagementPage() {
       if (order.originalData?.id) {
         const detail = await orderService.fetchOrderDetail(order.originalData.id)
         setOrderDetail(detail)
-
-        // Fetch product names
-        const names: Record<number, string> = {}
-        for (const item of detail.details) {
-          if (!productNames[item.product_id]) {
-            names[item.product_id] = await orderService.fetchProductName(item.product_id)
-          }
-        }
-        setProductNames((prev) => ({ ...prev, ...names }))
       }
     } catch (error: any) {
       message.error(`Lỗi khi tải chi tiết đơn hàng: ${error.message}`)
@@ -1584,7 +1554,7 @@ export default function OrderManagementPage() {
                           </Col>
                           <Col span={12}>
                             <div style={{ fontWeight: 500 }}>
-                              {productNames[item.product_id] || `Sản phẩm ID: ${item.product_id}`}
+                              {item.product_name || `Sản phẩm ID: ${item.product_id}`}
                             </div>
                             <div style={{ fontSize: 12, color: "#666" }}>
                               {item.product_option}: {item.product_value}

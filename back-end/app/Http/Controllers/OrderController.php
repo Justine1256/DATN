@@ -261,8 +261,17 @@ class OrderController extends Controller
 
     $orderDetails = OrderDetail::where('order_id', $id)->get()->map(function ($detail) {
         $product = Product::find($detail->product_id);
+
         $detail->product_name = $product ? $product->name : null;
-        return $detail->makeHidden(['product']); // ẩn nếu có relationship
+
+        // Nếu cột image là JSON (chứa nhiều ảnh), lấy ảnh đầu tiên
+        if ($product && is_array($product->image)) {
+            $detail->product_image = $product->image[0] ?? null;
+        } else {
+            $detail->product_image = $product->image ?? null;
+        }
+
+        return $detail->makeHidden(['product']);
     });
 
         return response()->json([
