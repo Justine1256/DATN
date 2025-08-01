@@ -68,6 +68,9 @@ public function followedShops()
     return $this->belongsToMany(Shop::class, 'follows', 'user_id', 'shop_id')
                 ->withTimestamps();
 }
-
+public function defaultAddress()
+{
+    return $this->hasOne(Address::class)->where('is_default', 1);
+}
 
 }
