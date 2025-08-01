@@ -673,6 +673,43 @@ public function getProductByIdShop($id)
             'message' => 'Khôi phục sản phẩm thành công.'
         ]);
     }
+    // Lấy danh sách sản phẩm có stock = 0 hoặc < 5
+    public function getLowStockProducts(Request $request)
+{
+    $user = $request->user();
+    $shopId = $user->shop->id ?? null;
+
+    if (!$shopId) {
+        return response()->json(['error' => 'Shop not found for user'], 403);
+    }
+
+    // Lấy toàn bộ sản phẩm, sắp xếp theo stock tăng dần
+    $products = Product::where('shop_id', $shopId)
+        ->orderBy('stock', 'asc')
+        ->get()
+        ->filter(function ($product) {
+            return $product->stock < 5;
+        })
+        ->map(function ($product) {
+            if ($product->stock == 0) {
+                $status = 'Hết hàng';
+            } else {
+                $status = 'Cần bổ sung';
+            }
+
+            return [
+                'id'     => $product->id,
+                'name'   => $product->name,
+                'stock'  => $product->stock,
+                'status' => $status,
+            ];
+        })
+        ->values(); // reset index về 0,1,2...
+
+    return response()->json([
+        'products' => $products,
+    ], 200);
+}
     // Nhập kho sản phẩm
     public function importStock(Request $request)
     {
