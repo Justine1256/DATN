@@ -691,8 +691,12 @@ public function getProductByIdShop($id)
         ->map(function ($product) {
             if ($product->stock == 0) {
                 $status = 'Hết hàng';
-            } else {
+            }
+            elseif($product->stock <=10){
                 $status = 'Cần bổ sung';
+            }
+                else {
+                $status = 'Còn hàng';
             }
 
             return [
