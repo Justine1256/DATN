@@ -51,11 +51,11 @@ export const menu = [
             { label: "Quản lý banner", href: "/admin/banner" },
         ],
     },
-    {
-        label: "Tin nhắn",
-        icon: <MessageSquare size={18} />,
-        href: "/admin/chat",
-    },
+    // {
+    //     label: "Tin nhắn",
+    //     icon: <MessageSquare size={18} />,
+    //     href: "/admin/chat",
+    // },
 ];
 
 export default function ModernAdminSidebar() {
