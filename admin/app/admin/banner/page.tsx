@@ -185,6 +185,7 @@ const payload = {
       title: 'Tiêu đề',
       dataIndex: 'title',
       key: 'title',
+      width: 200,
       ellipsis: {
         showTitle: false,
       },
@@ -209,7 +210,7 @@ const payload = {
               href={link} 
               target="_blank" 
               rel="noopener noreferrer"
-              style={{ color: '#1890ff', fontSize: '12px' }}
+              style={{ color: '#DB4444', fontSize: '12px' }}
             >
               {link.length > 20 ? `${link.substring(0, 20)}...` : link}
             </a>
@@ -235,13 +236,16 @@ const payload = {
           checked={status === 1}
           onChange={() => handleToggleStatus(record.id, status)}
           size="small"
+          style={{
+    backgroundColor: status === 1 ? '#52c41a' : '#f5222d', // Xanh lá & đỏ
+  }}
         />
       ),
     },
     {
       title: 'Hiển thị',
       key: 'display_time',
-      width: 120,
+      width: 180,
       align: 'center',
       filters: [
         { text: 'Vĩnh viễn', value: 'permanent' },
@@ -252,7 +256,7 @@ const payload = {
       onFilter: (value, record) => record.status === value,
       render: (record: Banner) => {
         if (!record.start_date && !record.end_date) {
-          return <Tag color="blue" style={{ fontSize: '11px', padding: '1px 6px' }}>Vĩnh viễn</Tag>;
+          return <Tag color="blue" style={{ fontSize: '11px', padding: '2px 8px', margin: 0 }}>Vĩnh viễn</Tag>;
         }
         
         const now = dayjs();
@@ -271,11 +275,14 @@ const payload = {
         }
         
         return (
-          <div>
-            <Tag color={status} style={{ fontSize: '11px', padding: '1px 6px' }}>{text}</Tag>
-            <div style={{ fontSize: '10px', color: '#666', marginTop: 2 }}>
-              {start && <div>{start.format('DD/MM')}</div>}
-              {end && start && <div>-{end.format('DD/MM')}</div>}
+          <div style={{ textAlign: 'center' }}>
+            <Tag color={status} style={{ fontSize: '11px', padding: '2px 8px', margin: '0 0 4px 0' }}>
+              {text}
+            </Tag>
+            <div style={{ fontSize: '11px', color: '#666', lineHeight: '1.2' }}>
+              {start && <div>{start.format('DD/MM/YYYY HH:mm')}</div>}
+              {end && start && <div style={{ margin: '2px 0' }}>đến</div>}
+              {end && <div>{end.format('DD/MM/YYYY HH:mm')}</div>}
             </div>
           </div>
         );
@@ -329,7 +336,7 @@ const payload = {
               icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
               size="small"
-              style={{ color: '#1890ff', padding: '2px' }}
+              style={{ color: '#DB4444', padding: '2px' }}
             />
           </Tooltip>
           <Popconfirm
@@ -337,15 +344,14 @@ const payload = {
             onConfirm={() => handleDelete(record.id)}
             okText="Xóa"
             cancelText="Hủy"
-            okButtonProps={{ danger: true }}
+            okButtonProps={{ danger: true, style: { backgroundColor: '#DB4444', borderColor: '#DB4444' } }}
           >
             <Tooltip title="Xóa">
               <Button
                 type="text"
                 icon={<DeleteOutlined />}
-                danger
                 size="small"
-                style={{ padding: '2px' }}
+                style={{ padding: '2px', color: '#DB4444' }}
               />
             </Tooltip>
           </Popconfirm>
@@ -400,6 +406,7 @@ const payload = {
                   icon={<ReloadOutlined />}
                   onClick={loadBanners}
                   loading={loading}
+                  style={{ backgroundColor: '#fff', borderColor: '#DB4444', color: '#DB4444' }}
                 >
                   Làm mới
                 </Button>
@@ -407,6 +414,7 @@ const payload = {
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={handleAdd}
+                  style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
                 >
                   Thêm banner
                 </Button>
@@ -577,13 +585,17 @@ const payload = {
 
           <Row justify="end">
             <Space>
-              <Button onClick={() => setModalVisible(false)}>
+              <Button 
+                onClick={() => setModalVisible(false)}
+                style={{ backgroundColor: 'white', borderColor: '#DB4444', color: '#DB4444' }}
+              >
                 Hủy
               </Button>
               <Button
                 type="primary"
                 onClick={() => form.submit()}
                 loading={loading}
+                style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
               >
                 {editingBanner ? 'Cập nhật' : 'Thêm mới'}
               </Button>
