@@ -29,5 +29,6 @@ export type Order = {
     delivery: number;
     tax: number;
     total: number;
+    cancel_reason?: string;
 };
   

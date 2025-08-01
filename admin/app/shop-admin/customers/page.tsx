@@ -60,6 +60,7 @@ interface UserData {
   totalSpent: number
   canceledOrders: number
   cancelStatus: CancelStatus
+  cancelReasons: string
   cancel_details: Order[]
   lastOrderAt?: string
   avatar?: string
@@ -131,6 +132,7 @@ export default function UserManagementPage() {
           totalOrders: user.total_orders || 0,
           totalSpent: user.total_spent || 0,
           canceledOrders: user.cancelled_orders_count || 0,
+          canceledReason: user.cancel_reason || "",
           cancelStatus: {
             level: user.risk_level || "normal",
             color: user.risk_level === "danger" ? "red" : 
@@ -308,7 +310,30 @@ export default function UserManagementPage() {
           </div>
           <div style={{ marginTop: 4 }}>
             <Badge count={record.canceledOrders} showZero color={record.cancelStatus.color} />
-            <span style={{ marginLeft: 6, fontSize: 11 }}>Hủy</span>
+            <Tooltip
+              title={
+                record.cancel_details && record.cancel_details.length > 0
+                  ? (() => {
+                      // Lọc ra các lý do hủy hợp lệ, loại bỏ null/undefined và trùng lặp
+                      const uniqueReasons = Array.from(
+                        new Set(
+                          record.cancel_details
+                            .map((order) => order?.cancel_reason?.trim())
+                            .filter((reason) => !!reason)
+                        )
+                      );
+                      if (uniqueReasons.length === 0) {
+                        return "không có lý do hủy";
+                      }
+                      return uniqueReasons.map((reason, idx) => (
+                        <div key={idx}>• {reason}</div>
+                      ));
+                    })()
+                  : "không có lý do hủy"
+              }
+            >
+              <span style={{ marginLeft: 6, fontSize: 11, cursor: "pointer" }}>Hủy</span>
+            </Tooltip>
             {record.cancelStatus.level !== "normal" && (
               <Tooltip
                 title={record.cancelStatus.level === "danger" ? "Cảnh báo: Quá nhiều đơn hủy" : "Chú ý: Số đơn hủy cao"}
@@ -467,7 +492,7 @@ export default function UserManagementPage() {
           </Col>
           <Col xs={22} sm={6} md={4}>
             <Select placeholder="Đơn hủy" value={canceledFilter} onChange={setCanceledFilter} style={{ width: "100%" }}>
-              <Option value="all">Đơn hủy-không hủy</Option>
+              <Option value="all">Hủy đơn / Không hủy đơn</Option>
               <Option value="true">Có hủy</Option>
               <Option value="false">Không hủy</Option>
             </Select>
