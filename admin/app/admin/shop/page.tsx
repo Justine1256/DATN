@@ -405,12 +405,6 @@ export default function ShopManagementPage() {
       onClick: () => handleBlockShop(record.id, record.status),
     },
     {
-      key: "reset",
-      icon: <KeyOutlined />,
-      label: "Reset mật khẩu",
-      onClick: () => handleResetPassword(record.id, record.owner.name),
-    },
-    {
       type: "divider",
     },
     {

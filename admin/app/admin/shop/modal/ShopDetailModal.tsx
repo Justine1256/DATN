@@ -425,13 +425,6 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
             {shop.status === "blocked" || shop.status === "locked" ? "Mở khóa" : "Khóa shop"}
           </Button>
           <Button
-            icon={<KeyOutlined />}
-            onClick={() => handleAction("reset-password")}
-            loading={actionLoading === "reset-password"}
-          >
-            Reset mật khẩu
-          </Button>
-          <Button
             icon={<DeleteOutlined />}
             danger
             onClick={() => handleAction("delete")}
@@ -593,33 +586,8 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
             </Card>
           </TabPane>
 
-          <TabPane tab={`Sản phẩm (${products.length})`} key="products">
-            {products.length > 0 ? (
-              <Table
-                columns={productColumns}
-                dataSource={products}
-                rowKey="id"
-                pagination={{ pageSize: 10, showSizeChanger: true }}
-                size="small"
-              />
-            ) : (
-              <Empty description="Chưa có sản phẩm nào" />
-            )}
-          </TabPane>
 
-          <TabPane tab={`Đơn hàng (${orders.length})`} key="orders">
-            {orders.length > 0 ? (
-              <Table
-                columns={orderColumns}
-                dataSource={orders}
-                rowKey="id"
-                pagination={{ pageSize: 10, showSizeChanger: true }}
-                size="small"
-              />
-            ) : (
-              <Empty description="Chưa có đơn hàng nào" />
-            )}
-          </TabPane>
+
         </Tabs>
       </Spin>
     </Modal>

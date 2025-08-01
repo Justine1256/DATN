@@ -51,6 +51,7 @@ import type { ColumnsType } from "antd/es/table"
 import type { MenuProps } from "antd"
 import dayjs from "dayjs"
 import Cookies from "js-cookie"
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -142,6 +143,7 @@ interface OrderDetailAPI {
     product_option: string
     product_value: string
     product_name: string
+    product_image: string
   }>
 }
 
@@ -207,7 +209,7 @@ const orderService = {
     const token = Cookies.get("authToken")
 
     try {
-      const response = await fetch("https://api.marketo.info.vn/api/shopadmin/show/orders", {
+      const response = await fetch(`${API_BASE_URL}/shopadmin/show/orders`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -244,7 +246,7 @@ const orderService = {
         body.reconciliation_status = reconciliationStatus
       }
 
-      const response = await fetch(`https://api.marketo.info.vn/api/shop/orders/${orderId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/shop/orders/${orderId}/status`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -283,7 +285,7 @@ const orderService = {
     const token = Cookies.get("authToken")
 
     try {
-      const response = await fetch(`https://api.marketo.info.vn/api/shop/orders/${orderId}/cancel`, {
+      const response = await fetch(`${API_BASE_URL}/shop/orders/${orderId}/cancel`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -310,7 +312,7 @@ const orderService = {
     const token = Cookies.get("authToken")
 
     try {
-      const response = await fetch(`https://api.marketo.info.vn/api/showdh/${orderId}`, {
+      const response = await fetch(`${API_BASE_URL}/showdh/${orderId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -1056,36 +1058,80 @@ export default function OrderManagementPage() {
       const printWindow = window.open("", "_blank")
       if (printWindow && printContent) {
         printWindow.document.write(`
-        <html>
-          <head>
-            <title>Chi tiết đơn hàng ${selectedOrder.orderNumber}</title>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 20px; }
-              .ant-card { border: 1px solid #d9d9d9; margin-bottom: 16px; }
-              .ant-card-head { background: #fafafa; padding: 8px 16px; border-bottom: 1px solid #d9d9d9; font-weight: bold; }
-              .ant-card-body { padding: 16px; }
-              .ant-row { display: flex; margin-bottom: 8px; }
-              .ant-col { flex: 1; }
-              .ant-descriptions-item { margin-bottom: 8px; }
-              .ant-descriptions-item-label { font-weight: bold; margin-right: 8px; }
-              .ant-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-              .ant-timeline-item { margin-bottom: 12px; }
-              .ant-image { border: 1px solid #d9d9d9; }
-              @media print {
-                body { margin: 0; }
-                .no-print { display: none !important; }
+      <html>
+        <head>
+          <title>Chi tiết đơn hàng ${selectedOrder.orderNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .ant-card { border: 1px solid #d9d9d9; margin-bottom: 16px; }
+            .ant-card-head { background: #fafafa; padding: 8px 16px; border-bottom: 1px solid #d9d9d9; font-weight: bold; }
+            .ant-card-body { padding: 16px; }
+            .ant-row { display: flex; margin-bottom: 8px; }
+            .ant-col { flex: 1; }
+            .ant-descriptions-item { margin-bottom: 8px; }
+            .ant-descriptions-item-label { font-weight: bold; margin-right: 8px; }
+            .ant-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+            .ant-timeline-item { margin-bottom: 12px; }
+            .ant-image { border: 1px solid #d9d9d9; }
+            .ant-image img { 
+              max-width: 50px !important; 
+              max-height: 50px !important; 
+              width: 50px !important; 
+              height: 50px !important; 
+              object-fit: cover !important;
+              display: block !important;
+            }
+            img { 
+              max-width: 50px !important; 
+              max-height: 50px !important; 
+              width: 50px !important; 
+              height: 50px !important; 
+              object-fit: cover !important;
+              display: block !important;
+              -webkit-print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none !important; }
+              img { 
+                max-width: 50px !important; 
+                max-height: 50px !important; 
+                width: 50px !important; 
+                height: 50px !important; 
+                object-fit: cover !important;
+                display: block !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
               }
-            </style>
-          </head>
-          <body>
-            <h2>Chi tiết đơn hàng ${selectedOrder.orderNumber}</h2>
-            ${printContent}
-          </body>
-        </html>
-      `)
+              .ant-image img { 
+                max-width: 50px !important; 
+                max-height: 50px !important; 
+                width: 50px !important; 
+                height: 50px !important; 
+                object-fit: cover !important;
+                display: block !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Chi tiết đơn hàng ${selectedOrder.orderNumber}</h2>
+          ${printContent}
+        </body>
+      </html>
+    `)
         printWindow.document.close()
-        printWindow.print()
-        printWindow.close()
+
+        // Đợi ảnh load xong rồi mới in
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print()
+            printWindow.close()
+          }, 1000) // Đợi 1 giây để ảnh load
+        }
       }
     } else {
       // In toàn bộ trang
@@ -1547,9 +1593,14 @@ export default function OrderManagementPage() {
                         >
                           <Col span={4}>
                             <Image
-                              src={`/placeholder.svg?height=60&width=60&text=Product${item.product_id}`}
+                              src={
+                                item.product_image
+                                  ? `${STATIC_BASE_URL}/${item.product_image}`
+                                  : `/placeholder.svg?height=60&width=60&text=Product${item.product_id}`
+                              }
                               width={50}
                               height={50}
+                              fallback="/placeholder.svg?height=60&width=60&text=Error"
                             />
                           </Col>
                           <Col span={12}>
