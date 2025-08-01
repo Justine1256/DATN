@@ -38,17 +38,24 @@ export const menu = [
         ],
     },
     {
+        label: "Đơn hàng khiếu nại",
+        icon: <Warehouse size={18} />,
+        children: [
+            { label: "Danh sách đơn hàng", href: "/admin/refund-reports" },
+        ],
+    },
+    {
         label: "Quảng cáo",
         icon: <MessageSquare size={18} />,
         children: [
             { label: "Quản lý banner", href: "/admin/banner" },
         ],
     },
-    {
-        label: "Tin nhắn",
-        icon: <MessageSquare size={18} />,
-        href: "/admin/chat",
-    },
+    // {
+    //     label: "Tin nhắn",
+    //     icon: <MessageSquare size={18} />,
+    //     href: "/admin/chat",
+    // },
 ];
 
 export default function ModernAdminSidebar() {

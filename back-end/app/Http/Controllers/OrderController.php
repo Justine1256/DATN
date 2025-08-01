@@ -1187,12 +1187,21 @@ class OrderController extends Controller
         ];
     });
 
-    return response()->json([
+     return response()->json([
         'report_id' => $report->id,
         'order_id' => $order->id,
         'user' => [
             'id' => $order->user->id,
             'name' => $order->user->name,
+            'email'  => $order->user->email,
+            'phone'  => $order->user->phone,
+            'avatar' => $order->user->avatar,
+        ],
+        'shop' => [
+            'id'   => $order->shop->id ?? null,
+            'name' => $order->shop->name ?? '(Không tìm thấy shop)',
+            'email' => $order->shop->email ?? null,
+            'logo'  => $order->shop->logo ?? null,
         ],
         'report_reason' => $report->reason,
         'photos' => $photos,
@@ -1321,13 +1330,20 @@ public function rejectRefundReport(Request $request, $orderId)
 //Danh sách tất cả đơn bị tố cáo hoàn đơn
 public function listAllRefundReports()
 {
-    $reports = \App\Models\Report::with(['user', 'shop', 'order'])
-        ->whereNotNull('order_id')
-        ->orderByDesc('created_at')
-        ->get();
+    $reports = \App\Models\Report::with([
+        'user',
+        'shop',
+        'order.orderDetails.product' // Load quan hệ để lấy ảnh sản phẩm
+    ])
+    ->whereNotNull('order_id')
+    ->orderByDesc('created_at')
+    ->get();
 
     return response()->json([
         'data' => $reports->map(function ($report) {
+            // Lấy ảnh của sản phẩm đầu tiên trong đơn hàng (nếu có)
+            $firstProductImage = optional($report->order->orderDetails->first()->product)->image;
+
             return [
                 'report_id' => $report->id,
                 'order_id' => $report->order_id,
@@ -1341,7 +1357,8 @@ public function listAllRefundReports()
                 ],
                 'reason' => $report->reason,
                 'status' => $report->status,
-                'created_at' => $report->created_at->format('Y-m-d H:i'),
+                'created_at' => $report->created_at ? $report->created_at->format('Y-m-d H:i') : null,
+                'product_image' => $firstProductImage, // ✅ Thêm dòng này
             ];
         }),
     ]);
