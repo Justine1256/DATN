@@ -1100,10 +1100,10 @@ class OrderController extends Controller
             return response()->json(['message' => 'Đơn hàng không hợp lệ để từ chối hoàn đơn'], 400);
         }
 
-        $order->order_admin_status = 'Delivered';
-        $order->order_status = 'Delivered'; // Trả lại trạng thái đã giao
+        $order->order_admin_status = 'Return Requested';
+        $order->order_status = 'Return Requested';
         $order->rejection_reason = $validated['rejection_reason'];
-        $order->return_status = 'Requested';
+        $order->return_status = 'Rejected';
         $order->save();
 
         // Gửi thông báo cho user
@@ -1166,4 +1166,184 @@ class OrderController extends Controller
 
         return response()->json(['message' => 'Đã duyệt hoàn đơn thành công']);
     }
+    public function viewRefundReportDetail($orderId)
+{
+    $order = \App\Models\Order::with(['user', 'orderDetails.product'])->find($orderId);
+    $report = \App\Models\Report::with('user')->where('order_id', $orderId)->first();
+
+    if (!$order || !$report) {
+        return response()->json(['message' => 'Không tìm thấy đơn hàng hoặc tố cáo'], 404);
+    }
+
+    // Ảnh người mua gửi khi yêu cầu hoàn đơn
+    $photos = \App\Models\OrderReturnPhoto::where('order_id', $orderId)->pluck('image_path');
+
+    // Ảnh sản phẩm gốc trong đơn hàng
+    $productImages = $order->orderDetails->map(function ($detail) {
+        return [
+            'product_id' => $detail->product->id,
+            'product_name' => $detail->product->name,
+            'image' => $detail->product->image, // Giả sử có cột image trong bảng products
+        ];
+    });
+
+    return response()->json([
+        'report_id' => $report->id,
+        'order_id' => $order->id,
+        'user' => [
+            'id' => $order->user->id,
+            'name' => $order->user->name,
+        ],
+        'report_reason' => $report->reason,
+        'photos' => $photos,
+        'product_images' => $productImages, // Thêm phần này
+        'created_at' => $report->created_at,
+        'status' => $report->status,
+    ]);
+}
+
+//Duyệt tố cáo (admin đứng về phía người mua)
+
+public function approveRefundReport($orderId)
+{
+    $order = \App\Models\Order::find($orderId);
+    $report = \App\Models\Report::where('order_id', $orderId)->first();
+
+    if (!$order || !$report || $report->status !== 'Pending') {
+        return response()->json(['message' => 'Không thể duyệt tố cáo'], 400);
+    }
+
+    $order->order_admin_status = 'Return Approved';
+    $order->order_status = 'Returning';
+    $order->return_status = 'Approved';
+    $order->save();
+
+    $report->status = 'Resolved';
+    $report->save();
+
+    $shop = $order->shop;
+    $shop->increment('report_warnings');
+    $shop->last_reported_at = now();
+
+    // Xử lý rating và khóa shop theo mốc vi phạm
+    switch ($shop->report_warnings) {
+        case 3:
+            $shop->rating = max(0, ($shop->rating ?? 5) - 1.0);
+            break;
+        case 6:
+            $shop->rating = max(0, ($shop->rating ?? 5) - 2.0);
+            break;
+        case 9:
+            $shop->rating = max(0, ($shop->rating ?? 5) - 3.0);
+            break;
+        case 15:
+            $shop->status = 'hidden';
+            $shop->locked_until = now()->addDays(7); // tạm ẩn shop
+            break;
+    }
+
+    $shop->save();
+
+    \App\Models\Notification::create([
+        'user_id' => $order->user_id,
+        'title' => "Tố cáo đơn #{$order->id} được duyệt",
+        'content' => "Sàn đã xử lý và đồng ý hoàn đơn cho bạn.",
+        'image_url' => '/images/refund-approved.png',
+        'link' => "/account?section=orders&order_id={$order->id}",
+        'is_read' => 0,
+    ]);
+
+    return response()->json(['message' => 'Đã duyệt tố cáo hoàn đơn thành công']);
+}
+//Từ chối tố cáo (admin đứng về phía shop)
+public function rejectRefundReport(Request $request, $orderId)
+{
+    $validated = $request->validate([
+        'rejection_reason' => 'required|string|max:255',
+    ]);
+
+    $order = \App\Models\Order::find($orderId);
+    $report = \App\Models\Report::where('order_id', $orderId)->first();
+
+    if (!$order || !$report || $report->status !== 'Pending') {
+        return response()->json(['message' => 'Không thể từ chối tố cáo'], 400);
+    }
+
+    $order->order_admin_status = 'Return Requested';
+    $order->order_status = 'Return Requested';
+    $order->rejection_reason = $validated['rejection_reason'];
+    $order->return_status = 'Rejected';
+    $order->save();
+
+    $report->status = 'Resolved';
+    $report->save();
+
+    \App\Models\Notification::create([
+        'user_id' => $order->user_id,
+        'title' => "Tố cáo đơn #{$order->id} bị từ chối",
+        'content' => "Sàn không chấp nhận tố cáo của bạn: {$validated['rejection_reason']}",
+        'image_url' => '/images/refund-rejected.png',
+        'link' => "/account?section=orders&order_id={$order->id}",
+        'is_read' => 0,
+    ]);
+    $user = $order->user;
+    $user->report_violations += 1;
+
+    // Gửi cảnh báo nếu là lần 1 hoặc 2
+    if (in_array($user->report_violations, [1, 2])) {
+        \App\Models\Notification::create([
+            'user_id' => $user->id,
+            'title' => 'Cảnh báo: Tố cáo sai',
+            'content' => "Tố cáo của bạn đã bị từ chối. Nếu tiếp tục gửi sai, bạn có thể bị cấm gửi tố cáo.",
+            'image_url' => '/images/warning.png',
+            'link' => '/account',
+            'is_read' => 0,
+        ]);
+    }
+
+    // Khóa quyền gửi tố cáo nếu vi phạm >= 3
+    if ($user->report_violations >= 3) {
+        $user->is_report_blocked = true;
+
+        \App\Models\Notification::create([
+            'user_id' => $user->id,
+            'title' => 'Bạn đã bị chặn gửi tố cáo',
+            'content' => 'Bạn đã gửi nhiều tố cáo sai và đã bị khóa quyền gửi tố cáo mới.',
+            'image_url' => '/images/report-blocked.png',
+            'link' => '/account',
+            'is_read' => 0,
+        ]);
+    }
+
+    $user->save();
+    return response()->json(['message' => 'Từ chối tố cáo thành công']);
+}
+//Danh sách tất cả đơn bị tố cáo hoàn đơn
+public function listAllRefundReports()
+{
+    $reports = \App\Models\Report::with(['user', 'shop', 'order'])
+        ->whereNotNull('order_id')
+        ->orderByDesc('created_at')
+        ->get();
+
+    return response()->json([
+        'data' => $reports->map(function ($report) {
+            return [
+                'report_id' => $report->id,
+                'order_id' => $report->order_id,
+                'user' => [
+                    'id' => $report->user->id,
+                    'name' => $report->user->name,
+                ],
+                'shop' => [
+                    'id' => $report->shop->id,
+                    'name' => $report->shop->name,
+                ],
+                'reason' => $report->reason,
+                'status' => $report->status,
+                'created_at' => $report->created_at->format('Y-m-d H:i'),
+            ];
+        }),
+    ]);
+}
 }

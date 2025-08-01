@@ -9,6 +9,7 @@ class Report extends Model
     protected $fillable = [
         'user_id',
         'shop_id',
+        'order_id',
         'reason',
         'status',
     ];
@@ -24,4 +25,9 @@ class Report extends Model
     {
         return $this->belongsTo(Shop::class);
     }
+        public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+
 }
