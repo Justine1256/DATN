@@ -259,7 +259,14 @@ class OrderController extends Controller
             return response()->json(['message' => 'Đơn hàng không tồn tại'], 404);
         }
 
-        $orderDetails = OrderDetail::where('order_id', $id)->get();
+        $orderDetails = OrderDetail::with('product')
+        ->where('order_id', $id)
+        ->get()
+        ->map(function ($detail) {
+            $data = $detail->toArray(); // chuyển sang mảng
+            $data['product_name'] = $detail->product->name ?? null; // thêm product_name
+            return $data;
+        });
 
         return response()->json([
             'order' => $order,
