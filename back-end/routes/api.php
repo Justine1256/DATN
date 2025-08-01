@@ -151,6 +151,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/dasboard', [ShopController::class, 'dashboard']);
     Route::get('/shop/dashboard/stats', [ShopController::class, 'stats']);
     Route::get('/admin/dashboard/stats', [UserController::class, 'getStatistics']);
+    Route::put('/admin/shop/{id}/status', [ShopController::class, 'updateShopStatus']);
     // Cart
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'store']);

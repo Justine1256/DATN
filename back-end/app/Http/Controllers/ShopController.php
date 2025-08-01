@@ -628,5 +628,25 @@ public function getMyShopCustomers(Request $request)
             'monthly_revenue' => $monthlyRevenue,
         ]);
 }
+    public function updateShopStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:activated,locked,hidden',
+        ]);
+
+        $shop = Shop::find($id);
+
+        if (!$shop) {
+            return response()->json(['message' => 'Shop không tồn tại'], 404);
+        }
+
+        $shop->status = $validated['status'];
+        $shop->save();
+
+        return response()->json([
+            'message' => 'Cập nhật trạng thái shop thành công',
+            'shop' => $shop
+        ]);
+    }
 }
 
