@@ -1357,7 +1357,7 @@ public function listAllRefundReports()
                 ],
                 'reason' => $report->reason,
                 'status' => $report->status,
-                'created_at' => $report->created_at->format('Y-m-d H:i'),
+                'created_at' => $report->created_at ? $report->created_at->format('Y-m-d H:i') : null,
                 'product_image' => $firstProductImage, // ✅ Thêm dòng này
             ];
         }),
