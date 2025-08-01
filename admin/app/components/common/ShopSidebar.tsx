@@ -53,7 +53,7 @@ export const menu = [
   {
     label: "Khách Hàng",
     icon: <Users size={18} />,
-    href: "/shop-admin/admin/users",
+    href: "/shop-admin/customers",
   },
   {
     label: "Tin nhắn",
