@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Str;
 class BannerController extends Controller
 {
     // GET: Danh sách banner
@@ -48,7 +48,26 @@ class BannerController extends Controller
 
         return response()->json($banner);
     }
+        public function uploadBanner(Request $request)
+    {
+        if (!$request->hasFile('file')) {
+            return response()->json(['error' => 'Không có file'], 400);
+        }
 
+        $file = $request->file('file');
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $extension = $file->getClientOriginalExtension();
+
+        // Tạo tên file sạch + unique nếu cần
+        $filename = Str::slug($originalName) . '-' . time() . '.' . $extension;
+
+        // Lưu file vào thư mục 'banners' trong disk 'public'
+        $path = $file->storeAs('banners', $filename, 'public');
+
+        return response()->json([
+            'url' => $path, // Trả về: banners/abc.jpg
+        ]);
+    }
     // DELETE: Xóa mềm banner
     public function destroy($id)
     {

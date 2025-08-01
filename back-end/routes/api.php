@@ -25,6 +25,7 @@ use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
+use App\Models\Banner;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -60,6 +61,8 @@ Route::get('/banner', [BannerController::class, 'index']);
 Route::post('/banner', [BannerController::class, 'store']);
 Route::put('/banner/{id}', [BannerController::class, 'update']);
 Route::delete('/banner/{id}', [BannerController::class, 'destroy']);
+Route::get('/banner/upload-banner', [BannerController::class, 'uploadBanner']);
+
 
 Route::get('/images', [ImageController::class, 'index']);
 Route::get('/image/{path}', [ImageController::class, 'show'])->where('path', '.*');

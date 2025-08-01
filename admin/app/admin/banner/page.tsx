@@ -2,38 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Table,
-  Button,
-  Space,
-  Card,
-  Modal,
-  Form,
-  Input,
-  Upload,
-  Switch,
-  DatePicker,
-  message,
-  Popconfirm,
-  Tag,
-  Image,
-  Typography,
-  Row,
-  Col,
-  Divider,
-  Tooltip
+  Table, Button, Space, Card, Modal, Form, Input, Upload, Switch,
+  DatePicker, message, Popconfirm, Tag, Image, Typography, Row, Col, Divider, Tooltip
 } from 'antd';
 import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  ReloadOutlined,
-  SearchOutlined,
-  UploadOutlined
+  PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined,
+  ReloadOutlined, SearchOutlined
 } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
 import type { UploadChangeParam, UploadFile, RcFile } from 'antd/es/upload/interface';
 import dayjs from 'dayjs';
+import axios from 'axios';
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -60,43 +40,6 @@ const BannerManagement = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [searchText, setSearchText] = useState('');
 
-  // Mock data - thay thế bằng API call thực tế
-  const mockBanners: Banner[] = [
-    {
-      id: 1,
-      title: 'Banner Khuyến Mãi Tết 2025',
-      image: 'https://picsum.photos/400/200?random=1',
-      link: 'https://example.com/tet-sale',
-      status: 1,
-      start_date: '2025-01-01 00:00:00',
-      end_date: '2025-02-15 23:59:59',
-      created_at: '2025-01-15 10:00:00',
-      updated_at: '2025-01-15 10:00:00'
-    },
-    {
-      id: 2,
-      title: 'Banner Sản Phẩm Mới',
-      image: 'https://picsum.photos/400/200?random=2',
-      link: 'https://example.com/new-products',
-      status: 1,
-      start_date: '2025-01-10 00:00:00',
-      end_date: null,
-      created_at: '2025-01-10 14:30:00',
-      updated_at: '2025-01-20 09:15:00'
-    },
-    {
-      id: 3,
-      title: 'Banner Giảm Giá 50%',
-      image: 'https://picsum.photos/400/200?random=3',
-      link: null,
-      status: 0,
-      start_date: '2025-01-05 00:00:00',
-      end_date: '2025-01-31 23:59:59',
-      created_at: '2025-01-05 16:45:00',
-      updated_at: '2025-01-25 11:20:00'
-    }
-  ];
-
   useEffect(() => {
     loadBanners();
   }, []);
@@ -104,9 +47,9 @@ const BannerManagement = () => {
   const loadBanners = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setBanners(mockBanners);
+      const res = await axios.get(`${API_BASE_URL}/banner`);
+      console.log('Banners loaded:', res);
+      setBanners(res.data);
     } catch (error) {
       message.error('Không thể tải danh sách banner');
     } finally {
@@ -129,7 +72,7 @@ const BannerManagement = () => {
       title: record.title,
       link: record.link,
       status: record.status === 1,
-      dateRange: record.start_date && record.end_date ? 
+      dateRange: record.start_date && record.end_date ?
         [dayjs(record.start_date), dayjs(record.end_date)] : undefined
     });
     setModalVisible(true);
@@ -138,10 +81,9 @@ const BannerManagement = () => {
   const handleDelete = async (id: number) => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setBanners(banners.filter(banner => banner.id !== id));
+      await axios.delete(`${API_BASE_URL}/banner/${id}`);
       message.success('Xóa banner thành công');
+      loadBanners();
     } catch (error) {
       message.error('Không thể xóa banner');
     } finally {
@@ -152,19 +94,19 @@ const BannerManagement = () => {
   const handleToggleStatus = async (id: number, currentStatus: number) => {
     try {
       const newStatus = currentStatus === 1 ? 0 : 1;
-      setBanners(banners.map(banner => 
-        banner.id === id ? { ...banner, status: newStatus } : banner
-      ));
+      const banner = banners.find(b => b.id === id);
+      if (!banner) return;
+
+      await axios.put(`${API_BASE_URL}/banner/${id}`, { ...banner, status: newStatus });
       message.success(`${newStatus === 1 ? 'Kích hoạt' : 'Tạm dừng'} banner thành công`);
+      loadBanners();
     } catch (error) {
       message.error('Không thể cập nhật trạng thái');
     }
   };
 
   const handleImageUpload = (info: UploadChangeParam<UploadFile>) => {
-    if (info.file.status === 'uploading') {
-      return;
-    }
+    if (info.file.status === 'uploading') return;
     if (info.file.status === 'done' || info.file.originFileObj) {
       const url = URL.createObjectURL(info.file.originFileObj as RcFile);
       setImageUrl(url);
@@ -178,39 +120,24 @@ const BannerManagement = () => {
   const handleSubmit = async (values: any) => {
     try {
       setLoading(true);
-      
-      const bannerData = {
-        title: values.title,
-        image: imageUrl,
-        link: values.link || null,
-        status: values.status ? 1 : 0,
-        start_date: values.dateRange ? values.dateRange[0].format('YYYY-MM-DD HH:mm:ss') : null,
-        end_date: values.dateRange ? values.dateRange[1].format('YYYY-MM-DD HH:mm:ss') : null,
-        created_at: editingBanner ? editingBanner.created_at : new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+const payload = {
+  title: values.title,
+  image: imageUrl, // Đây là đường dẫn ảnh vừa upload
+  link: values.link || null,
+  status: values.status ? 1 : 0,
+  start_date: values.dateRange ? values.dateRange[0].format('YYYY-MM-DD HH:mm:ss') : null,
+  end_date: values.dateRange ? values.dateRange[1].format('YYYY-MM-DD HH:mm:ss') : null,
+};
 
       if (editingBanner) {
-        // Update existing banner
-        setBanners(banners.map(banner => 
-          banner.id === editingBanner.id 
-            ? { ...banner, ...bannerData } 
-            : banner
-        ));
+        await axios.put(`${API_BASE_URL}/banner/${editingBanner.id}`, payload);
         message.success('Cập nhật banner thành công');
       } else {
-        // Add new banner
-        const newBanner = {
-          id: Date.now(),
-          ...bannerData
-        };
-        setBanners([...banners, newBanner]);
+        await axios.post(`${API_BASE_URL}/banner`, payload);
         message.success('Thêm banner thành công');
       }
 
+      loadBanners();
       setModalVisible(false);
       form.resetFields();
       setImageUrl('');
@@ -243,7 +170,7 @@ const BannerManagement = () => {
       align: 'center',
       render: (image: string) => (
         <Image
-          src={image}
+          src={`${STATIC_BASE_URL}/${image}`}
           alt="banner"
           width={60}
           height={35}
@@ -322,25 +249,7 @@ const BannerManagement = () => {
         { text: 'Chờ', value: 'pending' },
         { text: 'Hết hạn', value: 'expired' },
       ],
-      onFilter: (value, record) => {
-        if (value === 'permanent') {
-          return !record.start_date && !record.end_date;
-        }
-        
-        const now = dayjs();
-        const start = record.start_date ? dayjs(record.start_date) : null;
-        const end = record.end_date ? dayjs(record.end_date) : null;
-        
-        if (value === 'pending') {
-          return start && now.isBefore(start);
-        } else if (value === 'expired') {
-          return end && now.isAfter(end);
-        } else if (value === 'active') {
-          return (!start || now.isAfter(start)) && (!end || now.isBefore(end));
-        }
-        
-        return false;
-      },
+      onFilter: (value, record) => record.status === value,
       render: (record: Banner) => {
         if (!record.start_date && !record.end_date) {
           return <Tag color="blue" style={{ fontSize: '11px', padding: '1px 6px' }}>Vĩnh viễn</Tag>;
@@ -588,27 +497,40 @@ const BannerManagement = () => {
                 ]}
               >
                 <Upload
-                  name="banner"
-                  listType="picture-card"
-                  showUploadList={false}
-                  beforeUpload={() => false}
-                  onChange={handleImageUpload}
-                  accept="image/*"
-                >
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt="banner"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                    />
-                  ) : (
-                    uploadButton
-                  )}
-                </Upload>
+  name="file"
+  listType="picture-card"
+  showUploadList={false}
+  accept="image/*"
+  action={`${API_BASE_URL}/banner/upload-banner`}
+  onChange={(info) => {
+    if (info.file.status === 'uploading') {
+      message.loading({ content: 'Đang tải ảnh lên...', key: 'upload' });
+    }
+    if (info.file.status === 'done') {
+      const url = info.file.response.url;
+      setImageUrl(url); // lưu path (relative)
+      message.success({ content: 'Tải ảnh thành công', key: 'upload' });
+    }
+    if (info.file.status === 'error') {
+      message.error({ content: 'Tải ảnh thất bại', key: 'upload' });
+    }
+  }}
+>
+  {imageUrl ? (
+    <img
+      src={`${STATIC_BASE_URL}/${imageUrl}`}
+      alt="banner"
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+      }}
+    />
+  ) : (
+    uploadButton
+  )}
+</Upload>
+
               </Form.Item>
             </Col>
 
