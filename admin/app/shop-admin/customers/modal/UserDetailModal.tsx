@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { use, useEffect, useState } from "react"
 import {
   Modal,
   Tabs,
@@ -42,6 +42,8 @@ import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import "dayjs/locale/vi"
 import { Order } from "@/app/ts/oder"
+import { STATIC_BASE_URL } from "@/utils/api"
+
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -192,171 +194,12 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
     onClose()
   }
 
-  const tabItems = [
-    {
-      key: "info",
-      label: "Thông tin người dùng",
-      children: (
-        <Card>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <Title level={4}>Thông tin cá nhân & Liên hệ</Title>
-            <Button type="primary" icon={<EditOutlined />} onClick={() => setEditing(!editing)}>
-              {editing ? "Hủy" : "Chỉnh sửa"}
-            </Button>
-          </div>
-
-          {editing ? (
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleSave}
-              initialValues={{
-                name: user.name,
-                email: user.email,
-                phone: user.phone,
-                address: user.address || "",
-              }}
-            >
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Họ và tên" name="name" rules={[{ required: true }]}>
-                    <Input />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Vai trò" name="role">
-                    <Select>
-                      <Option value="customer">Khách hàng</Option>
-                      <Option value="seller">Người bán</Option>
-                      <Option value="admin">Quản trị</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
-                    <Input />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Số điện thoại" name="phone" rules={[{ required: true }]}>
-                    <Input />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item label="Giới tính" name="gender">
-                    <Select>
-                      <Option value="male">Nam</Option>
-                      <Option value="female">Nữ</Option>
-                      <Option value="other">Khác</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item label="Ngày sinh" name="birthDate">
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item label="Địa chỉ" name="address">
-                    <Input />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item>
-                <Space>
-                  <Button type="primary" htmlType="submit">
-                    Lưu thay đổi
-                  </Button>
-                  <Button onClick={() => setEditing(false)}>Hủy</Button>
-                </Space>
-              </Form.Item>
-            </Form>
-          ) : (
-            <Row gutter={16}>
-              <Col span={6}>
-                <Avatar
-                  src={user.avatar}
-                  size={80}
-                />
-              </Col>
-              <Col span={18}>
-                <Row gutter={[16, 12]}>
-                  <Col span={8}>
-                    <Text strong>Họ và tên:</Text>
-                    <br />
-                    <Text>{user.name}</Text>
-                  </Col>
-                  <Col span={8}>
-                    <Text strong>Email:</Text>
-                    <br />
-                    <Text>{user.email}</Text>
-                  </Col>
-                  <Col span={8}>
-                    <Text strong>Số điện thoại:</Text>
-                    <br />
-                    <Text>{user.phone}</Text>
-                  </Col>
-                  <Col span={24}>
-                    <Text strong>Địa chỉ:</Text>
-                    <br />
-                    <Text>{user.address || "Chưa cập nhật"}</Text>
-                  </Col>
-                </Row>
-              </Col>
-            </Row>
-          )}
-          <Space direction="vertical" size="large" style={{ width: "100%" }}>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Card>
-                  <Statistic title="Tổng đơn hàng" value={user.totalOrders} prefix={<ShoppingCartOutlined />} />
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card>
-                  <Statistic
-                    title="Tổng chi tiêu"
-                    value={user.totalSpent}
-                    prefix={<DollarOutlined />}
-                    formatter={(value) => `${value?.toLocaleString("vi-VN")} ₫`}
-                  />
-                </Card>
-              </Col>
-            </Row>
-
-            <Card title="Đơn hàng gần nhất" size="small">
-              <Table
-                columns={orderColumns}
-                dataSource={mockOrders}
-                rowKey="id"
-                pagination={{ pageSize: 5 }}
-                size="small"
-              />
-            </Card>
-          </Space>
-        </Card>
-
-      ),
-    },
-    // {
-    //   key: "activity",
-    //   label: "Hoạt động & Đơn hàng",
-    //   children: (
-
-    //   ),
-    // },
-  ]
-
   return (
     <Modal
       title={
         <Space>
           <Avatar
-            src={user.avatar}
+            src={`${STATIC_BASE_URL}/${user.avatar}`}
           />
           <span>Chi tiết người dùng - {user.name}</span>
         </Space>
@@ -371,82 +214,10 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <Title level={4}>Thông tin cá nhân & Liên hệ</Title>
         </div>
-
-        {editing ? (
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSave}
-            initialValues={{
-              name: user.name,
-              email: user.email,
-              phone: user.phone,
-              address: user.address || "",
-            }}
-          >
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item label="Họ và tên" name="name" rules={[{ required: true }]}>
-                  <Input />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label="Vai trò" name="role">
-                  <Select>
-                    <Option value="customer">Khách hàng</Option>
-                    <Option value="seller">Người bán</Option>
-                    <Option value="admin">Quản trị</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
-                  <Input />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label="Số điện thoại" name="phone" rules={[{ required: true }]}>
-                  <Input />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item label="Giới tính" name="gender">
-                  <Select>
-                    <Option value="male">Nam</Option>
-                    <Option value="female">Nữ</Option>
-                    <Option value="other">Khác</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item label="Ngày sinh" name="birthDate">
-                  <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item label="Địa chỉ" name="address">
-                  <Input />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Form.Item>
-              <Space>
-                <Button type="primary" htmlType="submit">
-                  Lưu thay đổi
-                </Button>
-                <Button onClick={() => setEditing(false)}>Hủy</Button>
-              </Space>
-            </Form.Item>
-          </Form>
-        ) : (
           <Row gutter={16}>
-            <Col span={6}>
+            <Col span={4}>
               <Avatar
-                src={user.avatar}
+                src={`${STATIC_BASE_URL}/${user.avatar}`}
                 size={80}
               />
             </Col>
@@ -457,12 +228,12 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                   <br />
                   <Text>{user.name}</Text>
                 </Col>
-                <Col span={8}>
+                <Col span={10}>
                   <Text strong>Email:</Text>
                   <br />
                   <Text>{user.email}</Text>
                 </Col>
-                <Col span={8}>
+                <Col span={6}>
                   <Text strong>Số điện thoại:</Text>
                   <br />
                   <Text>{user.phone}</Text>
@@ -470,26 +241,25 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
               </Row>
             </Col>
           </Row>
-        )}
 
         <Space direction="vertical" size="large" style={{ width: "100%", marginTop: 24 }}>
-            <Row gutter={16}>
+          <Row gutter={16}>
             <Col span={12}>
               <Card>
-              <Statistic title="Tổng đơn hàng" value={user.totalOrders} prefix={<ShoppingCartOutlined />} />
+                <Statistic title="Tổng đơn hàng" value={user.totalOrders} prefix={<ShoppingCartOutlined />} />
               </Card>
             </Col>
             <Col span={12}>
               <Card>
-              <Statistic
-                title="Tổng chi tiêu"
-                value={user.totalSpent}
-                prefix={<DollarOutlined />}
-                formatter={(value) => `${value?.toLocaleString("vi-VN")} ₫`}
-              />
+                <Statistic
+                  title="Tổng chi tiêu"
+                  value={user.totalSpent}
+                  prefix={<DollarOutlined />}
+                  formatter={(value) => `${value?.toLocaleString("vi-VN")} ₫`}
+                />
               </Card>
             </Col>
-            </Row>
+          </Row>
 
           <Card title="Đơn hàng gần nhất" size="small">
             <Table

@@ -1,6 +1,6 @@
 "use client"
 import type React from "react"
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, use } from "react"
 import {
   Table,
   Input,
@@ -116,6 +116,8 @@ export default function UserManagementPage() {
       }
 
       const rawResult = await response.json()
+      console.log("rawResult", rawResult.data);
+      
 
       // Transform the raw response to match ApiResponse interface
       const result: ApiResponse = {
@@ -128,7 +130,7 @@ export default function UserManagementPage() {
           phone: user.phone || "",
           totalOrders: user.total_orders || 0,
           totalSpent: user.total_spent || 0,
-          canceledOrders: user.canceled_orders || 0,
+          canceledOrders: user.cancelled_orders_count || 0,
           cancelStatus: {
             level: user.risk_level || "normal",
             color: user.risk_level === "danger" ? "red" : 
@@ -230,41 +232,6 @@ export default function UserManagementPage() {
       current: 1,
     })
     fetchUsers(1, pagination.pageSize)
-  }
-
-  // Render reports popover content
-  const renderReportsContent = (reports: Reports) => {
-    if (reports.total === 0) {
-      return <Text>Không có báo cáo nào</Text>
-    }
-
-    return (
-      <div style={{ maxWidth: 200 }}>
-        <Text strong>Tổng số báo cáo: {reports.total}</Text>
-        <div style={{ marginTop: 8 }}>
-          {reports.reasons.slice(0, 3).map((reason, index) => (
-            <div key={index} style={{ marginBottom: 4 }}>
-              <Tag
-                color="red"
-                style={{
-                  maxWidth: 150,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  display: "inline-block",
-                }}
-              >
-                <Tooltip title={reason}>{reason}</Tooltip>
-              </Tag>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {new Date(reports.dates[index]).toLocaleDateString("vi-VN")}
-              </Text>
-            </div>
-          ))}
-          {reports.reasons.length > 3 && <Text type="secondary">...và {reports.reasons.length - 3} báo cáo khác</Text>}
-        </div>
-      </div>
-    )
   }
 
   const columns: ColumnsType<UserData> = [
