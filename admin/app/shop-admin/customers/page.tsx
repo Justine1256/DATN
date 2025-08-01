@@ -33,6 +33,9 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table"
 import UserDetailModal from "./modal/UserDetailModal"
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
 import Cookies from "js-cookie"
+import { Order } from "@/app/ts/oder"
+import { formatDistanceToNow } from 'date-fns'
+import { vi } from 'date-fns/locale'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -53,19 +56,13 @@ interface UserData {
   name: string
   email: string
   phone: string
-  role: "customer" | "seller" | "admin"
-  status: "active" | "blocked" | "inactive" | "hidden"
-  registrationDate: string
   totalOrders: number
   totalSpent: number
   canceledOrders: number
   cancelStatus: CancelStatus
-  reports: Reports
+  cancel_details: Order[]
+  lastOrderAt?: string
   avatar?: string
-  gender?: "male" | "female" | "other"
-  birthDate?: string
-  address?: string
-  lastLogin?: string
 }
 
 interface ApiResponse {
@@ -82,9 +79,11 @@ interface ApiResponse {
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserData[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true) // đổi lại thành true sau khi test
   const [searchText, setSearchText] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [canceledFilter, setCanceledFilter] = useState<string>("all")
+  const [ordersFilter, setOrdersFilter] = useState<string>("all")
+  const [spentFilter, setSpentFilter] = useState<string>("all")
   const [riskFilter, setRiskFilter] = useState<string>("all")
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
@@ -116,11 +115,38 @@ export default function UserManagementPage() {
         throw new Error("Failed to fetch users")
       }
 
-      const result: ApiResponse = await response.json()
-      console.log("RESPONSE", response);
-      console.log("RESULT", result);
+      const rawResult = await response.json()
 
-      if (result.status) {
+      // Transform the raw response to match ApiResponse interface
+      const result: ApiResponse = {
+        status: rawResult.status || false,
+        message: rawResult.message || "",
+        data: (rawResult.data || []).map((user: any, index: number) => ({
+          id: user.id?.toString() || `user-${index}-${Date.now()}`,
+          name: user.name || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          totalOrders: user.total_orders || 0,
+          totalSpent: user.total_spent || 0,
+          canceledOrders: user.canceled_orders || 0,
+          cancelStatus: {
+            level: user.risk_level || "normal",
+            color: user.risk_level === "danger" ? "red" : 
+                   user.risk_level === "warning" ? "orange" : "green"
+          },
+          cancel_details: user.cancel_details || [],
+          lastOrderAt: user.last_order_at || undefined,
+          avatar: user.avatar || undefined,
+        })),
+        pagination: {
+          current_page: rawResult.meta?.current_page || page,
+          last_page: rawResult.meta?.last_page || 1,
+          per_page: rawResult.meta?.per_page || pageSize,
+          total: rawResult.meta?.total || 0
+        }
+      };
+
+      if (response.ok) {
         setUsers(result.data)
         setPagination((prev) => ({
           ...prev,
@@ -141,7 +167,7 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     fetchUsers(pagination.current, pagination.pageSize)
-  }, [])
+  }, [pagination.current, pagination.pageSize])
 
   // Lọc dữ liệu (client-side filtering)
   const filteredData = useMemo(() => {
@@ -152,12 +178,35 @@ export default function UserManagementPage() {
         user.email.toLowerCase().includes(searchText.toLowerCase()) ||
         user.phone.includes(searchText)
 
-      const matchesStatus = statusFilter === "all" || user.status === statusFilter
       const matchesRisk = riskFilter === "all" || user.cancelStatus.level === riskFilter
 
-      return matchesSearch && matchesStatus && matchesRisk
+      // total_orders filter
+      let matchesOrders = true;
+      if (ordersFilter === "0-5") matchesOrders = user.totalOrders >= 0 && user.totalOrders <= 5;
+      else if (ordersFilter === "6-10") matchesOrders = user.totalOrders >= 6 && user.totalOrders <= 10;
+      else if (ordersFilter === ">10") matchesOrders = user.totalOrders > 10;
+
+      // total_spent filter
+      let matchesSpent = true;
+      if (spentFilter === "<1m") matchesSpent = user.totalSpent < 1_000_000;
+      else if (spentFilter === "1-10m") matchesSpent = user.totalSpent >= 1_000_000 && user.totalSpent <= 10_000_000;
+      else if (spentFilter === ">10m") matchesSpent = user.totalSpent > 10_000_000;
+
+      // has_cancelled_order filter
+      let matchesCancelled = true;
+      if (canceledFilter === "true") matchesCancelled = user.canceledOrders > 0;
+      else if (canceledFilter === "false") matchesCancelled = user.canceledOrders === 0;
+
+      return (
+        matchesSearch &&
+        matchesRisk &&
+        matchesOrders &&
+        matchesSpent &&
+        matchesCancelled
+      );
+
     })
-  }, [users, searchText, statusFilter, riskFilter])
+  }, [users, searchText, riskFilter, ordersFilter, spentFilter, canceledFilter]);
 
   const handleTableChange = (newPagination: TablePaginationConfig) => {
     const newPage = newPagination.current || 1
@@ -172,8 +221,10 @@ export default function UserManagementPage() {
 
   const handleReset = () => {
     setSearchText("")
-    setStatusFilter("all")
     setRiskFilter("all")
+    setOrdersFilter("all")
+    setSpentFilter("all")
+    setCanceledFilter("all")
     setPagination({
       ...pagination,
       current: 1,
@@ -223,11 +274,11 @@ export default function UserManagementPage() {
       width: 200,
       render: (_, record) => (
         <Space>
-<Avatar
-  src={`${STATIC_BASE_URL}/${record.avatar}`}
-  icon={<UserOutlined />}
-  size={40}
-/>
+          <Avatar
+            src={`${STATIC_BASE_URL}/${record.avatar}`}
+            icon={<UserOutlined />}
+            size={40}
+          />
           <div>
             <div
               style={{
@@ -338,33 +389,22 @@ export default function UserManagementPage() {
     {
       title: "Đơn gần nhất",
       key: "reports",
-      width: 80,
+      width: 120,
       render: (_, record) => {
-        if (record.reports.total === 0) {
-          return (
-            <Tooltip title="Không có báo cáo">
-              <CheckCircleOutlined style={{ color: "green" }} />
-            </Tooltip>
-          )
+        if (!record.lastOrderAt) {
+          return <Text>Chưa có đơn</Text>
         }
+        const date = new Date(record.lastOrderAt);
+        const timeAgo = formatDistanceToNow(date, { locale: vi, addSuffix: true });
+        const exactDate = date.toLocaleDateString("vi-VN", { hour12: false });
         return (
-          <Popover content={renderReportsContent(record.reports)} title="Chi tiết báo cáo" trigger="hover">
-            <Badge count={record.reports.total} size="small">
-              <Button type="text" danger size="small" icon={<ExclamationCircleOutlined />} style={{ border: "none" }} />
-            </Badge>
-          </Popover>
+          <Tooltip title={exactDate}><Text style={{ fontSize: "13px" }}>({timeAgo})</Text></Tooltip>
         )
       },
-      sorter: (a: UserData, b: UserData) => a.reports.total - b.reports.total,
-    },
-    {
-      title: "Đơn hủy",
-      dataIndex: "registrationDate",
-      key: "registrationDate",
-      width: 120,
-      render: (date: string) => <Text style={{ fontSize: "12px" }}>{new Date(date).toLocaleDateString("vi-VN")}</Text>,
-      sorter: (a: UserData, b: UserData) =>
-        new Date(a.registrationDate).getTime() - new Date(b.registrationDate).getTime(),
+      sorter: (a: UserData, b: UserData) => {
+        if (!a.lastOrderAt || !b.lastOrderAt) return 0
+        return new Date(a.lastOrderAt).getTime() - new Date(b.lastOrderAt).getTime()
+      },
     },
     {
       title: "Thao tác",
@@ -393,15 +433,15 @@ export default function UserManagementPage() {
     const total = filteredData.length
     const dangerUsers = filteredData.filter((u) => u.cancelStatus.level === "danger").length
     const warningUsers = filteredData.filter((u) => u.cancelStatus.level === "warning").length
-    const reportedUsers = filteredData.filter((u) => u.reports.total > 0).length
+    const frequentBuyers = filteredData.filter((u) => u.totalOrders >= 10).length
 
-    return { total, dangerUsers, warningUsers, reportedUsers }
+    return { total, dangerUsers, warningUsers, frequentBuyers }
   }, [filteredData])
 
   return (
     <div style={{ padding: "2px" }}>
       {/* Thống kê cảnh báo */}
-      {(stats.dangerUsers > 0 || stats.warningUsers > 0 || stats.reportedUsers > 0) && (
+      {(stats.dangerUsers > 0 || stats.warningUsers > 0 || stats.frequentBuyers > 0) && (
         <Row gutter={16} style={{ marginBottom: 2 }}>
           {stats.dangerUsers > 0 && (
             <Col span={8}>
@@ -423,9 +463,9 @@ export default function UserManagementPage() {
               />
             </Col>
           )}
-          {stats.reportedUsers > 0 && (
+          {stats.frequentBuyers > 0 && (
             <Col span={8}>
-              <Alert message={`${stats.reportedUsers} người dùng bị báo cáo`} type="info" showIcon />
+              <Alert message={`${stats.frequentBuyers} người dùng mua sắm thường xuyên`} type="info" showIcon />
             </Col>
           )}
         </Row>
@@ -442,16 +482,30 @@ export default function UserManagementPage() {
               allowClear
             />
           </Col>
-          <Col xs={24} sm={8} md={5}>
-            <Select placeholder="Trạng thái" value={statusFilter} onChange={setStatusFilter} style={{ width: "100%" }}>
-              <Option value="all">Tất cả trạng thái</Option>
-              <Option value="active">Hoạt động</Option>
-              <Option value="blocked">Bị khóa</Option>
-              <Option value="inactive">Không hoạt động</Option>
-              <Option value="hidden">Ẩn</Option>
+          <Col xs={22} sm={6} md={4}>
+            <Select placeholder="Số đơn hàng" value={ordersFilter} onChange={setOrdersFilter} style={{ width: "100%" }}>
+              <Option value="all">Tất cả số đơn hàng</Option>
+              <Option value="0-5">0-5</Option>
+              <Option value="6-10">6-10</Option>
+              <Option value=">10">{'>'}10</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={8} md={5}>
+          <Col xs={22} sm={6} md={4}>
+            <Select placeholder="Số tiền đã chi" value={spentFilter} onChange={setSpentFilter} style={{ width: "100%" }}>
+              <Option value="all">Tất cả tiền chi</Option>
+              <Option value="<1m">{'<'} 1 triệu</Option>
+              <Option value="1-10m">1 triệu - 10 triệu</Option>
+              <Option value=">10m">{'>'} 10 triệu</Option>
+            </Select>
+          </Col>
+          <Col xs={22} sm={6} md={4}>
+            <Select placeholder="Đơn hủy" value={canceledFilter} onChange={setCanceledFilter} style={{ width: "100%" }}>
+              <Option value="all">Đơn hủy-không hủy</Option>
+              <Option value="true">Có hủy</Option>
+              <Option value="false">Không hủy</Option>
+            </Select>
+          </Col>
+          <Col xs={22} sm={6} md={4}>
             <Select
               placeholder="Mức độ rủi ro"
               value={riskFilter}
@@ -488,10 +542,10 @@ export default function UserManagementPage() {
           <Table
             columns={columns}
             dataSource={filteredData}
-            rowKey="id"
+            rowKey={(record, index) => record.id || `row-${index}-${record.email}-${Date.now()}`}
             pagination={{
               ...pagination,
-              total: filteredData.length,
+              total: pagination.total, // Use API pagination total, not filtered data length
             }}
             onChange={handleTableChange}
             size="middle"

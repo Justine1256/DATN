@@ -41,27 +41,11 @@ import type { ColumnsType } from "antd/es/table"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import "dayjs/locale/vi"
+import { Order } from "@/app/ts/oder"
 
 const { Title, Text } = Typography
 const { Option } = Select
 const { TextArea } = Input
-
-interface UserData {
-  id: string
-  name: string
-  email: string
-  phone: string
-  role: "customer" | "seller" | "admin" // Thêm role
-  status: "active" | "blocked" | "inactive" | "hidden"
-  registrationDate: string
-  totalOrders: number
-  totalSpent: number
-  avatar?: string
-  gender?: "male" | "female" | "other"
-  birthDate?: string
-  address?: string
-  lastLogin?: string
-}
 
 interface OrderData {
   id: string
@@ -69,6 +53,27 @@ interface OrderData {
   total: number
   status: "completed" | "pending" | "cancelled"
   items: number
+}
+
+
+interface CancelStatus {
+  level: "normal" | "warning" | "danger"
+  color: string
+}
+
+interface UserData {
+  id: string
+  name: string
+  email: string
+  phone: string
+  totalOrders: number
+  totalSpent: number
+  canceledOrders: number
+  cancelStatus: CancelStatus
+  cancel_details: Order[]
+  lastOrderAt?: string
+  avatar?: string
+  address?: string
 }
 
 interface LoginHistory {
@@ -120,29 +125,8 @@ dayjs.extend(relativeTime)
 dayjs.locale("vi")
 
 export default function UserDetailModal({ user, visible, onClose }: UserDetailModalProps) {
-  const [activeTab, setActiveTab] = useState("info")
   const [editing, setEditing] = useState(false)
   const [form] = Form.useForm()
-
-  // Render role với icon và màu sắc
-  const renderRole = (role: string) => {
-    const roleConfig = {
-      customer: { color: "blue", text: "Khách hàng", icon: <UserOutlined /> },
-      seller: { color: "green", text: "Người bán", icon: <ShopOutlined /> },
-      admin: { color: "gold", text: "Quản trị", icon: <CrownOutlined /> },
-    }
-    const config = roleConfig[role as keyof typeof roleConfig] || {
-      color: "default",
-      text: role,
-      icon: <UserOutlined />,
-    }
-
-    return (
-      <Tag color={config.color} icon={config.icon}>
-        {config.text}
-      </Tag>
-    )
-  }
 
   const orderColumns: ColumnsType<OrderData> = [
     {
@@ -189,30 +173,6 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
     },
   ]
 
-  const loginColumns: ColumnsType<LoginHistory> = [
-    {
-      title: "Thời gian",
-      dataIndex: "date",
-      key: "date",
-      render: (date: string) => dayjs(date).format("DD/MM/YYYY HH:mm"),
-    },
-    {
-      title: "IP Address",
-      dataIndex: "ip",
-      key: "ip",
-    },
-    {
-      title: "Thiết bị",
-      dataIndex: "device",
-      key: "device",
-    },
-    {
-      title: "Vị trí",
-      dataIndex: "location",
-      key: "location",
-    },
-  ]
-
   const handleSave = async (values: any) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -225,11 +185,6 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
 
   const handleResetPassword = () => {
     message.success("Đã gửi email reset mật khẩu đến người dùng!")
-  }
-
-  const handleToggleStatus = () => {
-    const action = user.status === "active" ? "khóa" : "mở khóa"
-    message.success(`Đã ${action} tài khoản thành công!`)
   }
 
   const handleDeleteAccount = () => {
@@ -259,9 +214,6 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                 name: user.name,
                 email: user.email,
                 phone: user.phone,
-                role: user.role,
-                gender: user.gender || "male",
-                birthDate: user.birthDate ? dayjs(user.birthDate) : null,
                 address: user.address || "",
               }}
             >
@@ -328,15 +280,6 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
               <Col span={6}>
                 <Avatar
                   src={user.avatar}
-                  icon={
-                    user.role === "seller" ? (
-                      <ShopOutlined />
-                    ) : user.role === "admin" ? (
-                      <CrownOutlined />
-                    ) : (
-                      <UserOutlined />
-                    )
-                  }
                   size={80}
                 />
               </Col>
@@ -348,11 +291,6 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                     <Text>{user.name}</Text>
                   </Col>
                   <Col span={8}>
-                    <Text strong>Vai trò:</Text>
-                    <br />
-                    {renderRole(user.role)}
-                  </Col>
-                  <Col span={8}>
                     <Text strong>Email:</Text>
                     <br />
                     <Text>{user.email}</Text>
@@ -362,97 +300,196 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                     <br />
                     <Text>{user.phone}</Text>
                   </Col>
-                  <Col span={8}>
-                    <Text strong>Giới tính:</Text>
-                    <br />
-                    <Text>{user.gender === "male" ? "Nam" : user.gender === "female" ? "Nữ" : "Khác"}</Text>
-                  </Col>
-                  <Col span={8}>
-                    <Text strong>Ngày sinh:</Text>
-                    <br />
-                    <Text>{user.birthDate ? dayjs(user.birthDate).format("DD/MM/YYYY") : "Chưa cập nhật"}</Text>
-                  </Col>
                   <Col span={24}>
                     <Text strong>Địa chỉ:</Text>
                     <br />
                     <Text>{user.address || "Chưa cập nhật"}</Text>
                   </Col>
                 </Row>
-
-                <Divider />
-
-                <Row gutter={[16, 12]}>
-                  <Col span={8}>
-                    <Text strong>Ngày đăng ký:</Text>
-                    <br />
-                    <Text>{dayjs(user.registrationDate).format("DD/MM/YYYY")}</Text>
-                  </Col>
-                  <Col span={8}>
-                    <Text strong>Trạng thái:</Text>
-                    <br />
-                    <Tag
-                      color={
-                        user.status === "active"
-                          ? "green"
-                          : user.status === "blocked"
-                            ? "red"
-                            : user.status === "inactive"
-                              ? "gray"
-                              : "orange"
-                      }
-                    >
-                      {user.status === "active"
-                        ? "Hoạt động"
-                        : user.status === "blocked"
-                          ? "Bị khóa"
-                          : user.status === "inactive"
-                            ? "Không hoạt động"
-                            : "Ẩn"}
-                    </Tag>
-                  </Col>
-                  <Col span={8}>
-                    <Text strong>Lần đăng nhập cuối:</Text>
-                    <br />
-                    <Text>{user.lastLogin ? dayjs(user.lastLogin).format("DD/MM/YYYY HH:mm") : "Chưa có"}</Text>
-                  </Col>
-                </Row>
               </Col>
             </Row>
           )}
+          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Card>
+                  <Statistic title="Tổng đơn hàng" value={user.totalOrders} prefix={<ShoppingCartOutlined />} />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card>
+                  <Statistic
+                    title="Tổng chi tiêu"
+                    value={user.totalSpent}
+                    prefix={<DollarOutlined />}
+                    formatter={(value) => `${value?.toLocaleString("vi-VN")} ₫`}
+                  />
+                </Card>
+              </Col>
+            </Row>
+
+            <Card title="Đơn hàng gần nhất" size="small">
+              <Table
+                columns={orderColumns}
+                dataSource={mockOrders}
+                rowKey="id"
+                pagination={{ pageSize: 5 }}
+                size="small"
+              />
+            </Card>
+          </Space>
         </Card>
+
       ),
     },
-    {
-      key: "activity",
-      label: "Hoạt động & Đơn hàng",
-      children: (
-        <Space direction="vertical" size="large" style={{ width: "100%" }}>
+    // {
+    //   key: "activity",
+    //   label: "Hoạt động & Đơn hàng",
+    //   children: (
+
+    //   ),
+    // },
+  ]
+
+  return (
+    <Modal
+      title={
+        <Space>
+          <Avatar
+            src={user.avatar}
+          />
+          <span>Chi tiết người dùng - {user.name}</span>
+        </Space>
+      }
+      open={visible}
+      onCancel={onClose}
+      footer={null}
+      width={900}
+      style={{ top: 20 }}
+    >
+      <Card>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <Title level={4}>Thông tin cá nhân & Liên hệ</Title>
+        </div>
+
+        {editing ? (
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSave}
+            initialValues={{
+              name: user.name,
+              email: user.email,
+              phone: user.phone,
+              address: user.address || "",
+            }}
+          >
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="Họ và tên" name="name" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Vai trò" name="role">
+                  <Select>
+                    <Option value="customer">Khách hàng</Option>
+                    <Option value="seller">Người bán</Option>
+                    <Option value="admin">Quản trị</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Số điện thoại" name="phone" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item label="Giới tính" name="gender">
+                  <Select>
+                    <Option value="male">Nam</Option>
+                    <Option value="female">Nữ</Option>
+                    <Option value="other">Khác</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item label="Ngày sinh" name="birthDate">
+                  <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item label="Địa chỉ" name="address">
+                  <Input />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item>
+              <Space>
+                <Button type="primary" htmlType="submit">
+                  Lưu thay đổi
+                </Button>
+                <Button onClick={() => setEditing(false)}>Hủy</Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        ) : (
           <Row gutter={16}>
-            <Col span={8}>
-              <Card>
-                <Statistic title="Tổng đơn hàng" value={user.totalOrders} prefix={<ShoppingCartOutlined />} />
-              </Card>
+            <Col span={6}>
+              <Avatar
+                src={user.avatar}
+                size={80}
+              />
             </Col>
-            <Col span={8}>
-              <Card>
-                <Statistic
-                  title="Tổng chi tiêu"
-                  value={user.totalSpent}
-                  prefix={<DollarOutlined />}
-                  formatter={(value) => `${value?.toLocaleString("vi-VN")} ₫`}
-                />
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card>
-                <Statistic
-                  title="Lần đăng nhập cuối"
-                  value={user.lastLogin ? dayjs(user.lastLogin).fromNow() : "Chưa có"}
-                  prefix={<LoginOutlined />}
-                />
-              </Card>
+            <Col span={18}>
+              <Row gutter={[16, 12]}>
+                <Col span={8}>
+                  <Text strong>Họ và tên:</Text>
+                  <br />
+                  <Text>{user.name}</Text>
+                </Col>
+                <Col span={8}>
+                  <Text strong>Email:</Text>
+                  <br />
+                  <Text>{user.email}</Text>
+                </Col>
+                <Col span={8}>
+                  <Text strong>Số điện thoại:</Text>
+                  <br />
+                  <Text>{user.phone}</Text>
+                </Col>
+              </Row>
             </Col>
           </Row>
+        )}
+
+        <Space direction="vertical" size="large" style={{ width: "100%", marginTop: 24 }}>
+            <Row gutter={16}>
+            <Col span={12}>
+              <Card>
+              <Statistic title="Tổng đơn hàng" value={user.totalOrders} prefix={<ShoppingCartOutlined />} />
+              </Card>
+            </Col>
+            <Col span={12}>
+              <Card>
+              <Statistic
+                title="Tổng chi tiêu"
+                value={user.totalSpent}
+                prefix={<DollarOutlined />}
+                formatter={(value) => `${value?.toLocaleString("vi-VN")} ₫`}
+              />
+              </Card>
+            </Col>
+            </Row>
 
           <Card title="Đơn hàng gần nhất" size="small">
             <Table
@@ -463,114 +500,8 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
               size="small"
             />
           </Card>
-
-          <Card title="Lịch sử đăng nhập" size="small">
-            <Table
-              columns={loginColumns}
-              dataSource={mockLoginHistory}
-              rowKey="id"
-              pagination={{ pageSize: 5 }}
-              size="small"
-            />
-          </Card>
         </Space>
-      ),
-    },
-    {
-      key: "management",
-      label: "Quản lý tài khoản",
-      children: (
-        <Space direction="vertical" size="large" style={{ width: "100%" }}>
-          <Card size="small" title="Thao tác tài khoản">
-            <Space wrap>
-              <Button icon={<ReloadOutlined />} onClick={handleResetPassword}>
-                Reset mật khẩu
-              </Button>
-              <Button
-                icon={user.status === "active" ? <LockOutlined /> : <UnlockOutlined />}
-                type={user.status === "active" ? "default" : "primary"}
-                onClick={handleToggleStatus}
-              >
-                {user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-              </Button>
-              <Popconfirm
-                title="Xóa tài khoản"
-                description="Bạn có chắc chắn muốn xóa tài khoản này? Hành động này không thể hoàn tác."
-                onConfirm={handleDeleteAccount}
-                okText="Xóa"
-                cancelText="Hủy"
-                okType="danger"
-              >
-                <Button danger icon={<DeleteOutlined />}>
-                  Xóa tài khoản
-                </Button>
-              </Popconfirm>
-            </Space>
-          </Card>
-
-          <Card size="small" title="Lịch sử thao tác">
-            <Timeline
-              items={[
-                {
-                  children: "Tài khoản được tạo - 15/01/2024",
-                  color: "green",
-                },
-                {
-                  children: "Cập nhật thông tin liên hệ - 20/02/2024",
-                  color: "blue",
-                },
-                {
-                  children: "Reset mật khẩu - 10/03/2024",
-                  color: "orange",
-                },
-              ]}
-            />
-          </Card>
-        </Space>
-      ),
-    },
-  ]
-
-  return (
-    <Modal
-      title={
-        <Space>
-          <Avatar
-            src={user.avatar}
-            icon={
-              user.role === "seller" ? <ShopOutlined /> : user.role === "admin" ? <CrownOutlined /> : <UserOutlined />
-            }
-          />
-          <span>Chi tiết người dùng - {user.name}</span>
-          {renderRole(user.role)}
-          <Tag
-            color={
-              user.status === "active"
-                ? "green"
-                : user.status === "blocked"
-                  ? "red"
-                  : user.status === "inactive"
-                    ? "gray"
-                    : "orange"
-            }
-          >
-            {user.status === "active"
-              ? "Hoạt động"
-              : user.status === "blocked"
-                ? "Bị khóa"
-                : user.status === "inactive"
-                  ? "Không hoạt động"
-                  : "Ẩn"}
-          </Tag>
-        </Space>
-      }
-      open={visible}
-      onCancel={onClose}
-      footer={null}
-      width={900}
-      style={{ top: 20 }}
-    >
-      <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} size="small" />
+      </Card>
     </Modal>
   )
 }

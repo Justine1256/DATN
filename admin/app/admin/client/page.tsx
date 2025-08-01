@@ -220,11 +220,11 @@ export default function UserManagementPage() {
       width: 200,
       render: (_, record) => (
         <Space>
-<Avatar
-  src={`${STATIC_BASE_URL}/${record.avatar}`}
-  icon={<UserOutlined />}
-  size={40}
-/>
+          <Avatar
+            src={`${STATIC_BASE_URL}/${record.avatar}`}
+            icon={<UserOutlined />}
+            size={40}
+          />
           <div>
             <div
               style={{
