@@ -130,6 +130,12 @@ Route::post('/forgot-password/send-otp', [UserController::class, 'sendResetOtp']
 Route::post('/forgot-password/reset', [UserController::class, 'resetPasswordWithOtp']);
 Route::post('/forgot-password/verify-otp', [UserController::class, 'verifyOtpOnly']);
 
+Route::get('/admin/orders/refund-reports', [OrderController::class, 'listAllRefundReports']);
+    // OrderController (admin xử lý)
+Route::get('/admin/orders/{orderId}/refund-report', [OrderController::class, 'viewRefundReportDetail']);
+Route::post('/admin/orders/{orderId}/refund-report/approve', [OrderController::class, 'approveRefundReport']);
+Route::post('/admin/orders/{orderId}/refund-report/reject', [OrderController::class, 'rejectRefundReport']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment']);
     // User
@@ -233,6 +239,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/{id}', [ReportController::class, 'show']);   // xem chi tiết report
     Route::put('/reports/{id}', [ReportController::class, 'update']); // admin đổi trạng thái
     Route::delete('/reports/{id}', [ReportController::class, 'destroy']); // tuỳ chọn
+    Route::post('/reports/{orderId}/report-refund', [ReportController::class, 'reportRefundToAdmin']); // ReportController (người dùng gửi khiếu nại)
 
     // wish list
     Route::get('/wishlist', [WishlistController::class, 'index']);           // Lấy danh sách wishlist
@@ -261,7 +268,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/shop/products/{id}', [ProductController::class, 'destroy']);
     Route::delete('/shop/product-variants/{id}', [ProductController::class, 'destroyVariant']);
     Route::post('/shop/restore/products/{id}', [ProductController::class, 'restoreProduct']);
-    Route::post('/products/import-stock', [ProductController::class, 'importStock']);
+    Route::post('/shop/products/stock/add', [ProductController::class, 'importStock']);
+    Route::get('/shop/products/stock/show', [ProductController::class, 'getLowStockProducts']);
     // quản lý danh mục của shop
     Route::get('/shop/categories/{shop_id}', [CategoryController::class, 'getShopCategories']);
     Route::post('/shop/categories', [CategoryController::class, 'addCategoryByShop']);
