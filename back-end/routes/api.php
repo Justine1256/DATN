@@ -130,11 +130,11 @@ Route::post('/forgot-password/send-otp', [UserController::class, 'sendResetOtp']
 Route::post('/forgot-password/reset', [UserController::class, 'resetPasswordWithOtp']);
 Route::post('/forgot-password/verify-otp', [UserController::class, 'verifyOtpOnly']);
 
-Route::get('/admin/orders/refund-reports', [OrderController::class, 'listAllRefundReports']);
-    // OrderController (admin xử lý)
-Route::get('/admin/orders/{orderId}/refund-report', [OrderController::class, 'viewRefundReportDetail']);
-Route::post('/admin/orders/{orderId}/refund-report/approve', [OrderController::class, 'approveRefundReport']);
-Route::post('/admin/orders/{orderId}/refund-report/reject', [OrderController::class, 'rejectRefundReport']);
+Route::get('/admin/orders/refund-reports', [OrderController::class, 'listAllRefundReports']);// show tất cả đơn tố cáo
+
+Route::get('/admin/orders/{orderId}/refund-report', [OrderController::class, 'viewRefundReportDetail']);// xem chi tiết đơn
+Route::post('/admin/orders/{orderId}/refund-report/approve', [OrderController::class, 'approveRefundReport']);// duyệt admin đơn hàng tố cáo
+Route::post('/admin/orders/{orderId}/refund-report/reject', [OrderController::class, 'rejectRefundReport']);// ko duyệt admin đơn hàng tố cáo
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment']);

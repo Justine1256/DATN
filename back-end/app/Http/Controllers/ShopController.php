@@ -437,6 +437,7 @@ public function getMyShopCustomers(Request $request)
             'email' => $user->email,
             'phone' => optional($user->defaultAddress)?->phone,
             'shipping_address' => optional($user->defaultAddress)?->full_address,
+            'avatar' => $user->avatar,
             'total_orders' => $orders->count(),
             'total_spent' => $orders->sum('final_amount'),
             'last_order_at' => optional($orders->sortByDesc('created_at')->first())->created_at,
