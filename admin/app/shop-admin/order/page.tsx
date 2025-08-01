@@ -1,6 +1,6 @@
 "use client"
-import { useState, useMemo, useEffect } from "react"
 
+import { useState, useMemo, useEffect } from "react"
 import {
   Table,
   Input,
@@ -55,7 +55,6 @@ import Cookies from "js-cookie"
 const { Title, Text } = Typography
 const { Option } = Select
 const { RangePicker } = DatePicker
-const { confirm } = Modal
 
 // API Response interfaces
 interface APIBuyer {
@@ -100,6 +99,49 @@ interface APIOrder {
 
 interface APIResponse {
   orders: APIOrder[]
+}
+
+interface OrderDetailAPI {
+  order: {
+    id: number
+    user_id: number
+    shop_id: number
+    final_amount: string
+    total_amount: string
+    payment_method: string
+    payment_status: string
+    reconciliation_status: string
+    return_status: string
+    transaction_id: string | null
+    order_status: string
+    confirmed_at: string | null
+    shipping_started_at: string | null
+    canceled_at: string | null
+    return_confirmed_at: string | null
+    reconciled_at: string | null
+    delivered_at: string | null
+    order_admin_status: string
+    cancel_status: string
+    cancel_reason: string | null
+    rejection_reason: string | null
+    canceled_by: string | null
+    shipping_status: string
+    shipping_address: string
+    created_at: string
+    updated_at: string
+    deleted_at: string | null
+  }
+  details: Array<{
+    id: number
+    order_id: number
+    product_id: number
+    price_at_time: string
+    quantity: number
+    subtotal: string
+    variant_id: number | null
+    product_option: string
+    product_value: string
+  }>
 }
 
 // Internal interfaces (converted from API)
@@ -153,17 +195,16 @@ interface OrderData {
   originalData?: APIOrder
 }
 
-// Fixed interface for cancel order - API still requires cancel_type
 interface CancelOrderData {
   cancel_reason: string
   cancel_type: "Seller" | "Payment Gateway" | "Customer Refused Delivery" | "System"
 }
 
-const token = Cookies.get("token")
-
 // API Service
 const orderService = {
   async fetchOrders(): Promise<APIResponse> {
+    const token = Cookies.get("authToken")
+
     try {
       const response = await fetch("https://api.marketo.info.vn/api/shopadmin/show/orders", {
         method: "GET",
@@ -173,17 +214,26 @@ const orderService = {
         },
         credentials: "include",
       })
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
+
       const data = await response.json()
       return data
     } catch (error) {
       console.error("Error fetching orders:", error)
-      throw error // Throw error instead of returning mock data
+      throw error
     }
   },
+
   async updateOrderStatus(orderId: number, orderAdminStatus: string, reconciliationStatus?: string): Promise<any> {
+    const token = Cookies.get("authToken")
+
+    if (!token) {
+      throw new Error("Không tìm thấy token xác thực")
+    }
+
     try {
       const body: any = {
         order_admin_status: orderAdminStatus,
@@ -192,10 +242,6 @@ const orderService = {
       if (reconciliationStatus) {
         body.reconciliation_status = reconciliationStatus
       }
-
-      console.log("Calling API:", `https://api.marketo.info.vn/api/shop/orders/${orderId}/status`)
-      console.log("Request body:", body)
-      console.log("Token:", token)
 
       const response = await fetch(`https://api.marketo.info.vn/api/shop/orders/${orderId}/status`, {
         method: "POST",
@@ -208,23 +254,33 @@ const orderService = {
         body: JSON.stringify(body),
       })
 
-      console.log("Response status:", response.status)
-
       if (!response.ok) {
-        const errorData = await response.json()
-        console.log("Error response:", errorData)
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.message || errorMessage
+        } catch (e) {
+          // Keep default error message
+        }
+        throw new Error(errorMessage)
       }
 
-      const result = await response.json()
-      console.log("Success response:", result)
-      return result
+      const responseText = await response.text()
+      try {
+        return JSON.parse(responseText)
+      } catch (e) {
+        return { success: true, message: "Status updated successfully" }
+      }
     } catch (error) {
       console.error("Error updating order status:", error)
       throw error
     }
   },
+
   async cancelOrder(orderId: number, cancelData: CancelOrderData): Promise<any> {
+    const token = Cookies.get("authToken")
+
     try {
       const response = await fetch(`https://api.marketo.info.vn/api/shop/orders/${orderId}/cancel`, {
         method: "POST",
@@ -236,25 +292,73 @@ const orderService = {
         credentials: "include",
         body: JSON.stringify(cancelData),
       })
+
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
       }
+
       return await response.json()
     } catch (error) {
       console.error("Error canceling order:", error)
       throw error
     }
   },
+
+  async fetchOrderDetail(orderId: number): Promise<OrderDetailAPI> {
+    const token = Cookies.get("authToken")
+
+    try {
+      const response = await fetch(`https://api.marketo.info.vn/api/showdh/${orderId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error("Error fetching order detail:", error)
+      throw error
+    }
+  },
+  async fetchProductName(productId: number): Promise<string> {
+    const token = Cookies.get("authToken")
+
+    try {
+      const response = await fetch(`https://api.marketo.info.vn/api/products/${productId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        return `${productId} ID: ${productId}`
+      }
+
+      const data = await response.json()
+      return data.name || `Sản phẩm ID: ${productId}`
+    } catch (error) {
+      return `Sản phẩm ID: ${productId}`
+    }
+  },
 }
 
-// Generate items based on total_products - simplified without mock products
+// Generate items based on total_products
 const generateMockItems = (totalProducts: number, totalAmount: number, orderId: number): OrderItem[] => {
   const items: OrderItem[] = []
-
   for (let i = 0; i < totalProducts; i++) {
     const price = Math.floor(totalAmount / totalProducts)
-
     items.push({
       id: `ITEM${orderId}_${i + 1}`,
       productName: `Sản phẩm ${i + 1}`,
@@ -264,20 +368,17 @@ const generateMockItems = (totalProducts: number, totalAmount: number, orderId: 
       total: price,
     })
   }
-
   return items
 }
 
 // Conversion functions
 const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
-  // Parse address
   const addressParts = apiOrder.shipping_address.split(", ")
   const address = addressParts[0] || ""
   const ward = addressParts[1] || ""
   const district = addressParts[2] || ""
   const province = addressParts[3] || ""
 
-  // Convert status based on order_status from API
   const convertStatus = (status: string): OrderData["status"] => {
     switch (status.toLowerCase()) {
       case "pending":
@@ -299,7 +400,6 @@ const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
     }
   }
 
-  // Convert payment method
   const convertPaymentMethod = (method: string): OrderData["paymentMethod"] => {
     switch (method.toLowerCase()) {
       case "cod":
@@ -311,7 +411,6 @@ const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
     }
   }
 
-  // Convert payment status based on API payment_status
   const convertPaymentStatus = (paymentStatus: string, orderStatus: string): OrderData["paymentStatus"] => {
     switch (paymentStatus.toLowerCase()) {
       case "completed":
@@ -377,19 +476,31 @@ export default function OrderManagementPage() {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<string>("all")
-
-  // Fixed state for cancel order - include cancel_type with default value
   const [cancelModalVisible, setCancelModalVisible] = useState(false)
   const [orderToCancel, setOrderToCancel] = useState<OrderData | null>(null)
   const [cancelForm, setCancelForm] = useState<CancelOrderData>({
     cancel_reason: "",
-    cancel_type: "Seller", // Default value for API requirement
+    cancel_type: "Seller",
   })
 
+  // Custom confirm modal state
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false)
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{
+    orderId: string
+    newStatus: OrderData["status"]
+    adminStatus: string
+    orderNumber: string
+  } | null>(null)
+
+  const [orderDetail, setOrderDetail] = useState<OrderDetailAPI | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [productNames, setProductNames] = useState<Record<number, string>>({})
+
+  // Check token on mount
   useEffect(() => {
-    console.log("Current token:", token)
+    const token = Cookies.get("authToken")
     if (!token) {
-      message.error("Không tìm thấy token xác thực")
+      message.error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.")
     }
   }, [])
 
@@ -401,10 +512,9 @@ export default function OrderManagementPage() {
       const convertedOrders = apiResponse.orders.map(convertAPIToOrderData)
       setAllOrders(convertedOrders)
       message.success(`Đã tải ${convertedOrders.length} đơn hàng`)
-    } catch (error) {
-      message.error("Lỗi khi tải dữ liệu đơn hàng")
-      console.error("Error fetching orders:", error)
-      setAllOrders([]) // Set empty array instead of mock data
+    } catch (error: any) {
+      message.error(`Lỗi khi tải dữ liệu đơn hàng: ${error.message}`)
+      setAllOrders([])
     } finally {
       setLoading(false)
     }
@@ -414,6 +524,112 @@ export default function OrderManagementPage() {
   useEffect(() => {
     fetchOrders()
   }, [])
+
+  // Handle status update
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderData["status"]) => {
+    const order = allOrders.find((o) => o.id === orderId)
+    if (!order || !order.originalData) {
+      message.error("Không tìm thấy thông tin đơn hàng")
+      return
+    }
+
+    const statusToAdminStatusMap: Record<OrderData["status"], string> = {
+      pending: "Pending Processing",
+      confirmed: "Processing",
+      processing: "Ready for Shipment",
+      shipping: "Shipping",
+      delivered: "Delivered",
+      cancelled: "Cancelled by Seller",
+      returned: "Returned - Completed",
+    }
+
+    const adminStatus = statusToAdminStatusMap[newStatus]
+    if (!adminStatus) {
+      message.error("Trạng thái không hợp lệ")
+      return
+    }
+
+    // Show custom confirm modal
+    setPendingStatusUpdate({
+      orderId,
+      newStatus,
+      adminStatus,
+      orderNumber: order.orderNumber,
+    })
+    setConfirmModalVisible(true)
+  }
+
+  // Execute status update
+  const executeStatusUpdate = async (
+    orderId: string,
+    newStatus: OrderData["status"],
+    adminStatus: string,
+    order: OrderData,
+  ) => {
+    try {
+      setActionLoading(orderId)
+      await orderService.updateOrderStatus(order.originalData!.id, adminStatus)
+
+      // Update local state
+      setAllOrders((prevOrders) =>
+        prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)),
+      )
+
+      message.success("Cập nhật trạng thái thành công")
+
+      // Refresh data after a short delay
+      setTimeout(() => {
+        fetchOrders()
+      }, 1000)
+    } catch (error: any) {
+      // Hiển thị lỗi chi tiết từ backend
+      let errorMessage = "Không thể cập nhật trạng thái"
+
+      if (error.message) {
+        errorMessage = error.message
+      }
+
+      // Nếu có response từ server
+      if (error.response) {
+        try {
+          const errorData = await error.response.json()
+          if (errorData.message) {
+            errorMessage = errorData.message
+          } else if (errorData.errors) {
+            // Xử lý validation errors
+            const validationErrors = Object.values(errorData.errors).flat()
+            errorMessage = validationErrors.join(", ")
+          }
+        } catch (e) {
+          // Giữ error message mặc định
+        }
+      }
+
+      message.error(errorMessage)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // Handle confirm status update
+  const handleConfirmStatusUpdate = async () => {
+    if (!pendingStatusUpdate) return
+
+    const { orderId, newStatus, adminStatus } = pendingStatusUpdate
+    const order = allOrders.find((o) => o.id === orderId)
+
+    if (order) {
+      await executeStatusUpdate(orderId, newStatus, adminStatus, order)
+    }
+
+    setConfirmModalVisible(false)
+    setPendingStatusUpdate(null)
+  }
+
+  const handleCancelStatusUpdate = () => {
+    setConfirmModalVisible(false)
+    setPendingStatusUpdate(null)
+  }
 
   // Filter data
   const filteredData = useMemo(() => {
@@ -426,11 +642,8 @@ export default function OrderManagementPage() {
         order.id.includes(searchText)
 
       const matchesStatus = activeTab === "all" || order.status === activeTab
-
       const matchesPaymentStatus = paymentStatusFilter === "all" || order.paymentStatus === paymentStatusFilter
-
       const matchesPaymentMethod = paymentMethodFilter === "all" || order.paymentMethod === paymentMethodFilter
-
       const matchesDateRange =
         !dateRange ||
         !dateRange[0] ||
@@ -450,74 +663,8 @@ export default function OrderManagementPage() {
     setDateRange(null)
   }
 
-  const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderData["status"]) => {
-    const order = allOrders.find((o) => o.id === orderId)
-    if (!order || !order.originalData) {
-      message.error("Không tìm thấy thông tin đơn hàng")
-      return
-    }
-
-    // Map internal status to API admin status - Updated to match your database
-    const statusToAdminStatusMap: Record<OrderData["status"], string> = {
-      pending: "Pending Processing",
-      confirmed: "Processing",
-      processing: "Ready for Shipment",
-      shipping: "Shipping",
-      delivered: "Delivered",
-      cancelled: "Cancelled by Seller",
-      returned: "Returned - Completed",
-    }
-
-    const adminStatus = statusToAdminStatusMap[newStatus]
-    if (!adminStatus) {
-      message.error("Trạng thái không hợp lệ")
-      return
-    }
-
-    console.log("Attempting to update order:", {
-      orderId: order.originalData.id,
-      currentStatus: order.originalData.order_admin_status,
-      newStatus: adminStatus,
-    })
-
-    confirm({
-      title: "Xác nhận cập nhật trạng thái",
-      content: `Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng này thành "${getStatusText(newStatus)}"?`,
-      onOk: async () => {
-        console.log("Confirm OK clicked - starting update process")
-        try {
-          setActionLoading(orderId)
-          console.log("About to call updateOrderStatus API...")
-
-          const result = await orderService.updateOrderStatus(order.originalData!.id, adminStatus)
-          console.log("Update result:", result)
-
-          // Update local state
-          setAllOrders((prevOrders) =>
-            prevOrders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)),
-          )
-          message.success("Cập nhật trạng thái thành công")
-
-          // Refresh data to get latest from server
-          setTimeout(() => {
-            fetchOrders()
-          }, 1000)
-        } catch (error: any) {
-          console.error("Update failed:", error)
-          message.error(`Lỗi: ${error.message || "Không thể cập nhật trạng thái"}`)
-        } finally {
-          console.log("Finally block - clearing loading state")
-          setActionLoading(null)
-        }
-      },
-      onCancel: () => {
-        console.log("Confirm cancelled")
-      },
-    })
-  }
-
   const handleDeleteOrder = async (orderId: string, orderNumber: string) => {
-    confirm({
+    Modal.confirm({
       title: "Xác nhận xóa đơn hàng",
       content: (
         <div>
@@ -530,9 +677,7 @@ export default function OrderManagementPage() {
       onOk: async () => {
         try {
           setActionLoading(orderId)
-          // TODO: Call API to delete order
           await new Promise((resolve) => setTimeout(resolve, 1000))
-
           setAllOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId))
           message.success("Xóa đơn hàng thành công")
         } catch (error) {
@@ -544,11 +689,9 @@ export default function OrderManagementPage() {
     })
   }
 
-  // Fixed handle cancel order function - ensure cancel_type is sent
   const handleCancelOrder = async () => {
     if (!orderToCancel) return
 
-    // Validate cancel reason
     if (!cancelForm.cancel_reason.trim()) {
       message.error("Vui lòng nhập lý do hủy đơn hàng")
       return
@@ -557,20 +700,17 @@ export default function OrderManagementPage() {
     try {
       setActionLoading(orderToCancel.id)
       const originalOrderId = orderToCancel.originalData?.id
-
       if (!originalOrderId) {
         throw new Error("Không tìm thấy ID đơn hàng gốc")
       }
 
-      // Ensure both fields are sent to API
       const cancelData: CancelOrderData = {
         cancel_reason: cancelForm.cancel_reason.trim(),
-        cancel_type: cancelForm.cancel_type, // This is required by API
+        cancel_type: cancelForm.cancel_type,
       }
 
       await orderService.cancelOrder(originalOrderId, cancelData)
 
-      // Update local state
       setAllOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === orderToCancel.id
@@ -595,14 +735,11 @@ export default function OrderManagementPage() {
     }
   }
 
-  // Updated show cancel modal function
   const showCancelModal = (order: OrderData) => {
-    // Kiểm tra trạng thái có thể hủy
     if (order.status === "delivered" || order.status === "cancelled") {
       message.warning("Không thể hủy đơn hàng đã giao hoặc đã hủy")
       return
     }
-
     setOrderToCancel(order)
     setCancelModalVisible(true)
   }
@@ -700,6 +837,78 @@ export default function OrderManagementPage() {
     },
   ]
 
+  // Status dropdown
+  const renderStatusDropdown = (record: OrderData) => {
+    const isDisabled = ["delivered", "cancelled", "returned"].includes(record.status)
+
+    const handleStatusClick = (newStatus: OrderData["status"]) => {
+      handleUpdateOrderStatus(record.id, newStatus)
+    }
+
+    return (
+      <Dropdown
+        menu={{
+          items: [
+            {
+              key: "pending",
+              label: "Chờ xử lý",
+              disabled: record.status === "pending",
+              onClick: () => handleStatusClick("pending"),
+            },
+            {
+              key: "confirmed",
+              label: "Đang xử lý",
+              disabled: record.status === "confirmed",
+              onClick: () => handleStatusClick("confirmed"),
+            },
+            {
+              key: "processing",
+              label: "Đã xử lý",
+              disabled: record.status === "processing",
+              onClick: () => handleStatusClick("processing"),
+            },
+            {
+              key: "shipping",
+              label: "Đang giao hàng",
+              disabled: record.status === "shipping",
+              onClick: () => handleStatusClick("shipping"),
+            },
+            {
+              key: "delivered",
+              label: "Đã giao hàng",
+              disabled: record.status === "delivered",
+              onClick: () => handleStatusClick("delivered"),
+            },
+            {
+              key: "cancelled",
+              label: "Hủy bởi Seller",
+              disabled: record.status === "cancelled",
+              onClick: () => handleStatusClick("cancelled"),
+            },
+            // Xóa option "returned"
+          ],
+        }}
+        trigger={["click"]}
+        disabled={isDisabled}
+      >
+        <Tag
+          color={getStatusColor(record.status)}
+          style={{
+            cursor: isDisabled ? "not-allowed" : "pointer",
+            opacity: isDisabled ? 0.6 : 1,
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            width: "fit-content",
+          }}
+        >
+          {getStatusText(record.status)}
+          {!isDisabled && <DownOutlined style={{ fontSize: "10px" }} />}
+        </Tag>
+      </Dropdown>
+    )
+  }
+
   const columns: ColumnsType<OrderData> = [
     {
       title: "Đơn hàng",
@@ -758,77 +967,7 @@ export default function OrderManagementPage() {
       title: "Trạng thái xử lý",
       key: "orderStatus",
       width: 100,
-      render: (_, record) => {
-        const isDisabled = ["delivered", "cancelled", "returned"].includes(record.status)
-
-        return (
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: "pending",
-                  label: "Chờ xử lý",
-                  disabled: record.status === "pending",
-                  onClick: () => handleUpdateOrderStatus(record.id, "pending"),
-                },
-                {
-                  key: "confirmed",
-                  label: "Đang xử lý",
-                  disabled: record.status === "confirmed",
-                  onClick: () => handleUpdateOrderStatus(record.id, "confirmed"),
-                },
-                {
-                  key: "processing",
-                  label: "Đã xử lý",
-                  disabled: record.status === "processing",
-                  onClick: () => handleUpdateOrderStatus(record.id, "processing"),
-                },
-                {
-                  key: "shipping",
-                  label: "Đang giao hàng",
-                  disabled: record.status === "shipping",
-                  onClick: () => handleUpdateOrderStatus(record.id, "shipping"),
-                },
-                {
-                  key: "delivered",
-                  label: "Đã giao hàng",
-                  disabled: record.status === "delivered",
-                  onClick: () => handleUpdateOrderStatus(record.id, "delivered"),
-                },
-                {
-                  key: "cancelled",
-                  label: "Hủy bởi Seller",
-                  disabled: record.status === "cancelled",
-                  onClick: () => handleUpdateOrderStatus(record.id, "cancelled"),
-                },
-                {
-                  key: "returned",
-                  label: "Đã trả hàng",
-                  disabled: record.status === "returned",
-                  onClick: () => handleUpdateOrderStatus(record.id, "returned"),
-                },
-              ],
-            }}
-            trigger={["click"]}
-            disabled={isDisabled}
-          >
-            <Tag
-              color={getStatusColor(record.status)}
-              style={{
-                cursor: isDisabled ? "not-allowed" : "pointer",
-                opacity: isDisabled ? 0.6 : 1,
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                width: "fit-content",
-              }}
-            >
-              {getStatusText(record.status)}
-              {!isDisabled && <DownOutlined style={{ fontSize: "10px" }} />}
-            </Tag>
-          </Dropdown>
-        )
-      },
+      render: (_, record) => renderStatusDropdown(record),
     },
     {
       title: "Thanh toán",
@@ -890,14 +1029,36 @@ export default function OrderManagementPage() {
     },
   ]
 
-  const showOrderDetail = (order: OrderData) => {
+  const showOrderDetail = async (order: OrderData) => {
     setSelectedOrder(order)
     setIsModalVisible(true)
+    setDetailLoading(true)
+
+    try {
+      if (order.originalData?.id) {
+        const detail = await orderService.fetchOrderDetail(order.originalData.id)
+        setOrderDetail(detail)
+
+        // Fetch product names
+        const names: Record<number, string> = {}
+        for (const item of detail.details) {
+          if (!productNames[item.product_id]) {
+            names[item.product_id] = await orderService.fetchProductName(item.product_id)
+          }
+        }
+        setProductNames((prev) => ({ ...prev, ...names }))
+      }
+    } catch (error: any) {
+      message.error(`Lỗi khi tải chi tiết đơn hàng: ${error.message}`)
+    } finally {
+      setDetailLoading(false)
+    }
   }
 
   const handleCloseModal = () => {
     setIsModalVisible(false)
     setSelectedOrder(null)
+    setOrderDetail(null)
   }
 
   const handleRefresh = () => {
@@ -918,8 +1079,107 @@ export default function OrderManagementPage() {
     return { total, pending, processing, shipping, delivered, cancelled, totalRevenue, avgOrderValue }
   }, [filteredData])
 
+  const handlePrintOrder = () => {
+    // Nếu đang trong modal chi tiết, chỉ in modal
+    if (isModalVisible && selectedOrder) {
+      const printContent = document.querySelector(".ant-modal-body")?.innerHTML
+      const printWindow = window.open("", "_blank")
+      if (printWindow && printContent) {
+        printWindow.document.write(`
+        <html>
+          <head>
+            <title>Chi tiết đơn hàng ${selectedOrder.orderNumber}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .ant-card { border: 1px solid #d9d9d9; margin-bottom: 16px; }
+              .ant-card-head { background: #fafafa; padding: 8px 16px; border-bottom: 1px solid #d9d9d9; font-weight: bold; }
+              .ant-card-body { padding: 16px; }
+              .ant-row { display: flex; margin-bottom: 8px; }
+              .ant-col { flex: 1; }
+              .ant-descriptions-item { margin-bottom: 8px; }
+              .ant-descriptions-item-label { font-weight: bold; margin-right: 8px; }
+              .ant-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+              .ant-timeline-item { margin-bottom: 12px; }
+              .ant-image { border: 1px solid #d9d9d9; }
+              @media print {
+                body { margin: 0; }
+                .no-print { display: none !important; }
+              }
+            </style>
+          </head>
+          <body>
+            <h2>Chi tiết đơn hàng ${selectedOrder.orderNumber}</h2>
+            ${printContent}
+          </body>
+        </html>
+      `)
+        printWindow.document.close()
+        printWindow.print()
+        printWindow.close()
+      }
+    } else {
+      // In toàn bộ trang
+      window.print()
+    }
+  }
+
   return (
     <div style={{ padding: "2px" }}>
+      <style jsx global>{`
+  @media print {
+    /* Ẩn tất cả khi in từ ngoài, chỉ hiện bảng */
+    body > div:not(.ant-table-wrapper) {
+      display: none !important;
+    }
+    
+    .ant-modal-mask,
+    .ant-modal-wrap {
+      position: static !important;
+    }
+    
+    .ant-modal {
+      position: static !important;
+      top: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+    }
+    
+    .ant-modal-content {
+      box-shadow: none !important;
+    }
+    
+    .ant-modal-header,
+    .ant-modal-footer {
+      display: none !important;
+    }
+    
+    /* Ẩn các element không cần thiết khi in */
+    .no-print {
+      display: none !important;
+    }
+  }
+  
+  .ant-btn-primary {
+    background-color: #DB4444 !important;
+    border-color: #DB4444 !important;
+  }
+  
+  .ant-btn-primary:hover {
+    background-color: #c73e3e !important;
+    border-color: #c73e3e !important;
+  }
+  
+  .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):not(.ant-btn-text) {
+    border-color: #DB4444 !important;
+    color: #DB4444 !important;
+  }
+  
+  .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger):not(.ant-btn-text):hover {
+    border-color: #c73e3e !important;
+    color: #c73e3e !important;
+  }
+`}</style>
       {/* Statistics Overview */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={4}>
@@ -1054,11 +1314,12 @@ export default function OrderManagementPage() {
               >
                 Làm mới
               </Button>
-              <Button icon={<PrinterOutlined />}>In đơn hàng</Button>
+              <Button icon={<PrinterOutlined />} className="no-print" onClick={handlePrintOrder}>
+                In đơn hàng
+              </Button>
             </Space>
           </Col>
         </Row>
-
         <Row style={{ marginTop: 16 }}>
           <Col span={24}>
             <Text type="secondary">
@@ -1084,7 +1345,6 @@ export default function OrderManagementPage() {
             </Text>
           </Col>
         </Row>
-
         {/* Status Tabs */}
         <div style={{ marginTop: 16, borderTop: "1px solid #f0f0f0", paddingTop: 16 }}>
           <Tabs
@@ -1187,7 +1447,29 @@ export default function OrderManagementPage() {
         </Spin>
       </Card>
 
-      {/* Cancel Order Modal - UI simplified but API gets required fields */}
+      {/* Custom Confirm Modal */}
+      <Modal
+        title="Xác nhận cập nhật trạng thái"
+        open={confirmModalVisible}
+        onOk={handleConfirmStatusUpdate}
+        onCancel={handleCancelStatusUpdate}
+        okText="Xác nhận"
+        cancelText="Hủy bỏ"
+        okButtonProps={{
+          loading: actionLoading === pendingStatusUpdate?.orderId,
+        }}
+      >
+        {pendingStatusUpdate && (
+          <div>
+            <p>
+              Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng <strong>{pendingStatusUpdate.orderNumber}</strong>{" "}
+              thành <strong>"{getStatusText(pendingStatusUpdate.newStatus)}"</strong>?
+            </p>
+          </div>
+        )}
+      </Modal>
+
+      {/* Cancel Order Modal */}
       <Modal
         title="Hủy đơn hàng"
         open={cancelModalVisible}
@@ -1271,7 +1553,7 @@ export default function OrderManagementPage() {
           onCancel={handleCloseModal}
           width={1000}
           footer={[
-            <Button key="print" icon={<PrinterOutlined />}>
+            <Button key="print" icon={<PrinterOutlined />} onClick={handlePrintOrder}>
               In đơn hàng
             </Button>,
             <Button key="export" icon={<DownloadOutlined />}>
@@ -1286,27 +1568,65 @@ export default function OrderManagementPage() {
             <Col span={16}>
               {/* Order Items */}
               <Card title="Sản phẩm đặt hàng" size="small" style={{ marginBottom: 16 }}>
-                {selectedOrder.items.map((item) => (
-                  <Row
-                    key={item.id}
-                    style={{ marginBottom: 12, padding: 8, border: "1px solid #f0f0f0", borderRadius: 4 }}
-                  >
-                    <Col span={4}>
-                      <Image src={item.productImage || "/placeholder.svg"} width={50} height={50} />
-                    </Col>
-                    <Col span={12}>
-                      <div style={{ fontWeight: 500 }}>{item.productName}</div>
-                      {item.variant && <div style={{ fontSize: 12, color: "#666" }}>{item.variant}</div>}
-                    </Col>
-                    <Col span={4} style={{ textAlign: "center" }}>
-                      <div>SL: {item.quantity}</div>
-                      <div style={{ fontSize: 12, color: "#666" }}>{item.price.toLocaleString("vi-VN")} ₫</div>
-                    </Col>
-                    <Col span={4} style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: "bold", color: "#f5222d" }}>{item.total.toLocaleString("vi-VN")} ₫</div>
-                    </Col>
-                  </Row>
-                ))}
+                <Spin spinning={detailLoading}>
+                  {orderDetail?.details
+                    ? orderDetail.details.map((item) => (
+                        <Row
+                          key={item.id}
+                          style={{ marginBottom: 12, padding: 8, border: "1px solid #f0f0f0", borderRadius: 4 }}
+                        >
+                          <Col span={4}>
+                            <Image
+                              src={`/placeholder.svg?height=60&width=60&text=Product${item.product_id}`}
+                              width={50}
+                              height={50}
+                            />
+                          </Col>
+                          <Col span={12}>
+                            <div style={{ fontWeight: 500 }}>
+                              {productNames[item.product_id] || `Sản phẩm ID: ${item.product_id}`}
+                            </div>
+                            <div style={{ fontSize: 12, color: "#666" }}>
+                              {item.product_option}: {item.product_value}
+                            </div>
+                          </Col>
+                          <Col span={4} style={{ textAlign: "center" }}>
+                            <div>SL: {item.quantity}</div>
+                            <div style={{ fontSize: 12, color: "#666" }}>
+                              {Number(item.price_at_time).toLocaleString("vi-VN")} ₫
+                            </div>
+                          </Col>
+                          <Col span={4} style={{ textAlign: "right" }}>
+                            <div style={{ fontWeight: "bold", color: "#f5222d" }}>
+                              {Number(item.subtotal).toLocaleString("vi-VN")} ₫
+                            </div>
+                          </Col>
+                        </Row>
+                      ))
+                    : selectedOrder?.items.map((item) => (
+                        <Row
+                          key={item.id}
+                          style={{ marginBottom: 12, padding: 8, border: "1px solid #f0f0f0", borderRadius: 4 }}
+                        >
+                          <Col span={4}>
+                            <Image src={item.productImage || "/placeholder.svg"} width={50} height={50} />
+                          </Col>
+                          <Col span={12}>
+                            <div style={{ fontWeight: 500 }}>{item.productName}</div>
+                            {item.variant && <div style={{ fontSize: 12, color: "#666" }}>{item.variant}</div>}
+                          </Col>
+                          <Col span={4} style={{ textAlign: "center" }}>
+                            <div>SL: {item.quantity}</div>
+                            <div style={{ fontSize: 12, color: "#666" }}>{item.price.toLocaleString("vi-VN")} ₫</div>
+                          </Col>
+                          <Col span={4} style={{ textAlign: "right" }}>
+                            <div style={{ fontWeight: "bold", color: "#f5222d" }}>
+                              {item.total.toLocaleString("vi-VN")} ₫
+                            </div>
+                          </Col>
+                        </Row>
+                      ))}
+                </Spin>
 
                 {/* Order Summary */}
                 <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 12, marginTop: 12 }}>
@@ -1314,25 +1634,24 @@ export default function OrderManagementPage() {
                     <Col span={8}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                         <span>Tạm tính:</span>
-                        <span>{selectedOrder.subtotal.toLocaleString("vi-VN")} ₫</span>
+                        <span>
+                          {orderDetail?.order
+                            ? Number(orderDetail.order.total_amount).toLocaleString("vi-VN")
+                            : selectedOrder?.subtotal.toLocaleString("vi-VN")}{" "}
+                          ₫
+                        </span>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                         <span>Phí vận chuyển:</span>
-                        <span>{selectedOrder.shippingFee.toLocaleString("vi-VN")} ₫</span>
+                        <span>
+                          {orderDetail?.order
+                            ? (
+                                Number(orderDetail.order.final_amount) - Number(orderDetail.order.total_amount)
+                              ).toLocaleString("vi-VN")
+                            : selectedOrder?.shippingFee.toLocaleString("vi-VN")}{" "}
+                          ₫
+                        </span>
                       </div>
-                      {selectedOrder.discount > 0 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            marginBottom: 8,
-                            color: "#52c41a",
-                          }}
-                        >
-                          <span>Giảm giá:</span>
-                          <span>-{selectedOrder.discount.toLocaleString("vi-VN")} ₫</span>
-                        </div>
-                      )}
                       <div
                         style={{
                           display: "flex",
@@ -1344,13 +1663,17 @@ export default function OrderManagementPage() {
                         }}
                       >
                         <span>Tổng cộng:</span>
-                        <span style={{ color: "#f5222d" }}>{selectedOrder.total.toLocaleString("vi-VN")} ₫</span>
+                        <span style={{ color: "#f5222d" }}>
+                          {orderDetail?.order
+                            ? Number(orderDetail.order.final_amount).toLocaleString("vi-VN")
+                            : selectedOrder?.total.toLocaleString("vi-VN")}{" "}
+                          ₫
+                        </span>
                       </div>
                     </Col>
                   </Row>
                 </div>
               </Card>
-
               {/* Order Timeline */}
               <Card title="Lịch sử đơn hàng" size="small">
                 <Timeline>
@@ -1395,7 +1718,6 @@ export default function OrderManagementPage() {
                 </Timeline>
               </Card>
             </Col>
-
             <Col span={8}>
               {/* Customer Info */}
               <Card title="Thông tin khách hàng" size="small" style={{ marginBottom: 16 }}>
@@ -1405,7 +1727,6 @@ export default function OrderManagementPage() {
                   <Descriptions.Item label="Email">{selectedOrder.customer.email}</Descriptions.Item>
                 </Descriptions>
               </Card>
-
               {/* Shipping Address */}
               <Card title="Địa chỉ giao hàng" size="small" style={{ marginBottom: 16 }}>
                 <Descriptions column={1} size="small">
@@ -1417,7 +1738,6 @@ export default function OrderManagementPage() {
                   </Descriptions.Item>
                 </Descriptions>
               </Card>
-
               {/* Payment Info */}
               <Card title="Thông tin thanh toán" size="small" style={{ marginBottom: 16 }}>
                 <Descriptions column={1} size="small">
@@ -1436,20 +1756,10 @@ export default function OrderManagementPage() {
                   </Descriptions.Item>
                 </Descriptions>
               </Card>
-
               {/* Notes */}
               {selectedOrder.notes && (
                 <Card title="Ghi chú" size="small">
                   <Text>{selectedOrder.notes}</Text>
-                </Card>
-              )}
-
-              {/* API Data Debug */}
-              {selectedOrder.originalData && (
-                <Card title="Dữ liệu API gốc" size="small" style={{ marginTop: 16 }}>
-                  <pre style={{ fontSize: 10, maxHeight: 200, overflow: "auto" }}>
-                    {JSON.stringify(selectedOrder.originalData, null, 2)}
-                  </pre>
                 </Card>
               )}
             </Col>

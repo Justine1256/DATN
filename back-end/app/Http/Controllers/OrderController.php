@@ -251,21 +251,34 @@ class OrderController extends Controller
         }
     }
 
-    public function show($id)
-    {
-        $order = Order::find($id);
+public function show($id)
+{
+    $order = Order::find($id);
 
-        if (!$order) {
-            return response()->json(['message' => 'Đơn hàng không tồn tại'], 404);
-        }
-
-        $orderDetails = OrderDetail::where('order_id', $id)->get();
-
-        return response()->json([
-            'order' => $order,
-            'details' => $orderDetails
-        ]);
+    if (!$order) {
+        return response()->json(['message' => 'Đơn hàng không tồn tại'], 404);
     }
+
+    // Eager load product info trong order_details
+    $orderDetails = OrderDetail::with('product')
+        ->where('order_id', $id)
+        ->get()
+        ->map(function ($detail) {
+            return [
+                'id' => $detail->id,
+                'product_id' => $detail->product_id,
+                'product_name' => $detail->product ? $detail->product->name : null,
+                'quantity' => $detail->quantity,
+                'price' => $detail->price,
+            ];
+        });
+
+    return response()->json([
+        'order' => $order,
+        'details' => $orderDetails
+    ]);
+}
+
     public function cancel(Request $request, $id)
     {
         $order = Order::where('id', $id)->where('user_id', Auth::id())->first();
