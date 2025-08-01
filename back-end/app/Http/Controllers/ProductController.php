@@ -687,9 +687,7 @@ public function getProductByIdShop($id)
     $products = Product::where('shop_id', $shopId)
         ->orderBy('stock', 'asc')
         ->get()
-        ->filter(function ($product) {
-            return $product->stock < 5;
-        })
+
         ->map(function ($product) {
             if ($product->stock == 0) {
                 $status = 'Hết hàng';
