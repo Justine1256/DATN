@@ -61,7 +61,7 @@ Route::get('/banner', [BannerController::class, 'index']);
 Route::post('/banner', [BannerController::class, 'store']);
 Route::put('/banner/{id}', [BannerController::class, 'update']);
 Route::delete('/banner/{id}', [BannerController::class, 'destroy']);
-Route::get('/banner/upload-banner', [BannerController::class, 'uploadBanner']);
+Route::post('/banner/upload-banner', [BannerController::class, 'uploadBanner']);
 
 
 Route::get('/images', [ImageController::class, 'index']);

@@ -289,7 +289,7 @@ const payload = {
       align: 'center',
       render: (date: string) => (
         <div style={{ fontSize: '12px' }}>
-          <div>{dayjs(date).format('DD/MM/YY')}</div>
+          <div>{dayjs(date).format('DD/MM/YYYY')}</div>
           <div style={{ fontSize: '10px', color: '#666' }}>
             {dayjs(date).format('HH:mm')}
           </div>
@@ -307,7 +307,7 @@ const payload = {
       align: 'center',
       render: (date: string) => (
         <div style={{ fontSize: '12px' }}>
-          <div>{dayjs(date).format('DD/MM/YY')}</div>
+          <div>{dayjs(date).format('DD/MM/YYYY')}</div>
           <div style={{ fontSize: '10px', color: '#666' }}>
             {dayjs(date).format('HH:mm')}
           </div>
