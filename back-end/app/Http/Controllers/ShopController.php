@@ -479,6 +479,7 @@ public function getMyShopCustomers(Request $request)
                 return [
                     'order_id' => $order->id,
                     'cancel_reason' => $order->cancel_reason,
+                    'cancel_status' => $order->cancel_status,
                     'canceled_at' => $order->canceled_at,
                     'order_status' => $order->order_status,
                     'order_admin_status' => $order->order_admin_status,
