@@ -1187,12 +1187,21 @@ class OrderController extends Controller
         ];
     });
 
-    return response()->json([
+     return response()->json([
         'report_id' => $report->id,
         'order_id' => $order->id,
         'user' => [
             'id' => $order->user->id,
             'name' => $order->user->name,
+            'email'  => $order->user->email,
+            'phone'  => $order->user->phone,
+            'avatar' => $order->user->avatar,
+        ],
+        'shop' => [
+            'id'   => $order->shop->id ?? null,
+            'name' => $order->shop->name ?? '(Không tìm thấy shop)',
+            'email' => $order->shop->email ?? null,
+            'logo'  => $order->shop->logo ?? null,
         ],
         'report_reason' => $report->reason,
         'photos' => $photos,
