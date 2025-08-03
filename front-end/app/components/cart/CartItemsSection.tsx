@@ -43,7 +43,7 @@ export default function CartItemsSection({
             name: item.name,
             image: [formatImageUrl(item.image)],
             price: item.price,
-            sale_price: null,
+            sale_price: item.sale_price ?? null,
           },
           variant: item.variant_id
             ? {
@@ -53,7 +53,7 @@ export default function CartItemsSection({
               value1: item.value1,
               value2: item.value2,
               price: item.price,
-              sale_price: null,
+              sale_price: item.sale_price ?? null,
             }
             : null,
         }));

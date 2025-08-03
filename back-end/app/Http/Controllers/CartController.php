@@ -40,13 +40,21 @@ class CartController extends Controller
 
             $matched = $query->first();
             if ($matched) {
-                $variant['price'] = $matched->price;
-                $variant['sale_price'] = $matched->sale_price;
-            }
+        $variant['price'] = $matched->price;
+        $variant['sale_price'] = $matched->sale_price;
 
-            $cart->variant = $variant;
-            return $cart;
-        });
+        // ✅ Gán giá cho product (để frontend có thể dùng fallback nếu variant lỗi)
+        $cart->product->price = $matched->price;
+        $cart->product->sale_price = $matched->sale_price;
+    } else {
+        // ✅ Fallback nếu không có variant
+        $cart->product->price = $cart->product->price;
+        $cart->product->sale_price = $cart->product->sale_price;
+    }
+
+    $cart->variant = $variant;
+    return $cart;
+});
 
         return response()->json($carts);
     }
@@ -232,7 +240,7 @@ public function getTotal()
 
         return response()->json(['message' => 'Xóa sản phẩm khỏi giỏ hàng thành công']);
     }
-        public function storeGuest(Request $request)
+    public function storeGuest(Request $request)
 {
     $validated = $request->validate([
         'product_id' => 'required|exists:products,id',
