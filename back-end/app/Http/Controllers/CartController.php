@@ -43,7 +43,7 @@ class CartController extends Controller
                 $variant['price'] = $matched->price;
                 $variant['sale_price'] = $matched->sale_price;
             }
-
+            
             $cart->variant = $variant;
             return $cart;
         });
@@ -232,7 +232,7 @@ public function getTotal()
 
         return response()->json(['message' => 'Xóa sản phẩm khỏi giỏ hàng thành công']);
     }
-        public function storeGuest(Request $request)
+    public function storeGuest(Request $request)
 {
     $validated = $request->validate([
         'product_id' => 'required|exists:products,id',

@@ -144,18 +144,18 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     && parseOptionValues(product.value2).includes(selectedB);
 
   // ✅ Lấy giá hiện tại: Ưu tiên variant, sau đó đến product
-  const getPrice = () => {
-    if (selectedVariant) {
-      return Number((selectedVariant.sale_price ?? selectedVariant.price) || 0).toLocaleString('vi-VN');
-    }
+const getPrice = () => {
+  if (selectedVariant) {
+    return Number((selectedVariant.sale_price ?? selectedVariant.price) || 0).toLocaleString('vi-VN');
+  }
 
-    if (product.variants?.length > 0) {
-      const first = product.variants[0];
-      return Number((first.sale_price ?? first.price) || 0).toLocaleString('vi-VN');
-    }
-
+  if (isFromProduct) {
     return Number((product.sale_price ?? product.price) || 0).toLocaleString('vi-VN');
-  };
+  }
+
+  return Number((product.sale_price ?? product.price) || 0).toLocaleString('vi-VN');
+};
+
 
 
 
@@ -351,16 +351,16 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               <span className="text-[1.5rem] font-bold text-brand">{getPrice()}₫</span>
 
               {selectedVariant ? (
-                selectedVariant.sale_price && (
-                  <span className="line-through text-gray-400">
-                    {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
-                  </span>
-                )
-              ) : isFromProduct && product.sale_price ? (
-                <span className="line-through text-gray-400">
-                  {Number(product.price).toLocaleString('vi-VN')}₫
-                </span>
-              ) : null}
+  selectedVariant.sale_price && (
+    <span className="line-through text-gray-400">
+      {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
+    </span>
+  )
+) : isFromProduct && product.sale_price ? (
+  <span className="line-through text-gray-400">
+    {Number(product.price).toLocaleString('vi-VN')}₫
+  </span>
+) : null}
             </div>
 
 
