@@ -279,6 +279,10 @@ export default function CartItemsSection({
         </div>
       ) : (
         cartItems.map((item) => {
+          const isVariant = !!item.variant;
+const originalPrice = Number((isVariant ? item.variant?.price : item.product?.price) ?? 0);
+const salePrice = Number((isVariant ? item.variant?.sale_price : item.product?.sale_price) ?? originalPrice);
+const isDiscounted = salePrice < originalPrice;
           const priceToUse = getPriceToUse(item);
 
           return (
@@ -325,21 +329,20 @@ export default function CartItemsSection({
 
     <div>{renderVariant(item)}</div>
 
-    <div className="text-center text-sm text-black">
-      {item.variant?.sale_price || item.product?.sale_price ? (
-        <div>
-          <span className="text-red-500 font-semibold">
-            {formatPrice(priceToUse)} đ
-          </span>
-          <br />
-          <span className="line-through text-gray-400 text-xs">
-            {formatPrice(item.variant?.price ?? item.product?.price)} đ
-          </span>
-        </div>
-      ) : (
-        <span className="font-semibold">{formatPrice(priceToUse)} đ</span>
-      )}
-    </div>
+<div className="text-center text-sm text-black">
+  <div>
+    <span className="text-red-500 font-semibold">
+      {formatPrice(priceToUse)} đ
+    </span>
+    {isDiscounted && (
+      <div>
+        <span className="line-through text-gray-400 text-xs">
+          {formatPrice(originalPrice)} đ
+        </span>
+      </div>
+    )}
+  </div>
+</div>
 
     <div className="text-center">
       <input
