@@ -17,100 +17,75 @@ use function Illuminate\Log\log;
 
 class UserController extends Controller
 {
-// public function login(Request $request)
-// {
-//     $request->validate([
-//         'email' => 'required|email',
-//         'password' => 'required'
-//     ]);
+    // public function login(Request $request)
+    // {
+    //     $request->validate([
+    //         'email' => 'required|email',
+    //         'password' => 'required'
+    //     ]);
 
-//     $user = User::where('email', $request->email)->first();
+    //     $user = User::where('email', $request->email)->first();
 
-//     if (!$user || !Hash::check($request->password, $user->password)) {
-//         return response()->json(['error' => 'Email hoặc mật khẩu không đúng'], 401);
-//     }
+    //     if (!$user || !Hash::check($request->password, $user->password)) {
+    //         return response()->json(['error' => 'Email hoặc mật khẩu không đúng'], 401);
+    //     }
 
-//     if (is_null($user->email_verified_at)) {
-//         return response()->json(['error' => 'Tài khoản chưa được xác minh. Vui lòng kiểm tra email.'], 403);
-//     }
+    //     if (is_null($user->email_verified_at)) {
+    //         return response()->json(['error' => 'Tài khoản chưa được xác minh. Vui lòng kiểm tra email.'], 403);
+    //     }
 
-//     try {
-//         $token = $user->createToken('web')->plainTextToken;
-//     } catch (\Exception $e) {
-//         return response()->json(['error' => 'Không thể tạo token.'], 500);
-//     }
+    //     try {
+    //         $token = $user->createToken('web')->plainTextToken;
+    //     } catch (\Exception $e) {
+    //         return response()->json(['error' => 'Không thể tạo token.'], 500);
+    //     }
 
-//     // Xác định domain hiện tại
-//     $host = request()->getHost();
-//     $isLocalhost = in_array($host, ['localhost', '127.0.0.1']);
+    //     return response()
+    // ->json([
+    //     'user' => $user,
+    //     'token' => $token,
+    // ], 200)
+    // ->withCookie(
+    //     cookie('token', $token, 60 * 24, '/', '.marketo.info.vn', true, true, false, 'None')
 
-//     // Tạo cookie
-//     $cookie = cookie(
-//         'token',
-//         $token,
-//         60 * 24,
-//         '/',
-//         $isLocalhost ? null : '.marketo.info.vn',
-//         $isLocalhost ? false : true, // Secure false khi local
-//         true,
-//         false,
-//         $isLocalhost ? 'Lax' : 'None'
-//     );
+    // );
 
-//         return response()->json([
-//             'user' => $user,
-//             'token' => $token,
-//         ], 200)->withCookie($cookie);
-//     }
+    // }
 
+    public function login(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
 
-//     public function index(){
-//         return response()->json(User::all());
-//     }
-public function login(Request $request)
-{
-    $request->validate([
-        'email' => 'required|email',
-        'password' => 'required'
-    ]);
+        $user = User::where('email', $request->email)->first();
 
-    $user = User::where('email', $request->email)->first();
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['error' => 'Email hoặc mật khẩu không đúng'], 401);
+        }
 
-    if (!$user || !Hash::check($request->password, $user->password)) {
-        return response()->json(['error' => 'Email hoặc mật khẩu không đúng'], 401);
+        if (is_null($user->email_verified_at)) {
+            return response()->json(['error' => 'Tài khoản chưa được xác minh. Vui lòng kiểm tra email.'], 403);
+        }
+
+        try {
+            $token = $user->createToken('web')->plainTextToken;
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Không thể tạo token.'], 500);
+        }
+
+        return response()->json([
+            'user' => $user,
+            'token' => $token,
+        ], 200);
     }
 
-    if (is_null($user->email_verified_at)) {
-        return response()->json(['error' => 'Tài khoản chưa được xác minh. Vui lòng kiểm tra email.'], 403);
+    public function index(){
+        return response()->json(User::all());
     }
 
-    try {
-        $token = $user->createToken('web')->plainTextToken;
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Không thể tạo token.'], 500);
-    }
-
-    // Cookie cho local (localhost, 127.0.0.1)
-    $cookie = cookie(
-        'token',
-        $token,
-        60 * 24,   // 1 ngày
-        '/',
-        'localhost', // domain ở local
-        false,       // không cần HTTPS ở local
-        true,        // HttpOnly
-        false,       // Raw
-        'None'       // SameSite=None để gửi qua cross-origin
-    );
-
-    return response()->json([
-        'user' => $user,
-        'token' => $token,
-    ])->withCookie($cookie);
-}
-
-
-    public function show()
+public function show()
 {
     /** @var \App\Models\User $user */
     $user = Auth::user();
