@@ -51,6 +51,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState('');
 
+  const [showSelectionWarning, setShowSelectionWarning] = useState(false);
+
   // ✅ Context giỏ hàng & yêu thích
   const { reloadCart } = useCart();
   const { reloadWishlist, wishlistItems } = useWishlist();
@@ -61,6 +63,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     if (Array.isArray(value)) return value.map(v => v.trim());
     return value.split(',').map(v => v.trim());
   };
+  const isVariantRequiredButNotSelected = () => {
+    return (
+      product?.variants.length > 0 &&
+      (!selectedA.trim() || !selectedB.trim())
+    );
+  };
+
 
   // ✅ Fetch chi tiết sản phẩm và ghi nhận lịch sử xem
   useEffect(() => {
@@ -144,17 +153,17 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     && parseOptionValues(product.value2).includes(selectedB);
 
   // ✅ Lấy giá hiện tại: Ưu tiên variant, sau đó đến product
-const getPrice = () => {
-  if (selectedVariant) {
-    return Number((selectedVariant.sale_price ?? selectedVariant.price) || 0).toLocaleString('vi-VN');
-  }
+  const getPrice = () => {
+    if (selectedVariant) {
+      return Number((selectedVariant.sale_price ?? selectedVariant.price) || 0).toLocaleString('vi-VN');
+    }
 
-  if (isFromProduct) {
+    if (isFromProduct) {
+      return Number((product.sale_price ?? product.price) || 0).toLocaleString('vi-VN');
+    }
+
     return Number((product.sale_price ?? product.price) || 0).toLocaleString('vi-VN');
-  }
-
-  return Number((product.sale_price ?? product.price) || 0).toLocaleString('vi-VN');
-};
+  };
 
 
 
@@ -180,6 +189,13 @@ const getPrice = () => {
 
   // ✅ Thêm vào giỏ hàng (token hoặc localStorage)
   const handleAddToCart = async () => {
+    const variantRequired = product.option1 && product.option2 && product.variants.length > 0;
+if (variantRequired && (!selectedA || !selectedB)) {
+    setShowSelectionWarning(true);
+    return;
+  }
+  setShowSelectionWarning(false);
+
     const token = Cookies.get('authToken');
     const variant = product.variants.find(
       v => v.value1 === selectedA && v.value2 === selectedB
@@ -279,6 +295,14 @@ const getPrice = () => {
 
   // ✅ Mua ngay (thêm vào giỏ và chuyển trang)
   const handleBuyNow = async () => {
+     const variantRequired = product.option1 && product.option2 && product.variants.length > 0;
+
+  if (variantRequired && (!selectedA || !selectedB)) {
+    setShowSelectionWarning(true);
+    return;
+  }
+
+  setShowSelectionWarning(false);
     await handleAddToCart();
     router.push('/cart');
   };
@@ -351,16 +375,16 @@ const getPrice = () => {
               <span className="text-[1.5rem] font-bold text-brand">{getPrice()}₫</span>
 
               {selectedVariant ? (
-  selectedVariant.sale_price && (
-    <span className="line-through text-gray-400">
-      {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
-    </span>
-  )
-) : isFromProduct && product.sale_price ? (
-  <span className="line-through text-gray-400">
-    {Number(product.price).toLocaleString('vi-VN')}₫
-  </span>
-) : null}
+                selectedVariant.sale_price && (
+                  <span className="line-through text-gray-400">
+                    {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
+                  </span>
+                )
+              ) : isFromProduct && product.sale_price ? (
+                <span className="line-through text-gray-400">
+                  {Number(product.price).toLocaleString('vi-VN')}₫
+                </span>
+              ) : null}
             </div>
 
 
@@ -419,7 +443,11 @@ const getPrice = () => {
                 ))}
               </div>
             </div>
-
+            {showSelectionWarning && (
+  <p className="text-red-500 text-sm mt-1">
+    Vui lòng chọn đầy đủ phân loại hàng
+  </p>
+)}
 
             {/* Quantity & actions */}
             <div className="flex items-center gap-3 mt-4">
@@ -443,7 +471,7 @@ const getPrice = () => {
 
               <button
                 onClick={() => {
-               
+
                   handleBuyNow(); // Trigger buying and redirecting to cart
                 }}
                 className="w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium"
