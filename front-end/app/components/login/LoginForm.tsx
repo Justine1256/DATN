@@ -30,32 +30,25 @@ export default function LoginForm() {
   setIsLoading(true);
 
   try {
-    const res = await axios.post(`${API_BASE_URL}/login`, formData);
-    const { token } = res.data;
+      await axios.post(`${API_BASE_URL}/login`, formData, {
+        withCredentials: true, // BẮT BUỘC để nhận cookie từ backend
+      });
 
-    // ✅ Lưu cookie dùng cho mọi subdomain
-    Cookies.set('authToken', token, {
-      domain: '.marketo.info.vn',
-      path: '/',
-      secure: true,
-      sameSite: 'None',
-      expires: 7,
-    });
+      // Redirect sau khi login
+      const redirectTo =
+        window.location.hostname === 'localhost'
+          ? 'http://localhost:3000'
+          : 'https://marketo.info.vn';
 
-    setShowPopup(true);
-const redirectTo = window.location.hostname === 'localhost'
-  ? 'http://localhost:3000'
-  : 'https://marketo.info.vn';
-
-window.location.href = redirectTo;
-  } catch (err: any) {
-    const msg =
-      err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
-    setError(msg);
-  } finally {
-    setIsLoading(false);
-  }
-};
+      window.location.href = redirectTo;
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   useEffect(() => {
