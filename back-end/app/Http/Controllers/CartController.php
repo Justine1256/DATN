@@ -19,34 +19,42 @@ class CartController extends Controller
             ->where('is_active', true)
             ->get();
 
-        $carts->transform(function ($cart) {
-            // Tách option và value
-            $options = explode(' - ', $cart->product_option ?? '');
-            $values = explode(' - ', $cart->product_value ?? '');
+$carts->transform(function ($cart) {
+    $options = explode(' - ', $cart->product_option ?? '');
+    $values = explode(' - ', $cart->product_value ?? '');
 
-            $variant = [
-                'option1'     => $options[0] ?? null,
-                'value1'      => $values[0] ?? null,
-                'option2'     => $options[1] ?? null,
-                'value2'      => $values[1] ?? null,
-                'price'       => null,
-                'sale_price'  => null,
-            ];
+    $variant = [
+        'option1'     => $options[0] ?? null,
+        'value1'      => $values[0] ?? null,
+        'option2'     => $options[1] ?? null,
+        'value2'      => $values[1] ?? null,
+        'price'       => null,
+        'sale_price'  => null,
+    ];
 
-            // Lấy thông tin biến thể nếu có
-            $query = ProductVariant::where('product_id', $cart->product_id);
-            if (!empty($values[0])) $query->where('value1', $values[0]);
-            if (!empty($values[1])) $query->where('value2', $values[1]);
+    // ✅ Nếu có variant_id → lấy theo ID
+    if ($cart->variant_id) {
+        $matched = ProductVariant::find($cart->variant_id);
+    } else {
+        // 🔍 Nếu không có → tìm theo value
+        $query = ProductVariant::where('product_id', $cart->product_id);
+        if (!empty($values[0])) $query->where('value1', $values[0]);
+        if (!empty($values[1])) $query->where('value2', $values[1]);
+        $matched = $query->first();
+    }
 
-            $matched = $query->first();
-            if ($matched) {
-                $variant['price'] = $matched->price;
-                $variant['sale_price'] = $matched->sale_price;
-            }
-            
-            $cart->variant = $variant;
-            return $cart;
-        });
+    if ($matched) {
+        $variant['price'] = $matched->price;
+        $variant['sale_price'] = $matched->sale_price;
+    } else {
+        // ✅ Fallback: không có biến thể → dùng giá từ product gốc
+        $variant['price'] = $cart->product->price;
+        $variant['sale_price'] = $cart->product->sale_price;
+    }
+
+    $cart->variant = $variant;
+    return $cart;
+});
 
         return response()->json($carts);
     }
