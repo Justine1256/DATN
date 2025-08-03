@@ -45,20 +45,18 @@ public function login(Request $request)
     $isLocalhost = in_array($host, ['localhost', '127.0.0.1']);
     $domain = $isLocalhost ? null : '.marketo.info.vn';
 
-    $sameSite = $isLocalhost ? 'Lax' : 'None';
-
-$cookie = cookie(
-    'token',
-    $token,
-    60 * 24,
-    '/',
-    $domain,
-    !$isLocalhost,  // Secure = true nếu production
-    true,
-    false,
-    $sameSite
-);
-
+    // Set cookie HttpOnly
+    $cookie = cookie(
+        'token',
+        $token,
+        60 * 24,             // 1 ngày
+        '/',
+        $domain,
+        !$isLocalhost,       // Secure: true nếu production
+        true,                // HttpOnly
+        false,               // Raw
+        'None'               // SameSite=None
+    );
 
     return response()->json([
         'user' => $user,

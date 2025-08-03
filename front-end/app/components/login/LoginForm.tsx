@@ -30,25 +30,36 @@ export default function LoginForm() {
   setIsLoading(true);
 
   try {
-      await axios.post(`${API_BASE_URL}/login`, formData, {
-        withCredentials: true, // BẮT BUỘC để nhận cookie từ backend
-      });
+    const res = await axios.post(`${API_BASE_URL}/login`, formData);
+    const { token } = res.data;
 
-      // Redirect sau khi login
-      const redirectTo =
-        window.location.hostname === 'localhost'
-          ? 'http://localhost:3000'
-          : 'https://marketo.info.vn';
+    const domain = window.location.hostname === 'localhost' 
+  ? undefined // Không set domain ở local
+  : '.marketo.info.vn';
 
-      window.location.href = redirectTo;
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
-      setError(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+Cookies.set('authToken', token, {
+  domain, // undefined nếu local -> cookie sẽ thuộc localhost
+  path: '/',
+  secure: window.location.protocol === 'https:',
+  sameSite: 'None',
+  expires: 7,
+});
+
+
+    setShowPopup(true);
+const redirectTo = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : 'https://marketo.info.vn';
+
+window.location.href = redirectTo;
+  } catch (err: any) {
+    const msg =
+      err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+    setError(msg);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
 
   useEffect(() => {
