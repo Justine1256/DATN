@@ -40,21 +40,13 @@ class CartController extends Controller
 
             $matched = $query->first();
             if ($matched) {
-        $variant['price'] = $matched->price;
-        $variant['sale_price'] = $matched->sale_price;
-
-        // ✅ Gán giá cho product (để frontend có thể dùng fallback nếu variant lỗi)
-        $cart->product->price = $matched->price;
-        $cart->product->sale_price = $matched->sale_price;
-    } else {
-        // ✅ Fallback nếu không có variant
-        $cart->product->price = $cart->product->price;
-        $cart->product->sale_price = $cart->product->sale_price;
-    }
-
-    $cart->variant = $variant;
-    return $cart;
-});
+                $variant['price'] = $matched->price;
+                $variant['sale_price'] = $matched->sale_price;
+            }
+            
+            $cart->variant = $variant;
+            return $cart;
+        });
 
         return response()->json($carts);
     }
