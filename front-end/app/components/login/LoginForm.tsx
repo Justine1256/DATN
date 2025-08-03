@@ -30,20 +30,21 @@ export default function LoginForm() {
   setIsLoading(true);
 
   try {
-    const res = await axios.post(`${API_BASE_URL}/login`, formData);
+    const res = await axios.post(`${API_BASE_URL}/login`, formData, {withCredentials: true,});
+    
     const { token } = res.data;
 
     const domain = window.location.hostname === 'localhost' 
   ? undefined // Không set domain ở local
   : '.marketo.info.vn';
 
-Cookies.set('authToken', token, {
-  domain, // undefined nếu local -> cookie sẽ thuộc localhost
-  path: '/',
-  secure: window.location.protocol === 'https:',
-  sameSite: 'None',
-  expires: 7,
-});
+// Cookies.set('authToken', token, {
+//   domain, // undefined nếu local -> cookie sẽ thuộc localhost
+//   path: '/',
+//   secure: window.location.protocol === 'https:',
+//   sameSite: 'None',
+//   expires: 7,
+// });
 
 
     setShowPopup(true);
