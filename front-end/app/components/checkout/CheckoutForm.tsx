@@ -35,6 +35,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [disableForm, setDisableForm] = useState(false);
   const [hasUserInput, setHasUserInput] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -72,7 +73,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
           const idStr = defaultAddress.id.toString();
           setSelectedAddressId(idStr);
           setDisableForm(true);
-          onAddressSelect(Number(defaultAddress.id)); // ✅ cast to number
+          onAddressSelect(Number(defaultAddress.id));
           onAddressChange(null);
         }
       });
@@ -96,16 +97,27 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
     setSelectedProvince(null);
     setSelectedDistrict(null);
     setHasUserInput(false);
+    setPhoneError(null);
 
     if (value !== '') {
       const numericId = Number(value);
-      onAddressSelect(!isNaN(numericId) ? numericId : null); // ✅ cast safely
+      onAddressSelect(!isNaN(numericId) ? numericId : null);
       onAddressChange(null);
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
     const updated = { ...formData, [field]: value };
+
+    if (field === 'phone') {
+      const phoneRegex = /^(0|\+84)[0-9]{9}$/;
+      if (value.trim() !== '' && !phoneRegex.test(value)) {
+        setPhoneError('Số điện thoại không hợp lệ');
+      } else {
+        setPhoneError(null);
+      }
+    }
+
     setFormData(updated);
 
     const hasInput = Object.values(updated).some((val) => val.trim() !== '') || !!selectedProvince || !!selectedDistrict;
@@ -115,37 +127,29 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
       if (selectedAddressId !== '') {
         setSelectedAddressId('');
         setDisableForm(false);
-        onAddressSelect(null); // ✅ reset addressId
+        onAddressSelect(null);
       }
 
-      onAddressChange({
-        full_name: updated.firstName,
-        address: `${updated.streetAddress}${updated.apartment ? ', ' + updated.apartment : ''}`,
-        city: `${selectedDistrict?.name || ''}, ${selectedProvince?.name || ''}`,
-        phone: updated.phone,
-        email: updated.email,
-      });
+      if (!phoneError) {
+        onAddressChange({
+          full_name: updated.firstName,
+          address: `${updated.streetAddress}${updated.apartment ? ', ' + updated.apartment : ''}`,
+          city: `${selectedDistrict?.name || ''}, ${selectedProvince?.name || ''}`,
+          phone: updated.phone,
+          email: updated.email,
+        });
+      } else {
+        onAddressChange(null);
+      }
     } else {
       onAddressChange(null);
     }
   };
 
-  const handleProvinceChange = (code: number) => {
-    const province = provinces.find((p) => p.code === code) || null;
-    setSelectedProvince(province);
-    setSelectedDistrict(null);
-    setHasUserInput(true);
-  };
-
-  const handleDistrictChange = (code: number) => {
-    const district = districts.find((d) => d.code === code) || null;
-    setSelectedDistrict(district);
-    setHasUserInput(true);
-  };
-
   useEffect(() => {
     const hasInput = Object.values(formData).some((val) => val.trim() !== '') || selectedProvince || selectedDistrict;
-    if (hasInput) {
+
+    if (hasInput && !phoneError) {
       onAddressChange({
         full_name: formData.firstName,
         address: `${formData.streetAddress}${formData.apartment ? ', ' + formData.apartment : ''}`,
@@ -156,7 +160,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
     } else {
       onAddressChange(null);
     }
-  }, [formData, selectedProvince, selectedDistrict]);
+  }, [formData, selectedProvince, selectedDistrict, phoneError]);
 
   return (
     <div className="text-sm">
@@ -206,13 +210,17 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
               if (hasInput) {
                 setSelectedAddressId('');
                 setDisableForm(false);
-                onAddressChange({
-                  full_name: formData.firstName,
-                  address: `${formData.streetAddress}${formData.apartment ? ', ' + formData.apartment : ''}`,
-                  city: `${selectedDistrict?.name || ''}, ${found?.name || ''}`,
-                  phone: formData.phone,
-                  email: formData.email,
-                });
+                if (!phoneError) {
+                  onAddressChange({
+                    full_name: formData.firstName,
+                    address: `${formData.streetAddress}${formData.apartment ? ', ' + formData.apartment : ''}`,
+                    city: `${selectedDistrict?.name || ''}, ${found?.name || ''}`,
+                    phone: formData.phone,
+                    email: formData.email,
+                  });
+                } else {
+                  onAddressChange(null);
+                }
               } else {
                 onAddressChange(null);
               }
@@ -239,11 +247,9 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
           />
         </div>
 
-        <InputField label="Số điện thoại" field="phone" required value={formData.phone} onChange={handleInputChange} disabled={disableForm} />
+        <InputField label="Số điện thoại" field="phone" required value={formData.phone} onChange={handleInputChange} disabled={disableForm} error={phoneError} />
         <InputField label="Email" field="email" required value={formData.email} onChange={handleInputChange} disabled={disableForm} />
       </div>
-
-     
     </div>
   );
 }
@@ -256,6 +262,7 @@ function InputField({
   onChange,
   disabled,
   required = false,
+  error,
 }: {
   label: string;
   field: string;
@@ -263,6 +270,7 @@ function InputField({
   onChange: (field: string, value: string) => void;
   disabled: boolean;
   required?: boolean;
+  error?: string | null;
 }) {
   return (
     <div>
@@ -275,8 +283,9 @@ function InputField({
         value={value}
         onChange={(e) => onChange(field, e.target.value)}
         disabled={disabled}
-        className="w-full border rounded-md bg-gray-100 px-3 py-2 outline-none disabled:opacity-50"
+        className={`w-full border rounded-md bg-gray-100 px-3 py-2 outline-none disabled:opacity-50 ${error ? 'border-red-500' : ''}`}
       />
+      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>
   );
 }
