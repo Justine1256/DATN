@@ -40,10 +40,16 @@ class UserController extends Controller
             return response()->json(['error' => 'Không thể tạo token.'], 500);
         }
 
-        return response()->json([
-            'user' => $user,
-            'token' => $token,
-        ], 200);
+        return response()
+    ->json([
+        'user' => $user,
+        'token' => $token,
+    ], 200)
+    ->withCookie(
+        cookie('token', $token, 60 * 24, '/', '.marketo.info.vn', true, true, false, 'None')
+
+    );
+
     }
 
     public function index(){

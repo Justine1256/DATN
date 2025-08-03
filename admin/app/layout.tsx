@@ -6,9 +6,12 @@ import "./globals.css";
 import Header from "./components/common/Header";
 import ShopSidebar from "./components/common/ShopSidebar";
 import ModernAdminSidebar from "./components/common/Adminsiderbar";
-
+import Head from 'next/head';
 import { AuthProvider, useAuth } from "./AuthContext";
+import axios from 'axios';
 
+axios.defaults.baseURL = 'https://marketo.info.vn';
+axios.defaults.withCredentials = true;
 const roboto = Roboto({
   weight: ["400", "500", "700"],
   subsets: ["latin"],
@@ -18,17 +21,17 @@ const roboto = Roboto({
 // Giao diện nội dung, phân role & sidebar
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isAuthReady } = useAuth();
 
   const isNotFound = pathname === "/404" || pathname.includes("not-found");
 
-  // Trang lỗi → không render layout
   if (isNotFound) return <div>{children}</div>;
 
-  // Chưa load user → tránh nhấp nháy layout
-  if (!user) return null;
+  if (!isAuthReady) return <div className="p-4">Đang kiểm tra phiên đăng nhập...</div>;
 
-  // Xác định layout sidebar
+  // Không có user → hiển thị giao diện login hoặc thông báo
+  if (!user) return <div className="p-4">Bạn chưa đăng nhập.</div>;
+
   const Sidebar = user.role === "admin" ? ModernAdminSidebar : ShopSidebar;
 
   return (
@@ -44,10 +47,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
+
 // Gốc toàn bộ app
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <Head><title>Quản trị</title></Head>
       <body className={`bg-[#f9fafb] text-gray-900 font-sans antialiased ${roboto.variable}`}>
         <AuthProvider>
           <LayoutContent>{children}</LayoutContent>

@@ -40,11 +40,9 @@ export default function ModernAdminHeader() {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        console.log("Kết quả API /user:", res.data);
         setUser(res.data);
       })
       .catch((err) => {
-        console.error("Lỗi gọi API /user:", err);
         Cookies.remove("authToken");
         setUser(null);
       });

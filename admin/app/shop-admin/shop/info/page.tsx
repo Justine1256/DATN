@@ -73,7 +73,6 @@ const ShopCard = () => {
                 setShop(data.shop)
             } catch (error) {
                 setError("Có lỗi xảy ra khi tải dữ liệu cửa hàng.")
-                console.error("Lỗi:", error)
             } finally {
                 setIsLoading(false)
             }

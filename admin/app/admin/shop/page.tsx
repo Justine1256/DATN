@@ -171,7 +171,6 @@ export default function ShopManagementPage() {
         message.error(result.message || "Không thể tải dữ liệu shop")
       }
     } catch (error) {
-      console.error("Error fetching shops:", error)
       if (
         error instanceof Error &&
         error.message !== "No authentication token" &&
@@ -247,7 +246,6 @@ export default function ShopManagementPage() {
             message.error(result.message || `Lỗi khi ${actionText} shop`)
           }
         } catch (error) {
-          console.error(`Error ${actionText} shop:`, error)
           if (
             error instanceof Error &&
             error.message !== "No authentication token" &&
@@ -281,7 +279,6 @@ export default function ShopManagementPage() {
             message.error(result.message || "Lỗi khi reset mật khẩu")
           }
         } catch (error) {
-          console.error("Error resetting password:", error)
           if (
             error instanceof Error &&
             error.message !== "No authentication token" &&
@@ -324,7 +321,6 @@ export default function ShopManagementPage() {
             message.error(result.message || "Lỗi khi xóa shop")
           }
         } catch (error) {
-          console.error("Error deleting shop:", error)
           if (
             error instanceof Error &&
             error.message !== "No authentication token" &&
@@ -369,7 +365,6 @@ export default function ShopManagementPage() {
             message.error(result.message || "Lỗi khi phê duyệt shop")
           }
         } catch (error) {
-          console.error("Error approving shop:", error)
           if (
             error instanceof Error &&
             error.message !== "No authentication token" &&
