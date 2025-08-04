@@ -345,8 +345,6 @@ const ShopPage = () => {
     return (
         <div className="max-w-[1200px] mx-auto px-4 pb-10 text-black">
             <ShopCard shop={shop} />
-
-            {products.length > 0 ? (
                 <div className="mt-8 flex flex-col lg:flex-row gap-6">
                     <div className="w-full lg:w-1/4 flex flex-col gap-8">
                         {/* Sidebar bộ lọc */}
@@ -657,11 +655,6 @@ const ShopPage = () => {
                         )}
                     </div>
                 </div>
-            ) : (
-                <div className="text-center mt-10 text-gray-500">
-                    Cửa hàng chưa có sản phẩm nào.
-                </div>
-            )}
         </div>
     );
 }
