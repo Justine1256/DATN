@@ -211,7 +211,8 @@ export default function ProductCard({
       style={{ minHeight: '250px' }}
     >
       {showPopup && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
+        <div className="fixed top-[140px] right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
+
           {popupMessage}
         </div>
       )}
@@ -226,7 +227,12 @@ export default function ProductCard({
         onClick={handleLike}
         className="absolute top-2 right-2 text-xl z-20 pointer-events-auto"
       >
-        <AiOutlineHeart className="text-red-500 transition" />
+        {liked ? (
+          <AiFillHeart className="text-red-500 transition" />
+        ) : (
+          <AiOutlineHeart className="text-red-500 transition" />
+        )}
+
       </button>
 
 
