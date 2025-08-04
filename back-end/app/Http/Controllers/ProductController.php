@@ -279,7 +279,7 @@ public function show($shopslug, $productslug, Request $request)
             return response()->json(['error' => 'Shop không tồn tại.'], 404);
         }
 
-        $perPage = $request->query('per_page', 5);
+        $perPage = $request->query('per_page', 15);
 
         $products =  Product::where('shop_id', $shop->id)
             ->withCount(['approvedReviews as review_count'])
