@@ -110,7 +110,8 @@ public function register(Request $request)
 
     $otp = rand(100000, 999999);
 
-    Cache::put("otp_register:{$request->email}", [
+    $cacheKey = "otp_register:{$request->email}";
+    $cacheData = [
         'otp' => (string) $otp,
         'attempts' => 0,
         'data' => [
@@ -120,14 +121,22 @@ public function register(Request $request)
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
         ]
-    ], now()->addMinutes(5));
+    ];
 
+    // Ghi cache
+    Cache::put($cacheKey, $cacheData, now()->addMinutes(5));
+
+    // Ép cache "warm-up"
+    Cache::get($cacheKey);
+
+    // Gửi mail sau khi chắc chắn cache đã tồn tại
     Mail::raw("Mã OTP của bạn là: $otp", function ($message) use ($request) {
         $message->to($request->email)->subject('Xác minh OTP');
     });
 
     return response()->json(['message' => 'Mã OTP đã được gửi đến email.']);
 }
+
 
 public function verifyOtp(Request $request)
 {
