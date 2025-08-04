@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import useSWR from 'swr';
 import ShopCard from '@/app/components/stores/Shopcard';
 import ProductCardCate from '@/app/components/product/ProductCardCate';
 import { API_BASE_URL } from "@/utils/api";
@@ -10,12 +11,12 @@ export interface Product {
     name: string;
     image: string[];
     slug: string;
-    price: string | number;  // API returns string like "200000.00"
+    price: string | number;
     oldPrice: number;
     rating: string;
-    rating_avg?: string | number;  // API returns string like "5.0000"
+    rating_avg?: string | number;
     discount: number;
-    sale_price?: string | number | null;  // API can return string, number, or null
+    sale_price?: string | number | null;
     shop_slug?: string;
     shop_id?: number;
     category_id?: number;
@@ -42,7 +43,7 @@ interface Shop {
     description: string;
     logo: string;
     phone: string;
-    rating: string; // <-- sửa từ string | null thành string
+    rating: string;
     total_sales: number;
     created_at: string;
     status: 'activated' | 'pending' | 'suspended';
@@ -51,21 +52,23 @@ interface Shop {
     followers_count: number;
 }
 
+// SWR fetcher function
+const fetcher = async (url: string) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error('Failed to fetch data');
+    }
+    return response.json();
+};
+
 
 const ShopPage = () => {
-    const [shop, setShop] = useState<Shop | null>(null);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [products, setProducts] = useState<Product[]>([]);
-    const [initialProducts, setInitialProducts] = useState<Product[]>([]);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [showAllCategories, setShowAllCategories] = useState(false);
     const [slug, setSlug] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const [showAllCategories, setShowAllCategories] = useState(false);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 15;
 
     // Price filter states
     const [tempStartPrice, setTempStartPrice] = useState<number>(0);
@@ -76,7 +79,6 @@ const ShopPage = () => {
     // Sorting states
     const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
     const [selectedPriceSort, setSelectedPriceSort] = useState<string | null>(null);
-    const [selectedDiscountSort, setSelectedDiscountSort] = useState<string | null>(null);
     const [selectedNameSort, setSelectedNameSort] = useState<string | null>(null);
 
     useEffect(() => {
@@ -84,185 +86,174 @@ const ShopPage = () => {
         setSlug(pathSlug ?? null);
     }, []);
 
-    const fetchData = useCallback(async () => {
-        if (!slug) {
-            setError('Không tìm thấy slug cửa hàng trên URL.');
-            setLoading(false);
-            return;
+    // Build query parameters for API calls including filters and sorting
+    const buildQueryParams = (page: number) => {
+        const params = new URLSearchParams();
+        params.append('page', page.toString());
+
+        // Add price filters
+        if (appliedStartPrice > 0) {
+            params.append('min_price', appliedStartPrice.toString());
+        }
+        if (appliedEndPrice < 50000000) {
+            params.append('max_price', appliedEndPrice.toString());
         }
 
-        setLoading(true);
-        setError(null);
-
-        try {
-            // Fetch shop info and categories first
-            const [shopRes, categoryRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/shop/${slug}`),
-                fetch(`${API_BASE_URL}/shop/${slug}/categories`)
-            ]);
-
-            const shopData = await shopRes.json();
-            const categoryData = await categoryRes.json();
-
-            if (!shopData?.shop) {
-                setError('Không tìm thấy dữ liệu cửa hàng.');
-                setLoading(false);
-                return;
-            }
-
-            setShop(shopData.shop);
-            setCategories(categoryData.categories || []);
-
-            // Fetch all products by getting all pages
-            let allProducts: Product[] = [];
-            let currentPage = 1;
-            let hasMorePages = true;
-
-            while (hasMorePages) {
-                const productRes = await fetch(`${API_BASE_URL}/shop/${slug}/products?page=${currentPage}`);
-                const productData = await productRes.json();
-
-                // Handle paginated product data
-                let pageProducts: Product[] = [];
-                if (Array.isArray(productData.products)) {
-                    pageProducts = productData.products;
-                } else if (Array.isArray(productData.products?.data)) {
-                    pageProducts = productData.products.data;
-                } else if (productData.data && Array.isArray(productData.data)) {
-                    pageProducts = productData.data;
-                }
-
-                allProducts = [...allProducts, ...pageProducts];
-
-                // Check if there are more pages
-                hasMorePages = productData.next_page_url !== null || 
-                              (productData.current_page && productData.last_page && 
-                               productData.current_page < productData.last_page);
-                
-                currentPage++;
-                
-                // Safety check to prevent infinite loop
-                if (currentPage > 50) break;
-            }
-
-            // Remove duplicates based on product ID
-            const uniqueProducts = allProducts.filter((product, index, self) => 
-                index === self.findIndex(p => p.id === product.id)
-            );
-
-            // Process products (without sorting/filtering here)
-            const productsWithTs = uniqueProducts.map(p => ({
-                ...p,
-                createdAt: p.updated_at ? new Date(p.updated_at).getTime() : 0,
-                rating: p.rating.toString(),
-                oldPrice: p.oldPrice ?? 0,
-            }));
-
-            setInitialProducts(productsWithTs);
-        } catch (err) {
-            setError('Đã xảy ra lỗi khi tải dữ liệu.');
-            setShop(null);
-            setCategories([]);
-            setProducts([]);
-            setInitialProducts([]);
-        } finally {
-            setLoading(false);
+        // Add sorting parameter
+        const sortParam = getSortingParam();
+        if (sortParam) {
+            params.append('sorting', sortParam);
         }
-    }, [slug]);
 
-    useEffect(() => {
-        if (slug) fetchData();
-    }, [fetchData, slug]);
+        return params.toString();
+    };
 
-    // Apply filters and sorting to products (client-side only)
-    useEffect(() => {
-        if (initialProducts.length === 0) return;
+    // Convert UI sorting states to API sorting parameter
+    const getSortingParam = () => {
+        if (selectedNameSort === "asc") {
+            return "name_asc";
+        } else if (selectedNameSort === "desc") {
+            return "name_desc";
+        }
 
-        let filteredProducts = [...initialProducts];
+        // Price sort
+        if (selectedPriceSort) {
+            return selectedPriceSort === "asc" ? "price_asc" : "price_desc";
+        }
 
-        // Apply category filter first
+        // Basic sorts
+        if (selectedSort === "Mới Nhất") {
+            return "latest";
+        } else if (selectedSort === "Bán Chạy") {
+            return "sold_desc";
+        } else if (selectedSort === "Phổ Biến") {
+            return "rating_desc";
+        }
+
+        return "latest";
+    };
+
+    // Build the products URL using the new API endpoint
+    const getProductsUrl = () => {
+        const queryParams = buildQueryParams(currentPage);
         if (selectedCategory) {
-            filteredProducts = filteredProducts.filter((product: Product) => {
-                // Method 1: Check if product has category object with matching slug
-                if (product.category && typeof product.category === 'object' && 'slug' in product.category) {
-                    return product.category.slug === selectedCategory;
-                }
-                
-                // Method 2: Find category by slug and compare with product.category_id
-                const category = categories.find(cat => cat.slug === selectedCategory);
-                if (category && product.category_id) {
-                    return product.category_id === category.id;
-                }
-                
-                return false;
-            });
+            // Use shop products-by-category endpoint when category is selected
+            return `${API_BASE_URL}/shop/${slug}/products-by-category/${selectedCategory}?${queryParams}`;
+        } else {
+            // Use shop products endpoint when no category is selected
+            return `${API_BASE_URL}/shop/${slug}/products?${queryParams}`;
         }
+    };
 
-        // Apply price filter
-        filteredProducts = filteredProducts.filter((product: Product) => {
-            const priceToFilter = Number(product.sale_price ?? product.price) || 0;
-            return priceToFilter >= appliedStartPrice && priceToFilter <= appliedEndPrice;
-        });
-
-        // Apply sorting with priority system
-        filteredProducts.sort((a: Product, b: Product) => {
-            // Priority 1: Name sort
-            if (selectedNameSort) {
-                const nameA = a.name || "";
-                const nameB = b.name || "";
-                return selectedNameSort === "asc"
-                    ? nameA.localeCompare(nameB)
-                    : nameB.localeCompare(nameA);
-            }
-
-            // Priority 2: Price sort
-            if (selectedPriceSort) {
-                const priceA = Number(a.sale_price ?? a.price) || 0;
-                const priceB = Number(b.sale_price ?? b.price) || 0;
-                return selectedPriceSort === "asc" ? priceA - priceB : priceB - priceA;
-            }
-
-            // Priority 3: Discount sort
-            if (selectedDiscountSort) {
-                const calculateDiscount = (product: Product) => {
-                    const originalPrice = Number(product.price) || 0;
-                    const salePrice = Number(product.sale_price) || originalPrice;
-                    return originalPrice > 0 && salePrice < originalPrice
-                        ? ((originalPrice - salePrice) / originalPrice) * 100
-                        : 0;
-                };
-
-                const discountA = calculateDiscount(a);
-                const discountB = calculateDiscount(b);
-                return selectedDiscountSort === "asc" ? discountA - discountB : discountB - discountA;
-            }
-
-            // Priority 4: Basic sorts (fallback)
-            if (selectedSort === "Mới Nhất") {
-                return (b.createdAt || 0) - (a.createdAt || 0);
-            } else if (selectedSort === "Bán Chạy") {
-                return (b.sold || 0) - (a.sold || 0);
-            } else if (selectedSort === "Phổ Biến") {
-                return Number(b.rating_avg || b.rating || 0) - Number(a.rating_avg || a.rating || 0);
-            }
-
-            return a.id - b.id;
-        });
-
-        setProducts(filteredProducts);
-        setCurrentPage(1); // Reset to first page when filters change
-    }, [initialProducts, selectedCategory, categories, appliedStartPrice, appliedEndPrice, selectedSort, selectedPriceSort, selectedDiscountSort, selectedNameSort]);
-
-    // Pagination logic
-    const totalPages = Math.ceil(products.length / itemsPerPage);
-    const paginatedProducts = products.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
+    // SWR hooks for data fetching
+    const { data: shopData, error: shopError } = useSWR(
+        slug ? `${API_BASE_URL}/shop/${slug}` : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            dedupingInterval: 300000,
+        }
     );
 
+    const { data: categoryData, error: categoryError } = useSWR(
+        slug ? `${API_BASE_URL}/shop/${slug}/categories` : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            dedupingInterval: 300000,
+        }
+    );
+
+    const productQueryParams = buildQueryParams(currentPage);
+    const { data: productData, error: productError, isLoading: isLoadingProducts } = useSWR(
+        slug ? getProductsUrl() : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            dedupingInterval: 30000,
+        }
+    );
+
+    // Prefetch next page
+    const { data: nextPageData } = useSWR(
+        slug && productData?.products?.next_page_url ?
+            (selectedCategory
+                ? `${API_BASE_URL}/shop/${slug}/products-by-category/${selectedCategory}?${buildQueryParams(currentPage + 1)}`
+                : `${API_BASE_URL}/shop/${slug}/products?${buildQueryParams(currentPage + 1)}`
+            ) : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            dedupingInterval: 60000,
+        }
+    );
+
+    // Prefetch previous page
+    const { data: prevPageData } = useSWR(
+        slug && currentPage > 1 ?
+            (selectedCategory
+                ? `${API_BASE_URL}/shop/${slug}/products-by-category/${selectedCategory}?${buildQueryParams(currentPage - 1)}`
+                : `${API_BASE_URL}/shop/${slug}/products?${buildQueryParams(currentPage - 1)}`
+            ) : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            dedupingInterval: 60000,
+        }
+    );
+
+    // Extract data from SWR responses
+    const shop = shopData?.shop || null;
+    const categories = categoryData?.categories || [];
+
+    // The API returns products nested under productData.products.data
+    const products = productData?.products?.data || [];
+    const pagination = {
+        current_page: productData?.products?.current_page || 1,
+        last_page: productData?.products?.last_page || 1,
+        total: productData?.products?.total || 0,
+        per_page: productData?.products?.per_page || 15,
+        next_page_url: productData?.products?.next_page_url || null,
+        prev_page_url: productData?.products?.prev_page_url || null,
+    };
+
+    // Loading and error states
+    const isLoading = !slug || !shopData || !categoryData || isLoadingProducts;
+    const error = shopError || categoryError || productError;
+
+    // Process products with TypeScript-safe operations
+    const processedProducts = products.map((p: Product) => ({
+        ...p,
+        createdAt: p.updated_at ? new Date(p.updated_at).getTime() : 0,
+        rating: p.rating.toString(),
+        oldPrice: p.oldPrice ?? 0,
+    }));
+
+    // Apply filters and sorting to current page products
+    const filteredAndSortedProducts = (() => {
+        if (processedProducts.length === 0) return [];
+        let filteredProducts = [...processedProducts];
+        return filteredProducts;
+    })();
+
+    // Scroll to top when page changes
+    const scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    };
+
+    // Pagination logic - now working with server-side pagination
     const handlePageChange = (page: number) => {
-        if (page >= 1 && page <= totalPages) {
+        if (page >= 1 && page <= pagination.last_page) {
             setCurrentPage(page);
+            scrollToTop();
         }
     };
 
@@ -270,7 +261,6 @@ const ShopPage = () => {
     const handleCategorySelect = (categorySlug: string | null) => {
         setSelectedCategory(categorySlug);
         setCurrentPage(1);
-        // No need to fetch API - filtering is done client-side
     };
 
     const handleApplyFilters = () => {
@@ -283,46 +273,89 @@ const ShopPage = () => {
         // Reset all states
         setSelectedSort("Phổ Biến");
         setSelectedPriceSort(null);
-        setSelectedDiscountSort(null);
         setSelectedNameSort(null);
         setSelectedCategory(null);
-        
+
         // Reset price filter states
         setTempStartPrice(0);
         setTempEndPrice(50000000);
         setAppliedStartPrice(0);
         setAppliedEndPrice(50000000);
-        
+
         setCurrentPage(1);
-        // No need to fetch API - filtering will be applied automatically via useEffect
+    };
+
+    // Handlers for sorting that trigger immediate refetch
+    const handleSortChange = (sortType: string) => {
+        setSelectedSort(sortType);
+        setSelectedPriceSort(null);
+        setSelectedNameSort(null);
+        setCurrentPage(1);
+    };
+
+    const handlePriceSortChange = (sortDirection: string | null) => {
+        setSelectedPriceSort(sortDirection);
+        if (sortDirection) {
+            setSelectedSort("Phổ Biến");
+            setSelectedNameSort(null);
+        }
+        setCurrentPage(1);
+    };
+
+    const handleDiscountSortChange = (sortDirection: string | null) => {
+        if (sortDirection) {
+            setSelectedSort("Phổ Biến");
+            setSelectedPriceSort(null);
+            setSelectedNameSort(null);
+        }
+        setCurrentPage(1);
+    };
+
+    const handleNameSortChange = (sortDirection: string | null) => {
+        setSelectedNameSort(sortDirection);
+        if (sortDirection) {
+            setSelectedSort("Phổ Biến");
+            setSelectedPriceSort(null);
+        }
+        setCurrentPage(1);
+    };
+
+    const handleResetSort = () => {
+        setSelectedSort("Phổ Biến");
+        setSelectedPriceSort(null);
+        setSelectedNameSort(null);
+        setCurrentPage(1);
     };
 
     const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat("vi-VN", { 
-            style: "currency", 
-            currency: "VND" 
+        return new Intl.NumberFormat("vi-VN", {
+            style: "currency",
+            currency: "VND"
         }).format(value);
     };
 
-    // Loading state
-    if (loading) {
-        return (
-            <div className="max-w-[1200px] mx-auto px-4 pb-10 text-black">
-                <div className="animate-pulse space-y-6">
-                    <div className="h-[150px] bg-gray-200 rounded-xl"></div>
-                    <div className="grid grid-cols-12 gap-6">
-                        {Array.from({ length: 9 }).map((_, idx) => (
-                            <div key={idx} className="col-span-12 sm:col-span-6 md:col-span-4 space-y-3">
-                                <div className="bg-gray-200 h-[200px] w-full rounded-xl"></div>
-                                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="h-[50px] bg-gray-100 rounded w-full mt-6"></div>
+    // Loading skeleton component
+    const LoadingSkeleton = () => (
+        <div className="max-w-[1200px] mx-auto px-4 pb-10 text-black">
+            <div className="animate-pulse space-y-6">
+                <div className="h-[150px] bg-gray-200 rounded-xl"></div>
+                <div className="grid grid-cols-12 gap-6">
+                    {Array.from({ length: 15 }).map((_, idx) => (
+                        <div key={idx} className="col-span-12 sm:col-span-6 md:col-span-4 space-y-3">
+                            <div className="bg-gray-200 h-[200px] w-full rounded-xl"></div>
+                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                    ))}
                 </div>
+                <div className="h-[50px] bg-gray-100 rounded w-full mt-6"></div>
             </div>
-        );
+        </div>
+    );
+
+    // Loading state
+    if (isLoading) {
+        return <LoadingSkeleton />;
     }
 
     // Error states
@@ -345,84 +378,83 @@ const ShopPage = () => {
     return (
         <div className="max-w-[1200px] mx-auto px-4 pb-10 text-black">
             <ShopCard shop={shop} />
-                <div className="mt-8 flex flex-col lg:flex-row gap-6">
-                    <div className="w-full lg:w-1/4 flex flex-col gap-8">
-                        {/* Sidebar bộ lọc */}
-                        <div className="pt-4 flex flex-col space-y-4">
-                            <h3 className="text-lg font-semibold pb-4 border-b">Bộ lọc</h3>
-                            <div className="flex flex-col space-y-4">
-                                <h3 className="font-semibold">Danh mục</h3>
-                                <div>
-                                    <button
-                                        onClick={() => handleCategorySelect(null)}
-                                        className={`w-full px-3 py-2 transition-colors text-left
+            <div className="mt-8 flex flex-col lg:flex-row gap-6">
+                <div className="w-full lg:w-1/4 flex flex-col gap-8">
+                    {/* Sidebar bộ lọc */}
+                    <div className="pt-4 flex flex-col space-y-4">
+                        <h3 className="text-lg font-semibold pb-4 border-b">Bộ lọc</h3>
+                        <div className="flex flex-col space-y-4">
+                            <h3 className="font-semibold">Danh mục</h3>
+                            <div>
+                                <button
+                                    onClick={() => handleCategorySelect(null)}
+                                    className={`w-full px-3 py-2 transition-colors text-left
                                         ${!selectedCategory ? "text-brand font-semibold" : "hover:text-brand"}`}>
-                                        Tất Cả Sản Phẩm
-                                    </button>
-                                    {(showAllCategories ? categories : categories.slice(0, 6)).map(cat => (
-                                        <button
-                                            key={cat.id}
-                                            onClick={() => handleCategorySelect(cat.slug)}
-                                        className={`w-full px-3 py-2 transition-colors text-left ${
-                                            cat.slug === selectedCategory 
-                                                ? "text-brand font-semibold" 
+                                    Tất Cả Sản Phẩm
+                                </button>
+                                {(showAllCategories ? categories : categories.slice(0, 6)).map((cat: Category) => (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => handleCategorySelect(cat.slug)}
+                                        className={`w-full px-3 py-2 transition-colors text-left ${cat.slug === selectedCategory
+                                                ? "text-brand font-semibold"
                                                 : "hover:text-brand"
-                                        }`}
+                                            }`}
                                     >
                                         {cat.name}
                                     </button>
-                                    ))}
+                                ))}
 
-                                    {categories.length > 6 && (
-                                        <button
-                                            onClick={() => setShowAllCategories(!showAllCategories)}
-                                            className="mt-2 text-sm text-[#db4444] hover:underline">
-                                            {showAllCategories ? 'Ẩn bớt' : 'Xem thêm'}
-                                        </button>
-                                    )}
-                                </div>
+                                {categories.length > 6 && (
+                                    <button
+                                        onClick={() => setShowAllCategories(!showAllCategories)}
+                                        className="mt-2 text-sm text-[#db4444] hover:underline">
+                                        {showAllCategories ? 'Ẩn bớt' : 'Xem thêm'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Lọc theo giá */}
+                        <div className="flex flex-col space-y-4">
+
+                            <div className="flex gap-2">
+                                <h4 className="font-semibold">Giá</h4>
+                                <p>(VNĐ)</p>
                             </div>
 
-                            {/* Lọc theo giá */}
-                            <div className="flex flex-col space-y-4">
+                            {/* Hiển thị khoảng giá */}
+                            <div className="flex justify-between text-sm text-gray-700">
+                                <span>{formatCurrency(tempStartPrice)}</span>
+                                <span>{formatCurrency(tempEndPrice)}</span>
+                            </div>
 
-                                <div className="flex gap-2">
-                                    <h4 className="font-semibold">Giá</h4>
-                                    <p>(VNĐ)</p>
-                                </div>
+                            {/* Thanh lọc 2 đầu */}
+                            <div className="relative h-8 mt-2 mb-4">
+                                {/* Thanh nền */}
+                                <div className="absolute top-1/2 left-0 right-0 h-2 bg-gray-200 rounded-full transform -translate-y-1/2" />
 
-                                {/* Hiển thị khoảng giá */}
-                                <div className="flex justify-between text-sm text-gray-700">
-                                    <span>{formatCurrency(tempStartPrice)}</span>
-                                    <span>{formatCurrency(tempEndPrice)}</span>
-                                </div>
+                                {/* Thanh vùng chọn đỏ */}
+                                <div
+                                    className="absolute top-1/2 h-2 bg-[#DB4444] rounded-full transform -translate-y-1/2"
+                                    style={{
+                                        left: `${(tempStartPrice / 50000000) * 100}%`,
+                                        right: `${100 - (tempEndPrice / 50000000) * 100}%`,
+                                    }}
+                                />
 
-                                {/* Thanh lọc 2 đầu */}
-                                <div className="relative h-8 mt-2 mb-4">
-                                    {/* Thanh nền */}
-                                    <div className="absolute top-1/2 left-0 right-0 h-2 bg-gray-200 rounded-full transform -translate-y-1/2" />
-
-                                    {/* Thanh vùng chọn đỏ */}
-                                    <div
-                                        className="absolute top-1/2 h-2 bg-[#DB4444] rounded-full transform -translate-y-1/2"
-                                        style={{
-                                            left: `${(tempStartPrice / 50000000) * 100}%`,
-                                            right: `${100 - (tempEndPrice / 50000000) * 100}%`,
-                                        }}
-                                    />
-
-                                    {/* Slider trái */}
-                                    <input
-                                        type="range"
-                                        min={0}
-                                        max={50000000}
-                                        step={100000}
-                                        value={tempStartPrice}
-                                        onChange={(e) => {
-                                            const newStart = Number(e.target.value);
-                                            if (newStart <= tempEndPrice) setTempStartPrice(newStart);
-                                        }}
-                                        className="absolute w-full h-8 appearance-none bg-transparent pointer-events-none
+                                {/* Slider trái */}
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={50000000}
+                                    step={100000}
+                                    value={tempStartPrice}
+                                    onChange={(e) => {
+                                        const newStart = Number(e.target.value);
+                                        if (newStart <= tempEndPrice) setTempStartPrice(newStart);
+                                    }}
+                                    className="absolute w-full h-8 appearance-none bg-transparent pointer-events-none
                                         [&::-webkit-slider-thumb]:pointer-events-auto
                                         [&::-webkit-slider-thumb]:appearance-none
                                         [&::-webkit-slider-thumb]:h-5
@@ -434,22 +466,22 @@ const ShopPage = () => {
                                         [&::-webkit-slider-thumb]:shadow
                                         [&::-webkit-slider-thumb]:hover:scale-110
                                         transition-transform duration-200"
-                                    />
+                                />
 
-                                    {/* Slider phải */}
-                                    <input
-                                        type="range"
-                                        min={0}
-                                        max={50000000}
-                                        step={100000}
-                                        value={tempEndPrice}
-                                        onChange={(e) => {
-                                            const newEnd = Number(e.target.value);
-                                            if (newEnd >= tempStartPrice) {
-                                                setTempEndPrice(newEnd);
-                                            }
-                                        }}
-                                        className="absolute w-full h-8 appearance-none bg-transparent pointer-events-none
+                                {/* Slider phải */}
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={50000000}
+                                    step={100000}
+                                    value={tempEndPrice}
+                                    onChange={(e) => {
+                                        const newEnd = Number(e.target.value);
+                                        if (newEnd >= tempStartPrice) {
+                                            setTempEndPrice(newEnd);
+                                        }
+                                    }}
+                                    className="absolute w-full h-8 appearance-none bg-transparent pointer-events-none
                                         [&::-webkit-slider-thumb]:pointer-events-auto
                                         [&::-webkit-slider-thumb]:appearance-none
                                         [&::-webkit-slider-thumb]:h-5
@@ -461,200 +493,171 @@ const ShopPage = () => {
                                         [&::-webkit-slider-thumb]:shadow
                                         [&::-webkit-slider-thumb]:hover:scale-110
                                         transition-transform duration-200"
-                                    />
-                                </div>
+                                />
+                            </div>
 
-                                <div className="flex gap-2 mt-2">
-                                    <button
-                                        onClick={handleApplyFilters}
-                                        className="w-full bg-brand text-white py-1.5 rounded text-sm hover:opacity-90"
-                                    >
-                                        Áp dụng
-                                    </button>
-                                    <button
-                                        onClick={handleResetFilters}
-                                        className="w-full text-gray-600 border py-1.5 rounded text-sm hover:text-black"
-                                    >
-                                        Đặt lại
-                                    </button>
-                                </div>
+                            <div className="flex gap-2 mt-2">
+                                <button
+                                    onClick={handleApplyFilters}
+                                    className="w-full bg-brand text-white py-1.5 rounded text-sm hover:opacity-90"
+                                >
+                                    Áp dụng
+                                </button>
+                                <button
+                                    onClick={handleResetFilters}
+                                    className="w-full text-gray-600 border py-1.5 rounded text-sm hover:text-black"
+                                >
+                                    Đặt lại
+                                </button>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div className="flex-1">
-                        {error ? (
-                            <p className="text-red-500">{error}</p>
-                        ) : products.length === 0 && !loading ? (
-                            <p className="text-gray-500">Không có sản phẩm nào.</p>
-                        ) : (
-                            <div>
-                                {/* Sắp xếp sản phẩm */}
-                                <div className="flex mb-5 gap-2 items-center">
-                                    <span className="w-full">Sắp xếp theo:</span>
-                                    <select
-                                        className="border w-full px-3 py-2 rounded cursor-pointer"
-                                        value={selectedSort}
-                                        onChange={e => {
-                                            setSelectedSort(e.target.value);
-                                            setSelectedPriceSort(null);
-                                            setSelectedDiscountSort(null);
-                                            setSelectedNameSort(null);
-                                        }}>
-                                        <option value="Phổ Biến">Phổ Biến</option>
-                                        <option value="Mới Nhất">Mới Nhất</option>
-                                        <option value="Bán Chạy">Bán Chạy</option>
-                                    </select>
+                <div className="flex-1">
+                    {error ? (
+                        <p className="text-red-500">{error}</p>
+                    ) : products.length === 0 && !isLoading ? (
+                        <p className="text-gray-500">Không có sản phẩm nào.</p>
+                    ) : (
+                        <div>
+                            {/* Sắp xếp sản phẩm */}
+                            <div className="flex mb-5 gap-2 items-center">
+                                <span className="w-full">Sắp xếp theo:</span>
+                                <select
+                                    className="border w-full px-3 py-2 rounded cursor-pointer"
+                                    value={selectedSort}
+                                    onChange={e => handleSortChange(e.target.value)}>
+                                    <option value="Phổ Biến">Phổ Biến</option>
+                                    <option value="Mới Nhất">Mới Nhất</option>
+                                    <option value="Bán Chạy">Bán Chạy</option>
+                                </select>
 
-                                    {/* Sắp xếp giá đã giảm */}
-                                    <select
-                                        className="border w-full px-3 py-2 rounded cursor-pointer"
-                                        value={selectedPriceSort || ""}
-                                        onChange={e => {
-                                            setSelectedPriceSort(e.target.value || null);
-                                            if (e.target.value) {
-                                                setSelectedDiscountSort(null);
-                                                setSelectedNameSort(null);
-                                            }
-                                        }}
-                                    >
-                                        <option value="">Giá</option>
-                                        <option value="asc">Thấp đến cao</option>
-                                        <option value="desc">Cao đến thấp</option>
-                                    </select>
+                                {/* Sắp xếp giá đã giảm */}
+                                <select
+                                    className="border w-full px-3 py-2 rounded cursor-pointer"
+                                    value={selectedPriceSort || ""}
+                                    onChange={e => handlePriceSortChange(e.target.value || null)}
+                                >
+                                    <option value="">Giá</option>
+                                    <option value="asc">Thấp đến cao</option>
+                                    <option value="desc">Cao đến thấp</option>
+                                </select>
 
-                                    {/* Sắp xếp theo khuyến mãi */}
-                                    <select
-                                        className="border w-full px-3 py-2 rounded cursor-pointer"
-                                        value={selectedDiscountSort || ""}
-                                        onChange={e => {
-                                            setSelectedDiscountSort(e.target.value || null);
-                                            if (e.target.value) {
-                                                setSelectedPriceSort(null);
-                                                setSelectedNameSort(null);
-                                            }
-                                        }}
-                                    >
-                                        <option value="">Khuyến mãi</option>
-                                        <option value="asc">Thấp đến cao</option>
-                                        <option value="desc">Cao đến thấp</option>
-                                    </select>
+                                {/* Sắp xếp tên sản phẩm */}
+                                <select
+                                    className="border w-full px-3 py-2 rounded cursor-pointer"
+                                    value={selectedNameSort || ""}
+                                    onChange={e => handleNameSortChange(e.target.value || null)}
+                                >
+                                    <option value="">Tên</option>
+                                    <option value="asc">A đến Z</option>
+                                    <option value="desc">Z đến A</option>
+                                </select>
 
-                                    {/* Sắp xếp tên sản phẩm */}
-                                    <select 
-                                        className="border w-full px-3 py-2 rounded cursor-pointer"
-                                        value={selectedNameSort || ""}
-                                        onChange={e => {
-                                            setSelectedNameSort(e.target.value || null);
-                                            if (e.target.value) {
-                                                setSelectedPriceSort(null);
-                                                setSelectedDiscountSort(null);
-                                            }
-                                        }}
-                                    >
-                                        <option value="">Tên</option>
-                                        <option value="asc">A đến Z</option>
-                                        <option value="desc">Z đến A</option>
-                                    </select>
+                                {/* Reset sorts button */}
+                                <button
+                                    onClick={handleResetSort}
+                                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors text-sm whitespace-nowrap"
+                                >
+                                    Đặt lại
+                                </button>
+                            </div>
 
-                                    {/* Reset sorts button */}
-                                    <button
-                                        onClick={() => {
-                                            setSelectedSort("Phổ Biến");
-                                            setSelectedPriceSort(null);
-                                            setSelectedDiscountSort(null);
-                                            setSelectedNameSort(null);
-                                        }}
-                                        className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors text-sm whitespace-nowrap"
-                                    >
-                                        Đặt lại
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[650px]">
-                                    {paginatedProducts.map((product, idx) => (
-                                        <div key={`product-${product.id}-${idx}`}>
-                                            <ProductCardCate 
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[650px]">
+                                {/* Show loading skeleton while fetching new page */}
+                                {isLoadingProducts ? (
+                                    Array.from({ length: 15 }).map((_, idx) => (
+                                        <div key={`skeleton-${idx}`} className="animate-pulse space-y-3">
+                                            <div className="bg-gray-200 h-[200px] w-full rounded-xl"></div>
+                                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    filteredAndSortedProducts.map((product: Product, idx: number) => (
+                                        <div key={`product-${product.id}-${currentPage}-${idx}`}>
+                                            <ProductCardCate
                                                 product={{
                                                     ...product,
                                                     price: Number(product.price) || 0,
                                                     sale_price: product.sale_price ? Number(product.sale_price) : undefined,
                                                     rating_avg: product.rating_avg ? Number(product.rating_avg) : undefined
-                                                }} 
+                                                }}
                                             />
                                         </div>
-                                    ))}
-                                </div>
+                                    ))
+                                )}
                             </div>
-                        )}
+                        </div>
+                    )}
 
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div className="flex justify-center mt-6 gap-2 flex-wrap">
-                                <button
-                                    onClick={() => handlePageChange(currentPage - 1)}
-                                    className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-[#DB4444] hover:text-white transition"
-                                    disabled={currentPage === 1}
-                                >
-                                    Trước
-                                </button>
+                    {/* Pagination */}
+                    {pagination.last_page > 1 && (
+                        <div className="flex justify-center mt-6 gap-2 flex-wrap">
+                            <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-[#DB4444] hover:text-white transition"
+                                disabled={currentPage === 1}
+                            >
+                                Trước
+                            </button>
 
-                                {(() => {
-                                    const pageButtons: React.JSX.Element[] = [];
-                                    const pagesToShow = new Set<number>();
+                            {(() => {
+                                const pageButtons: React.JSX.Element[] = [];
+                                const pagesToShow = new Set<number>();
 
-                                    // Add strategic pages
-                                    if (totalPages >= 1) pagesToShow.add(1);
-                                    if (totalPages >= 2) pagesToShow.add(2);
+                                // Add strategic pages
+                                if (pagination.last_page >= 1) pagesToShow.add(1);
+                                if (pagination.last_page >= 2) pagesToShow.add(2);
 
-                                    // Add current page and adjacent pages
-                                    if (currentPage > 1) pagesToShow.add(currentPage - 1);
-                                    pagesToShow.add(currentPage);
-                                    if (currentPage < totalPages) pagesToShow.add(currentPage + 1);
+                                // Add current page and adjacent pages
+                                if (currentPage > 1) pagesToShow.add(currentPage - 1);
+                                pagesToShow.add(currentPage);
+                                if (currentPage < pagination.last_page) pagesToShow.add(currentPage + 1);
 
-                                    // Add last pages
-                                    if (totalPages >= 2) pagesToShow.add(totalPages - 1);
-                                    if (totalPages >= 1) pagesToShow.add(totalPages);
+                                // Add last pages
+                                if (pagination.last_page >= 2) pagesToShow.add(pagination.last_page - 1);
+                                if (pagination.last_page >= 1) pagesToShow.add(pagination.last_page);
 
-                                    const sortedPages = Array.from(pagesToShow).sort((a, b) => a - b);
+                                const sortedPages = Array.from(pagesToShow).sort((a, b) => a - b);
 
-                                    // Render buttons with ellipsis
-                                    sortedPages.forEach((page, index) => {
-                                        if (index > 0 && page - sortedPages[index - 1] > 1) {
-                                            pageButtons.push(
-                                                <span key={`ellipsis-${page}`} className="px-2">...</span>
-                                            );
-                                        }
-
+                                // Render buttons with ellipsis
+                                sortedPages.forEach((page, index) => {
+                                    if (index > 0 && page - sortedPages[index - 1] > 1) {
                                         pageButtons.push(
-                                            <button
-                                                key={page}
-                                                onClick={() => handlePageChange(page)}
-                                                className={`px-3 py-1 border rounded transition ${
-                                                    currentPage === page
-                                                        ? "bg-[#DB4444] text-white"
-                                                        : "hover:bg-[#DB4444] hover:text-white"
-                                                }`}
-                                            >
-                                                {page}
-                                            </button>
+                                            <span key={`ellipsis-${page}`} className="px-2">...</span>
                                         );
-                                    });
+                                    }
 
-                                    return pageButtons;
-                                })()}
+                                    pageButtons.push(
+                                        <button
+                                            key={page}
+                                            onClick={() => handlePageChange(page)}
+                                            className={`px-3 py-1 border rounded transition ${currentPage === page
+                                                    ? "bg-[#DB4444] text-white"
+                                                    : "hover:bg-[#DB4444] hover:text-white"
+                                                }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    );
+                                });
 
-                                <button
-                                    onClick={() => handlePageChange(currentPage + 1)}
-                                    className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-[#DB4444] hover:text-white transition"
-                                    disabled={currentPage === totalPages}
-                                >
-                                    Sau
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                                return pageButtons;
+                            })()}
+
+                            <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-[#DB4444] hover:text-white transition"
+                                disabled={currentPage === pagination.last_page}
+                            >
+                                Sau
+                            </button>
+                        </div>
+                    )}
                 </div>
+            </div>
         </div>
     );
 }
