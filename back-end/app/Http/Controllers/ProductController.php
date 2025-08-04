@@ -134,13 +134,24 @@ public function getShopProductsByCategorySlug($slug, $category_slug)
     $categoryIds = array_map('intval', $categoryIds);
 
     $sorting = request()->query('sorting', 'latest'); // mặc định là mới nhất
+    $minPrice = request()->query('min_price');
+    $maxPrice = request()->query('max_price');
 
     $query = Product::with('shop')
-        ->withCount(['approvedReviews as review_count']) // vẫn giữ nếu bạn muốn đếm review
+        ->withCount(['approvedReviews as review_count'])
         ->where('shop_id', $shop->id)
         ->whereIn('category_id', $categoryIds)
         ->where('status', 'activated');
 
+    // Lọc khoảng giá dựa trên COALESCE(sale_price, price)
+    if ($minPrice !== null) {
+        $query->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
+    }
+    if ($maxPrice !== null) {
+        $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
+    }
+
+    // Sắp xếp
     switch ($sorting) {
         case 'name_asc':
             $query->orderBy('name', 'asc');
@@ -171,6 +182,7 @@ public function getShopProductsByCategorySlug($slug, $category_slug)
         'products' => $products,
     ]);
 }
+
 
 
     // Hàm đệ quy lấy tất cả danh mục con
