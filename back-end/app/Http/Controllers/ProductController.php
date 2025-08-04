@@ -118,35 +118,60 @@ public function show($shopslug, $productslug, Request $request)
             'shops' => $shops
         ]);
     }
-    public function getShopProductsByCategorySlug($slug, $category_slug)
-    {
-        $shop = Shop::where('slug', $slug)->first();
-        if (!$shop) {
-            return response()->json(['message' => 'Không tìm thấy shop'], 404);
-        }
-
-        $category = Category::where('slug', $category_slug)->first();
-        if (!$category) {
-            return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
-        }
-
-        $categoryIds = $this->getAllChildCategoryIds($category);
-        $categoryIds = array_map('intval', $categoryIds);
-
-        $products = Product::with('shop')
-            ->withCount(['approvedReviews as review_count'])
-            ->withAvg(['approvedReviews as rating_avg'], 'rating')
-            ->where('shop_id', $shop->id)
-            ->whereIn('category_id', $categoryIds)
-            ->where('status', 'activated')
-            ->paginate(15);
-
-        return response()->json([
-            'category' => $category,
-            'shop' => $shop,
-            'products' => $products,
-        ]);
+public function getShopProductsByCategorySlug($slug, $category_slug)
+{
+    $shop = Shop::where('slug', $slug)->first();
+    if (!$shop) {
+        return response()->json(['message' => 'Không tìm thấy shop'], 404);
     }
+
+    $category = Category::where('slug', $category_slug)->first();
+    if (!$category) {
+        return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
+    }
+
+    $categoryIds = $this->getAllChildCategoryIds($category);
+    $categoryIds = array_map('intval', $categoryIds);
+
+    $sorting = request()->query('sorting', 'latest'); // mặc định là mới nhất
+
+    $query = Product::with('shop')
+        ->withCount(['approvedReviews as review_count']) // vẫn giữ nếu bạn muốn đếm review
+        ->where('shop_id', $shop->id)
+        ->whereIn('category_id', $categoryIds)
+        ->where('status', 'activated');
+
+    switch ($sorting) {
+        case 'name_asc':
+            $query->orderBy('name', 'asc');
+            break;
+        case 'price_asc':
+            $query->orderByRaw('COALESCE(sale_price, price) ASC');
+            break;
+        case 'price_desc':
+            $query->orderByRaw('COALESCE(sale_price, price) DESC');
+            break;
+        case 'rating_desc':
+            $query->orderByDesc('rating');
+            break;
+        case 'sold_desc':
+            $query->orderByDesc('sold');
+            break;
+        case 'latest':
+        default:
+            $query->orderByDesc('id');
+            break;
+    }
+
+    $products = $query->paginate(15);
+
+    return response()->json([
+        'category' => $category,
+        'shop' => $shop,
+        'products' => $products,
+    ]);
+}
+
 
     // Hàm đệ quy lấy tất cả danh mục con
     private function getAllChildCategoryIds(Category $category)
