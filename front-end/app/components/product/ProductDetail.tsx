@@ -13,7 +13,7 @@ import ShopProductSlider from '../home/ShopProduct';
 import Breadcrumb from '../cart/CartBreadcrumb';
 import ProductGallery from './ProductGallery';
 import ProductReviews from './review';
-
+import { useRef } from 'react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { AiFillHeart, AiOutlineHeart } from 'react-icons/ai';
 
@@ -39,7 +39,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [mainImage, setMainImage] = useState('');
-
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   // ✅ State biến thể sản phẩm
   const [selectedA, setSelectedA] = useState('');
   const [selectedB, setSelectedB] = useState('');
@@ -74,35 +74,49 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   // ✅ Fetch chi tiết sản phẩm và ghi nhận lịch sử xem
   useEffect(() => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     const fetchData = async () => {
-      const token = Cookies.get('authToken') || localStorage.getItem('token');
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
       try {
-        const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`, { headers });
+        const token = Cookies.get('authToken') || localStorage.getItem('token');
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(`${API_BASE_URL}/${shopslug}/product/${productslug}`, {
+          headers,
+          signal,
+        });
+
+        if (!res.ok) throw new Error('Lỗi khi fetch sản phẩm');
         const { data } = await res.json();
-        setProduct(data);
-        console.log("🔥 Product data:", data);
-
-   setMainImage(formatImageUrl(data.image?.[0] || ''));
-
+        setProduct({
+          ...data,
+          variants: Array.isArray(data.variants) ? data.variants : [],
+        });
+        setMainImage(formatImageUrl(data.image?.[0] || ''));
 
         if (data?.id) {
           await fetch(`${API_BASE_URL}/products/history`, {
             method: 'POST',
             headers,
             body: JSON.stringify({ product_id: data.id }),
-            credentials: 'include',
           });
         }
-      } catch (error) {
-        console.error('❌ Lỗi khi fetch chi tiết sản phẩm:', error);
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('❌ Lỗi khi fetch chi tiết sản phẩm:', error);
+        }
       }
     };
 
     fetchData();
+
+    return () => {
+      controller.abort(); // huỷ nếu unmount
+    };
   }, [shopslug, productslug]);
+
 
   // ✅ Tìm biến thể phù hợp khi chọn giá trị A/B
   useEffect(() => {
@@ -184,9 +198,13 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   // ✅ Hiện popup nhanh
   const commonPopup = (msg: string) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setPopupText(msg);
     setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 2000);
+    timeoutRef.current = setTimeout(() => {
+      setShowPopup(false);
+      timeoutRef.current = null;
+    }, 2000);
   };
 
   // ✅ Thêm vào giỏ hàng (token hoặc localStorage)
@@ -334,7 +352,12 @@ if (variantRequired && (!selectedA || !selectedB)) {
               {liked ? <AiFillHeart className="text-red-500" /> : <AiOutlineHeart className="text-red-500" />}
             </button>
             <ProductGallery
-              images={Array.isArray(product.image) ? product.image : []}
+              images={
+                Array.isArray(product.image) && product.image.length > 0
+                  ? product.image
+                  : [`${STATIC_BASE_URL}/products/default-product.png`]
+              }
+
               mainImage={mainImage}
               setMainImage={setMainImage}
             />

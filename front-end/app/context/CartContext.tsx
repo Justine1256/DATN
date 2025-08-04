@@ -12,6 +12,7 @@ import Cookies from 'js-cookie';
 import axios from 'axios';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 
+// ===== Kiểu dữ liệu sản phẩm đơn giản =====
 interface Product {
     id: number;
     name: string;
@@ -20,6 +21,7 @@ interface Product {
     sale_price?: number | null;
 }
 
+// ===== Kiểu dữ liệu biến thể sản phẩm =====
 interface Variant {
     id: number;
     option1?: string;
@@ -30,6 +32,7 @@ interface Variant {
     sale_price?: number | null;
 }
 
+// ===== Kiểu dữ liệu item trong giỏ hàng =====
 export interface CartItem {
     id: number;
     quantity: number;
@@ -37,6 +40,7 @@ export interface CartItem {
     variant?: Variant | null;
 }
 
+// ===== Interface của Context giỏ hàng =====
 interface CartContextType {
     cartItems: CartItem[];
     setCartItems: (items: CartItem[]) => void;
@@ -50,6 +54,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
+    // ===== Chuẩn hóa ảnh sản phẩm về mảng ảnh hợp lệ =====
     const normalizeImage = (img: string | string[]): string[] => {
         if (Array.isArray(img)) {
             return img.length > 0
@@ -59,13 +64,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return [img?.trim() || `${STATIC_BASE_URL}/products/default-product.png`];
     };
 
+    // ===== Tải giỏ hàng từ localStorage hoặc từ server =====
     const reloadCart = useCallback(async () => {
         const token = Cookies.get('authToken');
-        const local = localStorage.getItem('cart');
-        const localCart = local ? JSON.parse(local) : [];
+        const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
 
+        // 🛒 Nếu chưa đăng nhập → dùng localStorage
         if (!token) {
-            const formattedLocal = localCart.map((item: any, idx: number) => ({
+            const formatted = localCart.map((item: any, idx: number): CartItem => ({
                 id: item.id ?? idx,
                 quantity: item.quantity,
                 product: {
@@ -75,7 +81,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                     price: Number(item.product?.price ?? item.price) || 0,
                     sale_price: item.product?.sale_price ? Number(item.product.sale_price) : null,
                 },
-
                 variant: item.variant?.id
                     ? {
                         id: item.variant.id,
@@ -87,12 +92,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                         sale_price: item.variant.sale_price ? Number(item.variant.sale_price) : null,
                     }
                     : null,
-
             }));
-            setCartItems(formattedLocal);
+
+            setCartItems(formatted);
             return;
         }
 
+        // 🔐 Nếu đã login → gọi API
         try {
             const res = await axios.get(`${API_BASE_URL}/cart`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -104,26 +110,27 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
     }, []);
 
+    // ===== Đồng bộ giỏ hàng giữa nhiều tab =====
     useEffect(() => {
         const syncCartAcrossTabs = (event: StorageEvent) => {
-            if (event.key === 'cart') {
-                reloadCart();
-            }
+            if (event.key === 'cart') reloadCart();
         };
         window.addEventListener('storage', syncCartAcrossTabs);
         return () => window.removeEventListener('storage', syncCartAcrossTabs);
     }, [reloadCart]);
 
+    // ===== Xoá sản phẩm khỏi giỏ hàng =====
     const removeCartItem = async (itemId: number) => {
         const token = Cookies.get('authToken');
 
         if (!token) {
+            // ❌ Local mode
             const local = localStorage.getItem('cart');
             let cart = local ? JSON.parse(local) : [];
             cart = cart.filter((item: any) => item.id !== itemId);
             localStorage.setItem('cart', JSON.stringify(cart));
 
-            const updatedCart: CartItem[] = cart.map((item: any) => ({
+            const updated = cart.map((item: any): CartItem => ({
                 ...item,
                 product: {
                     ...item.product,
@@ -134,12 +141,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 },
                 variant: item.variant || null,
             }));
-            setCartItems(updatedCart);
-
+            setCartItems(updated);
             window.dispatchEvent(new Event('cartUpdated'));
             return;
         }
 
+        // ✅ API mode
         try {
             await axios.delete(`${API_BASE_URL}/cart/${itemId}`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -152,13 +159,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    // ===== Đồng bộ local cart với server sau khi đăng nhập =====
     const mergeLocalCartToServer = async () => {
         const token = Cookies.get('authToken');
         if (!token) return;
 
-        const local = localStorage.getItem('cart');
-        const localCart = local ? JSON.parse(local) : [];
-
+        const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
         if (localCart.length === 0) return;
 
         try {
@@ -186,6 +192,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
 };
 
+// ===== Hook tiện dụng để dùng context =====
 export const useCart = () => {
     const context = useContext(CartContext);
     if (!context) {
@@ -193,4 +200,3 @@ export const useCart = () => {
     }
     return context;
 };
-
