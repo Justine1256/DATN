@@ -326,14 +326,12 @@ public function showShopProducts(Request $request, $slug)
         return response()->json(['error' => 'Shop không tồn tại.'], 404);
     }
 
-    // Lấy param lọc và phân trang
     $perPage   = $request->query('per_page', 15);
     $page      = $request->query('page', 1);
     $sorting   = $request->query('sorting', 'latest');
     $minPrice  = $request->query('min_price');
     $maxPrice  = $request->query('max_price');
 
-    // Tạo cache key riêng
     $cacheKey = "shop_products:{$shop->id}:sort:{$sorting}:min:{$minPrice}:max:{$maxPrice}:page:{$page}:perPage:{$perPage}";
 
     $products = Cache::remember($cacheKey, 300, function () use ($shop, $sorting, $minPrice, $maxPrice, $perPage) {
@@ -351,7 +349,7 @@ public function showShopProducts(Request $request, $slug)
             $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
         }
 
-        // Sắp xếp theo yêu cầu
+        // Sắp xếp
         switch ($sorting) {
             case 'name_asc':
                 $query->orderBy('name', 'asc');
@@ -371,6 +369,11 @@ public function showShopProducts(Request $request, $slug)
             case 'sold_desc':
                 $query->orderByDesc('sold');
                 break;
+            case 'discount_desc':
+                $query->whereNotNull('sale_price')
+                      ->whereColumn('sale_price', '<', 'price')
+                      ->orderByRaw('(price - sale_price) / price DESC');
+                break;
             case 'latest':
             default:
                 $query->orderByDesc('id');
@@ -386,6 +389,7 @@ public function showShopProducts(Request $request, $slug)
         'products'  => $products,
     ]);
 }
+
 
 
     // Lấy danh sách sản phẩm bán chạy
