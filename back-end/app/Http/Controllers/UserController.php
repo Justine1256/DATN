@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -99,7 +100,7 @@ public function show()
 
 public function register(Request $request)
 {
-    $validator = Validator::make($request->all(), [
+    $request->validate([
         'name' => 'required|string|max:100',
         'email' => 'required|email|unique:users,email',
         'phone' => 'required|string|max:20|unique:users,phone',
@@ -107,33 +108,75 @@ public function register(Request $request)
         'password' => 'required|string|min:6',
     ]);
 
-    if ($validator->fails()) {
-        return response()->json(['errors' => $validator->errors()], 400);
-    }
-
     $otp = rand(100000, 999999);
+    $email = $request->email;
 
-    $user = User::create([
-        'name' => $request->name,
-        'username' => $request->username,
-        'email' => $request->email,
-        'phone' => $request->phone,
-        'password' => Hash::make($request->password),
-        'verify_token' => $otp,
-        'status' => 'deactivated',
-    ]);
+    // Lưu vào cache/redis, hết hạn sau 5 phút
+    Cache::put("otp_register:$email", [
+        'otp' => $otp,
+        'data' => [
+            'name' => $request->name,
+            'email' => $email,
+            'phone' => $request->phone,
+            'username' => $request->username,
+            'password' => bcrypt($request->password),
+        ],
+        'attempts' => 0,
+    ], now()->addMinutes(5));
 
-    // Gửi OTP qua email
     try {
-        Mail::raw("Mã xác minh OTP của bạn là: $otp", function ($message) use ($user) {
-            $message->to($user->email)->subject('Xác minh OTP');
+        Mail::raw("Mã OTP của bạn là: $otp", function ($message) use ($email) {
+            $message->to($email)->subject('Mã OTP xác minh đăng ký');
         });
     } catch (\Exception $e) {
         return response()->json(['error' => 'Không thể gửi email: ' . $e->getMessage()], 500);
     }
 
-    return response()->json(['message' => 'Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP.']);
+    return response()->json(['message' => 'Mã OTP đã được gửi.']);
 }
+
+
+public function verifyOtp(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'otp' => 'required|numeric|digits:6',
+    ]);
+
+    $email = $request->email;
+    $otpData = Cache::get("otp_register:$email");
+
+    if (!$otpData) {
+        return response()->json(['error' => 'OTP đã hết hạn hoặc không tồn tại.'], 400);
+    }
+
+    if ($otpData['attempts'] >= 5) {
+        return response()->json(['error' => 'Bạn đã nhập sai quá số lần cho phép.'], 429);
+    }
+
+    if ($otpData['otp'] !== $request->otp) {
+        $otpData['attempts'] += 1;
+        Cache::put("otp_register:$email", $otpData, now()->addMinutes(5));
+        return response()->json(['error' => 'OTP không chính xác.'], 400);
+    }
+
+    // Tạo user
+    $data = $otpData['data'];
+
+    User::create([
+        'name' => $data['name'],
+        'username' => $data['username'],
+        'email' => $data['email'],
+        'phone' => $data['phone'],
+        'password' => $data['password'],
+        'email_verified_at' => now(),
+    ]);
+
+    Cache::forget("otp_register:$email");
+
+    return response()->json(['message' => 'Xác minh OTP thành công. Tài khoản đã được tạo.']);
+}
+
 public function showAllUsers(Request $request)
 {
     $perPage = $request->input('per_page', 10);
@@ -226,36 +269,6 @@ public function showAllUsers(Request $request)
         ]
     ]);
 }
-
-
-
-public function verifyOtp(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'email' => 'required|email',
-        'otp' => 'required|numeric|digits:6',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json(['errors' => $validator->errors()], 400);
-    }
-
-    $user = User::where('email', $request->email)
-                ->where('verify_token', $request->otp)
-                ->first();
-
-    if (!$user) {
-        return response()->json(['error' => 'Mã OTP không chính xác.'], 400);
-    }
-
-    $user->status = 'activated';
-    $user->verify_token = null; // Xoá OTP sau khi xác minh
-    $user->email_verified_at = now();
-    $user->save();
-
-    return response()->json(['message' => 'Xác minh OTP thành công! Tài khoản đã được kích hoạt.']);
-}
-
 
 public function update(Request $request)
 {
