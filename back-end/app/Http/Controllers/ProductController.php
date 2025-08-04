@@ -336,7 +336,7 @@ public function showShopProducts(Request $request, $slug)
 
     $products = Cache::remember($cacheKey, 300, function () use ($shop, $sorting, $minPrice, $maxPrice, $perPage) {
         $query = Product::where('shop_id', $shop->id)
-            ->with('category')
+            ->with(['category','shop'])
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('status', 'activated');
