@@ -35,28 +35,36 @@ export default function CartItemsSection({
     if (guestCart) {
       try {
         const parsed = JSON.parse(guestCart);
-        localCartItems = parsed.map((item: any, index: number) => ({
-          id: item.id || index + 1,
-          quantity: item.quantity,
-          product: {
-            id: item.product_id,
-            name: item.name,
-            image: [formatImageUrl(item.image)],
-            price: item.price,
-            sale_price: item.sale_price ?? null,
-          },
-          variant: item.variant_id
-            ? {
-              id: item.variant_id,
-              option1: 'Phân loại 1',
-              option2: 'Phân loại 2',
-              value1: item.value1,
-              value2: item.value2,
+        localCartItems = parsed.map((item: any, index: number) => {
+          const isVariant = !!item.variant_id;
+
+          return {
+            id: item.id || index + 1,
+            quantity: item.quantity,
+            value1: item.value1,
+            value2: item.value2,
+            product: {
+              id: item.product_id,
+              name: item.name,
+              image: [formatImageUrl(item.image)],
               price: item.price,
-              sale_price: item.sale_price ?? null,
-            }
-            : null,
-        }));
+              sale_price: isVariant ? undefined : item.sale_price ?? null,
+              shop: item.shop ?? {},
+            },
+            variant: isVariant
+              ? {
+                id: item.variant_id,
+                option1: item.option1 || 'Phân loại 1',
+                option2: item.option2 || 'Phân loại 2',
+                value1: item.value1,
+                value2: item.value2,
+                price: item.variant_price,
+                sale_price: item.variant_sale_price,
+              }
+              : null,
+          };
+        });
+
       } catch (err) {
         console.error('❌ Lỗi parse local cart:', err);
       }
@@ -233,10 +241,13 @@ export default function CartItemsSection({
   const renderVariant = (item: CartItem) => {
     const variants: string[] = [];
 
-    if (item.variant?.option1 && item.variant?.value1)
-      variants.push(`${item.variant.option1}: ${item.variant.value1}`);
-    if (item.variant?.option2 && item.variant?.value2)
-      variants.push(`${item.variant.option2}: ${item.variant.value2}`);
+    const option1 = item.variant?.option1 ?? 'Phân loại 1';
+    const option2 = item.variant?.option2 ?? 'Phân loại 2';
+    const value1 = item.variant?.value1 ?? item.value1;
+    const value2 = item.variant?.value2 ?? item.value2;
+
+    if (option1 && value1) variants.push(`${option1}: ${value1}`);
+    if (option2 && value2) variants.push(`${option2}: ${value2}`);
 
     return variants.length ? (
       <p className="text-xs text-gray-400">{variants.join(', ')}</p>
@@ -244,6 +255,7 @@ export default function CartItemsSection({
       <p className="text-xs text-gray-400 italic">Không có</p>
     );
   };
+
 
   // ✅ Format giá tiền VND
   const formatPrice = (value?: number | null) =>
@@ -279,31 +291,35 @@ export default function CartItemsSection({
         </div>
       ) : (
         cartItems.map((item) => {
-          const isVariant = !!item.variant;
-const originalPrice = Number((isVariant ? item.variant?.price : item.product?.price) ?? 0);
-const salePrice = Number((isVariant ? item.variant?.sale_price : item.product?.sale_price) ?? originalPrice);
-const isDiscounted = salePrice < originalPrice;
           const priceToUse = getPriceToUse(item);
+          const originalPrice = item.variant
+            ? Number(item.variant.price ?? 0)
+            : Number(item.product.price ?? 0);
+          const salePrice = item.variant
+            ? Number(item.variant.sale_price ?? item.variant.price ?? 0)
+            : Number(item.product.sale_price ?? item.product.price ?? 0);
+          const isDiscounted = salePrice < originalPrice;
+
 
           return (
-           <div
-  key={item.id}
-  className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:bg-gray-50 transition"
->
-  {/* 🔺 Tên shop */}
-  {item.product.shop && (
-    <div className="px-4 pt-3 pb-1 text-sm text-gray-500 font-medium border-b">
-      <Link
-        href={`/shop/${item.product.shop.slug || item.product.shop.id}`}
-        className="hover:text-red-500"
-      >
-        🏪 {item.product.shop.name}
-      </Link>
-    </div>
-  )}
+            <div
+              key={item.id}
+              className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:bg-gray-50 transition"
+            >
+              {/* 🔺 Tên shop */}
+              {item.product.shop && (
+                <div className="px-4 pt-3 pb-1 text-sm text-gray-500 font-medium border-b">
+                  <Link
+                    href={`/shop/${item.product.shop.slug || item.product.shop.id}`}
+                    className="hover:text-red-500"
+                  >
+                    🏪 {item.product.shop.name}
+                  </Link>
+                </div>
+              )}
 
-  {/* 🔻 Phần thông tin sản phẩm */}
-  <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] items-center px-4 py-3 gap-2 relative">
+              {/* 🔻 Phần thông tin sản phẩm */}
+              <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] items-center px-4 py-3 gap-2 relative">
                 <div className="flex items-center gap-3 text-left">
                   <div className="w-16 h-16 relative shrink-0">
                     <Image
@@ -327,40 +343,40 @@ const isDiscounted = salePrice < originalPrice;
                 </div>
 
 
-    <div>{renderVariant(item)}</div>
+                <div>{renderVariant(item)}</div>
 
-<div className="text-center text-sm text-black">
-  <div>
-    <span className="text-red-500 font-semibold">
-      {formatPrice(priceToUse)} đ
-    </span>
-    {isDiscounted && (
-      <div>
-        <span className="line-through text-gray-400 text-xs">
-          {formatPrice(originalPrice)} đ
-        </span>
-      </div>
-    )}
-  </div>
-</div>
+                <div className="text-center text-sm text-black">
+                  <div>
+                    <span className="text-red-500 font-semibold">
+                      {formatPrice(priceToUse)} đ
+                    </span>
+                    {isDiscounted && (
+                      <div>
+                        <span className="line-through text-gray-400 text-xs">
+                          {formatPrice(originalPrice)} đ
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-    <div className="text-center">
-      <input
-        type="number"
-        min={1}
-        value={item.quantity}
-        onChange={(e) =>
-          handleQuantityChange(item.id, parseInt(e.target.value || '1'))
-        }
-        className="w-20 px-3 py-2 border rounded-md text-center text-black"
-      />
-    </div>
+                <div className="text-center">
+                  <input
+                    type="number"
+                    min={1}
+                    value={item.quantity}
+                    onChange={(e) =>
+                      handleQuantityChange(item.id, parseInt(e.target.value || '1'))
+                    }
+                    className="w-20 px-3 py-2 border rounded-md text-center text-black"
+                  />
+                </div>
 
-    <div className="text-right text-sm font-semibold text-red-500">
-      {formatPrice(priceToUse * item.quantity)} đ
-    </div>
-  </div>
-</div>
+                <div className="text-right text-sm font-semibold text-red-500">
+                  {formatPrice(priceToUse * item.quantity)} đ
+                </div>
+              </div>
+            </div>
 
           );
         })
