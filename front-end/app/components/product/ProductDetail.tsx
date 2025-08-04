@@ -210,24 +210,28 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   // ✅ Thêm vào giỏ hàng (token hoặc localStorage)
   const handleAddToCart = async () => {
     const variantRequired = product.option1 && product.option2 && product.variants?.length > 0;
-if (variantRequired && (!selectedA || !selectedB)) {
-    setShowSelectionWarning(true);
-    return;
-  }
-  setShowSelectionWarning(false);
+    if (variantRequired && (!selectedA || !selectedB)) {
+      setShowSelectionWarning(true);
+      return;
+    }
+    setShowSelectionWarning(false);
 
     const token = Cookies.get('authToken');
     const variant = product.variants.find(
       v => v.value1 === selectedA && v.value2 === selectedB
     );
+
+    if (!variant && product.variants.length > 0) {
+      commonPopup('❌ Biến thể bạn chọn không tồn tại hoặc đã hết hàng');
+      return;
+    }
     const price = variant?.price ?? product.price;
-    const sale_price = variant?.sale_price ?? product.sale_price;
+const sale_price = variant?.sale_price ?? product.sale_price;
     const cartItem = {
       product_id: product.id,
       quantity,
       name: product.name,
       image: Array.isArray(product.image) ? product.image[0] : '',
-
       price: Number(price || 0),
       sale_price: sale_price ? Number(sale_price) : null,
       value1: selectedA,
@@ -316,14 +320,14 @@ if (variantRequired && (!selectedA || !selectedB)) {
 
   // ✅ Mua ngay (thêm vào giỏ và chuyển trang)
   const handleBuyNow = async () => {
-     const variantRequired = product.option1 && product.option2 && product.variants?.length > 0;
+    const variantRequired = product.option1 && product.option2 && product.variants?.length > 0;
 
-  if (variantRequired && (!selectedA || !selectedB)) {
-    setShowSelectionWarning(true);
-    return;
-  }
+    if (variantRequired && (!selectedA || !selectedB)) {
+      setShowSelectionWarning(true);
+      return;
+    }
 
-  setShowSelectionWarning(false);
+    setShowSelectionWarning(false);
     await handleAddToCart();
     router.push('/cart');
   };
@@ -475,10 +479,10 @@ if (variantRequired && (!selectedA || !selectedB)) {
               </div>
             </div>
             {showSelectionWarning && (
-  <p className="text-red-500 text-sm mt-1">
-    Vui lòng chọn đầy đủ phân loại hàng
-  </p>
-)}
+              <p className="text-red-500 text-sm mt-1">
+                Vui lòng chọn đầy đủ phân loại hàng
+              </p>
+            )}
 
             {/* Quantity & actions */}
             <div className="flex items-center gap-3 mt-4">
