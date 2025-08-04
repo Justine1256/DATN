@@ -180,6 +180,11 @@ public function show($shopslug, $productslug, Request $request)
                 case 'sold_desc':
                     $query->orderByDesc('sold');
                     break;
+                case 'discount_desc':
+                $query->whereNotNull('sale_price')
+                      ->whereColumn('sale_price', '<', 'price')
+                      ->orderByRaw('(price - sale_price) / price DESC');
+                break;
                 case 'latest':
                 default:
                     $query->orderByDesc('id');
