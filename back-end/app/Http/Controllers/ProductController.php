@@ -139,7 +139,7 @@ public function show($shopslug, $productslug, Request $request)
             ->where('shop_id', $shop->id)
             ->whereIn('category_id', $categoryIds)
             ->where('status', 'activated')
-            ->get();
+            ->paginate(15);
 
         return response()->json([
             'category' => $category,
