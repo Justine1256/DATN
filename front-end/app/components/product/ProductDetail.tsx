@@ -65,10 +65,11 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   };
   const isVariantRequiredButNotSelected = () => {
     return (
-      product?.variants.length > 0 &&
+      (product?.variants ?? []).length > 0 &&
       (!selectedA.trim() || !selectedB.trim())
     );
   };
+
 
 
   // ✅ Fetch chi tiết sản phẩm và ghi nhận lịch sử xem
@@ -84,7 +85,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         setProduct(data);
         console.log("🔥 Product data:", data);
 
-        setMainImage(formatImageUrl(data.image[0] || ''));
+   setMainImage(formatImageUrl(data.image?.[0] || ''));
+
 
         if (data?.id) {
           await fetch(`${API_BASE_URL}/products/history`, {
@@ -189,7 +191,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
   // ✅ Thêm vào giỏ hàng (token hoặc localStorage)
   const handleAddToCart = async () => {
-    const variantRequired = product.option1 && product.option2 && product.variants.length > 0;
+    const variantRequired = product.option1 && product.option2 && product.variants?.length > 0;
 if (variantRequired && (!selectedA || !selectedB)) {
     setShowSelectionWarning(true);
     return;
@@ -206,7 +208,8 @@ if (variantRequired && (!selectedA || !selectedB)) {
       product_id: product.id,
       quantity,
       name: product.name,
-      image: product.image[0],
+      image: Array.isArray(product.image) ? product.image[0] : '',
+
       price: Number(price || 0),
       sale_price: sale_price ? Number(sale_price) : null,
       value1: selectedA,
@@ -295,7 +298,7 @@ if (variantRequired && (!selectedA || !selectedB)) {
 
   // ✅ Mua ngay (thêm vào giỏ và chuyển trang)
   const handleBuyNow = async () => {
-     const variantRequired = product.option1 && product.option2 && product.variants.length > 0;
+     const variantRequired = product.option1 && product.option2 && product.variants?.length > 0;
 
   if (variantRequired && (!selectedA || !selectedB)) {
     setShowSelectionWarning(true);
@@ -330,7 +333,12 @@ if (variantRequired && (!selectedA || !selectedB)) {
             <button onClick={toggleLike} className="absolute top-2 left-2 p-2 text-[22px] z-20">
               {liked ? <AiFillHeart className="text-red-500" /> : <AiOutlineHeart className="text-red-500" />}
             </button>
-            <ProductGallery images={product.image} mainImage={mainImage} setMainImage={setMainImage} />
+            <ProductGallery
+              images={Array.isArray(product.image) ? product.image : []}
+              mainImage={mainImage}
+              setMainImage={setMainImage}
+            />
+
           </div>
 
           {/* Info */}
@@ -528,7 +536,7 @@ if (variantRequired && (!selectedA || !selectedB)) {
 
       {/* Popup */}
       {showPopup && (
-        <div className="fixed top-20 right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
+        <div className="fixed top-[140px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
           {popupText ||
             (liked ? 'Đã thêm vào mục yêu thích!' : 'Đã xóa khỏi mục yêu thích!')}
         </div>

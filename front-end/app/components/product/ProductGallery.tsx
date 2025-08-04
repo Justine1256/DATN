@@ -22,6 +22,13 @@ const formatImageUrl = (img: string | string[]): string => {
 };
 
 export default function ProductGallery({ images, mainImage, setMainImage }: ProductGalleryProps) {
+    if (!images || !Array.isArray(images) || images.length === 0) {
+        return (
+            <div className="text-center text-gray-400 py-10">
+                Không có hình ảnh sản phẩm để hiển thị.
+            </div>
+        );
+    }
     const thumbnailRef = useRef<HTMLDivElement>(null);
     const mainImageRef = useRef<HTMLDivElement>(null);
 
@@ -39,13 +46,14 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
 
     // ✅ Tính toán khi chọn ảnh khác
     const scrollToIndex = (index: number) => {
-        if (index === currentIndex) return;
+        if (!images || !images[index] || index === currentIndex) return;
 
         const direction = index > currentIndex ? 'right' : 'left';
         setTransitionClass(direction === 'right' ? 'animate-slide-left' : 'animate-slide-right');
         setCurrentIndex(index);
         setMainImage(formatImageUrl(images[index]));
     };
+
 
     const handlePrevious = () => {
         const newIndex = (currentIndex - 1 + images.length) % images.length;
@@ -145,7 +153,8 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
 
                     {/* Image Counter */}
                     <div className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm text-white text-sm px-3 py-2 rounded-full font-medium">
-                        {currentIndex + 1} / {images.length}
+                        {currentIndex + 1} / {images?.length || 0}
+
                     </div>
                 </div>
             </div>
@@ -161,7 +170,7 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
                         <X size={24} />
                     </button>
 
-                    {images.length > 1 && (
+                    {images?.length > 1 && (
                         <>
                             <button
                                 onClick={() => scrollToIndex((currentIndex - 1 + images.length) % images.length)}
@@ -187,7 +196,8 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
                     />
 
                     <div className="absolute top-6 left-6 text-white text-sm bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full font-medium">
-                        {currentIndex + 1} / {images.length}
+                        {currentIndex + 1} / {images?.length || 0}
+
                     </div>
                 </div>
             )}
@@ -219,7 +229,7 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseLeave}
                 >
-                    {images.map((img: string, idx: number) => {
+                    {images?.map((img: string, idx: number) => {
                         const formattedImg = formatImageUrl(img);
                         const isSelected = formattedImg === mainImage;
                         return (
