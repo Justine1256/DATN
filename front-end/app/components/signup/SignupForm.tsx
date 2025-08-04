@@ -28,13 +28,8 @@ export default function SignupForm() {
   const [resendLoading, setResendLoading] = useState(false)
   const router = useRouter()
 
-  // Configure notification
   useEffect(() => {
-    notification.config({
-      placement: 'topRight',
-      duration: 4,
-      rtl: false,
-    })
+    notification.config({ placement: 'topRight', duration: 4, rtl: false })
   }, [])
 
   useEffect(() => {
@@ -50,9 +45,6 @@ export default function SignupForm() {
       return () => clearInterval(timer)
     }
   }, [showOtpModal, resendCountdown])
-
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const isValidPhone = (phone: string) => /^(03|05|07|08|09)[0-9]{8}$/.test(phone)
 
   const handleSubmit = async (values: any) => {
     setLoading(true)
@@ -75,11 +67,19 @@ export default function SignupForm() {
       setOtpCountdown(300)
       setResendCountdown(60)
     } catch (err: any) {
+      const error = err.response?.data?.error || ''
+      let messageText = 'Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại.'
+
+      if (error.includes('email đã tồn tại')) {
+        messageText = 'Email đã được sử dụng. Vui lòng dùng email khác.'
+      } else if (error.includes('số điện thoại đã tồn tại')) {
+        messageText = 'Số điện thoại đã được đăng ký. Vui lòng dùng số khác.'
+      }
+
       notification.error({
         message: 'Đăng ký thất bại',
-        description: err.response?.data?.error || 'Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại.',
+        description: messageText,
         icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
-        duration: 5,
       })
     } finally {
       setLoading(false)
@@ -107,14 +107,14 @@ export default function SignupForm() {
 
     setVerifyLoading(true)
     try {
-      const res = await axios.post(`${API_BASE_URL}/verify-otp`, {
+      await axios.post(`${API_BASE_URL}/verify-otp`, {
         email: formData.email,
         otp: otpCode,
       })
 
       setShowOtpModal(false)
       setShowSuccessPopup(true)
-      
+
       notification.success({
         message: 'Xác thực thành công!',
         description: 'Tài khoản của bạn đã được kích hoạt. Đang chuyển hướng đến trang đăng nhập...',
@@ -128,39 +128,25 @@ export default function SignupForm() {
       }, 2000)
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Mã OTP không hợp lệ'
-      
-      // Customize error notification based on error type
+
+      let title = 'Xác thực thất bại'
+      let desc = errorMessage
+
       if (errorMessage.toLowerCase().includes('hết hạn') || errorMessage.toLowerCase().includes('expired')) {
-        notification.error({
-          message: 'Mã OTP đã hết hạn',
-          description: 'Mã OTP đã hết hiệu lực. Vui lòng nhấn "Gửi lại mã" để nhận mã mới.',
-          icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
-          duration: 5,
-        })
+        title = 'Mã OTP đã hết hạn'
+        desc = 'Mã OTP đã hết hiệu lực. Vui lòng nhấn "Gửi lại mã" để nhận mã mới.'
       } else if (errorMessage.toLowerCase().includes('sai') || errorMessage.toLowerCase().includes('invalid')) {
-        notification.error({
-          message: 'Mã OTP không chính xác',
-          description: 'Mã OTP bạn nhập không đúng. Vui lòng kiểm tra lại email và nhập mã chính xác.',
-          icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
-          duration: 5,
-        })
-      } else {
-        notification.error({
-          message: 'Xác thực thất bại',
-          description: errorMessage,
-          icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
-          duration: 5,
-        })
+        title = 'Mã OTP không chính xác'
+        desc = 'Mã OTP bạn nhập không đúng. Vui lòng kiểm tra lại email và nhập mã chính xác.'
       }
-      
-      // Clear OTP input để user nhập lại
+
+      notification.error({
+        message: title,
+        description: desc,
+        icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+        duration: 5,
+      })
       setOtpCode('')
-      
-      // Focus lại ô đầu tiên
-      setTimeout(() => {
-        const firstInput = document.querySelector('.otp-input') as HTMLInputElement
-        firstInput?.focus()
-      }, 100)
     } finally {
       setVerifyLoading(false)
     }
