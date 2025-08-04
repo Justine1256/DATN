@@ -215,11 +215,16 @@ export default function ProductCardCate({
       )}
 
       <button
-              onClick={handleLike}
-              className="absolute top-2 right-2 text-xl z-20 pointer-events-auto"
-            >
-              <AiOutlineHeart className="text-red-500 transition" />
-            </button>
+        onClick={handleLike}
+        className="absolute top-2 right-2 text-xl z-20 pointer-events-auto"
+      >
+        {liked ? (
+          <AiFillHeart className="text-red-500 transition" />
+        ) : (
+          <AiOutlineHeart className="text-red-500 transition" />
+        )}
+      </button>
+
 
       <div className="w-full h-[150px] mt-4 flex items-center justify-center overflow-hidden">
         <Image

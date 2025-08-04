@@ -26,7 +26,8 @@ export interface Product {
   sale_price?: string;
   stock: number;
   sold: number;
-  image: string[];
+  image: string[] | string | null;
+
   option1?: string;
   value1?: string;
   option2?: string;
