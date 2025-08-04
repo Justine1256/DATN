@@ -315,30 +315,72 @@ public function show($shopslug, $productslug, Request $request)
     }
 
     // Lấy danh sách sản phẩm của shop
-    public function showShopProducts(Request $request, $slug)
-    {
-        $shop =  Shop::where('slug', $slug)->first();
+public function showShopProducts(Request $request, $slug)
+{
+    $shop = Shop::where('slug', $slug)->first();
 
-        if (!$shop) {
-            return response()->json(['error' => 'Shop không tồn tại.'], 404);
-        }
+    if (!$shop) {
+        return response()->json(['error' => 'Shop không tồn tại.'], 404);
+    }
 
-        $perPage = $request->query('per_page', 15);
+    // Lấy param lọc và phân trang
+    $perPage   = $request->query('per_page', 15);
+    $page      = $request->query('page', 1);
+    $sorting   = $request->query('sorting', 'latest');
+    $minPrice  = $request->query('min_price');
+    $maxPrice  = $request->query('max_price');
 
-        $products =  Product::where('shop_id', $shop->id)
+    // Tạo cache key riêng
+    $cacheKey = "shop_products:{$shop->id}:sort:{$sorting}:min:{$minPrice}:max:{$maxPrice}:page:{$page}:perPage:{$perPage}";
+
+    $products = Cache::remember($cacheKey, 300, function () use ($shop, $sorting, $minPrice, $maxPrice, $perPage) {
+        $query = Product::where('shop_id', $shop->id)
+            ->with('category')
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
-            ->where('status', 'activated')
-            ->with('category')
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+            ->where('status', 'activated');
 
-        return response()->json([
-            'shop_id'   => $shop->id,
-            'shop_name' => $shop->name,
-            'products'  => $products
-        ]);
-    }
+        // Lọc theo khoảng giá
+        if ($minPrice !== null) {
+            $query->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
+        }
+        if ($maxPrice !== null) {
+            $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
+        }
+
+        // Sắp xếp theo yêu cầu
+        switch ($sorting) {
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'price_asc':
+                $query->orderByRaw('COALESCE(sale_price, price) ASC');
+                break;
+            case 'price_desc':
+                $query->orderByRaw('COALESCE(sale_price, price) DESC');
+                break;
+            case 'rating_desc':
+                $query->orderByDesc('rating_avg');
+                break;
+            case 'sold_desc':
+                $query->orderByDesc('sold');
+                break;
+            case 'latest':
+            default:
+                $query->orderByDesc('id');
+                break;
+        }
+
+        return $query->paginate($perPage);
+    });
+
+    return response()->json([
+        'shop_id'   => $shop->id,
+        'shop_name' => $shop->name,
+        'products'  => $products,
+    ]);
+}
+
 
     // Lấy danh sách sản phẩm bán chạy
     public function bestSellingProducts(Request $request)
