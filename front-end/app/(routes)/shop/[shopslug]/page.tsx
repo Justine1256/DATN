@@ -79,6 +79,7 @@ const ShopPage = () => {
     // Sorting states
     const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
     const [selectedPriceSort, setSelectedPriceSort] = useState<string | null>(null);
+    const [selectedDiscountSort, setSelectedDiscountSort] = useState<string | null>(null);
     const [selectedNameSort, setSelectedNameSort] = useState<string | null>(null);
 
     useEffect(() => {
@@ -110,6 +111,7 @@ const ShopPage = () => {
 
     // Convert UI sorting states to API sorting parameter
     const getSortingParam = () => {
+        // Name sort
         if (selectedNameSort === "asc") {
             return "name_asc";
         } else if (selectedNameSort === "desc") {
@@ -119,6 +121,11 @@ const ShopPage = () => {
         // Price sort
         if (selectedPriceSort) {
             return selectedPriceSort === "asc" ? "price_asc" : "price_desc";
+        }
+
+        // Discount sort
+        if (selectedDiscountSort) {
+            return selectedDiscountSort === "asc" ? "discount_asc" : "discount_desc";
         }
 
         // Basic sorts
@@ -223,7 +230,7 @@ const ShopPage = () => {
     };
 
     // Loading and error states
-    const isLoading = !slug || !shopData || !categoryData || isLoadingProducts;
+    const isLoadingShopAndCategories = !slug || !shopData || !categoryData;
     const error = shopError || categoryError || productError;
 
     // Process products with TypeScript-safe operations
@@ -273,6 +280,7 @@ const ShopPage = () => {
         // Reset all states
         setSelectedSort("Phổ Biến");
         setSelectedPriceSort(null);
+        setSelectedDiscountSort(null);
         setSelectedNameSort(null);
         setSelectedCategory(null);
 
@@ -289,6 +297,7 @@ const ShopPage = () => {
     const handleSortChange = (sortType: string) => {
         setSelectedSort(sortType);
         setSelectedPriceSort(null);
+        setSelectedDiscountSort(null);
         setSelectedNameSort(null);
         setCurrentPage(1);
     };
@@ -297,12 +306,14 @@ const ShopPage = () => {
         setSelectedPriceSort(sortDirection);
         if (sortDirection) {
             setSelectedSort("Phổ Biến");
+            setSelectedDiscountSort(null);
             setSelectedNameSort(null);
         }
         setCurrentPage(1);
     };
 
     const handleDiscountSortChange = (sortDirection: string | null) => {
+        setSelectedDiscountSort(sortDirection);
         if (sortDirection) {
             setSelectedSort("Phổ Biến");
             setSelectedPriceSort(null);
@@ -316,6 +327,7 @@ const ShopPage = () => {
         if (sortDirection) {
             setSelectedSort("Phổ Biến");
             setSelectedPriceSort(null);
+            setSelectedDiscountSort(null);
         }
         setCurrentPage(1);
     };
@@ -323,6 +335,7 @@ const ShopPage = () => {
     const handleResetSort = () => {
         setSelectedSort("Phổ Biến");
         setSelectedPriceSort(null);
+        setSelectedDiscountSort(null);
         setSelectedNameSort(null);
         setCurrentPage(1);
     };
@@ -334,7 +347,7 @@ const ShopPage = () => {
         }).format(value);
     };
 
-    // Loading skeleton component
+    // Loading skeleton component for full page
     const LoadingSkeleton = () => (
         <div className="max-w-[1200px] mx-auto px-4 pb-10 text-black">
             <div className="animate-pulse space-y-6">
@@ -353,8 +366,21 @@ const ShopPage = () => {
         </div>
     );
 
-    // Loading state
-    if (isLoading) {
+    // Product container skeleton component
+    const ProductContainerSkeleton = () => (
+        <>
+            {Array.from({ length: 15 }).map((_, idx) => (
+                <div key={`skeleton-${idx}`} className="animate-pulse space-y-3">
+                    <div className="bg-gray-200 h-[200px] w-full rounded-xl"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+            ))}
+        </>
+    );
+
+    // Loading state for shop and categories only
+    if (isLoadingShopAndCategories) {
         return <LoadingSkeleton />;
     }
 
@@ -397,8 +423,8 @@ const ShopPage = () => {
                                         key={cat.id}
                                         onClick={() => handleCategorySelect(cat.slug)}
                                         className={`w-full px-3 py-2 transition-colors text-left ${cat.slug === selectedCategory
-                                                ? "text-brand font-semibold"
-                                                : "hover:text-brand"
+                                            ? "text-brand font-semibold"
+                                            : "hover:text-brand"
                                             }`}
                                     >
                                         {cat.name}
@@ -517,7 +543,7 @@ const ShopPage = () => {
                 <div className="flex-1">
                     {error ? (
                         <p className="text-red-500">{error}</p>
-                    ) : products.length === 0 && !isLoading ? (
+                    ) : products.length === 0 && !isLoadingProducts ? (
                         <p className="text-gray-500">Không có sản phẩm nào.</p>
                     ) : (
                         <div>
@@ -544,6 +570,16 @@ const ShopPage = () => {
                                     <option value="desc">Cao đến thấp</option>
                                 </select>
 
+                                {/* Sắp xếp phần trăm khuyến mãi */}
+                                <select
+                                    className="border w-full px-3 py-2 rounded cursor-pointer"
+                                    value={selectedDiscountSort || ""}
+                                    onChange={e => handleDiscountSortChange(e.target.value || null)}
+                                >
+                                    <option value="">Khuyến mãi</option>
+                                    <option value="desc">Cao đến thấp</option>
+                                </select>
+
                                 {/* Sắp xếp tên sản phẩm */}
                                 <select
                                     className="border w-full px-3 py-2 rounded cursor-pointer"
@@ -564,16 +600,10 @@ const ShopPage = () => {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[650px]">
+                            <div id='product-container' className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[650px]">
                                 {/* Show loading skeleton while fetching new page */}
                                 {isLoadingProducts ? (
-                                    Array.from({ length: 15 }).map((_, idx) => (
-                                        <div key={`skeleton-${idx}`} className="animate-pulse space-y-3">
-                                            <div className="bg-gray-200 h-[200px] w-full rounded-xl"></div>
-                                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                                        </div>
-                                    ))
+                                    <ProductContainerSkeleton />
                                 ) : (
                                     filteredAndSortedProducts.map((product: Product, idx: number) => (
                                         <div key={`product-${product.id}-${currentPage}-${idx}`}>
@@ -635,8 +665,8 @@ const ShopPage = () => {
                                             key={page}
                                             onClick={() => handlePageChange(page)}
                                             className={`px-3 py-1 border rounded transition ${currentPage === page
-                                                    ? "bg-[#DB4444] text-white"
-                                                    : "hover:bg-[#DB4444] hover:text-white"
+                                                ? "bg-[#DB4444] text-white"
+                                                : "hover:bg-[#DB4444] hover:text-white"
                                                 }`}
                                         >
                                             {page}
