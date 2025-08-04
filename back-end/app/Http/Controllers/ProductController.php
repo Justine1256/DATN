@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Models\Review;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -118,80 +119,86 @@ public function show($shopslug, $productslug, Request $request)
             'shops' => $shops
         ]);
     }
-public function getShopProductsByCategorySlug($slug, $category_slug)
-{
-    $shop = Shop::where('slug', $slug)->first();
-    if (!$shop) {
-        return response()->json(['message' => 'Không tìm thấy shop'], 404);
+    public function getShopProductsByCategorySlug($slug, $category_slug)
+    {
+        $shop = Shop::where('slug', $slug)->first();
+        if (!$shop) {
+            return response()->json(['message' => 'Không tìm thấy shop'], 404);
+        }
+
+        $category = Category::where('slug', $category_slug)->first();
+        if (!$category) {
+            return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
+        }
+
+        // Lấy toàn bộ ID của category con
+        $categoryIds = $this->getAllChildCategoryIds($category);
+        $categoryIds = array_map('intval', $categoryIds);
+
+        // Lấy param từ request
+        $sorting = request()->query('sorting', 'latest');
+        $minPrice = request()->query('min_price');
+        $maxPrice = request()->query('max_price');
+        $page = request()->query('page', 1); // phân trang
+
+        // Tạo key cache riêng theo từng trường hợp
+        $cacheKey = "shop_products:{$shop->id}:category:{$category->id}:sort:{$sorting}:min:{$minPrice}:max:{$maxPrice}:page:{$page}";
+
+        // Lấy cache hoặc truy vấn
+        $products = Cache::remember($cacheKey, 300, function () use ($shop, $categoryIds, $sorting, $minPrice, $maxPrice) {
+            $query = Product::with('shop')
+                ->withCount(['approvedReviews as review_count'])
+                ->where('shop_id', $shop->id)
+                ->whereIn('category_id', $categoryIds)
+                ->where('status', 'activated');
+
+            // Lọc theo khoảng giá
+            if ($minPrice !== null) {
+                $query->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
+            }
+            if ($maxPrice !== null) {
+                $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
+            }
+
+            // Sắp xếp theo param
+            switch ($sorting) {
+                case 'name_asc':
+                    $query->orderBy('name', 'asc');
+                    break;
+                case 'price_asc':
+                    $query->orderByRaw('COALESCE(sale_price, price) ASC');
+                    break;
+                case 'price_desc':
+                    $query->orderByRaw('COALESCE(sale_price, price) DESC');
+                    break;
+                case 'rating_desc':
+                    $query->orderByDesc('rating');
+                    break;
+                case 'sold_desc':
+                    $query->orderByDesc('sold');
+                    break;
+                case 'latest':
+                default:
+                    $query->orderByDesc('id');
+                    break;
+            }
+
+            return $query->paginate(15);
+        });
+
+        return response()->json([
+            'category' => $category,
+            'shop' => $shop,
+            'products' => $products,
+        ]);
     }
 
-    $category = Category::where('slug', $category_slug)->first();
-    if (!$category) {
-        return response()->json(['message' => 'Không tìm thấy danh mục'], 404);
-    }
-
-    $categoryIds = $this->getAllChildCategoryIds($category);
-    $categoryIds = array_map('intval', $categoryIds);
-
-    $sorting = request()->query('sorting', 'latest'); // mặc định là mới nhất
-    $minPrice = request()->query('min_price');
-    $maxPrice = request()->query('max_price');
-
-    $query = Product::with('shop')
-        ->withCount(['approvedReviews as review_count'])
-        ->where('shop_id', $shop->id)
-        ->whereIn('category_id', $categoryIds)
-        ->where('status', 'activated');
-
-    // Lọc khoảng giá dựa trên COALESCE(sale_price, price)
-    if ($minPrice !== null) {
-        $query->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
-    }
-    if ($maxPrice !== null) {
-        $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
-    }
-
-    // Sắp xếp
-    switch ($sorting) {
-        case 'name_asc':
-            $query->orderBy('name', 'asc');
-            break;
-        case 'price_asc':
-            $query->orderByRaw('COALESCE(sale_price, price) ASC');
-            break;
-        case 'price_desc':
-            $query->orderByRaw('COALESCE(sale_price, price) DESC');
-            break;
-        case 'rating_desc':
-            $query->orderByDesc('rating');
-            break;
-        case 'sold_desc':
-            $query->orderByDesc('sold');
-            break;
-        case 'latest':
-        default:
-            $query->orderByDesc('id');
-            break;
-    }
-
-    $products = $query->paginate(15);
-
-    return response()->json([
-        'category' => $category,
-        'shop' => $shop,
-        'products' => $products,
-    ]);
-}
-
-
-
-    // Hàm đệ quy lấy tất cả danh mục con
+    // Lấy toàn bộ ID danh mục con (đệ quy)
     private function getAllChildCategoryIds(Category $category)
     {
         $ids = [$category->id];
-        $children = Category::where('parent_id', $category->id)->get();
 
-        foreach ($children as $child) {
+        foreach ($category->children as $child) {
             $ids = array_merge($ids, $this->getAllChildCategoryIds($child));
         }
 
