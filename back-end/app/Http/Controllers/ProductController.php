@@ -386,6 +386,7 @@ public function showShopProducts(Request $request, $slug)
     return response()->json([
         'shop_id'   => $shop->id,
         'shop_name' => $shop->name,
+        'slug'      => $shop->slug,
         'products'  => $products,
     ]);
 }
