@@ -14,6 +14,7 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@google-cloud/translate": "^9.1.0",
     "@heroicons/react": "^2.2.0",
+    "antd": "^5.26.7",
     "axios": "^1.11.0",
     "bootstrap": "^5.3.6",
     "clsx": "^2.1.1",
