@@ -54,22 +54,21 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-    // ===== Chuẩn hóa ảnh sản phẩm về mảng ảnh hợp lệ =====
+    // ===== Chuẩn hóa ảnh sản phẩm =====
     const normalizeImage = (img: string | string[]): string[] => {
         if (Array.isArray(img)) {
             return img.length > 0
-                ? img.map(i => i?.trim() || `${STATIC_BASE_URL}/products/default-product.png`)
+                ? img.map((i: string) => i?.trim() || `${STATIC_BASE_URL}/products/default-product.png`)
                 : [`${STATIC_BASE_URL}/products/default-product.png`];
         }
         return [img?.trim() || `${STATIC_BASE_URL}/products/default-product.png`];
     };
 
-    // ===== Tải giỏ hàng từ localStorage hoặc từ server =====
+    // ===== Reload giỏ hàng từ localStorage hoặc API =====
     const reloadCart = useCallback(async () => {
         const token = Cookies.get('authToken');
         const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
 
-        // 🛒 Nếu chưa đăng nhập → dùng localStorage
         if (!token) {
             const formatted = localCart.map((item: any, idx: number): CartItem => ({
                 id: item.id ?? idx,
@@ -98,7 +97,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
-        // 🔐 Nếu đã login → gọi API
         try {
             const res = await axios.get(`${API_BASE_URL}/cart`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -110,13 +108,25 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
     }, []);
 
-    // ===== Đồng bộ giỏ hàng giữa nhiều tab =====
+    // ===== Lắng nghe sự kiện cập nhật giỏ hàng từ các tab khác (debounced) =====
     useEffect(() => {
-        const syncCartAcrossTabs = (event: StorageEvent) => {
-            if (event.key === 'cart') reloadCart();
+        let debounce: NodeJS.Timeout | null = null;
+
+        const handleStorage = (event: StorageEvent) => {
+            if (event.key === 'cart') {
+                if (debounce) clearTimeout(debounce);
+                debounce = setTimeout(() => {
+                    reloadCart();
+                    debounce = null;
+                }, 300);
+            }
         };
-        window.addEventListener('storage', syncCartAcrossTabs);
-        return () => window.removeEventListener('storage', syncCartAcrossTabs);
+
+        window.addEventListener('storage', handleStorage);
+        return () => {
+            window.removeEventListener('storage', handleStorage);
+            if (debounce) clearTimeout(debounce);
+        };
     }, [reloadCart]);
 
     // ===== Xoá sản phẩm khỏi giỏ hàng =====
@@ -124,7 +134,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const token = Cookies.get('authToken');
 
         if (!token) {
-            // ❌ Local mode
             const local = localStorage.getItem('cart');
             let cart = local ? JSON.parse(local) : [];
             cart = cart.filter((item: any) => item.id !== itemId);
@@ -146,7 +155,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
-        // ✅ API mode
         try {
             await axios.delete(`${API_BASE_URL}/cart/${itemId}`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -159,7 +167,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    // ===== Đồng bộ local cart với server sau khi đăng nhập =====
+    // ===== Đồng bộ local cart lên server =====
     const mergeLocalCartToServer = async () => {
         const token = Cookies.get('authToken');
         if (!token) return;
@@ -192,7 +200,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
 };
 
-// ===== Hook tiện dụng để dùng context =====
+// ===== Hook tiện lợi =====
 export const useCart = () => {
     const context = useContext(CartContext);
     if (!context) {
