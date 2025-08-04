@@ -101,40 +101,33 @@ public function show()
 public function register(Request $request)
 {
     $request->validate([
-        'name' => 'required|string|max:100',
+        'name' => 'required',
+        'username' => 'required',
         'email' => 'required|email|unique:users,email',
-        'phone' => 'required|string|max:20|unique:users,phone',
-        'username' => 'required|string|max:50|unique:users,username',
-        'password' => 'required|string|min:6',
+        'phone' => 'required',
+        'password' => 'required|min:6',
     ]);
 
     $otp = rand(100000, 999999);
-    $email = $request->email;
 
-    // Lưu vào cache/redis, hết hạn sau 5 phút
-    Cache::put("otp_register:$email", [
-        'otp' => $otp,
+    Cache::put("otp_register:{$request->email}", [
+        'otp' => (string) $otp,
+        'attempts' => 0,
         'data' => [
             'name' => $request->name,
-            'email' => $email,
-            'phone' => $request->phone,
             'username' => $request->username,
-            'password' => bcrypt($request->password),
-        ],
-        'attempts' => 0,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'password' => Hash::make($request->password),
+        ]
     ], now()->addMinutes(5));
 
-    try {
-        Mail::raw("Mã OTP của bạn là: $otp", function ($message) use ($email) {
-            $message->to($email)->subject('Mã OTP xác minh đăng ký');
-        });
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Không thể gửi email: ' . $e->getMessage()], 500);
-    }
+    Mail::raw("Mã OTP của bạn là: $otp", function ($message) use ($request) {
+        $message->to($request->email)->subject('Xác minh OTP');
+    });
 
-    return response()->json(['message' => 'Mã OTP đã được gửi.']);
+    return response()->json(['message' => 'Mã OTP đã được gửi đến email.']);
 }
-
 
 public function verifyOtp(Request $request)
 {
@@ -160,7 +153,6 @@ public function verifyOtp(Request $request)
         return response()->json(['error' => 'OTP không chính xác.'], 400);
     }
 
-    // Tạo user
     $data = $otpData['data'];
 
     User::create([
