@@ -101,12 +101,48 @@ public function show()
 public function register(Request $request)
 {
     $request->validate([
-        'name' => 'required',
-        'username' => 'required',
-        'email' => 'required|email|unique:users,email',
-        'phone' => 'required',
-        'password' => 'required|min:6',
-    ]);
+    'name' => 'required|string|max:255',
+    'username' => 'required|string|max:50|alpha_dash|unique:users,username',
+    'email' => 'required|email|max:255|unique:users,email',
+    'phone' => [
+        'required',
+        'regex:/^0\d{9}$/',
+        'unique:users,phone',
+    ],
+    'password' => [
+        'required',
+        'string',
+        'min:6',
+        'max:255',
+        'confirmed',
+    ],
+], [
+    'name.required' => 'Vui lòng nhập họ và tên.',
+    'name.string' => 'Họ và tên không hợp lệ.',
+    'name.max' => 'Họ và tên không được vượt quá 255 ký tự.',
+
+    'username.required' => 'Vui lòng nhập tên đăng nhập.',
+    'username.string' => 'Tên đăng nhập không hợp lệ.',
+    'username.max' => 'Tên đăng nhập không được vượt quá 50 ký tự.',
+    'username.alpha_dash' => 'Tên đăng nhập chỉ được chứa chữ cái, số, dấu gạch ngang và gạch dưới.',
+    'username.unique' => 'Tên đăng nhập đã được sử dụng.',
+
+    'email.required' => 'Vui lòng nhập email.',
+    'email.email' => 'Email không đúng định dạng.',
+    'email.max' => 'Email không được vượt quá 255 ký tự.',
+    'email.unique' => 'Email đã được sử dụng.',
+
+    'phone.required' => 'Vui lòng nhập số điện thoại.',
+    'phone.regex' => 'Số điện thoại không đúng định dạng. Phải bắt đầu bằng số 0 và có 10 chữ số.',
+    'phone.unique' => 'Số điện thoại đã được sử dụng.',
+
+    'password.required' => 'Vui lòng nhập mật khẩu.',
+    'password.string' => 'Mật khẩu không hợp lệ.',
+    'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+    'password.max' => 'Mật khẩu không được vượt quá 255 ký tự.',
+    'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
+]);
+
 
     $otp = rand(100000, 999999);
 
