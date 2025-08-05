@@ -16,6 +16,7 @@ import CartDropdown from "./CartDropdown";
 import { useUser } from "../../context/UserContext";
 import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
+import { useOptimizedNavigation } from "@/hooks/useOptimizedNavigation";
 
 // Interface định nghĩa kiểu dữ liệu thông báo
 interface Notification {
@@ -99,6 +100,83 @@ const Header = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showVoucherPopup, setShowVoucherPopup] = useState(false);
+
+  // 🚀 Optimized navigation hook
+  const { navigateTo, navigateToCart, prefetchRoute } = useOptimizedNavigation({
+    user,
+    cartItems,
+    categories
+  });
+
+  // 🛒 Handle cart navigation with smart caching
+  const handleCartNavigation = () => {
+    // Check if cart data is already cached
+    const cartCache = sessionStorage.getItem('cart-page-cache');
+    const cacheTime = sessionStorage.getItem('cart-cache-time');
+    const now = Date.now();
+    
+    // If cache is fresh (less than 30 seconds), navigate immediately
+    if (cartCache && cacheTime && (now - parseInt(cacheTime)) < 30000) {
+      router.replace("/cart");
+      return;
+    }
+    
+    // Otherwise, prefetch fresh data
+    router.prefetch("/cart");
+    router.replace("/cart");
+    
+    // Cache timestamp for future use
+    sessionStorage.setItem('cart-cache-time', now.toString());
+  };
+
+  // 🎯 Handle navigation with smart prefetching
+  const handleNavigation = (path: string, shouldReplace = false) => {
+    router.prefetch(path);
+    if (shouldReplace) {
+      router.replace(path);
+    } else {
+      router.push(path);
+    }
+  };
+
+  // 🚀 Critical pages prefetch on component mount (high priority)
+  useEffect(() => {
+    // Only prefetch critical pages after initial render
+    const timer = setTimeout(() => {
+      // E-commerce specific prefetching strategy
+      router.prefetch("/cart");        // Always high priority
+      
+      if (user) {
+        // Authenticated user paths
+        router.prefetch("/account");
+        router.prefetch("/wishlist");
+        
+        // If user has items in cart, prefetch checkout
+        if (cartItems.length > 0) {
+          router.prefetch("/checkout");
+        }
+        
+        // If user has shop, prefetch shop management
+        if (user.shop) {
+          router.prefetch(`/shop/${user.shop.slug}`);
+        }
+      } else {
+        // Guest user paths
+        router.prefetch("/login");
+        router.prefetch("/register");
+      }
+      
+      // Popular categories (based on analytics)
+      if (categories.length > 0) {
+        // Prefetch top 3 categories only
+        categories.slice(0, 3).forEach(cat => {
+          router.prefetch(`/category/${cat.slug}`);
+        });
+      }
+    }, 1000); // Wait 1s after mount to avoid blocking initial render
+
+    return () => clearTimeout(timer);
+  }, [user, router, cartItems.length, categories]);
 
   // 🛒 Lắng nghe sự kiện cập nhật giỏ hàng từ nơi khác
   useEffect(() => {
@@ -258,7 +336,6 @@ const Header = () => {
     if (link) router.push(link);
   };
 
-
   return (
     <header className={`fixed top-0 left-0 right-0 z-[100] bg-white transition duration-300 ${isSticky ? "shadow-md" : ""}`}>
       {/* Banner khuyến mãi */}
@@ -292,12 +369,17 @@ const Header = () => {
             <Link
               href="/"
               className="relative group text-black hover:opacity-90"
+              onMouseEnter={() => router.prefetch("/")}
             >
               Trang Chủ
               <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
             </Link>
             <div className="relative group" ref={categoryRef}>
-              <Link href="/category" className="relative block text-black group">
+              <Link 
+                href="/category" 
+                className="relative block text-black group"
+                onMouseEnter={() => router.prefetch("/category")}
+              >
                 Danh mục
                 <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
               </Link>
@@ -307,7 +389,11 @@ const Header = () => {
                 <ul>
                   {categories.map(cat => (
                     <li key={cat.id}>
-                      <Link href={`/category/${cat.slug}`} className="block px-4 py-2 hover:bg-brand/10">
+                      <Link 
+                        href={`/category/${cat.slug}`} 
+                        className="block px-4 py-2 hover:bg-brand/10"
+                        onMouseEnter={() => router.prefetch(`/category/${cat.slug}`)}
+                      >
                         {cat.name}
                       </Link>
                     </li>
@@ -320,6 +406,7 @@ const Header = () => {
             <Link
               href="/about"
               className="relative group text-black hover:opacity-90"
+              onMouseEnter={() => router.prefetch("/about")}
             >
               Giới Thiệu
               <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
@@ -334,6 +421,7 @@ const Header = () => {
                   router.push("/voucher");
                 }
               }}
+              onMouseEnter={() => user && router.prefetch("/voucher")}
               className="relative group text-black hover:opacity-90 cursor-pointer"
             >
               Mã Giảm Giá
@@ -346,6 +434,7 @@ const Header = () => {
               <Link
                 href="/login"
                 className="relative group text-black hover:opacity-90"
+                onMouseEnter={() => router.prefetch("/login")}
               >
                 Đăng Nhập
                 <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
@@ -364,7 +453,12 @@ const Header = () => {
               unreadCount={unreadNotificationCount}
               onNotificationClick={handleNotificationClick}
             />
-            <div className="relative" onClick={() => router.push("/cart")}>
+            
+            <div 
+              className="relative" 
+              onClick={navigateToCart}
+              onMouseEnter={() => prefetchRoute("/cart")}
+            >
               <CartDropdown
                 key={cartItems.length}
                 cartItems={cartItems}
@@ -378,7 +472,11 @@ const Header = () => {
 
             </div>
 
-            <Link href="/wishlist" className="relative w-5 h-5 block">
+            <Link 
+              href="/wishlist" 
+              className="relative w-5 h-5 block"
+              onMouseEnter={() => router.prefetch("/wishlist")}
+            >
               <AiOutlineHeart className="w-5 h-5 text-black hover:text-red-500 transition-colors duration-300" />
 
 
