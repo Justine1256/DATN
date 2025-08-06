@@ -980,12 +980,16 @@ public function search(Request $request)
         return response()->json(['error' => 'Keyword is required'], 400);
     }
 
-    $products = Product::search($keyword)
-        ->with(['shop:id,slug']) // chỉ lấy slug của shop
-        ->take(50)
-        ->get(['id', 'name', 'slug', 'price', 'image', 'shop_id']); // chỉ lấy các trường cần
+    // Search ra danh sách product IDs
+    $searchResults = Product::search($keyword)->take(50)->get();
 
-    // Format lại kết quả trả về
+    // Lấy lại dữ liệu từ DB để có thể eager load quan hệ
+    $productIds = $searchResults->pluck('id')->toArray();
+
+    $products = Product::with(['shop:id,slug'])
+        ->whereIn('id', $productIds)
+        ->get(['id', 'name', 'slug', 'price', 'image', 'shop_id']);
+
     $formatted = $products->map(function ($product) {
         return [
             'id' => $product->id,
@@ -993,7 +997,7 @@ public function search(Request $request)
             'slug' => $product->slug,
             'price' => $product->price,
             'image' => $product->image,
-            'shop_slug' => $product->shop->slug ?? null, // gắn thêm shop_slug
+            'shop_slug' => $product->shop->slug ?? null,
         ];
     });
 
