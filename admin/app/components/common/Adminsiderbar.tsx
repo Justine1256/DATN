@@ -88,9 +88,16 @@ export default function ModernAdminSidebar() {
 
     return (
         <div className="h-screen w-72 bg-[#1e293b] text-[#e2e8f0] border-r border-[#334155] flex flex-col">
-            <div className="px-6 py-6 border-b border-[#334155] flex justify-center">
-                <img src="/logo.png" alt="MarketO Logo" className="w-32 h-auto" />
-            </div>
+<div className="px-6 py-6 border-b border-[#334155] flex justify-center">
+    <a
+        href={typeof window !== 'undefined' && window.location.hostname === 'localhost'
+            ? 'http://localhost:3000'
+            : 'https://marketo.info.vn'}
+    >
+        <img src="/logo.png" alt="MarketO Logo" className="w-32 h-auto" />
+    </a>
+</div>
+
             <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="px-4 py-6">
                     <div className="mb-6">

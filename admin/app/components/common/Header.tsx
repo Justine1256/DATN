@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { FiSearch, FiLogOut, FiBell, FiSettings, FiMenu, FiShoppingBag, FiUser } from "react-icons/fi";
+import { FiSearch, FiLogOut, FiBell, FiSettings, FiMenu, FiShoppingBag, FiUser, FiHome } from "react-icons/fi";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { FiStar } from "react-icons/fi"; // Đổi từ FiCrown sang FiStar
 
@@ -57,12 +57,26 @@ export default function ModernAdminHeader() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+const handleGoHome = () => {
+  const baseUrl =
+    typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://marketo.info.vn';
 
+  window.location.href = `${baseUrl}`;
+};
   const handleLogout = () => {
-    Cookies.remove("authToken");
-    setUser(null);
-    window.location.href = "/login";
-  };
+  Cookies.remove("authToken");
+  setUser(null);
+
+  const baseUrl =
+    typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://marketo.info.vn';
+
+  window.location.href = `${baseUrl}/login`;
+};
+
 
   const clearSearch = () => setSearchValue("");
 
@@ -223,7 +237,20 @@ export default function ModernAdminHeader() {
                   </button>
                   {/* More buttons go here */}
                 </div>
-
+                      <div className="border-t border-gray-200/60 bg-gray-50/50 p-3">
+                  <button
+                    onClick={handleGoHome}
+                    className="w-full flex items-center space-x-4 px-6 py-3 text-sm text-blue-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-sky-50 hover:text-blue-700 rounded-xl transition-all duration-200 group"
+                  >
+                    <div className="p-2 rounded-xl bg-blue-100 text-blue-600 group-hover:bg-blue-200 transition-colors duration-200">
+                      <FiHome className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium">Về trang chủ</p>
+                      <p className="text-xs text-blue-400">Quay lại Marketo</p>
+                    </div>
+                  </button>
+                </div>
                 {/* Logout Section */}
                 <div className="border-t border-gray-200/60 bg-gray-50/50 p-3">
                   <button
