@@ -179,12 +179,12 @@ const NotificationDropdown: React.FC = () => {
                                                         src={
                                                             notification.image_url
                                                                 ? `${STATIC_BASE_URL}${notification.image_url}`
-                                                                : "/images/default-image.png"
+                                                                : "/noti-def.jpg"
                                                         }
                                                         alt={notification.title}
                                                         className="w-full h-full object-cover transition-transform duration-300"
                                                         onError={(e) => {
-                                                            e.currentTarget.src = "/images/default-image.png";
+                                                            e.currentTarget.src = "/noti-def.jpg";
                                                         }}
                                                     />
                                                 </div>
