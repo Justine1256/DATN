@@ -252,14 +252,11 @@ public function getCategoryAndProductsBySlug($slug)
             return $query->paginate(15);
         });
 
-return response()->json(array_merge(
-    $products->toArray(),
-    [
-        'shop_id'   => $shop->id,
-        'shop_name' => $shop->name,
-        'slug'      => $shop->slug,
-    ]
-));
+        return response()->json([
+            'category' => $category,
+            'shop' => $shop,
+            'products' => $products,
+        ]);
     }
 
     // Lấy toàn bộ ID danh mục con (đệ quy)
@@ -449,14 +446,12 @@ public function showShopProducts(Request $request, $slug)
         return $query->paginate($perPage);
     });
 
-return response()->json(array_merge(
-    $products->toArray(),
-    [
+    return response()->json([
         'shop_id'   => $shop->id,
         'shop_name' => $shop->name,
         'slug'      => $shop->slug,
-    ]
-));
+        'products'  => $products,
+    ]);
 }
 
 

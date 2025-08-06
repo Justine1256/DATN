@@ -93,50 +93,38 @@ export default function CategoryPage() {
   const fetchProducts = async (page: number = 1) => {
     setLoading(true);
     setError(null);
+    
     try {
-      // Build URL with pagination parameters and filters
-      let url = `${API_BASE_URL}/product?page=${page}&per_page=${itemsPerPage}`;
-      if (appliedStartPrice > 0) url += `&min_price=${appliedStartPrice}`;
-      if (appliedEndPrice < 50000000) url += `&max_price=${appliedEndPrice}`;
-      // Add sorting
-      if (selectedNameSort) url += `&sorting=name_${selectedNameSort}`;
-      else if (selectedPriceSort) url += `&sorting=price_${selectedPriceSort}`;
-      else if (selectedDiscountSort) url += `&sorting=discount_${selectedDiscountSort}`;
-      else if (selectedSort === "Mới Nhất") url += `&sorting=latest`;
-      else if (selectedSort === "Bán Chạy") url += `&sorting=sold_desc`;
-      else if (selectedSort === "Phổ Biến") url += `&sorting=rating_desc`;
-
-      // Filter by shop (client-side, or you can add to API if supported)
-
-      // Filter by category (if selectedCategorySlug)
-      if (selectedCategorySlug) {
-        url = `${API_BASE_URL}/category/${selectedCategorySlug}/products?page=${page}&per_page=${itemsPerPage}`;
-        if (appliedStartPrice > 0) url += `&min_price=${appliedStartPrice}`;
-        if (appliedEndPrice < 50000000) url += `&max_price=${appliedEndPrice}`;
-        if (selectedNameSort) url += `&sorting=name_${selectedNameSort}`;
-        else if (selectedPriceSort) url += `&sorting=price_${selectedPriceSort}`;
-        else if (selectedDiscountSort) url += `&sorting=discount_${selectedDiscountSort}`;
-        else if (selectedSort === "Mới Nhất") url += `&sorting=latest`;
-        else if (selectedSort === "Bán Chạy") url += `&sorting=sold_desc`;
-        else if (selectedSort === "Phổ Biến") url += `&sorting=rating_desc`;
-      }
-
+      // Build URL with pagination parameters
+      const url = `${API_BASE_URL}/product?page=${page}&per_page=${itemsPerPage}`;
+      
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
       const data = await response.json();
+      
+      // Handle Laravel pagination response
       let items: Product[] = data.data || [];
       if (!Array.isArray(items)) throw new Error("Data format invalid");
-
-      // Filter by shop (client-side)
-      let filteredItems = items;
-      if (selectedShopSlug) {
-        filteredItems = filteredItems.filter(product => product.shop?.slug === selectedShopSlug);
-      }
-
-      // Extract shop info for filter
-      const shopInfoRaw = filteredItems
+      
+      // Store pagination info
+      setPaginationInfo({
+        current_page: data.current_page,
+        last_page: data.last_page,
+        per_page: data.per_page,
+        total: data.total,
+        from: data.from,
+        to: data.to
+      });
+      
+      // Store all products for filtering (we'll need to fetch all for client-side filtering)
+      setAllProducts(items);
+      
+      // Extract shop info
+      const shopInfoRaw = items
         .map(item => item.shop)
         .filter((shop): shop is { name: string; slug: string } => !!shop && typeof shop.name === "string" && typeof shop.slug === "string");
+
       const shopInfo: { name: string; slug: string }[] = [];
       const seenSlugs = new Set<string>();
       for (const shop of shopInfoRaw) {
@@ -146,17 +134,96 @@ export default function CategoryPage() {
         }
       }
       setFilteredShops(shopInfo);
+      
+      // Apply filters and sorting to the current page data
+      let filteredItems = items;
+      
+      // Filter by category if selected
+      if (selectedCategorySlug) {
+        const categoryUrl = `${API_BASE_URL}/category/${selectedCategorySlug}/products`;
+        const categoryResponse = await fetch(categoryUrl);
+        const categoryData = await categoryResponse.json();
+        filteredItems = categoryData.products || [];
+        
+        // Update filtered shops based on category products
+        const categoryShopInfoRaw = filteredItems
+          .map(item => item.shop)
+          .filter((shop): shop is { name: string; slug: string } => !!shop && typeof shop.name === "string" && typeof shop.slug === "string");
+        const categoryShopInfo: { name: string; slug: string }[] = [];
+        const categorySeenSlugs = new Set<string>();
+        for (const shop of categoryShopInfoRaw) {
+          if (!categorySeenSlugs.has(shop.slug)) {
+            categoryShopInfo.push(shop);
+            categorySeenSlugs.add(shop.slug);
+          }
+        }
+        setFilteredShops(categoryShopInfo);
+      }
+      
+      // Apply price filter
+      filteredItems = filteredItems.filter((product: Product) => {
+        const priceToFilter = Number(product.sale_price ?? product.price) || 0;
+        return priceToFilter >= appliedStartPrice && priceToFilter <= appliedEndPrice;
+      });
+
+      // Apply shop filter
+      if (selectedShopSlug) {
+        filteredItems = filteredItems.filter(product => product.shop?.slug === selectedShopSlug);
+      }
+
+      // Apply sorting
+      filteredItems.sort((a: Product, b: Product) => {
+        // Priority 1: Name sort (highest priority)
+        if (selectedNameSort) {
+          const nameA = a.name || "";
+          const nameB = b.name || "";
+          return selectedNameSort === "asc"
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
+        }
+        // Priority 2: Price sort
+        if (selectedPriceSort) {
+          const priceA = Number(a.sale_price ?? a.price) || 0;
+          const priceB = Number(b.sale_price ?? b.price) || 0;
+          if (selectedPriceSort === "asc") {
+            return priceA - priceB;
+          } else if (selectedPriceSort === "desc") {
+            return priceB - priceA;
+          }
+        }
+        // Priority 3: Discount sort
+        if (selectedDiscountSort) {
+          const calculateDiscount = (product: Product) => {
+            const originalPrice = Number(product.price) || 0;
+            const salePrice = Number(product.sale_price) || originalPrice;
+            if (originalPrice > 0 && salePrice < originalPrice) {
+              return ((originalPrice - salePrice) / originalPrice) * 100;
+            }
+            return 0;
+          };
+          const discountA = calculateDiscount(a);
+          const discountB = calculateDiscount(b);
+          if (selectedDiscountSort === "asc") {
+            return discountA - discountB;
+          } else if (selectedDiscountSort === "desc") {
+            return discountB - discountA;
+          }
+        }
+        // Priority 4: Basic sorts (lowest priority - fallback)
+        if (selectedSort === "Mới Nhất") {
+          return (b.createdAt || 0) - (a.createdAt || 0);
+        } else if (selectedSort === "Bán Chạy") {
+          return (b.sold || 0) - (a.sold || 0);
+        } else if (selectedSort === "Phổ Biến") {
+          return (Number(b.rating_avg) || 0) - (Number(a.rating_avg) || 0);
+        }
+        // Default: sort by ID
+        return a.id - b.id;
+      });
 
       setProducts(filteredItems);
-      setPaginationInfo({
-        current_page: data.current_page,
-        last_page: data.last_page,
-        per_page: data.per_page,
-        total: data.total,
-        from: data.from,
-        to: data.to
-      });
       setCurrentPage(page);
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -168,13 +235,16 @@ export default function CategoryPage() {
     fetchProducts(1); // Reset to page 1 when filters change
   }, [selectedCategorySlug, selectedSort, appliedStartPrice, appliedEndPrice, selectedPriceSort, selectedDiscountSort, selectedNameSort, selectedShopSlug]);
 
-  // Sử dụng paginationInfo từ API
-  const totalPages = paginationInfo ? paginationInfo.last_page : 1;
-  const paginatedProducts = products; // Đã là 1 trang từ API
+  // Calculate pagination for filtered results
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const paginatedProducts = products.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
-      fetchProducts(page);
+      setCurrentPage(page);
       // Scroll to top when page changes
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -486,7 +556,7 @@ export default function CategoryPage() {
               {/* Results info */}
               {paginationInfo && (
                 <div className="mb-4 text-sm text-gray-600">
-                  Hiển thị {paginationInfo.from}-{paginationInfo.to} của {paginationInfo.total} sản phẩm
+                  Hiển thị {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, products.length)} của {products.length} sản phẩm
                   {loading && <span className="ml-2">Đang tải...</span>}
                 </div>
               )}
