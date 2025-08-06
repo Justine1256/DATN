@@ -21,14 +21,19 @@ use Laravel\Sanctum\PersonalAccessToken;
 class ProductController extends Controller
 {
     // Danh sách sản phẩm
-public function index()
+public function index(Request $request)
 {
-    $products = Cache::remember('products_index', now()->addMinutes(10), function () {
+    $perPage = (int) $request->query('per_page', 15);
+    $page = (int) $request->query('page', 1);
+
+    $cacheKey = "products_index_page_{$page}_per_{$perPage}";
+
+    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($perPage, $page) {
         return Product::with('category', 'shop')
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('status', 'activated')
-            ->get();
+            ->paginate($perPage, ['*'], 'page', $page);
     });
 
     return response()->json($products);
