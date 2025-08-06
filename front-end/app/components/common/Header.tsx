@@ -514,20 +514,22 @@ const Header = () => {
                         </Link>
                       </li>
 
-                      <li>
-                        <Link href={shopSlug ? `/shop/${shopSlug}` : "/shop/open"}
-                          className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
-                          <TbBuildingStore className="w-5 h-5" /> Cửa Hàng
+                      {user?.shop?.slug ? (
+                        <Link
+                          href={`/shop/${user.shop.slug}`}
+                          className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"
+                        >
+                          <TbBuildingStore className="w-5 h-5" /> Cửa Hàng của bạn
                         </Link>
-                      </li>
-                      {user && user.role === "user" && !user.shop && (
-                        <li>
-                          <Link href="/shop/register"
-                            className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded">
-                            <TbBuildingStore className="w-5 h-5" /> Đăng Ký Shop
-                          </Link>
-                        </li>
+                      ) : (
+                        <Link
+                          href="/shop/register"
+                          className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"
+                        >
+                          <TbBuildingStore className="w-5 h-5" /> Đăng Ký Shop
+                        </Link>
                       )}
+
 
 
                       {(user?.role === "admin" || user?.role === "seller") && (

@@ -6,6 +6,7 @@ import Cookies from 'js-cookie';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import { CartItem } from './hooks/CartItem';
 import Link from 'next/link';
+
 interface Props {
   cartItems: CartItem[];
   setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
@@ -17,6 +18,7 @@ export default function CartItemsSection({
 }: Props) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];
@@ -24,9 +26,9 @@ export default function CartItemsSection({
     return img.startsWith('http') ? img : `${STATIC_BASE_URL}/${img.replace(/^\//, '')}`;
   };
 
-
   const fetchCartItems = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
+    setIsLoggedIn(!!token);
     const guestCart = localStorage.getItem('cart');
     let localCartItems: CartItem[] = [];
 
@@ -45,7 +47,7 @@ export default function CartItemsSection({
               image: [formatImageUrl(item.image)],
               price: item.price,
               sale_price: isVariant ? undefined : item.sale_price ?? null,
-              shop: item.shop || { id: null, slug: '', name: 'Không xác định' },
+              shop: item.shop ?? undefined,
             },
             variant: isVariant
               ? {
@@ -90,7 +92,7 @@ export default function CartItemsSection({
         product: {
           ...item.product,
           image: [formatImageUrl(item.product.image || 'default.jpg')],
-          shop: item.product.shop ?? {},
+          shop: item.product.shop ?? undefined,
         },
       }));
 
@@ -251,10 +253,6 @@ export default function CartItemsSection({
     fetchCartItems();
   }, []);
 
-  // ⬇️ JSX sẽ được viết phía sau để hiển thị cart
-
-
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] text-black font-semibold text-sm bg-white p-4 shadow">
@@ -282,14 +280,12 @@ export default function CartItemsSection({
             : Number(item.product.sale_price ?? item.product.price ?? 0);
           const isDiscounted = salePrice < originalPrice;
 
-
           return (
             <div
               key={item.id}
               className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:bg-gray-50 transition"
             >
-              {/* 🔺 Tên shop */}
-              {item.product.shop && (
+              {isLoggedIn && item.product.shop && (
                 <div className="px-4 pt-3 pb-1 text-sm text-gray-500 font-medium border-b">
                   <Link
                     href={`/shop/${item.product.shop.slug || item.product.shop.id}`}
@@ -300,7 +296,6 @@ export default function CartItemsSection({
                 </div>
               )}
 
-              {/* 🔻 Phần thông tin sản phẩm */}
               <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] items-center px-4 py-3 gap-2 relative">
                 <div className="flex items-center gap-3 text-left">
                   <div className="w-16 h-16 relative shrink-0">
@@ -323,7 +318,6 @@ export default function CartItemsSection({
                     <span>{item.product.name}</span>
                   </div>
                 </div>
-
 
                 <div>{renderVariant(item)}</div>
 
@@ -359,7 +353,6 @@ export default function CartItemsSection({
                 </div>
               </div>
             </div>
-
           );
         })
       )}
