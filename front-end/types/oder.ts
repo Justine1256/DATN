@@ -10,6 +10,7 @@ export enum OrderStatus {
     ReturnRequested = "Return Requested", // Yêu cầu hoàn đơn
     Returning = "Returning", // Đang hoàn đơn
     Refunded = "Refunded", // Đã hoàn tiền
+    Rejected ="Rejected"
 }
 
 // Trạng thái giao hàng (shipping_status)

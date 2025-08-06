@@ -29,7 +29,9 @@ export const translateOrderStatus = (status: OrderStatus): string => {
         case OrderStatus.Returning:
             return "Đang hoàn đơn";
         case OrderStatus.Refunded:
-            return "Đã hoàn tiền";
+            return "Đã hoàn tiền"; 
+        case OrderStatus.Rejected:
+            return "Từ chối hoàn đơn"
         default:
             return "Không xác định";
     }
