@@ -78,7 +78,7 @@ public function index(Request $request)
                 break;
         }
 
-        return $query->paginate($perPage, ['*'], 'page', $page);
+        return $query->paginate(15);
     });
 
     return response()->json($products);
