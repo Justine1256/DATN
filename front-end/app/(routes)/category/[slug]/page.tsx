@@ -318,7 +318,7 @@ export default function CategoryPage() {
   }
 
   return (
-    <div className="max-w-[1170px] mx-auto px-4 pt-6 pb-10 text-black">
+    <div className="max-w-[1170px] mx-auto px-4 pt-16 pb-10 text-black">
       <LandingSlider />
       <CategoryGrid />
 
