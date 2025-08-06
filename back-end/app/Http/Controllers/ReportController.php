@@ -75,7 +75,7 @@ class ReportController extends Controller
         }
 
         // ❌ Đơn chưa bị từ chối hoàn → không cho tố cáo
-        if ($order->return_status !== 'Rejected') {
+        if ($order->return_status !== 'Rejected' || $order->order_status !== 'Return Rejected') {
             return response()->json(['message' => 'Chỉ khi đơn hoàn bị từ chối mới được khiếu nại'], 400);
         }
 
