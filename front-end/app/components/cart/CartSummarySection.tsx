@@ -46,7 +46,7 @@ export default function CartSummarySection({ cartItems }: Props) {
 
   const subtotal = useMemo(() => {
     return cartItems.reduce(
-      (acc, item) => acc + item.quantity * (item.product?.price || 0), 0
+      (acc, item) => acc + item.quantity * (item.variant?.price || item.product?.price || 0), 0
     );
   }, [cartItems]);
 
@@ -56,13 +56,36 @@ export default function CartSummarySection({ cartItems }: Props) {
     );
   }, [cartItems]);
 
+
   const promotionDiscount = subtotal - discountedSubtotal;
 
-  const shipping = cartItems.length > 0 ? 20000 : 0;
+const itemsGroupedByShop = useMemo(() => {
+  const groups: { [shopId: number]: CartItem[] } = {};
+
+  cartItems.forEach(item => {
+    const shopId = item.product.shop?.id;
+    if (!shopId) return; // Bỏ qua nếu không có shop
+
+    if (!groups[shopId]) {
+      groups[shopId] = [];
+    }
+
+    groups[shopId].push(item);
+  });
+
+  return groups;
+}, [cartItems]);
+
+const shipping = useMemo(() => {
+  const numberOfShops = Object.keys(itemsGroupedByShop).length;
+  return numberOfShops * 20000; // 20k mỗi shop
+}, [itemsGroupedByShop]);
+
 
   const voucherDiscount = 0; // Có thể tính theo selectedDiscountId nếu muốn
 
   const total = discountedSubtotal + shipping - voucherDiscount;
+
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black min-h-[250px]">
@@ -79,13 +102,13 @@ export default function CartSummarySection({ cartItems }: Props) {
               const borderColor = d.left === 0
                 ? 'border-blue-300'
                 : selectedDiscountId === d.id
-                ? 'border-brand'
-                : 'border-gray-200';
+                  ? 'border-brand'
+                  : 'border-gray-200';
               const textColor = d.left === 0
                 ? 'text-blue-400'
                 : d.left > 100
-                ? 'text-brand'
-                : 'text-gray-400';
+                  ? 'text-brand'
+                  : 'text-gray-400';
 
               return (
                 <label
