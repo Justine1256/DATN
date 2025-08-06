@@ -31,22 +31,32 @@ public function index(Request $request)
     $minPrice  = $request->query('min_price');
     $maxPrice  = $request->query('max_price');
 
-    $cacheKey = "products:index:sort:{$sorting}:min:{$minPrice}:max:{$maxPrice}";
+    // Sử dụng http_build_query để tạo cache key từ tất cả tham số ảnh hưởng đến kết quả
+    $cacheKey = 'products:index:' . http_build_query([
+        'page'      => $page,
+        'per_page'  => $perPage,
+        'sorting'   => $sorting,
+        'min_price' => $minPrice,
+        'max_price' => $maxPrice,
+    ]);
 
-    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($sorting, $minPrice, $maxPrice, $perPage, $page) {
-    $query = Product::with(['category', 'shop'])
-        ->withCount(['approvedReviews as review_count'])
-        ->withAvg(['approvedReviews as rating_avg'], 'rating')
-        ->where('status', 'activated');
+    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use (
+        $sorting, $minPrice, $maxPrice, $perPage, $page
+    ) {
+        $query = Product::with(['category', 'shop'])
+            ->withCount(['approvedReviews as review_count'])
+            ->withAvg(['approvedReviews as rating_avg'], 'rating')
+            ->where('status', 'activated');
 
-    if ($minPrice !== null) {
-        $query->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
-    }
-    if ($maxPrice !== null) {
-        $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
-    }
+        if ($minPrice !== null) {
+            $query->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
+        }
 
-        // Sắp xếp
+        if ($maxPrice !== null) {
+            $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
+        }
+
+        // Xử lý sắp xếp
         switch ($sorting) {
             case 'name_asc':
                 $query->orderBy('name', 'asc');
@@ -68,8 +78,8 @@ public function index(Request $request)
                 break;
             case 'discount_desc':
                 $query->whereNotNull('sale_price')
-                    ->whereColumn('sale_price', '<', 'price')
-                    ->orderByRaw('(price - sale_price) / price DESC');
+                      ->whereColumn('sale_price', '<', 'price')
+                      ->orderByRaw('(price - sale_price) / price DESC');
                 break;
             case 'latest':
             default:
@@ -77,11 +87,12 @@ public function index(Request $request)
                 break;
         }
 
-        return $query->paginate($perPage);
+        return $query->paginate($perPage, ['*'], 'page', $page);
     });
 
     return response()->json($products);
 }
+
 
 
 public function show($shopslug, $productslug, Request $request)
