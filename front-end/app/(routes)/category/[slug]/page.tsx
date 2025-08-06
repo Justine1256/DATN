@@ -94,9 +94,37 @@ export default function CategoryPage() {
     setLoading(true);
     setError(null);
     try {
-      let url = `${API_BASE_URL}/product?page=${page}&per_page=${itemsPerPage}`;
+      // Mapping sort values from frontend to backend
+      let sorting = "latest";
+      if (selectedPriceSort) {
+        sorting = selectedPriceSort === "asc" ? "price_asc" : "price_desc";
+      } else if (selectedDiscountSort) {
+        sorting = "discount_desc"; // chỉ có 1 kiểu sort giảm giá
+      } else if (selectedNameSort) {
+        sorting = selectedNameSort === "asc" ? "name_asc" : "name_desc";
+      } else if (selectedSort === "Bán Chạy") {
+        sorting = "sold_desc";
+      } else if (selectedSort === "Mới Nhất") {
+        sorting = "latest";
+      } else if (selectedSort === "Phổ Biến") {
+        sorting = "rating_desc";
+      }
+
+      // Build query params
+      const params = new URLSearchParams({
+        page: String(page),
+        per_page: String(itemsPerPage),
+        sorting,
+      });
+      // Price filter
+      if (appliedStartPrice > 0) params.append("min_price", String(appliedStartPrice));
+      if (appliedEndPrice < 50000000) params.append("max_price", String(appliedEndPrice));
+      // Shop filter
+      if (selectedShopSlug) params.append("shop_slug", selectedShopSlug);
+
+      let url = `${API_BASE_URL}/product?${params.toString()}`;
       if (selectedCategorySlug) {
-        url = `${API_BASE_URL}/category/${selectedCategorySlug}/products?page=${page}&per_page=${itemsPerPage}`;
+        url = `${API_BASE_URL}/category/${selectedCategorySlug}/products?${params.toString()}`;
       }
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -112,7 +140,8 @@ export default function CategoryPage() {
       if (!selectedCategorySlug) {
         // Nếu không lọc theo category, lấy shop từ tất cả sản phẩm (gọi API lấy nhiều sản phẩm nhất có thể)
         try {
-          const allProductRes = await fetch(`${API_BASE_URL}/product?per_page=1000`);
+          const allParams = new URLSearchParams({ per_page: "1000" });
+          const allProductRes = await fetch(`${API_BASE_URL}/product?${allParams.toString()}`);
           if (allProductRes.ok) {
             const allProductData = await allProductRes.json();
             const allItems: Product[] = allProductData.data || [];
@@ -454,7 +483,6 @@ export default function CategoryPage() {
                     }
                   }}>
                   <option value="">Khuyến mãi</option>
-                  <option value="asc">Thấp đến cao</option>
                   <option value="desc">Cao đến thấp</option>
                 </select>
                 {/* Sắp xếp tên sản phẩm */}

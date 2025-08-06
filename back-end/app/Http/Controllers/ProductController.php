@@ -151,7 +151,14 @@ public function getCategoryAndProductsBySlug($slug, Request $request)
     $minPrice  = $request->query('min_price');
     $maxPrice  = $request->query('max_price');
 
-    $cacheKey = "category_with_products_slug_{$slug}:sort:{$sorting}:min:{$minPrice}:max:{$maxPrice}:page:{$page}:perPage:{$perPage}";
+    // Sử dụng http_build_query để tạo cache key từ tất cả tham số ảnh hưởng đến kết quả
+    $cacheKey = 'category_with_products_slug_' . $slug . ':' . http_build_query([
+        'page'      => $page,
+        'per_page'  => $perPage,
+        'sorting'   => $sorting,
+        'min_price' => $minPrice,
+        'max_price' => $maxPrice,
+    ]);
 
     return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($slug, $perPage, $page, $sorting, $minPrice, $maxPrice) {
         $category = Category::where('slug', $slug)->first();
@@ -166,7 +173,7 @@ public function getCategoryAndProductsBySlug($slug, Request $request)
         }
         $categoryIds = array_map('intval', $categoryIds);
 
-        $query = Product::with('shop')
+        $query = Product::with(['category', 'shop'])
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->whereIn('category_id', $categoryIds)
@@ -210,13 +217,9 @@ public function getCategoryAndProductsBySlug($slug, Request $request)
                 break;
         }
 
-        $products = $query->paginate($perPage);
+        $products = $query->paginate($perPage, ['*'], 'page', $page);
 
-        // Trả về đúng cấu trúc phân trang chuẩn, thêm category nếu muốn
-        return response()->json(array_merge(
-            $products->toArray(),
-            ['category' => $category]
-        ));
+        return response()->json($products);
     });
 }
     public function getShopProductsByCategorySlug($slug, $category_slug)
