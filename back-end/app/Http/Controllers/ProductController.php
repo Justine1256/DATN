@@ -972,18 +972,34 @@ public function getProductByIdShop($id)
             'product' => $product
         ], 200);
     }
-    public function search(Request $request)
-    {
-        $keyword = $request->get('q');
+public function search(Request $request)
+{
+    $keyword = $request->get('q');
 
-        if (!$keyword) {
-            return response()->json(['error' => 'Keyword is required'], 400);
-        }
-
-        $products = Product::search($keyword)->take(50)->get();
-
-        return response()->json($products);
+    if (!$keyword) {
+        return response()->json(['error' => 'Keyword is required'], 400);
     }
+
+    $products = Product::search($keyword)
+        ->with(['shop:id,slug']) // chỉ lấy slug của shop
+        ->take(50)
+        ->get(['id', 'name', 'slug', 'price', 'image', 'shop_id']); // chỉ lấy các trường cần
+
+    // Format lại kết quả trả về
+    $formatted = $products->map(function ($product) {
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'price' => $product->price,
+            'image' => $product->image,
+            'shop_slug' => $product->shop->slug ?? null, // gắn thêm shop_slug
+        ];
+    });
+
+    return response()->json($formatted);
+}
+
 
     // 2. Lấy danh sách sản phẩm hot
     public function getHotProducts()

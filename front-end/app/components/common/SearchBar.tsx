@@ -51,7 +51,7 @@ export default function SearchBar() {
     }, [searchQuery]);
 
     const handleSelect = (id: number) => {
-        router.push(`/product/${id}`);
+        router.push(`/shop/cua-hang-dien-thoai/product/tai-nghe-sony-wh-1000xm5`);
         setShowDropdown(false);
         setSearchQuery("");
     };
