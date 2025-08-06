@@ -33,20 +33,18 @@ public function index(Request $request)
 
     $cacheKey = "products:index:sort:{$sorting}:min:{$minPrice}:max:{$maxPrice}";
 
-    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($sorting, $minPrice, $maxPrice) {
-        $query = Product::with(['category', 'shop'])
-            ->withCount(['approvedReviews as review_count'])
-            ->withAvg(['approvedReviews as rating_avg'], 'rating')
-            ->where('status', 'activated');
+$products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($sorting, $minPrice, $maxPrice, $perPage, $page) {
+    $query = Product::with(['category', 'shop'])
+        ->withCount(['approvedReviews as review_count'])
+        ->withAvg(['approvedReviews as rating_avg'], 'rating')
+        ->where('status', 'activated');
 
-        // Lọc theo giá
-        if ($minPrice !== null) {
-            $query->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
-        }
-
-        if ($maxPrice !== null) {
-            $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
-        }
+    if ($minPrice !== null) {
+        $query->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
+    }
+    if ($maxPrice !== null) {
+        $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
+    }
 
         // Sắp xếp
         switch ($sorting) {
@@ -79,20 +77,10 @@ public function index(Request $request)
                 break;
         }
 
-        return $query->get(); // ❗ chỉ get tất cả data, không paginate tại đây
+        return $query->paginate($perPage);
     });
 
-    // Paginate ở đây để tạo đúng cấu trúc
-    $offset = ($page - 1) * $perPage;
-    $paginated = new LengthAwarePaginator(
-        $products->slice($offset, $perPage)->values(),
-        $products->count(),
-        $perPage,
-        $page,
-        ['path' => url()->current(), 'query' => $request->query()]
-    );
-
-    return response()->json($paginated);
+    return response()->json($products);
 }
 
 
