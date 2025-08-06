@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Models\Review;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,7 @@ use Laravel\Sanctum\PersonalAccessToken;
 class ProductController extends Controller
 {
     // Danh sách sản phẩm
+
 public function index(Request $request)
 {
     $perPage   = (int) $request->query('per_page', 15);
@@ -29,10 +31,9 @@ public function index(Request $request)
     $minPrice  = $request->query('min_price');
     $maxPrice  = $request->query('max_price');
 
-    // Tạo cache key giống logic getShopProductsByCategorySlug
-    $cacheKey = "products:index:sort:{$sorting}:min:{$minPrice}:max:{$maxPrice}:page:{$page}:perPage:{$perPage}";
+    $cacheKey = "products:index:sort:{$sorting}:min:{$minPrice}:max:{$maxPrice}";
 
-    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($sorting, $minPrice, $maxPrice, $perPage, $page) {
+    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($sorting, $minPrice, $maxPrice) {
         $query = Product::with(['category', 'shop'])
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
@@ -69,8 +70,8 @@ public function index(Request $request)
                 break;
             case 'discount_desc':
                 $query->whereNotNull('sale_price')
-                      ->whereColumn('sale_price', '<', 'price')
-                      ->orderByRaw('(price - sale_price) / price DESC');
+                    ->whereColumn('sale_price', '<', 'price')
+                    ->orderByRaw('(price - sale_price) / price DESC');
                 break;
             case 'latest':
             default:
@@ -78,10 +79,20 @@ public function index(Request $request)
                 break;
         }
 
-        return $query->paginate(15);
+        return $query->get(); // ❗ chỉ get tất cả data, không paginate tại đây
     });
 
-    return response()->json($products);
+    // Paginate ở đây để tạo đúng cấu trúc
+    $offset = ($page - 1) * $perPage;
+    $paginated = new LengthAwarePaginator(
+        $products->slice($offset, $perPage)->values(),
+        $products->count(),
+        $perPage,
+        $page,
+        ['path' => url()->current(), 'query' => $request->query()]
+    );
+
+    return response()->json($paginated);
 }
 
 
