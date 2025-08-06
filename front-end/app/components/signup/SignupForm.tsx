@@ -16,6 +16,7 @@ export default function SignupForm() {
     email: '',
     phone: '',
     password: '',
+    password_confirmation: '',
     agree: false,
   })
   const [showOtpModal, setShowOtpModal] = useState(false)
@@ -51,10 +52,11 @@ export default function SignupForm() {
     try {
       const res = await axios.post(`${API_BASE_URL}/register`, {
         name: values.name,
-        username: values.email.split('@')[0],
+        username: values.email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, ''), // Loại bỏ ký tự đặc biệt
         email: values.email,
         phone: values.phone,
         password: values.password,
+        password_confirmation: values.password_confirmation, // Sử dụng giá trị từ form
       })
 
       setFormData(values)
@@ -67,20 +69,85 @@ export default function SignupForm() {
       setOtpCountdown(300)
       setResendCountdown(60)
     } catch (err: any) {
-      const error = err.response?.data?.error || ''
-      let messageText = 'Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại.'
-
-      if (error.includes('email đã tồn tại')) {
-        messageText = 'Email đã được sử dụng. Vui lòng dùng email khác.'
-      } else if (error.includes('số điện thoại đã tồn tại')) {
-        messageText = 'Số điện thoại đã được đăng ký. Vui lòng dùng số khác.'
+      console.log('Full error object:', err)
+      console.log('Error response:', err.response?.data) // Debug log
+      console.log('Error status:', err.response?.status) // Debug status
+      
+      // Xử lý lỗi validation từ Laravel (422 status)
+      const errors = err.response?.data?.errors
+      const errorMessage = err.response?.data?.message || ''
+      
+      if (errors) {
+        console.log('Validation errors found:', errors)
+        
+        // Set lỗi cho từng field tương ứng
+        const formErrors: any[] = []
+        
+        // Kiểm tra lỗi name
+        if (errors.name && errors.name.length > 0) {
+          formErrors.push({
+            name: 'name',
+            errors: [errors.name[0]]
+          })
+        }
+        
+        // Kiểm tra lỗi email
+        if (errors.email && errors.email.length > 0) {
+          console.log('Email error found:', errors.email[0])
+          formErrors.push({
+            name: 'email',
+            errors: [errors.email[0]]
+          })
+        }
+        
+        // Kiểm tra lỗi phone
+        if (errors.phone && errors.phone.length > 0) {
+          formErrors.push({
+            name: 'phone',
+            errors: [errors.phone[0]]
+          })
+        }
+        
+        // Kiểm tra lỗi username (không hiển thị vì username được tạo tự động từ email)
+        if (errors.username && errors.username.length > 0) {
+          // Chỉ log để debug, không hiển thị lỗi cho user vì username được tạo tự động
+          console.log('Username error (auto-generated):', errors.username[0])
+        }
+        
+        // Kiểm tra lỗi password
+        if (errors.password && errors.password.length > 0) {
+          formErrors.push({
+            name: 'password',
+            errors: [errors.password[0]]
+          })
+        }
+        
+        // Kiểm tra lỗi password confirmation
+        if (errors.password_confirmation && errors.password_confirmation.length > 0) {
+          formErrors.push({
+            name: 'password_confirmation',
+            errors: [errors.password_confirmation[0]]
+          })
+        }
+        
+        // Set lỗi cho form
+        if (formErrors.length > 0) {
+          form.setFields(formErrors)
+        }
       }
-
-      notification.error({
-        message: 'Đăng ký thất bại',
-        description: messageText,
-        icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
-      })
+      // Fallback cho các lỗi khác không phải validation
+      else {
+        let messageText = 'Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại.'
+        if (errorMessage) {
+          messageText = errorMessage
+        }
+        
+        notification.error({
+          message: 'Đăng ký thất bại',
+          description: messageText,
+          icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -157,10 +224,11 @@ export default function SignupForm() {
     try {
       const res = await axios.post(`${API_BASE_URL}/register`, {
         name: formData.name,
-        username: formData.email.split('@')[0],
+        username: formData.email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, ''), // Loại bỏ ký tự đặc biệt
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
+        password_confirmation: formData.password_confirmation, // Sử dụng giá trị từ formData
       })
       
       notification.success({
@@ -272,6 +340,29 @@ export default function SignupForm() {
         >
           <Input.Password
             placeholder="Mật khẩu"
+            className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2"
+            size="large"
+            iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="password_confirmation"
+          rules={[
+            { required: true, message: 'Vui lòng nhập xác nhận mật khẩu' },
+            { min: 6, message: 'Xác nhận mật khẩu phải có ít nhất 6 ký tự' },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue('password') === value) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(new Error('Xác nhận mật khẩu không khớp!'));
+              },
+            }),
+          ]}
+        >
+          <Input.Password
+            placeholder="Xác nhận mật khẩu"
             className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2"
             size="large"
             iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
