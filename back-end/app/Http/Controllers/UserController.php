@@ -208,7 +208,11 @@ public function verifyOtp(Request $request)
         'password' => $data['password'],
         'email_verified_at' => now(),
     ]);
-
+// hiện ra thời gian tạo tài khoản
+    $user = User::where('email', $data['email'])->first();
+    if (!$user) {
+        return response()->json(['error' => 'Không tìm thấy người dùng.'], 404);
+    }
     Cache::forget("otp_register:$email");
 
     return response()->json(['message' => 'Xác minh OTP thành công. Tài khoản đã được tạo.']);
