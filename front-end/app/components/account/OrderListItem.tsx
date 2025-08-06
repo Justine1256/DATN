@@ -60,7 +60,6 @@ export default function OrderListItem({
     const [isReporting, setIsReporting] = useState(false);
 
     const router = useRouter()
-    console.log("🧪 Order debug:", order);
 
     const handleReportShop = async (data: { reason: string; images: File[] }) => {
         setIsReporting(true);

@@ -205,7 +205,6 @@ export default function OrderSection() {
       }
     );
 
-    console.log("✅ Tố cáo thành công:", response.data);
 
     // ✅ 3. Cập nhật trạng thái UI
     order.reported = true;
@@ -231,7 +230,6 @@ export default function OrderSection() {
 
 
 const handleSubmitRefund = async (refundData: { reason: string; images: File[] }) => {
-  console.log("🧪 Bắt đầu gọi handleSubmitRefund");
   if (!orderToRefund) {
     console.warn("⚠️ Không có orderToRefund");
     return;
@@ -251,7 +249,6 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
       const imgForm = new FormData();
       imgForm.append("image", image);
 
-      console.log("📤 Uploading image:", image);
 
       const res = await axios.post(`${API_BASE_URL}/upload-refund-image`, imgForm, {
         headers: {
@@ -259,12 +256,10 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log("📥 Phản hồi từ API upload ảnh:", res.data);
 
       const uploaded = res.data?.images?.[0];
 
       if (uploaded) {
-        console.log("✅ Image uploaded successfully:", uploaded);
         imageUrls.push(uploaded);
       } else {
         console.error("❌ Không nhận được URL ảnh sau khi upload:", res.data);
@@ -277,7 +272,6 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
       images: imageUrls,
     };
 
-    console.log("📦 Payload gửi qua API hoàn đơn:", payload);
 
     const response = await axios.post(`${API_BASE_URL}/orders/${orderToRefund.id}/refund`, payload, {
       headers: {
@@ -286,7 +280,6 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
       },
     });
 
-    console.log("✅ Phản hồi từ API hoàn đơn:", response.data);
 
     setOrders((prev) =>
       prev.map((o) => (o.id === orderToRefund.id ? { ...o, refund_requested: true } : o))

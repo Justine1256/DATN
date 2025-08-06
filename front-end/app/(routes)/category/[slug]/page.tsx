@@ -97,7 +97,6 @@ export default function CategoryPage() {
         return res.json();
       })
       .then((data) => {
-        console.log("Fetched products:", data[1]);
         let items: Product[] = data;
         if (!Array.isArray(items)) throw new Error("Data format invalid");
 
@@ -182,10 +181,7 @@ export default function CategoryPage() {
             const priceA = Number(a.sale_price ?? a.price) || 0;
             const priceB = Number(b.sale_price ?? b.price) || 0;
 
-            // Debug logging
-            if (selectedPriceSort === "asc" || selectedPriceSort === "desc") {
-              console.log(`Sorting ${a.name} (${priceA}) vs ${b.name} (${priceB})`);
-            }
+
 
             if (selectedPriceSort === "asc") {
               return priceA - priceB;
@@ -210,7 +206,6 @@ export default function CategoryPage() {
             const discountA = calculateDiscount(a);
             const discountB = calculateDiscount(b);
 
-            console.log(`Discount sorting: ${a.name} (${discountA.toFixed(1)}%) vs ${b.name} (${discountB.toFixed(1)}%)`);
 
             if (selectedDiscountSort === "asc") {
               return discountA - discountB;

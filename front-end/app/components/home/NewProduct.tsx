@@ -14,7 +14,6 @@ const router = useRouter();
     fetch(`${API_BASE_URL}/newproducts`)
       .then((res) => res.json())
       .then((data) => {
-        console.log("Dữ liệu fetch được:", data); // 🟢 LOG CHÍNH Ở ĐÂY
         setProducts(Array.isArray(data.products) ? data.products : []);
       })
       .catch((err) => {

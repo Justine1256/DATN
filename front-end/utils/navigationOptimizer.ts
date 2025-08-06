@@ -83,7 +83,6 @@ class NavigationOptimizer {
     // Analytics tracking (if needed)
     if (trackEvent) {
       // Track navigation event
-      console.log(`Navigation: ${trackEvent} -> ${path}`);
     }
 
     // Check cache first

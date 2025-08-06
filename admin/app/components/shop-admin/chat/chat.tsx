@@ -55,7 +55,6 @@ export default function AdminChat() {
       setUsers(res.data);
       setSelectedUser(res.data[0]);
     } catch (err) {
-      console.error('❌ Lỗi lấy danh sách users:', err);
     }
   };
 

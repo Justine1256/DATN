@@ -24,10 +24,8 @@ export default function SearchBar() {
     const formatImageUrl = (img: string[] | null | undefined) => {
         if (Array.isArray(img) && img.length > 0) {
             const url = img[0];
-            console.log("DEBUG formatImageUrl ARRAY:", url);
             return url.startsWith("http") ? url : `${STATIC_BASE_URL}/${url}`;
         }
-        console.log("DEBUG formatImageUrl DEFAULT");
         return `${STATIC_BASE_URL}/products/default-product.png`;
     };
 
@@ -41,7 +39,6 @@ export default function SearchBar() {
             axios
                 .get(`${API_BASE_URL}/products/search?q=${encodeURIComponent(searchQuery)}`)
                 .then(res => {
-                    console.log("DEBUG API RESPONSE:", res.data);
                     setResults(res.data);
                 })
                 .catch((err) => {
@@ -76,7 +73,6 @@ export default function SearchBar() {
             <AiOutlineSearch
                 className="absolute right-3 top-1/2 -translate-y-1/2  cursor-pointer hover:scale-110 transition"
                 size={20}
-                onClick={() => console.log('Search Click')}
             />
 
             {showDropdown && results.length > 0 && (
