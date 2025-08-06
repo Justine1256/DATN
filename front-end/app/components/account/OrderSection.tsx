@@ -16,6 +16,8 @@ export default function OrderSection() {
   const [orders, setOrders] = useState<Order[]>([])
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
   const [activeTab, setActiveTab] = useState("all")
+  const [reportedOrderIds, setReportedOrderIds] = useState<number[]>([]);
+
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const perPage = 3
@@ -207,6 +209,8 @@ export default function OrderSection() {
 
     // ✅ 3. Cập nhật trạng thái UI
     order.reported = true;
+    setReportedOrderIds((prev) => [...prev, order.id]);
+
     setPopup({ type: "success", message: "✅ Đã gửi tố cáo thành công!" });
   } catch (error: any) {
     const msg = error?.response?.data?.message || "";
@@ -340,6 +344,7 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
                 <OrderListItem
                   key={order.id}
                   order={order}
+                  reportedOrderIds={reportedOrderIds}
                   onViewDetails={handleViewOrderDetails}
                   onReorder={handleReorder}
                   onCancelOrder={handleCancelOrder}

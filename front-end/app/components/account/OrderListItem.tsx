@@ -32,6 +32,7 @@ interface OrderListItemProps {
     onRefundRequest: (order: Order, refundData: { reason: string; images: File[] }) => void;
     onReportShop: (order: Order, data: { reason: string; images: File[] }) => void;
     onClickRefund: () => void;
+    reportedOrderIds: number[];
     onClickReport: () => void;
 
 
@@ -43,6 +44,7 @@ export default function OrderListItem({
     onReorder,
     onCancelOrder,
     onRefundRequest,
+    reportedOrderIds,
     onReportShop,
     onClickRefund,
     onClickReport
@@ -434,15 +436,18 @@ export default function OrderListItem({
                         )}
 
                         {/* Nếu đã bị từ chối hoàn đơn */}
-                        {(order.order_status === "Return Rejected" || order.refund_status === "Rejected") && !order.reported && (
-                            <button
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-[#db4444] hover:bg-[#c73e3e] text-white rounded-xl transition font-semibold shadow-md"
-                                onClick={onClickReport}
-                            >
-                                <AlertCircle className="w-4 h-4" />
-                                Tố cáo shop
-                            </button>
-                        )}
+                        {(order.order_status === "Return Rejected" || order.refund_status === "Rejected")
+                            && !reportedOrderIds.includes(Number(order.id))
+ && (
+                                <button
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#db4444] hover:bg-[#c73e3e] text-white rounded-xl transition font-semibold shadow-md"
+                                    onClick={onClickReport}
+                                >
+                                    <AlertCircle className="w-4 h-4" />
+                                    Tố cáo shop
+                                </button>
+                            )}
+
 
 
 
