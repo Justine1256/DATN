@@ -87,7 +87,8 @@ Route::get('/topdiscountedproducts', [ProductController::class, 'topDiscountedPr
 Route::get('/newproducts', [ProductController::class, 'newProducts']);
 Route::get('/category/{slug}/products', [ProductController::class, 'getCategoryAndProductsBySlug']);
 Route::get('/products/recommended', [ProductController::class, 'getHotProducts']);
-
+Route::get('/shop/{slug}/products', [ProductController::class, 'showShopProducts']);
+Route::get('/shop/{slug}/products-by-category/{category_slug}', [ProductController::class, 'getShopProductsByCategorySlug']);
 
 Route::post('/product', [ProductController::class, 'store']);
 Route::patch('/product/{id}', [ProductController::class, 'update']);
@@ -122,8 +123,7 @@ Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
 Route::get('/products/{id}/reviews', [ReviewController::class, 'getByProduct']);
 Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
-Route::get('/shop/{slug}/products', [ProductController::class, 'showShopProducts']);
-Route::get('/shop/{slug}/products-by-category/{category_slug}', [ProductController::class, 'getShopProductsByCategorySlug']);
+
 
 Route::post('/forgot-password/send-otp', [UserController::class, 'sendResetOtp']);
 Route::post('/forgot-password/reset', [UserController::class, 'resetPasswordWithOtp']);

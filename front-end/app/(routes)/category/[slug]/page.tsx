@@ -6,22 +6,20 @@ import ProductCardcate from "@/app/components/product/ProductCardCate";
 import LandingSlider from "@/app/components/home/LandingSlider";
 import { API_BASE_URL } from "@/utils/api";
 import CategoryGrid from "@/app/components/home/CategoryGrid";
-import { it } from "node:test";
-import { log } from "console";
 
 interface Product {
   id: number;
   name: string;
   image: string[];
   slug: string;
-  price: string | number;  // API returns string like "200000.00"
+  price: string | number;
   oldPrice: number;
   rating: number;
-  rating_avg?: string | number;  // API returns string like "5.0000"
+  rating_avg?: string | number;
   discount: number;
   option1?: string;
   value1?: string;
-  sale_price?: string | number | null;  // API can return string, number, or null
+  sale_price?: string | number | null;
   shop_slug: string;
   shop?: {
     name: string;
@@ -37,27 +35,36 @@ interface Category {
   slug: string;
 }
 
+interface PaginationInfo {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  from: number;
+  to: number;
+}
+
 export default function CategoryPage() {
   const { slug } = useParams() as { slug?: string };
   const router = useRouter();
-
   const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]); // Store all products for filtering
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredShops, setFilteredShops] = useState<Array<{ name: string; slug: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+  
+  // Pagination info from API
+  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(null);
 
   // Temporary slider values (for UI display only)
   const [tempStartPrice, setTempStartPrice] = useState<number>(0);
   const [tempEndPrice, setTempEndPrice] = useState<number>(50000000);
-
   // Applied filter values (used for actual filtering)
   const [appliedStartPrice, setAppliedStartPrice] = useState<number>(0);
   const [appliedEndPrice, setAppliedEndPrice] = useState<number>(50000000);
-
   // Legacy states for compatibility
   const [currentPriceRangeValue, setCurrentPriceRangeValue] = useState<number>(50000000);
   const [filterPriceMax, setFilterPriceMax] = useState<number>(50000000);
@@ -66,7 +73,6 @@ export default function CategoryPage() {
   // Add string states for input fields
   const [startPriceInput, setStartPriceInput] = useState<string>("0");
   const [endPriceInput, setEndPriceInput] = useState<string>("50000");
-
   const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
   const [selectedPriceSort, setSelectedPriceSort] = useState<string | null>(null);
   const [selectedDiscountSort, setSelectedDiscountSort] = useState<string | null>(null);
@@ -83,157 +89,153 @@ export default function CategoryPage() {
       .catch(console.error);
   }, []);
 
-  useEffect(() => {
+  // Fetch products with pagination
+  const fetchProducts = async (page: number = 1) => {
     setLoading(true);
     setError(null);
-    setProducts([]);
+    
+    try {
+      // Build URL with pagination parameters
+      const url = `${API_BASE_URL}/product?page=${page}&per_page=${itemsPerPage}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const data = await response.json();
+      
+      // Handle Laravel pagination response
+      let items: Product[] = data.data || [];
+      if (!Array.isArray(items)) throw new Error("Data format invalid");
+      
+      // Store pagination info
+      setPaginationInfo({
+        current_page: data.current_page,
+        last_page: data.last_page,
+        per_page: data.per_page,
+        total: data.total,
+        from: data.from,
+        to: data.to
+      });
+      
+      // Store all products for filtering (we'll need to fetch all for client-side filtering)
+      setAllProducts(items);
+      
+      // Extract shop info
+      const shopInfoRaw = items
+        .map(item => item.shop)
+        .filter((shop): shop is { name: string; slug: string } => !!shop && typeof shop.name === "string" && typeof shop.slug === "string");
 
-    // Always fetch all products, then filter locally
-    const url = `${API_BASE_URL}/product`;
-
-    fetch(url)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        let items: Product[] = data;
-        if (!Array.isArray(items)) throw new Error("Data format invalid");
-
-        const shopInfoRaw = items
+      const shopInfo: { name: string; slug: string }[] = [];
+      const seenSlugs = new Set<string>();
+      for (const shop of shopInfoRaw) {
+        if (!seenSlugs.has(shop.slug)) {
+          shopInfo.push(shop);
+          seenSlugs.add(shop.slug);
+        }
+      }
+      setFilteredShops(shopInfo);
+      
+      // Apply filters and sorting to the current page data
+      let filteredItems = items;
+      
+      // Filter by category if selected
+      if (selectedCategorySlug) {
+        const categoryUrl = `${API_BASE_URL}/category/${selectedCategorySlug}/products`;
+        const categoryResponse = await fetch(categoryUrl);
+        const categoryData = await categoryResponse.json();
+        filteredItems = categoryData.products || [];
+        
+        // Update filtered shops based on category products
+        const categoryShopInfoRaw = filteredItems
           .map(item => item.shop)
           .filter((shop): shop is { name: string; slug: string } => !!shop && typeof shop.name === "string" && typeof shop.slug === "string");
-        const shopInfo: { name: string; slug: string }[] = [];
-        const seenSlugs = new Set<string>();
-        for (const shop of shopInfoRaw) {
-          if (!seenSlugs.has(shop.slug)) {
-            shopInfo.push(shop);
-            seenSlugs.add(shop.slug);
+        const categoryShopInfo: { name: string; slug: string }[] = [];
+        const categorySeenSlugs = new Set<string>();
+        for (const shop of categoryShopInfoRaw) {
+          if (!categorySeenSlugs.has(shop.slug)) {
+            categoryShopInfo.push(shop);
+            categorySeenSlugs.add(shop.slug);
           }
         }
-        setFilteredShops(shopInfo);
+        setFilteredShops(categoryShopInfo);
+      }
+      
+      // Apply price filter
+      filteredItems = filteredItems.filter((product: Product) => {
+        const priceToFilter = Number(product.sale_price ?? product.price) || 0;
+        return priceToFilter >= appliedStartPrice && priceToFilter <= appliedEndPrice;
+      });
 
-        // Filter by category if selected
-        if (selectedCategorySlug) {
-          const categoryUrl = `${API_BASE_URL}/category/${selectedCategorySlug}/products`;
-          return fetch(categoryUrl).then(res => res.json()).then(categoryData => {
-            items = categoryData.products || [];
+      // Apply shop filter
+      if (selectedShopSlug) {
+        filteredItems = filteredItems.filter(product => product.shop?.slug === selectedShopSlug);
+      }
 
-            // Update filtered shops based on category products
-            const categoryShopInfoRaw = items
-              .map(item => item.shop)
-              .filter((shop): shop is { name: string; slug: string } => !!shop && typeof shop.name === "string" && typeof shop.slug === "string");
-            const categoryShopInfo: { name: string; slug: string }[] = [];
-            const categorySeenSlugs = new Set<string>();
-            for (const shop of categoryShopInfoRaw) {
-              if (!categorySeenSlugs.has(shop.slug)) {
-                categoryShopInfo.push(shop);
-                categorySeenSlugs.add(shop.slug);
-              }
-            }
-            setFilteredShops(categoryShopInfo);
-
-            // Apply price filter
-            items = items.filter((product: Product) => {
-              const priceToFilter = Number(product.sale_price ?? product.price) || 0;
-              return priceToFilter >= appliedStartPrice && priceToFilter <= appliedEndPrice;
-            });
-
-            // Apply shop filter
-            if (selectedShopSlug) {
-              items = items.filter(product => product.shop?.slug === selectedShopSlug);
-            }
-
-            return items;
-          });
-        } else {
-          // Show all shops when no category is selected
-          setFilteredShops(shopInfo);
-
-          // Apply price filter
-          items = items.filter((product: Product) => {
-            const priceToFilter = Number(product.sale_price ?? product.price) || 0;
-            return priceToFilter >= appliedStartPrice && priceToFilter <= appliedEndPrice;
-          });
-
-          // Apply shop filter
-          if (selectedShopSlug) {
-            items = items.filter(product => product.shop?.slug === selectedShopSlug);
-          }
-
-          return Promise.resolve(items);
+      // Apply sorting
+      filteredItems.sort((a: Product, b: Product) => {
+        // Priority 1: Name sort (highest priority)
+        if (selectedNameSort) {
+          const nameA = a.name || "";
+          const nameB = b.name || "";
+          return selectedNameSort === "asc"
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
         }
-      })
-      .then((items) => {
-        // Simple sorting logic - only one sort applies at a time
-        items.sort((a: Product, b: Product) => {
-          // Priority 1: Name sort (highest priority)
-          if (selectedNameSort) {
-            const nameA = a.name || "";
-            const nameB = b.name || "";
-            return selectedNameSort === "asc"
-              ? nameA.localeCompare(nameB)
-              : nameB.localeCompare(nameA);
+        // Priority 2: Price sort
+        if (selectedPriceSort) {
+          const priceA = Number(a.sale_price ?? a.price) || 0;
+          const priceB = Number(b.sale_price ?? b.price) || 0;
+          if (selectedPriceSort === "asc") {
+            return priceA - priceB;
+          } else if (selectedPriceSort === "desc") {
+            return priceB - priceA;
           }
-
-          // Priority 2: Price sort
-          if (selectedPriceSort) {
-            const priceA = Number(a.sale_price ?? a.price) || 0;
-            const priceB = Number(b.sale_price ?? b.price) || 0;
-
-
-
-            if (selectedPriceSort === "asc") {
-              return priceA - priceB;
-            } else if (selectedPriceSort === "desc") {
-              return priceB - priceA;
+        }
+        // Priority 3: Discount sort
+        if (selectedDiscountSort) {
+          const calculateDiscount = (product: Product) => {
+            const originalPrice = Number(product.price) || 0;
+            const salePrice = Number(product.sale_price) || originalPrice;
+            if (originalPrice > 0 && salePrice < originalPrice) {
+              return ((originalPrice - salePrice) / originalPrice) * 100;
             }
+            return 0;
+          };
+          const discountA = calculateDiscount(a);
+          const discountB = calculateDiscount(b);
+          if (selectedDiscountSort === "asc") {
+            return discountA - discountB;
+          } else if (selectedDiscountSort === "desc") {
+            return discountB - discountA;
           }
+        }
+        // Priority 4: Basic sorts (lowest priority - fallback)
+        if (selectedSort === "Mới Nhất") {
+          return (b.createdAt || 0) - (a.createdAt || 0);
+        } else if (selectedSort === "Bán Chạy") {
+          return (b.sold || 0) - (a.sold || 0);
+        } else if (selectedSort === "Phổ Biến") {
+          return (Number(b.rating_avg) || 0) - (Number(a.rating_avg) || 0);
+        }
+        // Default: sort by ID
+        return a.id - b.id;
+      });
 
-          // Priority 3: Discount sort
-          if (selectedDiscountSort) {
-            // Calculate discount percentage: ((original_price - sale_price) / original_price) * 100
-            const calculateDiscount = (product: Product) => {
-              const originalPrice = Number(product.price) || 0;
-              const salePrice = Number(product.sale_price) || originalPrice;
-              
-              if (originalPrice > 0 && salePrice < originalPrice) {
-                return ((originalPrice - salePrice) / originalPrice) * 100;
-              }
-              return 0; // No discount if sale_price is null or >= original price
-            };
+      setProducts(filteredItems);
+      setCurrentPage(page);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            const discountA = calculateDiscount(a);
-            const discountB = calculateDiscount(b);
-
-
-            if (selectedDiscountSort === "asc") {
-              return discountA - discountB;
-            } else if (selectedDiscountSort === "desc") {
-              return discountB - discountA;
-            }
-          }
-
-          // Priority 4: Basic sorts (lowest priority - fallback)
-          if (selectedSort === "Mới Nhất") {
-            return (b.createdAt || 0) - (a.createdAt || 0);
-          } else if (selectedSort === "Bán Chạy") {
-            return (b.sold || 0) - (a.sold || 0);
-          } else if (selectedSort === "Phổ Biến") {
-            return (Number(b.rating_avg) || 0) - (Number(a.rating_avg) || 0);
-          }
-
-          // Default: sort by ID
-          return a.id - b.id;
-        });
-
-        setProducts(items);
-        setCurrentPage(1);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+  useEffect(() => {
+    fetchProducts(1); // Reset to page 1 when filters change
   }, [selectedCategorySlug, selectedSort, appliedStartPrice, appliedEndPrice, selectedPriceSort, selectedDiscountSort, selectedNameSort, selectedShopSlug]);
 
+  // Calculate pagination for filtered results
   const totalPages = Math.ceil(products.length / itemsPerPage);
   const paginatedProducts = products.slice(
     (currentPage - 1) * itemsPerPage,
@@ -243,6 +245,8 @@ export default function CategoryPage() {
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
+      // Scroll to top when page changes
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -261,7 +265,6 @@ export default function CategoryPage() {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
   };
-
 
   const formatInputValue = (value: number | string) => {
     if (value === null || value === undefined) return "";
@@ -316,13 +319,11 @@ export default function CategoryPage() {
     <div className="max-w-[1170px] mx-auto px-4 pt-16 pb-10 text-black">
       <LandingSlider />
       <CategoryGrid />
-
       <div className="mt-8 flex flex-col lg:flex-row gap-6">
         <div className="w-full lg:w-1/4 flex flex-col gap-8">
           {/* Bộ lọc và sắp xếp */}
           <div className="pt-4 flex flex-col space-y-4">
             <h3 className="text-lg font-semibold pb-4 border-b">Bộ lọc </h3>
-
             {/* Danh mục */}
             <div className="flex flex-col space-y-4">
               <h3 className="font-semibold">Danh mục</h3>
@@ -346,11 +347,9 @@ export default function CategoryPage() {
                 ))}
               </div>
             </div>
-
             {/* Cửa hàng */}
             <div className="flex flex-col space-y-4">
               <h3 className="font-semibold">Cửa hàng</h3>
-
               <div>
                 <button
                   onClick={() => setSelectedShopSlug(null)}
@@ -371,26 +370,21 @@ export default function CategoryPage() {
                 ))}
               </div>
             </div>
-
             {/* Lọc theo giá */}
             <div className="flex flex-col space-y-4">
-
               <div className="flex gap-2">
                 <h4 className="font-semibold">Giá</h4>
                 <p>(VNĐ)</p>
               </div>
-
               {/* Hiển thị khoảng giá */}
               <div className="flex justify-between text-sm text-gray-700">
                 <span>{formatCurrency(tempStartPrice)}</span>
                 <span>{formatCurrency(tempEndPrice)}</span>
               </div>
-
               {/* Thanh lọc 2 đầu */}
               <div className="relative h-8 mt-2 mb-4">
                 {/* Thanh nền */}
                 <div className="absolute top-1/2 left-0 right-0 h-2 bg-gray-200 rounded-full transform -translate-y-1/2" />
-
                 {/* Thanh vùng chọn đỏ */}
                 <div
                   className="absolute top-1/2 h-2 bg-[#DB4444] rounded-full transform -translate-y-1/2"
@@ -399,7 +393,6 @@ export default function CategoryPage() {
                     right: `${100 - (tempEndPrice / 50000000) * 100}%`,
                   }}
                 />
-
                 {/* Slider trái */}
                 <input
                   type="range"
@@ -424,7 +417,6 @@ export default function CategoryPage() {
                     [&::-webkit-slider-thumb]:hover:scale-110
                     transition-transform duration-200"
                 />
-
                 {/* Slider phải */}
                 <input
                   type="range"
@@ -452,7 +444,6 @@ export default function CategoryPage() {
                     transition-transform duration-200"
                 />
               </div>
-
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={handleApplyFilters}
@@ -467,14 +458,20 @@ export default function CategoryPage() {
                   Đặt lại
                 </button>
               </div>
-
             </div>
           </div>
         </div>
-
         <div className="flex-1">
           {error ? (
-            <p className="text-red-500">{error}</p>
+            <div className="text-red-500 text-center py-8">
+              <p>{error}</p>
+              <button 
+                onClick={() => fetchProducts(currentPage)}
+                className="mt-4 px-4 py-2 bg-brand text-white rounded hover:opacity-90"
+              >
+                Thử lại
+              </button>
+            </div>
           ) : products.length === 0 && !loading ? (
             <p className="text-gray-500">Không có sản phẩm nào.</p>
           ) : (
@@ -495,7 +492,6 @@ export default function CategoryPage() {
                   <option value="Mới Nhất">Mới Nhất</option>
                   <option value="Bán Chạy">Bán Chạy</option>
                 </select>
-
                 {/* Sắp xếp giá đã giảm */}
                 <select
                   className="border w-full px-3 py-2 rounded cursor-pointer"
@@ -512,7 +508,6 @@ export default function CategoryPage() {
                   <option value="asc">Thấp đến cao</option>
                   <option value="desc">Cao đến thấp</option>
                 </select>
-
                 {/* Sắp xếp theo khuyến mãi */}
                 <select
                   className="border w-full px-3 py-2 rounded cursor-pointer"
@@ -529,7 +524,6 @@ export default function CategoryPage() {
                   <option value="asc">Thấp đến cao</option>
                   <option value="desc">Cao đến thấp</option>
                 </select>
-
                 {/* Sắp xếp tên sản phẩm */}
                 <select className="border w-full px-3 py-2 rounded cursor-pointer"
                   value={selectedNameSort || ""}
@@ -545,7 +539,6 @@ export default function CategoryPage() {
                   <option value="asc">A đến Z</option>
                   <option value="desc">Z đến A</option>
                 </select>
-
                 {/* Clear All Sorts Button */}
                 <button
                   onClick={() => {
@@ -559,25 +552,36 @@ export default function CategoryPage() {
                   Đặt lại
                 </button>
               </div>
+
+              {/* Results info */}
+              {paginationInfo && (
+                <div className="mb-4 text-sm text-gray-600">
+                  Hiển thị {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, products.length)} của {products.length} sản phẩm
+                  {loading && <span className="ml-2">Đang tải...</span>}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[650px] justify-start items-start auto-rows-auto">
-                {paginatedProducts.map((product, idx) => (
-                  <div key={idx}>
-                    {loading ? (
-                      <div className="h-[250px] bg-gray-100 rounded animate-pulse" />
-                    ) : (
+                {loading ? (
+                  // Loading skeletons
+                  Array.from({ length: itemsPerPage }).map((_, idx) => (
+                    <div key={idx} className="h-[250px] bg-gray-100 rounded animate-pulse" />
+                  ))
+                ) : (
+                  paginatedProducts.map((product, idx) => (
+                    <div key={`${product.id}-${idx}`}>
                       <ProductCardcate product={{
                         ...product,
                         price: Number(product.price) || 0,
                         sale_price: product.sale_price ? Number(product.sale_price) : undefined,
                         rating_avg: product.rating_avg ? Number(product.rating_avg) : undefined
                       }} />
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
-
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-6 gap-2 flex-wrap">
@@ -588,27 +592,21 @@ export default function CategoryPage() {
               >
                 Trước
               </button>
-
               {(() => {
                 const pageButtons: React.JSX.Element[] = [];
                 const pagesToShow = new Set<number>();
-
                 // Add first 2 pages
                 if (totalPages >= 1) pagesToShow.add(1);
                 if (totalPages >= 2) pagesToShow.add(2);
-
                 // Add current page and adjacent pages
                 if (currentPage > 1) pagesToShow.add(currentPage - 1);
                 pagesToShow.add(currentPage);
                 if (currentPage < totalPages) pagesToShow.add(currentPage + 1);
-
                 // Add last 2 pages
                 if (totalPages >= 2) pagesToShow.add(totalPages - 1);
                 if (totalPages >= 1) pagesToShow.add(totalPages);
-
                 // Convert to sorted array
                 const sortedPages = Array.from(pagesToShow).sort((a, b) => a - b);
-
                 // Render buttons with ellipsis
                 sortedPages.forEach((page, index) => {
                   // Add ellipsis if there's a gap
@@ -617,7 +615,6 @@ export default function CategoryPage() {
                       <span key={`ellipsis-${page}`} className="px-2">...</span>
                     );
                   }
-
                   pageButtons.push(
                     <button
                       key={page}
@@ -631,10 +628,8 @@ export default function CategoryPage() {
                     </button>
                   );
                 });
-
                 return pageButtons;
               })()}
-
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-[#DB4444] hover:text-white transition"
