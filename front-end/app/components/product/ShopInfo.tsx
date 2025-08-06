@@ -192,10 +192,11 @@ export default function ShopInfo({ shop, followed, onFollowToggle }: ShopInfoPro
       </div>
 
       {showPopup && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#DC4B47] animate-slideInFade">
+        <div className="fixed top-[140px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
           {popupText}
         </div>
       )}
+
     </div>
   );
 }

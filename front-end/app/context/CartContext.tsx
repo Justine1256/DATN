@@ -108,6 +108,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
     }, []);
 
+    // ✅ Load giỏ hàng khi component mount (fix lỗi F5 mất số)
+    useEffect(() => {
+        reloadCart();
+    }, [reloadCart]);
+
     // ===== Lắng nghe sự kiện cập nhật giỏ hàng từ các tab khác (debounced) =====
     useEffect(() => {
         let debounce: NodeJS.Timeout | null = null;

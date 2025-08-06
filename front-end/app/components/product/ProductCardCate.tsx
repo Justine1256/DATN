@@ -63,6 +63,7 @@ export default function ProductCardCate({
   const [liked, setLiked] = useState(isInWishlist);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
+  const [isLiking, setIsLiking] = useState(false);
 
   useEffect(() => {
     setLiked(isInWishlist);
@@ -91,6 +92,8 @@ export default function ProductCardCate({
   // ✅ Yêu thích sản phẩm
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isLiking) return; // ✅ Chặn spam
+
     const token = localStorage.getItem("token") || Cookies.get("authToken");
 
     if (!token) {
@@ -99,6 +102,8 @@ export default function ProductCardCate({
       setTimeout(() => setShowPopup(false), 2000);
       return;
     }
+
+    setIsLiking(true); // ✅ Khóa thao tác
 
     const newLiked = !liked;
     setLiked(newLiked);
@@ -138,53 +143,56 @@ export default function ProductCardCate({
     } catch (err) {
       console.error("❌ Lỗi xử lý wishlist:", err);
       setPopupMessage("Lỗi khi xử lý yêu thích");
+      setLiked(!newLiked); // 🔁 Khôi phục nếu lỗi
     } finally {
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
+      setIsLiking(false); // ✅ Mở khóa
     }
   };
+
 
   // ✅ Thêm vào giỏ hàng
-  const handleAddToCart = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const token = localStorage.getItem("token") || Cookies.get("authToken");
+  // const handleAddToCart = async (e: React.MouseEvent) => {
+  //   e.stopPropagation();
+  //   const token = localStorage.getItem("token") || Cookies.get("authToken");
 
-    if (!token) {
-      setPopupMessage("Bạn cần đăng nhập để thêm vào giỏ hàng");
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-      return;
-    }
+  //   if (!token) {
+  //     setPopupMessage("Bạn cần đăng nhập để thêm vào giỏ hàng");
+  //     setShowPopup(true);
+  //     setTimeout(() => setShowPopup(false), 2000);
+  //     return;
+  //   }
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/cart`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          product_id: product.id,
-          quantity: 1,
-        }),
-      });
+  //   try {
+  //     const res = await fetch(`${API_BASE_URL}/cart`, {
+  //       method: "POST",
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //         "Content-Type": "application/json",
+  //         Accept: "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         product_id: product.id,
+  //         quantity: 1,
+  //       }),
+  //     });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Thêm vào giỏ hàng thất bại");
-      }
+  //     if (!res.ok) {
+  //       const errorData = await res.json();
+  //       throw new Error(errorData.message || "Thêm vào giỏ hàng thất bại");
+  //     }
 
-      setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
-      window.dispatchEvent(new Event("cartUpdated"));
-    } catch (err: any) {
-      console.error("❌ Lỗi khi thêm vào giỏ hàng:", err);
-      setPopupMessage(err.message || "Đã xảy ra lỗi khi thêm sản phẩm");
-    } finally {
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 2000);
-    }
-  };
+  //     setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
+  //     window.dispatchEvent(new Event("cartUpdated"));
+  //   } catch (err: any) {
+  //     console.error("❌ Lỗi khi thêm vào giỏ hàng:", err);
+  //     setPopupMessage(err.message || "Đã xảy ra lỗi khi thêm sản phẩm");
+  //   } finally {
+  //     setShowPopup(true);
+  //     setTimeout(() => setShowPopup(false), 2000);
+  //   }
+  // };
 
   // ✅ Chuyển đến trang chi tiết sản phẩm
   const handleViewDetail = () => {
@@ -203,10 +211,11 @@ export default function ProductCardCate({
       style={{ minHeight: "250px" }}
     >
       {showPopup && (
-        <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-brand animate-slideInFade">
+        <div className="fixed top-[140px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
           {popupMessage}
         </div>
       )}
+
 
       {product.sale_price && (
         <div className="absolute top-2 left-2 bg-brand text-white text-[10px] px-2 py-0.5 rounded">
@@ -216,7 +225,8 @@ export default function ProductCardCate({
 
       <button
         onClick={handleLike}
-        className="absolute top-2 right-2 text-xl z-20 pointer-events-auto"
+        disabled={isLiking}
+        className={`absolute top-2 right-2 text-xl z-20 pointer-events-auto transition ${isLiking ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {liked ? (
           <AiFillHeart className="text-red-500 transition" />
@@ -224,6 +234,7 @@ export default function ProductCardCate({
           <AiOutlineHeart className="text-red-500 transition" />
         )}
       </button>
+
 
 
       <div className="w-full h-[150px] mt-4 flex items-center justify-center overflow-hidden">

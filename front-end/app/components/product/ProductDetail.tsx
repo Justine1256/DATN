@@ -44,12 +44,17 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [selectedA, setSelectedA] = useState('');
   const [selectedB, setSelectedB] = useState('');
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
+// thêm sản phẩm 
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+// mua ngay 
+  const [isBuyingNow, setIsBuyingNow] = useState(false);
 
   // ✅ State yêu thích / theo dõi / popup
   const [liked, setLiked] = useState(false);
   const [followed, setFollowed] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupText, setPopupText] = useState('');
+  const [isLiking, setIsLiking] = useState(false);
 
   const [showSelectionWarning, setShowSelectionWarning] = useState(false);
 
@@ -69,7 +74,21 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       (!selectedA.trim() || !selectedB.trim())
     );
   };
+ // tăng giảm số lượng 
+  const [isQuantityUpdating, setIsQuantityUpdating] = useState(false);
+  const handleIncrease = () => {
+    if (isQuantityUpdating) return;
+    setIsQuantityUpdating(true);
+    setQuantity(prev => prev + 1);
+    setTimeout(() => setIsQuantityUpdating(false), 200); // delay 200ms
+  };
 
+  const handleDecrease = () => {
+    if (isQuantityUpdating || quantity <= 1) return;
+    setIsQuantityUpdating(true);
+    setQuantity(prev => Math.max(1, prev - 1));
+    setTimeout(() => setIsQuantityUpdating(false), 200); // delay 200ms
+  };
 
 
   // ✅ Fetch chi tiết sản phẩm và ghi nhận lịch sử xem
@@ -208,126 +227,156 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   };
 
   // ✅ Thêm vào giỏ hàng (token hoặc localStorage)
-const handleAddToCart = async () => {
-  const token = Cookies.get('authToken');
-  const hasVariants = product.variants?.length > 0;
-  const selectedValuesFilled = selectedA && selectedB;
+  const handleAddToCart = async () => {
+    if (isAddingToCart) return;
+    setIsAddingToCart(true);
 
-  const matchedVariant = product.variants.find(
-    (v) => v.value1 === selectedA && v.value2 === selectedB
-  );
+    const token = Cookies.get('authToken');
+    const hasVariants = product.variants?.length > 0;
+    const selectedValuesFilled = selectedA && selectedB;
 
-  const isFromProductValues =
-    product.value1?.toLowerCase() === selectedA?.toLowerCase() &&
-    product.value2?.toLowerCase() === selectedB?.toLowerCase();
-
-  // ✅ Trường hợp chưa chọn đủ phân loại hàng
-  if (hasVariants && !selectedValuesFilled) {
-    setShowSelectionWarning(true);
-    return;
-  }
-
-  setShowSelectionWarning(false); // ✅ Reset nếu chọn đủ
-
-  // ✅ Trường hợp chọn đủ nhưng biến thể không tồn tại
-  if (hasVariants && !matchedVariant && !isFromProductValues) {
-    commonPopup("❌ Xin quý khách, hiện tại biến thể này đã hết hàng");
-    return;
-  }
-
-  const useVariant = matchedVariant ?? null;
-  const price = useVariant?.price ?? product.price;
-  const sale_price = useVariant?.sale_price ?? product.sale_price;
-
-  const cartItem = {
-    product_id: product.id,
-    quantity,
-    name: product.name,
-    image: Array.isArray(product.image) ? product.image[0] : '',
-    price: Number(price || 0),
-    sale_price: sale_price ? Number(sale_price) : null,
-    value1: selectedA,
-    value2: selectedB,
-    variant_id: useVariant?.id ?? null,
-    option1: product.option1 || 'Phân loại 1',
-    option2: product.option2 || 'Phân loại 2',
-    variant_price: useVariant?.price ?? null,
-    variant_sale_price: useVariant?.sale_price ?? null,
-  };
-
-  if (!token) {
-    const local = localStorage.getItem("cart");
-    const cart = local ? JSON.parse(local) : [];
-    const index = cart.findIndex(
-      (i: any) =>
-        i.product_id === cartItem.product_id &&
-        i.variant_id === cartItem.variant_id
+    const matchedVariant = product.variants.find(
+      (v) => v.value1 === selectedA && v.value2 === selectedB
     );
 
-    if (index !== -1) {
-      cart[index].quantity += quantity;
-    } else {
-      cart.push(cartItem);
+    const isFromProductValues =
+      product.value1?.toLowerCase() === selectedA?.toLowerCase() &&
+      product.value2?.toLowerCase() === selectedB?.toLowerCase();
+
+    if (hasVariants && !selectedValuesFilled) {
+      setShowSelectionWarning(true);
+      setIsAddingToCart(false);
+      return;
     }
 
-    localStorage.setItem("cart", JSON.stringify(cart));
-    reloadCart();
-    commonPopup(`🛒 Đã thêm "${cartItem.name}" vào giỏ hàng`);
-    return;
-  }
+    setShowSelectionWarning(false);
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/cart`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(cartItem),
-    });
-
-    if (res.ok) {
-      await reloadCart();
-      commonPopup(`🛒 Đã thêm "${product.name}" vào giỏ hàng`);
-    } else {
-      const err = await res.json();
-      console.error("❌ Cart API error:", err);
-      commonPopup("❌ Thêm vào giỏ hàng thất bại");
+    if (hasVariants && !matchedVariant && !isFromProductValues) {
+      commonPopup("❌ Xin quý khách, hiện tại biến thể này đã hết hàng");
+      setIsAddingToCart(false);
+      return;
     }
-  } catch (error) {
-    console.error("❌ Cart request failed:", error);
-    commonPopup("❌ Lỗi khi gửi yêu cầu giỏ hàng");
-  }
-};
+
+    const useVariant = matchedVariant ?? null;
+    const price = useVariant?.price ?? product.price;
+    const sale_price = useVariant?.sale_price ?? product.sale_price;
+
+    const cartItem = {
+      product_id: product.id,
+      quantity,
+      name: product.name,
+      image: Array.isArray(product.image) ? product.image[0] : '',
+      price: Number(price || 0),
+      sale_price: sale_price ? Number(sale_price) : null,
+      value1: selectedA,
+      value2: selectedB,
+      variant_id: useVariant?.id ?? null,
+      option1: product.option1 || 'Phân loại 1',
+      option2: product.option2 || 'Phân loại 2',
+      variant_price: useVariant?.price ?? null,
+      variant_sale_price: useVariant?.sale_price ?? null,
+    };
+
+    try {
+      if (!token) {
+        const local = localStorage.getItem("cart");
+        const cart = local ? JSON.parse(local) : [];
+        const index = cart.findIndex(
+          (i: any) =>
+            i.product_id === cartItem.product_id &&
+            i.variant_id === cartItem.variant_id
+        );
+
+        if (index !== -1) {
+          cart[index].quantity += quantity;
+        } else {
+          cart.push(cartItem);
+        }
+
+        localStorage.setItem("cart", JSON.stringify(cart));
+        reloadCart();
+        commonPopup(`🛒 Đã thêm "${cartItem.name}" vào giỏ hàng`);
+      } else {
+        const res = await fetch(`${API_BASE_URL}/cart`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(cartItem),
+        });
+
+        if (res.ok) {
+          await reloadCart();
+          commonPopup(`🛒 Đã thêm "${product.name}" vào giỏ hàng`);
+        } else {
+          const err = await res.json();
+          console.error("❌ Cart API error:", err);
+          commonPopup("❌ Thêm vào giỏ hàng thất bại");
+        }
+      }
+    } catch (error) {
+      console.error("❌ Cart request failed:", error);
+      commonPopup("❌ Lỗi khi gửi yêu cầu giỏ hàng");
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
 
 
   // ✅ Thêm vào wishlist
   const toggleLike = async () => {
+    if (isLiking) return;
+    setIsLiking(true);
+
     const token = Cookies.get('authToken') || localStorage.getItem('token');
-    if (!token) return commonPopup('Vui lòng đăng nhập để yêu thích sản phẩm');
+    if (!token) {
+      commonPopup('Vui lòng đăng nhập để yêu thích sản phẩm');
+      setIsLiking(false);
+      return;
+    }
 
     try {
+      const url = `${API_BASE_URL}/wishlist`;
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+
       if (liked) {
-        return commonPopup('Sản phẩm đã có trong danh sách yêu thích');
+        // ❌ Đã thích, giờ muốn bỏ thích
+        const res = await fetch(`${url}/${product.id}`, {
+          method: 'DELETE',
+          headers,
+        });
+
+        if (!res.ok) throw new Error('Không thể hủy yêu thích');
+        setLiked(false);
+        commonPopup('Đã xóa khỏi mục yêu thích!');
+      } else {
+        // ❤️ Chưa thích → thêm mới
+        const res = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ product_id: product.id }),
+        });
+
+        if (!res.ok && res.status !== 409) throw new Error('Không thể thêm vào yêu thích');
+        setLiked(true);
+        commonPopup('Đã thêm vào mục yêu thích!');
       }
 
-      const res = await fetch(`${API_BASE_URL}/wishlist`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: product.id }),
-      });
-
-      if (res.status === 409) return commonPopup('Sản phẩm đã có trong danh sách yêu thích');
-      if (!res.ok) throw new Error("Không thể thêm vào wishlist!");
-
-      setLiked(true);
       reloadWishlist();
-      commonPopup('Đã thêm vào mục yêu thích!');
     } catch (err) {
-      console.error('❌ Lỗi xử lý wishlist:', err);
+      console.error('❌ Lỗi xử lý yêu thích:', err);
       commonPopup('Có lỗi xảy ra!');
+    } finally {
+      setIsLiking(false);
     }
   };
+
+
 
   // ✅ Theo dõi shop
   const handleFollow = async () => {
@@ -344,99 +393,102 @@ const handleAddToCart = async () => {
   };
 
   // ✅ Mua ngay (thêm vào giỏ và chuyển trang)
-const handleBuyNow = async () => {
-  const token = Cookies.get('authToken');
-  const hasVariants = product.variants?.length > 0;
-  const selectedValuesFilled = selectedA && selectedB;
+  const handleBuyNow = async () => {
+    if (isBuyingNow) return;
+    setIsBuyingNow(true);
 
-  const matchedVariant = product.variants.find(
-    (v) => v.value1 === selectedA && v.value2 === selectedB
-  );
+    const token = Cookies.get('authToken');
+    const hasVariants = product.variants?.length > 0;
+    const selectedValuesFilled = selectedA && selectedB;
 
-  const isFromProductValues =
-    product.value1?.toLowerCase() === selectedA?.toLowerCase() &&
-    product.value2?.toLowerCase() === selectedB?.toLowerCase();
+    const matchedVariant = product.variants.find(
+      (v) => v.value1 === selectedA && v.value2 === selectedB
+    );
 
-  // ✅ Chưa chọn đầy đủ phân loại
-  if (hasVariants && !selectedValuesFilled) {
-    setShowSelectionWarning(true);
-    return;
-  }
+    const isFromProductValues =
+      product.value1?.toLowerCase() === selectedA?.toLowerCase() &&
+      product.value2?.toLowerCase() === selectedB?.toLowerCase();
 
-  setShowSelectionWarning(false); // reset cảnh báo
-
-  // ✅ Đã chọn nhưng biến thể không tồn tại
-  if (hasVariants && !matchedVariant && !isFromProductValues) {
-    commonPopup("❌ Xin quý khách, hiện tại biến thể này đã hết hàng");
-    return;
-  }
-
-  const useVariant = matchedVariant ?? null;
-  const price = useVariant?.price ?? product.price;
-  const sale_price = useVariant?.sale_price ?? product.sale_price;
-
-  const cartItem = {
-    product_id: product.id,
-    quantity,
-    name: product.name,
-    image: Array.isArray(product.image) ? product.image[0] : '',
-    price: Number(price || 0),
-    sale_price: sale_price ? Number(sale_price) : null,
-    value1: selectedA,
-    value2: selectedB,
-    variant_id: useVariant?.id ?? null,
-    option1: product.option1 || 'Phân loại 1',
-    option2: product.option2 || 'Phân loại 2',
-    variant_price: useVariant?.price ?? null,
-   variant_sale_price: useVariant?.sale_price ?? null,
-  };
-
-  try {
-    if (!token) {
-      // ✅ LocalStorage nếu chưa đăng nhập
-      const local = localStorage.getItem("cart");
-      const cart = local ? JSON.parse(local) : [];
-      const index = cart.findIndex(
-        (i: any) =>
-          i.product_id === cartItem.product_id &&
-          i.variant_id === cartItem.variant_id
-      );
-
-      if (index !== -1) {
-        cart[index].quantity += quantity;
-      } else {
-        cart.push(cartItem);
-      }
-
-      localStorage.setItem("cart", JSON.stringify(cart));
-      reloadCart();
-      router.push('/cart');
+    if (hasVariants && !selectedValuesFilled) {
+      setShowSelectionWarning(true);
+      setIsBuyingNow(false); // reset
       return;
     }
 
-    // ✅ Đăng nhập → gửi API
-    const res = await fetch(`${API_BASE_URL}/cart`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(cartItem),
-    });
+    setShowSelectionWarning(false);
 
-    if (res.ok) {
-      await reloadCart();
-      router.push('/cart');
-    } else {
-      const err = await res.json();
-      console.error("❌ Cart API error:", err);
-      commonPopup("❌ Thêm vào giỏ hàng thất bại");
+    if (hasVariants && !matchedVariant && !isFromProductValues) {
+      commonPopup("❌ Xin quý khách, hiện tại biến thể này đã hết hàng");
+      setIsBuyingNow(false);
+      return;
     }
-  } catch (error) {
-    console.error("❌ Cart request failed:", error);
-    commonPopup("❌ Lỗi khi gửi yêu cầu giỏ hàng");
-  }
-};
+
+    const useVariant = matchedVariant ?? null;
+    const price = useVariant?.price ?? product.price;
+    const sale_price = useVariant?.sale_price ?? product.sale_price;
+
+    const cartItem = {
+      product_id: product.id,
+      quantity,
+      name: product.name,
+      image: Array.isArray(product.image) ? product.image[0] : '',
+      price: Number(price || 0),
+      sale_price: sale_price ? Number(sale_price) : null,
+      value1: selectedA,
+      value2: selectedB,
+      variant_id: useVariant?.id ?? null,
+      option1: product.option1 || 'Phân loại 1',
+      option2: product.option2 || 'Phân loại 2',
+      variant_price: useVariant?.price ?? null,
+      variant_sale_price: useVariant?.sale_price ?? null,
+    };
+
+    try {
+      if (!token) {
+        const local = localStorage.getItem("cart");
+        const cart = local ? JSON.parse(local) : [];
+        const index = cart.findIndex(
+          (i: any) =>
+            i.product_id === cartItem.product_id &&
+            i.variant_id === cartItem.variant_id
+        );
+
+        if (index !== -1) {
+          cart[index].quantity += quantity;
+        } else {
+          cart.push(cartItem);
+        }
+
+        localStorage.setItem("cart", JSON.stringify(cart));
+        await reloadCart();
+        router.push('/cart');
+      } else {
+        const res = await fetch(`${API_BASE_URL}/cart`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(cartItem),
+        });
+
+        if (res.ok) {
+          await reloadCart();
+          router.push('/cart');
+        } else {
+          const err = await res.json();
+          console.error("❌ Cart API error:", err);
+          commonPopup("❌ Thêm vào giỏ hàng thất bại");
+        }
+      }
+    } catch (error) {
+      console.error("❌ Cart request failed:", error);
+      commonPopup("❌ Lỗi khi gửi yêu cầu giỏ hàng");
+    } finally {
+      setIsBuyingNow(false);
+    }
+  };
+
 
 
   // ⬇️ Phần hiển thị JSX sẽ viết bên dưới
@@ -459,9 +511,18 @@ const handleBuyNow = async () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
           {/* Gallery & like */}
           <div className="md:col-span-6 flex flex-col gap-4 relative">
-            <button onClick={toggleLike} className="absolute top-2 left-2 p-2 text-[22px] z-20">
-              {liked ? <AiFillHeart className="text-red-500" /> : <AiOutlineHeart className="text-red-500" />}
+            <button
+              onClick={toggleLike}
+              disabled={isLiking}
+              className="absolute top-2 left-2 p-2 text-[22px] z-20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {liked ? (
+                <AiFillHeart className="text-red-500" />
+              ) : (
+                <AiOutlineHeart className="text-red-500" />
+              )}
             </button>
+
             <ProductGallery
               images={
                 Array.isArray(product.image) && product.image.length > 0
@@ -595,38 +656,52 @@ const handleBuyNow = async () => {
             <div className="flex items-center gap-3 mt-4">
               <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
                 <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition"
+                  onClick={handleDecrease}
+                  disabled={isQuantityUpdating || quantity <= 1}
+                  className={`w-[55px] text-2xl font-extrabold transition ${quantity <= 1 || isQuantityUpdating
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-black hover:bg-brand hover:text-white'
+                    }`}
                 >
                   −
                 </button>
+
                 <span className="w-[55px] flex items-center justify-center text-base font-extrabold text-black">
                   {quantity}
                 </span>
+
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-[55px] text-2xl font-extrabold text-black hover:bg-brand hover:text-white transition"
+                  onClick={handleIncrease}
+                  disabled={isQuantityUpdating || quantity >= getStock()}
+                  className={`w-[55px] text-2xl font-extrabold transition ${quantity >= getStock() || isQuantityUpdating
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-black hover:bg-brand hover:text-white'
+                    }`}
                 >
                   +
                 </button>
               </div>
 
-              <button
-                onClick={() => {
 
-                  handleBuyNow(); // Trigger buying and redirecting to cart
-                }}
-                className="w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded hover:bg-red-600 transition font-medium"
+              <button
+                onClick={handleBuyNow}
+                disabled={isBuyingNow}
+                className={`w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded transition font-medium hover:bg-red-600 ${isBuyingNow ? 'pointer-events-none opacity-50' : ''
+                  }`}
               >
                 Mua Ngay
               </button>
 
               <button
                 onClick={handleAddToCart}
-                className="w-[165px] h-[44px] text-brand border border-brand text-sm md:text-base rounded hover:bg-brand hover:text-white transition font-medium"
+                disabled={isAddingToCart}
+                className={`w-[165px] h-[44px] text-sm md:text-base rounded transition font-medium border text-brand border-brand hover:bg-brand hover:text-white ${isAddingToCart ? 'pointer-events-none opacity-50' : ''
+                  }`}
               >
                 Thêm Vào Giỏ Hàng
               </button>
+
+
             </div>
             {/* Chính sách vận chuyển */}
             <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
