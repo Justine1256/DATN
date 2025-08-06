@@ -12,7 +12,10 @@ interface Product {
     name: string;
     price: number;
     image: string[];
+    slug: string;
+    shop_slug: string;
 }
+
 
 export default function SearchBar() {
     const [searchQuery, setSearchQuery] = useState("");
@@ -50,8 +53,8 @@ export default function SearchBar() {
         return () => clearTimeout(delayDebounce);
     }, [searchQuery]);
 
-    const handleSelect = (id: number) => {
-        router.push(`/shop/cua-hang-dien-thoai/product/tai-nghe-sony-wh-1000xm5`);
+    const handleSelect = (product: Product) => {
+        router.push(`/shop/${product.shop_slug}/product/${product.slug}`);
         setShowDropdown(false);
         setSearchQuery("");
     };
@@ -81,7 +84,7 @@ export default function SearchBar() {
                         <div
                             key={product.id}
                             className="flex items-center p-3 hover:bg-[#db4444]/10 cursor-pointer transition"
-                            onClick={() => handleSelect(product.id)}
+                            onClick={() => handleSelect(product)}
                         >
                             <Image
                                 src={formatImageUrl(product.image)}
