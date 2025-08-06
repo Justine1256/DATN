@@ -266,10 +266,7 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
     setIsProcessingRefund(false);
   }
 };
-  const handleWrappedSubmitRefund = (order: Order, refundData: { reason: string; images: File[] }) => {
-    setOrderToRefund(order); // vẫn cần gán để modal dùng
-    handleSubmitRefund(refundData); // gọi hàm thật sự
-  }
+  
 
 
   const handleReorder = async (order: Order) => {

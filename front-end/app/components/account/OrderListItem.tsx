@@ -236,6 +236,13 @@ export default function OrderListItem({
                                 </span>
 
                             </div>
+                            {/* ✅ Nếu đã gửi yêu cầu và chưa bị từ chối */}
+                            {order.refund_requested && order.refund_status !== "Rejected" && (
+                                <div className="inline-flex items-center gap-2 text-purple-600 font-semibold px-4 py-3">
+                                    <RotateCcw className="w-4 h-4" />
+                                    Đã yêu cầu hoàn đơn
+                                </div>
+                            )}
                         </div>
 
                         {/* Order Info Grid */}
@@ -394,7 +401,7 @@ export default function OrderListItem({
                         {order.order_status === "Delivered" && (
                             <>
                                 {/* ✅ Nếu chưa gửi yêu cầu hoàn đơn */}
-                                {/* ✅ Nếu chưa gửi yêu cầu hoàn đơn */}
+                            
                                 {!order.refund_requested && (
                                     <button
                                         className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl hover:from-purple-600 hover:to-indigo-600 transition font-semibold"
@@ -405,13 +412,7 @@ export default function OrderListItem({
                                     </button>
                                 )}
 
-                                {/* ✅ Nếu đã gửi yêu cầu và chưa bị từ chối */}
-                                {order.refund_requested && order.refund_status !== "Rejected" && (
-                                    <div className="inline-flex items-center gap-2 text-purple-600 font-semibold px-4 py-3">
-                                        <RotateCcw className="w-4 h-4" />
-                                        Đã yêu cầu hoàn đơn
-                                    </div>
-                                )}
+                              
 
                                 {/* ✅ Nếu bị từ chối hoàn đơn → hiện nút tố cáo */}
                                 {order.refund_status === "Rejected" && (
