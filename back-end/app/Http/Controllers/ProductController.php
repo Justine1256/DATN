@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Models\Review;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
@@ -21,23 +22,67 @@ use Laravel\Sanctum\PersonalAccessToken;
 class ProductController extends Controller
 {
     // Danh sách sản phẩm
+
 public function index(Request $request)
 {
-    $perPage = (int) $request->query('per_page', 15);
-    $page = (int) $request->query('page', 1);
+    $perPage   = (int) $request->query('per_page', 15);
+    $page      = (int) $request->query('page', 1);
+    $sorting   = $request->query('sorting', 'latest');
+    $minPrice  = $request->query('min_price');
+    $maxPrice  = $request->query('max_price');
 
-    $cacheKey = "products_index_page_{$page}_per_{$perPage}";
+    $cacheKey = "products:index:sort:{$sorting}:min:{$minPrice}:max:{$maxPrice}";
 
-    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($perPage, $page) {
-        return Product::with('category', 'shop')
-            ->withCount(['approvedReviews as review_count'])
-            ->withAvg(['approvedReviews as rating_avg'], 'rating')
-            ->where('status', 'activated')
-            ->paginate($perPage, ['*'], 'page', $page);
+$products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($sorting, $minPrice, $maxPrice, $perPage, $page) {
+    $query = Product::with(['category', 'shop'])
+        ->withCount(['approvedReviews as review_count'])
+        ->withAvg(['approvedReviews as rating_avg'], 'rating')
+        ->where('status', 'activated');
+
+    if ($minPrice !== null) {
+        $query->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
+    }
+    if ($maxPrice !== null) {
+        $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
+    }
+
+        // Sắp xếp
+        switch ($sorting) {
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'price_asc':
+                $query->orderByRaw('COALESCE(sale_price, price) ASC');
+                break;
+            case 'price_desc':
+                $query->orderByRaw('COALESCE(sale_price, price) DESC');
+                break;
+            case 'rating_desc':
+                $query->orderByDesc('rating_avg');
+                break;
+            case 'sold_desc':
+                $query->orderByDesc('sold');
+                break;
+            case 'discount_desc':
+                $query->whereNotNull('sale_price')
+                    ->whereColumn('sale_price', '<', 'price')
+                    ->orderByRaw('(price - sale_price) / price DESC');
+                break;
+            case 'latest':
+            default:
+                $query->orderByDesc('id');
+                break;
+        }
+
+        return $query->paginate($perPage);
     });
 
     return response()->json($products);
 }
+
 
 public function show($shopslug, $productslug, Request $request)
 {
@@ -207,11 +252,14 @@ public function getCategoryAndProductsBySlug($slug)
             return $query->paginate(15);
         });
 
-        return response()->json([
-            'category' => $category,
-            'shop' => $shop,
-            'products' => $products,
-        ]);
+return response()->json(array_merge(
+    $products->toArray(),
+    [
+        'shop_id'   => $shop->id,
+        'shop_name' => $shop->name,
+        'slug'      => $shop->slug,
+    ]
+));
     }
 
     // Lấy toàn bộ ID danh mục con (đệ quy)
@@ -401,12 +449,14 @@ public function showShopProducts(Request $request, $slug)
         return $query->paginate($perPage);
     });
 
-    return response()->json([
+return response()->json(array_merge(
+    $products->toArray(),
+    [
         'shop_id'   => $shop->id,
         'shop_name' => $shop->name,
         'slug'      => $shop->slug,
-        'products'  => $products,
-    ]);
+    ]
+));
 }
 
 
