@@ -10,7 +10,7 @@ import OrderListItem from "./OrderListItem"
 import OrderDetailModal from "./OrderDetailModal"
 import RefundRequestModal from "./refund-request-modal"
 import { OrderStatus } from "../../../types/oder" // Declare OrderStatus here
-
+import ReportModal from "./reportmodal"
 export default function OrderSection() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
@@ -29,7 +29,16 @@ export default function OrderSection() {
   const [popup, setPopup] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
   const token = Cookies.get("authToken")
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportedOrder, setReportedOrder] = useState<Order | null>(null)
+  const [isReporting, setIsReporting] = useState(false)
 
+  const handleSubmitReport = (data: { reason: string; images: File[] }) => {
+    if (!reportedOrder) return
+    handleReportShop(reportedOrder, data)
+    setReportedOrder(null)
+    setShowReportModal(false)
+  }
   const fetchOrders = async () => {
     setLoading(true)
     try {
@@ -131,6 +140,54 @@ export default function OrderSection() {
     setOrderToRefund(order)
     setShowRefundModal(true)
   }
+  const handleReportShop = async (order: Order, reportData: { reason: string; images: File[] }) => {
+    if (isProcessingRefund) return;
+
+    try {
+      setIsProcessingRefund(true);
+
+      const imageUrls: string[] = [];
+
+      for (const image of reportData.images) {
+        const imgForm = new FormData();
+        imgForm.append("image", image);
+
+        const res = await axios.post(`${API_BASE_URL}/upload-refund-image`, imgForm, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        const uploaded = res.data?.images?.[0];
+        if (uploaded) imageUrls.push(uploaded);
+        else throw new Error("Upload ảnh không thành công");
+      }
+
+      const payload = {
+        reason: reportData.reason,
+        images: imageUrls,
+      };
+
+      const response = await axios.post(`${API_BASE_URL}/reports/${order.id}/report-refund`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("✅ Tố cáo thành công:", response.data);
+
+      setPopup({ type: "success", message: "✅ Đã gửi tố cáo thành công!" });
+      setTimeout(() => setPopup(null), 3000);
+    } catch (error) {
+      console.error("❌ Gửi tố cáo thất bại:", error);
+      setPopup({ type: "error", message: "Không thể gửi tố cáo. Vui lòng thử lại!" });
+      setTimeout(() => setPopup(null), 3000);
+    } finally {
+      setIsProcessingRefund(false);
+    }
+  };
 
 const handleSubmitRefund = async (refundData: { reason: string; images: File[] }) => {
   console.log("🧪 Bắt đầu gọi handleSubmitRefund");
@@ -209,6 +266,10 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
     setIsProcessingRefund(false);
   }
 };
+  const handleWrappedSubmitRefund = (order: Order, refundData: { reason: string; images: File[] }) => {
+    setOrderToRefund(order); // vẫn cần gán để modal dùng
+    handleSubmitRefund(refundData); // gọi hàm thật sự
+  }
 
 
   const handleReorder = async (order: Order) => {
@@ -248,7 +309,19 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
                   onViewDetails={handleViewOrderDetails}
                   onReorder={handleReorder}
                   onCancelOrder={handleCancelOrder}
-                  onRefundRequest={handleRefundRequest}
+                  onRefundRequest={(order, refundData) => {
+                    setOrderToRefund(order);
+                    handleSubmitRefund(refundData);
+                  }}
+                  onReportShop={handleReportShop}
+                  onClickRefund={() => {
+                    setOrderToRefund(order)
+                    setShowRefundModal(true)
+                  }}
+                  onClickReport={() => {
+                    setReportedOrder(order)
+                    setShowReportModal(true)
+                  }}
                 />
               ))}
             </div>
@@ -287,6 +360,18 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
         />
       )}
 
+      {showReportModal && reportedOrder && (
+        <ReportModal
+          order={reportedOrder}
+          isVisible={showReportModal}
+          onClose={() => {
+            setShowReportModal(false)
+            setReportedOrder(null)
+          }}
+          onSubmit={handleSubmitReport}
+          isProcessing={isReporting}
+        />
+      )}
 
       {showRefundModal && orderToRefund && (
         <RefundRequestModal

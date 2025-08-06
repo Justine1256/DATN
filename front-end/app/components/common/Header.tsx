@@ -242,17 +242,18 @@ const Header = () => {
   }, []);
 
   // 🔁 Kiểm tra đồng bộ cart giữa local và server
+  // 👂 Nghe sự kiện thay đổi localStorage để reloadCart() nếu cần
   useEffect(() => {
-    const interval = setInterval(() => {
-      const local = localStorage.getItem("cart");
-      const parsed = local ? JSON.parse(local) : [];
-      if (parsed.length !== cartItems.length) {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "cart") {
         reloadCart();
       }
-    }, 400); // mỗi 0.4 giây
+    };
 
-    return () => clearInterval(interval);
-  }, [cartItems.length]);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [reloadCart]);
+
 
   // 📨 Lấy danh sách thông báo
   useEffect(() => {

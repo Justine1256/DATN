@@ -17,6 +17,7 @@ import {
     CheckCircle,
     Clock,
     ShoppingBag,
+    AlertCircle,
     Store,
     XCircle,
 } from "lucide-react"
@@ -28,6 +29,9 @@ interface OrderListItemProps {
     onReorder: (order: Order) => void
     onCancelOrder: (orderId: number, reason: string) => void
     onRefundRequest: (order: Order, refundData: { reason: string; images: File[] }) => void;
+    onReportShop: (order: Order, data: { reason: string; images: File[] }) => void;
+    onClickRefund: () => void;
+    onClickReport: () => void;
 
 
 }
@@ -38,6 +42,9 @@ export default function OrderListItem({
     onReorder,
     onCancelOrder,
     onRefundRequest,
+    onReportShop,
+    onClickRefund,
+    onClickReport
 }: OrderListItemProps) {
     const [addToCartSuccess, setAddToCartSuccess] = useState(false)
     const [showReview, setShowReview] = useState(false)
@@ -46,7 +53,23 @@ export default function OrderListItem({
     const [showRefundModal, setShowRefundModal] = useState(false)
     const [isProcessingRefund, setIsProcessingRefund] = useState(false)
     const [popup, setPopup] = useState<{ type: "success" | "error"; message: string } | null>(null)
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [isReporting, setIsReporting] = useState(false);
+
     const router = useRouter()
+    const handleReportShop = async (data: { reason: string; images: File[] }) => {
+        setIsReporting(true);
+        try {
+            await onReportShop(order, data);
+            setPopup({ type: "success", message: "Đã gửi tố cáo thành công!" });
+            setShowReportModal(false);
+        } catch (error) {
+            setPopup({ type: "error", message: "Tố cáo thất bại. Vui lòng thử lại." });
+        } finally {
+            setIsReporting(false);
+            setTimeout(() => setPopup(null), 3000);
+        }
+    };
 
     // Enhanced status colors with gradients
     const getStatusConfig = (status: string) => {
@@ -368,23 +391,42 @@ export default function OrderListItem({
                             ))}
 
                         {/* Refund Button - Chỉ hiện khi có thể hoàn đơn */}
-                        {order.order_status === "Delivered" ? (
-                            order.refund_requested ? (
-                                <div className="inline-flex items-center gap-2 text-purple-600 font-semibold px-4 py-3">
-                                    <RotateCcw className="w-4 h-4" />
-                                    Đã yêu cầu hoàn đơn
-                                </div>
-                            ) : order.order_details.every((detail) => detail.reviewed) ? null : (
+                        {order.order_status === "Delivered" && (
+                            <>
+                                {/* ✅ Nếu chưa gửi yêu cầu hoàn đơn */}
+                                {/* ✅ Nếu chưa gửi yêu cầu hoàn đơn */}
+                                {!order.refund_requested && (
                                     <button
-                                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg shadow-purple-500/20"
-                                        onClick={() => setShowRefundModal(true)} // ✅ sửa tại đây
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl hover:from-purple-600 hover:to-indigo-600 transition font-semibold"
+                                        onClick={onClickRefund} // ✅ Gọi hàm từ props thay vì gọi setOrderToRefund trực tiếp
                                     >
                                         <RotateCcw className="w-4 h-4" />
                                         Hoàn đơn
                                     </button>
+                                )}
 
-                            )
-                        ) : null}
+                                {/* ✅ Nếu đã gửi yêu cầu và chưa bị từ chối */}
+                                {order.refund_requested && order.refund_status !== "Rejected" && (
+                                    <div className="inline-flex items-center gap-2 text-purple-600 font-semibold px-4 py-3">
+                                        <RotateCcw className="w-4 h-4" />
+                                        Đã yêu cầu hoàn đơn
+                                    </div>
+                                )}
+
+                                {/* ✅ Nếu bị từ chối hoàn đơn → hiện nút tố cáo */}
+                                {order.refund_status === "Rejected" && (
+                                    <button
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 transition font-semibold"
+                                        onClick={onClickReport} // ✅ Gọi hàm từ props thay vì gọi setReportedOrder
+                                    >
+                                        <AlertCircle className="w-4 h-4" />
+                                        Tố cáo shop
+                                    </button>
+                                )}
+
+                            </>
+                        )}
+
 
 
                         {order.order_status === "Canceled" && (
@@ -422,14 +464,18 @@ export default function OrderListItem({
             />
 
             {/* Popup Notification */}
-            {popup && (
-                <div
-                    className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade ${popup.type === "success" ? "bg-white text-black border-green-500" : "bg-white text-red-600 border-red-500"
-                        }`}
-                >
-                    {popup.message}
-                </div>
-            )}
+        {popup && (
+  <div
+    className={`fixed top-[140px] right-5 z-[9999] text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade ${
+      popup.type === "success"
+        ? "bg-green-100 text-green-800 border-green-500"
+        : "bg-red-100 text-red-800 border-red-500"
+    }`}
+  >
+    {popup.message}
+  </div>
+)}
+
 
         </div>
     )
