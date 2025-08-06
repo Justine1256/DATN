@@ -26,12 +26,14 @@ export const translateOrderStatus = (status: OrderStatus): string => {
             return "Đã hủy";
         case OrderStatus.ReturnRequested:
             return "Yêu cầu hoàn đơn";
+        case OrderStatus.ReturnRejected:
+            return "Từ chối hoàn đơn"; // ✅ Mới thêm
+        case OrderStatus.ReturnApproved:
+            return "Duyệt hoàn đơn";   // ✅ Mới thêm
         case OrderStatus.Returning:
             return "Đang hoàn đơn";
         case OrderStatus.Refunded:
-            return "Đã hoàn tiền"; 
-        case OrderStatus.Rejected:
-            return "Từ chối hoàn đơn"
+            return "Đã hoàn tiền";
         default:
             return "Không xác định";
     }

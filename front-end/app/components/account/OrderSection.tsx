@@ -76,27 +76,38 @@ export default function OrderSection() {
   }, [popupVisible, showRefundModal])
 
   const filterOrders = (status: string, sourceOrders?: Order[]) => {
-    const list = sourceOrders || orders
-    setActiveTab(status)
-    let filtered: Order[] = []
+    const list = sourceOrders || orders;
+    setActiveTab(status);
+    let filtered: Order[] = [];
 
     if (status === "all") {
-      filtered = list
+      filtered = list;
     } else if (status === "processing") {
-      filtered = list.filter((o) => o.order_status === "Pending" || o.order_status === "order confirmation")
+      filtered = list.filter(
+        (o) => o.order_status === "Pending" || o.order_status === "order confirmation"
+      );
     } else if (status === "shipping") {
-      filtered = list.filter((o) => o.order_status === "Shipped")
+      filtered = list.filter((o) => o.order_status === "Shipped");
     } else if (status === "delivered") {
-      filtered = list.filter((o) => o.order_status === "Delivered")
+      filtered = list.filter((o) => o.order_status === "Delivered");
     } else if (status === "canceled") {
-      filtered = list.filter((o) => o.order_status === "Canceled")
-    } else if (status === "return_refund") {  // Gộp Trả hàng và Hoàn tiền
-      filtered = list.filter((o) => o.order_status === "Return Requested" || o.order_status === "Returning" || o.order_status === "Refunded")
+      filtered = list.filter((o) => o.order_status === "Canceled");
+    } else if (status === "return_refund") {
+      filtered = list.filter((o) =>
+        [
+          "Return Requested",
+          "Return Approved",
+          "Return Rejected",
+          "Returning",
+          "Refunded"
+        ].includes(o.order_status)
+      );
     }
 
-    setFilteredOrders(filtered)
-    setCurrentPage(1)
-  }
+    setFilteredOrders(filtered);
+    setCurrentPage(1);
+  };
+
 
 
   const handleViewOrderDetails = (order: Order) => {
@@ -140,54 +151,80 @@ export default function OrderSection() {
     setOrderToRefund(order)
     setShowRefundModal(true)
   }
-  const handleReportShop = async (order: Order, reportData: { reason: string; images: File[] }) => {
-    if (isProcessingRefund) return;
+ const handleReportShop = async (
+  order: Order,
+  reportData: { reason: string; images: File[] }
+) => {
+  if (isProcessingRefund) return;
 
-    try {
-      setIsProcessingRefund(true);
+  try {
+    setIsProcessingRefund(true);
 
-      const imageUrls: string[] = [];
+    const imageUrls: string[] = [];
 
-      for (const image of reportData.images) {
-        const imgForm = new FormData();
-        imgForm.append("image", image);
+    // ✅ 1. Upload từng ảnh tố cáo
+    for (const image of reportData.images) {
+      const formData = new FormData();
+      formData.append("image", image);
 
-        const res = await axios.post(`${API_BASE_URL}/upload-refund-image`, imgForm, {
+      const uploadRes = await axios.post(
+        `${API_BASE_URL}/upload-refund-image`,
+        formData,
+        {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
           },
-        });
+        }
+      );
 
-        const uploaded = res.data?.images?.[0];
-        if (uploaded) imageUrls.push(uploaded);
-        else throw new Error("Upload ảnh không thành công");
+      const uploadedUrl = uploadRes.data?.images?.[0];
+      if (uploadedUrl) {
+        imageUrls.push(uploadedUrl);
+      } else {
+        throw new Error("Không thể upload ảnh");
       }
+    }
 
-      const payload = {
-        reason: reportData.reason,
-        images: imageUrls,
-      };
+    // ✅ 2. Gửi yêu cầu tố cáo
+    const payload = {
+      reason: reportData.reason,
+      images: imageUrls,
+    };
 
-      const response = await axios.post(`${API_BASE_URL}/reports/${order.id}/report-refund`, payload, {
+    const response = await axios.post(
+      `${API_BASE_URL}/reports/${order.id}/report-refund`,
+      payload,
+      {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      });
+      }
+    );
 
-      console.log("✅ Tố cáo thành công:", response.data);
+    console.log("✅ Tố cáo thành công:", response.data);
 
-      setPopup({ type: "success", message: "✅ Đã gửi tố cáo thành công!" });
-      setTimeout(() => setPopup(null), 3000);
-    } catch (error) {
+    // ✅ 3. Cập nhật trạng thái UI
+    order.reported = true;
+    setPopup({ type: "success", message: "✅ Đã gửi tố cáo thành công!" });
+  } catch (error: any) {
+    const msg = error?.response?.data?.message || "";
+
+    if (msg.includes("đã được tố cáo")) {
+      // Nếu đã tố cáo trước đó → cập nhật cờ
+      order.reported = true;
+      setPopup({ type: "error", message: "Đơn hàng này đã được tố cáo trước đó!" });
+    } else {
       console.error("❌ Gửi tố cáo thất bại:", error);
       setPopup({ type: "error", message: "Không thể gửi tố cáo. Vui lòng thử lại!" });
-      setTimeout(() => setPopup(null), 3000);
-    } finally {
-      setIsProcessingRefund(false);
     }
-  };
+  } finally {
+    setTimeout(() => setPopup(null), 3000);
+    setIsProcessingRefund(false);
+  }
+};
+
 
 const handleSubmitRefund = async (refundData: { reason: string; images: File[] }) => {
   console.log("🧪 Bắt đầu gọi handleSubmitRefund");
@@ -384,7 +421,7 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
       )}
       {popup && (
         <div
-          className={`fixed top-20 right-5 z-[10001] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade
+          className={`fixed top-30 right-5 z-[10001] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade
       ${popup.type === "success"
               ? "bg-white text-black border-green-500"
               : "bg-white text-red-600 border-red-500"

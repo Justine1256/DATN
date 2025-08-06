@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import type { Order } from "../../../types/oder"
 import { formatImageUrl, translateOrderStatus, groupByShop, translateShippingStatus } from "../../../types/utils"
 import ReviewModal from "./ReviewModal"
+
 import CancelOrderModal from "./cancel-order-modal"
 import {
     Calendar,
@@ -57,6 +58,8 @@ export default function OrderListItem({
     const [isReporting, setIsReporting] = useState(false);
 
     const router = useRouter()
+    console.log("🧪 Order debug:", order);
+
     const handleReportShop = async (data: { reason: string; images: File[] }) => {
         setIsReporting(true);
         try {
@@ -81,7 +84,7 @@ export default function OrderListItem({
                     border: "border-amber-200",
                     icon: Clock,
                     iconColor: "text-amber-500",
-                }
+                };
             case "order confirmation":
                 return {
                     bg: "bg-gradient-to-r from-blue-50 to-indigo-50",
@@ -89,7 +92,7 @@ export default function OrderListItem({
                     border: "border-blue-200",
                     icon: CheckCircle,
                     iconColor: "text-blue-500",
-                }
+                };
             case "Shipped":
                 return {
                     bg: "bg-gradient-to-r from-cyan-50 to-blue-50",
@@ -97,7 +100,7 @@ export default function OrderListItem({
                     border: "border-cyan-200",
                     icon: Truck,
                     iconColor: "text-cyan-500",
-                }
+                };
             case "Delivered":
                 return {
                     bg: "bg-gradient-to-r from-emerald-50 to-green-50",
@@ -105,7 +108,7 @@ export default function OrderListItem({
                     border: "border-emerald-200",
                     icon: Package,
                     iconColor: "text-emerald-500",
-                }
+                };
             case "Canceled":
                 return {
                     bg: "bg-gradient-to-r from-red-50 to-rose-50",
@@ -113,7 +116,7 @@ export default function OrderListItem({
                     border: "border-red-200",
                     icon: XCircle,
                     iconColor: "text-red-500",
-                }
+                };
             case "Return Requested":
                 return {
                     bg: "bg-gradient-to-r from-orange-50 to-amber-50",
@@ -121,7 +124,23 @@ export default function OrderListItem({
                     border: "border-orange-200",
                     icon: RotateCcw,
                     iconColor: "text-orange-500",
-                }
+                };
+            case "Return Approved": // ✅ Mới thêm
+                return {
+                    bg: "bg-gradient-to-r from-blue-50 to-sky-50",
+                    text: "text-blue-700",
+                    border: "border-blue-200",
+                    icon: CheckCircle,
+                    iconColor: "text-blue-500",
+                };
+            case "Return Rejected": // ✅ Mới thêm
+                return {
+                    bg: "bg-gradient-to-r from-red-50 to-rose-50",
+                    text: "text-red-700",
+                    border: "border-red-200",
+                    icon: XCircle,
+                    iconColor: "text-red-500",
+                };
             case "Returning":
                 return {
                     bg: "bg-gradient-to-r from-purple-50 to-indigo-50",
@@ -129,7 +148,7 @@ export default function OrderListItem({
                     border: "border-purple-200",
                     icon: Truck,
                     iconColor: "text-purple-500",
-                }
+                };
             case "Refunded":
                 return {
                     bg: "bg-gradient-to-r from-green-50 to-emerald-50",
@@ -137,7 +156,7 @@ export default function OrderListItem({
                     border: "border-green-200",
                     icon: CheckCircle,
                     iconColor: "text-green-500",
-                }
+                };
             default:
                 return {
                     bg: "bg-gradient-to-r from-gray-50 to-slate-50",
@@ -145,9 +164,10 @@ export default function OrderListItem({
                     border: "border-gray-200",
                     icon: Package,
                     iconColor: "text-gray-500",
-                }
+                };
         }
-    }
+    };
+
 
     const handleReorder = (order: Order) => {
         if (order.order_status === "Canceled") {
@@ -208,7 +228,11 @@ export default function OrderListItem({
     const canCancel = order.order_status === "Pending" || order.order_status === "order confirmation"
 
     // Check if can request refund
-    const canRefund = order.order_status === "Delivered" && !order.refund_requested && !order.order_details.every((detail) => detail.reviewed)
+    const canRefund =
+        order.order_status === "Delivered" &&
+        !order.refund_requested &&
+        order.order_details.some((detail) => !detail.reviewed); // ✅ rõ nghĩa hơn
+
 
 
     const statusConfig = getStatusConfig(order.order_status)
@@ -398,35 +422,31 @@ export default function OrderListItem({
                             ))}
 
                         {/* Refund Button - Chỉ hiện khi có thể hoàn đơn */}
-                        {order.order_status === "Delivered" && (
-                            <>
-                                {/* ✅ Nếu chưa gửi yêu cầu hoàn đơn */}
-                            
-                                {!order.refund_requested && (
-                                    <button
-                                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl hover:from-purple-600 hover:to-indigo-600 transition font-semibold"
-                                        onClick={onClickRefund} // ✅ Gọi hàm từ props thay vì gọi setOrderToRefund trực tiếp
-                                    >
-                                        <RotateCcw className="w-4 h-4" />
-                                        Hoàn đơn
-                                    </button>
-                                )}
-
-                              
-
-                                {/* ✅ Nếu bị từ chối hoàn đơn → hiện nút tố cáo */}
-                                {order.refund_status === "Rejected" && (
-                                    <button
-                                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:from-red-600 hover:to-pink-600 transition font-semibold"
-                                        onClick={onClickReport} // ✅ Gọi hàm từ props thay vì gọi setReportedOrder
-                                    >
-                                        <AlertCircle className="w-4 h-4" />
-                                        Tố cáo shop
-                                    </button>
-                                )}
-
-                            </>
+                        {/* Nếu đủ điều kiện hoàn đơn */}
+                        {order.order_status === "Delivered" && canRefund && (
+                            <button
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl hover:from-purple-600 hover:to-indigo-600 transition font-semibold"
+                                onClick={onClickRefund}
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                Hoàn đơn
+                            </button>
                         )}
+
+                        {/* Nếu đã bị từ chối hoàn đơn */}
+                        {(order.order_status === "Return Rejected" || order.refund_status === "Rejected") && !order.reported && (
+                            <button
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-[#db4444] hover:bg-[#c73e3e] text-white rounded-xl transition font-semibold shadow-md"
+                                onClick={onClickReport}
+                            >
+                                <AlertCircle className="w-4 h-4" />
+                                Tố cáo shop
+                            </button>
+                        )}
+
+
+
+
 
 
 

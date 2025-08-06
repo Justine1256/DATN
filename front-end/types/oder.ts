@@ -4,14 +4,16 @@ import type { Product } from "./product"
 export enum OrderStatus {
     Pending = "Pending", // Đang chờ
     OrderConfirmation = "order confirmation", // Đang xác nhận
-    Shipped = "Shipped", // Đang giao
-    Delivered = "Delivered", // Đã giao
-    Canceled = "Canceled", // Đã huỷ
+    Shipped = "Shipped", // Đã gửi hàng
+    Delivered = "Delivered", // Đã giao hàng
+    Canceled = "Canceled", // Đã hủy
     ReturnRequested = "Return Requested", // Yêu cầu hoàn đơn
-    Returning = "Returning", // Đang hoàn đơn
+    ReturnRejected = "Return Rejected", // Đã từ chối hoàn đơn ✅
+    ReturnApproved = "Return Approved", // Đã duyệt hoàn đơn ✅
+    Returning = "Returning", // Đang hoàn hàng
     Refunded = "Refunded", // Đã hoàn tiền
-    Rejected ="Rejected"
 }
+
 
 // Trạng thái giao hàng (shipping_status)
 export enum ShippingStatus {
@@ -106,6 +108,10 @@ export const getOrderStatusLabel = (status: OrderStatus): string => {
             return "Đã hủy"
         case OrderStatus.ReturnRequested:
             return "Yêu cầu hoàn đơn"
+        case OrderStatus.ReturnRejected:
+            return "Từ chối hoàn đơn" // ✅ mới
+        case OrderStatus.ReturnApproved:
+            return "Duyệt hoàn đơn" // ✅ mới
         case OrderStatus.Returning:
             return "Đang hoàn hàng"
         case OrderStatus.Refunded:
@@ -114,6 +120,7 @@ export const getOrderStatusLabel = (status: OrderStatus): string => {
             return "Không xác định"
     }
 }
+
 
 export const getShippingStatusLabel = (status: ShippingStatus): string => {
     switch (status) {
@@ -194,6 +201,7 @@ export interface Order {
     payment_method: PaymentMethod
     payment_status: PaymentStatus
     created_at: string
+    reported?: boolean
     updated_at: string
     order_details: OrderDetail[]
     shop_name: string
@@ -237,6 +245,11 @@ export const getOrderStatusColor = (status: OrderStatus): string => {
             return "text-purple-700 bg-purple-50 border-purple-200"
         case OrderStatus.Refunded:
             return "text-green-700 bg-green-50 border-green-200"
+        case OrderStatus.ReturnRejected:
+            return "text-red-700 bg-red-50 border-red-200"
+        case OrderStatus.ReturnApproved:
+            return "text-blue-700 bg-blue-50 border-blue-200"
+
         default:
             return "text-gray-700 bg-gray-50 border-gray-200"
     }
@@ -253,6 +266,7 @@ export const getReturnStatusColor = (status: ReturnStatus): string => {
             return "text-purple-700 bg-purple-50 border-purple-200"
         case ReturnStatus.Refunded:
             return "text-green-700 bg-green-50 border-green-200"
+            
         case ReturnStatus.None:
         default:
             return "text-gray-700 bg-gray-50 border-gray-200"
@@ -270,6 +284,8 @@ export const getReturnStatusLabel = (status: ReturnStatus): string => {
             return "Đang gửi hàng"
         case ReturnStatus.Refunded:
             return "Hoàn tất hoàn tiền"
+        case ReturnStatus.Rejected:
+            return "Từ chối hoàn tiền"
         case ReturnStatus.None:
         default:
             return "Không có"
@@ -309,6 +325,11 @@ export const getOrderStatusIcon = (status: OrderStatus): string => {
             return "truck"
         case OrderStatus.Refunded:
             return "check-circle"
+        case OrderStatus.ReturnApproved:
+            return "check-circle"
+        case OrderStatus.ReturnRejected:
+            return "x-circle"
+
         default:
             return "package"
     }
