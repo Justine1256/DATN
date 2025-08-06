@@ -18,20 +18,18 @@ export default function CartItemsSection({
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Format ảnh hiển thị
   const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];
     if (!img || typeof img !== 'string') return `${STATIC_BASE_URL}/products/default-product.png`;
     return img.startsWith('http') ? img : `${STATIC_BASE_URL}/${img.replace(/^\//, '')}`;
   };
 
-  // ✅ Tải dữ liệu giỏ hàng (ưu tiên từ localStorage cho khách)
+
   const fetchCartItems = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     const guestCart = localStorage.getItem('cart');
     let localCartItems: CartItem[] = [];
 
-    // ✅ Parse local cart nếu có
     if (guestCart) {
       try {
         const parsed = JSON.parse(guestCart);
@@ -41,15 +39,13 @@ export default function CartItemsSection({
           return {
             id: item.id || index + 1,
             quantity: item.quantity,
-            value1: item.value1,
-            value2: item.value2,
             product: {
               id: item.product_id,
               name: item.name,
               image: [formatImageUrl(item.image)],
               price: item.price,
               sale_price: isVariant ? undefined : item.sale_price ?? null,
-              shop: item.shop ?? {},
+              shop: item.shop || { id: null, slug: '', name: 'Không xác định' },
             },
             variant: isVariant
               ? {
@@ -64,13 +60,11 @@ export default function CartItemsSection({
               : null,
           };
         });
-
       } catch (err) {
         console.error('❌ Lỗi parse local cart:', err);
       }
     }
 
-    // ✅ Nếu chưa login => dùng local cart luôn
     if (!token) {
       setCartItems(localCartItems);
       propsSetCartItems(localCartItems);
@@ -78,9 +72,7 @@ export default function CartItemsSection({
       return;
     }
 
-    // ✅ Đã đăng nhập
     try {
-      // ⏫ Sync local cart lên API nếu có
       if (localCartItems.length > 0) {
         await syncLocalCartToApi(localCartItems, token);
         localStorage.removeItem('cart');
@@ -98,10 +90,9 @@ export default function CartItemsSection({
         product: {
           ...item.product,
           image: [formatImageUrl(item.product.image || 'default.jpg')],
-          shop: item.product.shop ?? {}, // ✅ phòng trường hợp shop bị null
+          shop: item.product.shop ?? {},
         },
       }));
-
 
       setCartItems(formatted);
       propsSetCartItems(formatted);
@@ -116,7 +107,6 @@ export default function CartItemsSection({
     }
   };
 
-  // ✅ Sync local cart lên server sau đăng nhập
   const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
     try {
       const serverRes = await fetch(`${API_BASE_URL}/cart`, {
@@ -165,7 +155,6 @@ export default function CartItemsSection({
     }
   };
 
-  // ✅ Xoá sản phẩm khỏi giỏ hàng
   const handleRemove = async (id: number) => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
 
@@ -195,7 +184,6 @@ export default function CartItemsSection({
     }
   };
 
-  // ✅ Cập nhật số lượng sản phẩm
   const handleQuantityChange = async (id: number, value: number) => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     const quantity = Math.max(1, value);
@@ -230,21 +218,18 @@ export default function CartItemsSection({
     }
   };
 
-  // ✅ Lấy giá sản phẩm ưu tiên sale_price
   const getPriceToUse = (item: CartItem) => {
     if (item.variant) return Number(item.variant.sale_price ?? item.variant.price ?? 0);
     return Number(item.product.sale_price ?? item.product.price ?? 0);
   };
 
-
-  // ✅ Hiển thị phân loại sản phẩm
   const renderVariant = (item: CartItem) => {
     const variants: string[] = [];
 
     const option1 = item.variant?.option1 ?? 'Phân loại 1';
     const option2 = item.variant?.option2 ?? 'Phân loại 2';
-    const value1 = item.variant?.value1 ?? item.value1;
-    const value2 = item.variant?.value2 ?? item.value2;
+    const value1 = item.variant?.value1;
+    const value2 = item.variant?.value2;
 
     if (option1 && value1) variants.push(`${option1}: ${value1}`);
     if (option2 && value2) variants.push(`${option2}: ${value2}`);
@@ -256,15 +241,12 @@ export default function CartItemsSection({
     );
   };
 
-
-  // ✅ Format giá tiền VND
   const formatPrice = (value?: number | null) =>
     (value ?? 0).toLocaleString('vi-VN', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
 
-  // ✅ Gọi API khi component mount
   useEffect(() => {
     fetchCartItems();
   }, []);
