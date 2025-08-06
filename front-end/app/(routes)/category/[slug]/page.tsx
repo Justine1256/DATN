@@ -309,29 +309,7 @@ export default function CategoryPage() {
                 ))}
               </div>
             </div>
-            {/* Cửa hàng */}
-            <div className="flex flex-col space-y-4">
-              <h3 className="font-semibold">Cửa hàng</h3>
-              <div>
-                <button
-                  onClick={() => setSelectedShopSlug(null)}
-                  className={`w-full px-3 py-2 transition-colors text-left
-                  ${!selectedShopSlug ? "text-brand font-semibold" : "hover:text-brand"}`}
-                >
-                  Tất Cả
-                </button>
-                {filteredShops.map((shop) => (
-                  <button
-                    key={shop.slug}
-                    onClick={() => setSelectedShopSlug(shop.slug)}
-                    className={`w-full px-3 py-2 transition-colors text-left
-                    ${shop.slug === selectedShopSlug ? "text-brand font-semibold" : "hover:text-brand"}`}
-                  >
-                    {shop.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+
             {/* Lọc theo giá */}
             <div className="flex flex-col space-y-4">
               <div className="flex gap-2">
