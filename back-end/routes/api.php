@@ -81,13 +81,12 @@ Route::delete('/category/{id}', [CategoryController::class, 'delete']);
 Route::get('/shop/{slug}/categories', [CategoryController::class, 'showShopCategoriesByUser']);
 
 Route::get('/product', [ProductController::class, 'index']);
-Route::get('/{shopslug}/product/{productslug}', [ProductController::class, 'show']);
+Route::get('/{shopslug}/product/{productslug}', [ProductController::class, 'show'])->middleware('prevent-frequent-views');
 Route::get('/bestsellingproducts', [ProductController::class, 'bestSellingProducts']);
 Route::get('/topdiscountedproducts', [ProductController::class, 'topDiscountedProducts']);
 Route::get('/newproducts', [ProductController::class, 'newProducts']);
 Route::get('/category/{slug}/products', [ProductController::class, 'getCategoryAndProductsBySlug']);
-Route::get('/products/recommended', [ProductController::class, 'recommended']);
-Route::post('/products/history', [ProductController::class, 'storeHistory']);
+Route::get('/products/recommended', [ProductController::class, 'getHotProducts']);
 
 
 Route::post('/product', [ProductController::class, 'store']);

@@ -15,29 +15,31 @@ use App\Models\Review;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class ProductController extends Controller
 {
     // Danh sách sản phẩm
-    public function index()
-    {
-        $products = Product::with('category', 'shop')
+public function index()
+{
+    $products = Cache::remember('products_index', now()->addMinutes(10), function () {
+        return Product::with('category', 'shop')
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('status', 'activated')
             ->get();
+    });
 
-        return response()->json($products);
-    }
+    return response()->json($products);
+}
 
 public function show($shopslug, $productslug, Request $request)
 {
-    // Lấy sản phẩm theo shopslug + productslug
     $product = Product::with([
         'shop',
-        'category.parent',    // Load category + parent
-        'variants'            // Load danh sách các variant
+        'category.parent',
+        'variants'
     ])
         ->where('slug', $productslug)
         ->whereHas('shop', function ($query) use ($shopslug) {
@@ -49,7 +51,19 @@ public function show($shopslug, $productslug, Request $request)
         return response()->json(['message' => 'Không tìm thấy sản phẩm'], 404);
     }
 
-    // Lấy thống kê đánh giá (rating + số lượng review)
+    // Lưu vào Redis: đếm lượt xem sản phẩm
+    $productKey = "product_views:{$product->id}";
+    $ip = $request->ip(); // hoặc nếu login thì $request->user()->id
+
+    $userKey = "viewed:$productKey:$ip"; // hoặc viewed:product_views:23:user_1
+
+    // Chỉ tăng nếu IP này chưa xem trong 1 giờ qua
+    if (!Redis::exists($userKey)) {
+        Redis::incr($productKey); // tăng view
+        Redis::setex($userKey, 3600, true); // TTL 1 giờ
+    }
+
+    // Tính toán rating/review
     $reviewStats = DB::table('reviews')
         ->join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
         ->where('order_details.product_id', $product->id)
@@ -57,17 +71,8 @@ public function show($shopslug, $productslug, Request $request)
         ->selectRaw('AVG(reviews.rating) as avg_rating, COUNT(reviews.id) as total_reviews')
         ->first();
 
-    $product->rating_avg = round($reviewStats->avg_rating ?? 0, 1); // Ví dụ: 4.5
+    $product->rating_avg = round($reviewStats->avg_rating ?? 0, 1);
     $product->review_count = $reviewStats->total_reviews ?? 0;
-
-    // ✅ Ghi lịch sử xem nếu user đăng nhập
-    $user = $request->user();
-    if ($user) {
-        DB::table('user_view')->updateOrInsert(
-            ['user_id' => $user->id, 'product_id' => $product->id],
-            ['view_date' => now()]
-        );
-    }
 
     return response()->json([
         'status' => true,
@@ -77,8 +82,11 @@ public function show($shopslug, $productslug, Request $request)
 
 
 
-    public function getCategoryAndProductsBySlug($slug)
-    {
+public function getCategoryAndProductsBySlug($slug)
+{
+    $cacheKey = "category_with_products_slug_$slug";
+
+    return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($slug) {
         // Lấy danh mục cha theo slug
         $category = Category::where('slug', $slug)->first();
 
@@ -89,7 +97,7 @@ public function show($shopslug, $productslug, Request $request)
         // Lấy tất cả ID danh mục con
         $categoryIds = $this->getAllChildCategoryIds($category);
 
-        // Nếu bạn không muốn lấy sản phẩm trong danh mục cha, bỏ ID đó ra
+        // Bỏ ID danh mục cha nếu không muốn lấy sản phẩm trong nó
         if (($key = array_search($category->id, $categoryIds)) !== false) {
             unset($categoryIds[$key]);
         }
@@ -112,13 +120,13 @@ public function show($shopslug, $productslug, Request $request)
 
         $shops =  Shop::whereIn('id', $shopIds)->get();
 
-        // Trả về cả category, products, và shops
         return response()->json([
             'category' => $category,
             'products' => $products,
             'shops' => $shops
         ]);
-    }
+    });
+}
     public function getShopProductsByCategorySlug($slug, $category_slug)
     {
         $shop = Shop::where('slug', $slug)->first();
@@ -399,10 +407,12 @@ public function showShopProducts(Request $request, $slug)
 
 
     // Lấy danh sách sản phẩm bán chạy
-    public function bestSellingProducts(Request $request)
-    {
-        $limit = $request->input('limit', 8);
+public function bestSellingProducts(Request $request)
+{
+    $limit = (int) $request->input('limit', 8);
+    $cacheKey = "best_selling_products_limit_$limit";
 
+    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($limit) {
         $products = Product::with(['shop:id,slug'])
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
@@ -411,22 +421,28 @@ public function showShopProducts(Request $request, $slug)
             ->take($limit)
             ->get();
 
+        // Xử lý shop_slug
         $products->each(function ($product) {
             $product->shop_slug = $product->shop->slug ?? null;
             unset($product->shop);
         });
 
-        return response()->json([
-            'message' => 'Sản phẩm bán chạy nhất',
-            'products' => $products
-        ]);
-    }
+        return $products;
+    });
+
+    return response()->json([
+        'message' => 'Sản phẩm bán chạy nhất',
+        'products' => $products
+    ]);
+}
 
     // Lấy danh sách sản phẩm giảm giá nhiều nhất
-    public function topDiscountedProducts(Request $request)
-    {
-        $limit = $request->input('limit', 8);
+public function topDiscountedProducts(Request $request)
+{
+    $limit = (int) $request->input('limit', 8);
+    $cacheKey = "top_discounted_products_limit_$limit";
 
+    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($limit) {
         $products = Product::with('shop')
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
@@ -440,23 +456,30 @@ public function showShopProducts(Request $request, $slug)
             ->take($limit)
             ->values();
 
+        // Thêm shop_slug
         $products->transform(function ($product) {
             $product->shop_slug = $product->shop->slug ?? null;
+            unset($product->shop);
             return $product;
         });
 
-        return response()->json([
-            'message' => 'Sản phẩm ưu đãi nhiều nhất',
-            'products' => $products
-        ]);
-    }
+        return $products;
+    });
+
+    return response()->json([
+        'message' => 'Sản phẩm ưu đãi nhiều nhất',
+        'products' => $products
+    ]);
+}
 
 
     // Lấy danh sách sản phẩm mới nhất
-    public function newProducts(Request $request)
-    {
-        $limit = $request->input('limit', 8);
+public function newProducts(Request $request)
+{
+    $limit = (int) $request->input('limit', 8);
+    $cacheKey = "new_products_limit_$limit";
 
+    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($limit) {
         $products = Product::with('shop')
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
@@ -467,41 +490,49 @@ public function showShopProducts(Request $request, $slug)
 
         $products->transform(function ($product) {
             $product->shop_slug = $product->shop->slug ?? null;
+            unset($product->shop);
             return $product;
         });
 
-        return response()->json([
-            'message' => 'Danh sách sản phẩm mới nhất',
-            'products' => $products
-        ]);
-    }
+        return $products;
+    });
+
+    return response()->json([
+        'message' => 'Danh sách sản phẩm mới nhất',
+        'products' => $products
+    ]);
+}
 
 
     // Lấy danh sách sản phẩm theo shop của shop đã đăng nhập
-    public function getProductByShop($shop_id)
-    {
-        if (!$shop_id) {
-            return response()->json(['status' => false, 'message' => 'Thiếu shop_id.'], 400);
-        }
+public function getProductByShop(Request $request, $shop_id)
+{
+    if (!$shop_id) {
+        return response()->json(['status' => false, 'message' => 'Thiếu shop_id.'], 400);
+    }
 
-        $shop = Shop::find($shop_id);
+    $shop = Shop::find($shop_id);
+    if (!$shop) {
+        return response()->json(['status' => false, 'message' => 'Shop không tồn tại.'], 404);
+    }
 
-        if (!$shop) {
-            return response()->json(['status' => false, 'message' => 'Shop không tồn tại.'], 404);
-        }
+    $page = $request->query('page', 1);
+    $cacheKey = "shop_products_{$shop_id}_page_{$page}";
 
-        $products = Product::with('category')
+    $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($shop_id) {
+        return Product::with('category')
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('shop_id', $shop_id)
             ->latest()
             ->paginate(6);
+    });
 
-        return response()->json([
-            'status' => true,
-            'products' => $products,
-        ]);
-    }
+    return response()->json([
+        'status' => true,
+        'products' => $products,
+    ]);
+}
 public function getProductByIdShop($id)
 {
     $user = Auth::user();
@@ -858,130 +889,24 @@ public function getProductByIdShop($id)
 
         return response()->json($products);
     }
-public function recommended(Request $request)
-{
-    $user = $request->user();
-    $userId = optional($user)->id;
-    $sessionId = $request->cookie('session_id') ?? session()->getId();
 
-    if (!$request->cookie('session_id')) {
-        cookie()->queue(cookie('session_id', $sessionId, 60 * 24 * 30));
-    }
-
-    $recommended = collect();
-    $limit = 20;
-
-    /** -------------------
-     * 1. Lấy category từ lịch sử xem
-     * ------------------- */
-    $viewedProductIds = DB::table('user_view')
-        ->where(function ($q) use ($userId, $sessionId) {
-            $userId ? $q->where('user_id', $userId)
-                    : $q->whereNull('user_id')->where('session_id', $sessionId);
-        })
-        ->orderByDesc('view_date')
-        ->limit(10)
-        ->pluck('product_id');
-
-    $recentCategoryIds = [];
-    if ($viewedProductIds->isNotEmpty()) {
-        $recentCategoryIds = DB::table('products')
-            ->whereIn('id', $viewedProductIds)
-            ->pluck('category_id');
-    }
-
-    if (!empty($recentCategoryIds)) {
-        $productsFromViews = Product::whereIn('category_id', $recentCategoryIds)
-            ->whereHas('category', fn($q) => $q->where('status', 'activated'))
-            ->orderBy('sold', 'desc') // hoặc 'created_at' để ưu tiên mới
-            ->take(10)
-            ->get();
-        $recommended = $recommended->merge($productsFromViews);
-    }
-
-    /** -------------------
-     * 2. Gợi ý từ lịch sử mua
-     * ------------------- */
-    if ($recommended->count() < $limit && $userId) {
-        $orderCategoryIds = DB::table('products')
-            ->whereIn('id', function ($query) use ($userId) {
-                $query->select('product_id')->from('orders')->where('user_id', $userId);
-            })
-            ->pluck('category_id');
-
-        if ($orderCategoryIds->isNotEmpty()) {
-            $productsFromOrders = Product::whereIn('category_id', $orderCategoryIds)
-                ->whereHas('category', fn($q) => $q->where('status', 'activated'))
-                ->whereNotIn('id', $recommended->pluck('id'))
-                ->orderBy('sold', 'desc')
-                ->take(6)
-                ->get();
-            $recommended = $recommended->merge($productsFromOrders);
+    // 2. Lấy danh sách sản phẩm hot
+    public function getHotProducts()
+    {
+        $topIds = Redis::zrevrange('product_views_ranking', 0, 7); // top 10
+        if (empty($topIds)) {
+            return response()->json(['products' => []]);
         }
+
+        // Lấy từ DB theo ID
+        $products = Product::whereIn('id', $topIds)->get();
+
+        // Sắp xếp theo thứ tự trong Redis
+        $sortedProducts = collect($topIds)->map(function ($id) use ($products) {
+            return $products->firstWhere('id', $id);
+        })->filter();
+
+        return response()->json(['products' => $sortedProducts]);
     }
-
-    /** -------------------
-     * 3. Fallback: trending
-     * ------------------- */
-    // if ($recommended->count() < $limit) {
-    //     $trending = Product::whereHas('category', fn($q) => $q->where('status', 'activated'))
-    //         ->whereNotIn('id', $recommended->pluck('id'))
-    //         ->orderBy('sold', 'desc')
-    //         ->take($limit - $recommended->count())
-    //         ->get();
-    //     $recommended = $recommended->merge($trending);
-    // }
-
-    return response()->json([
-        'status' => 'success',
-        'data' => $recommended->take($limit)->values()
-
-    ]);
-}
-public function storeHistory(Request $request)
-{
-    $request->validate([
-        'product_id' => 'required|integer|exists:products,id'
-    ]);
-
-    $userId = null;
-    $token = $request->bearerToken();
-
-    if ($token) {
-        $accessToken = PersonalAccessToken::findToken($token);
-        if ($accessToken) {
-            $userId = $accessToken->tokenable_id; // ID user nếu đã đăng nhập
-        }
-    }
-
-    // Xử lý session_id cho guest
-    $sessionId = $request->cookie('session_id') ?? session()->getId();
-    if (!$request->cookie('session_id')) {
-        Cookie::queue('session_id', $sessionId, 60 * 24 * 30); // Lưu cookie 30 ngày
-    }
-
-    // Nếu user đã đăng nhập => merge lịch sử guest (nếu có)
-    if ($userId) {
-        DB::table('user_view')
-            ->whereNull('user_id')
-            ->where('session_id', $sessionId)
-            ->update(['user_id' => $userId]);
-    }
-
-    // Lưu hoặc update lịch sử xem
-    DB::table('user_view')->updateOrInsert(
-        [
-            'user_id' => $userId, // null nếu guest
-            'session_id' => $sessionId,
-            'product_id' => $request->product_id
-        ],
-        [
-            'view_date' => now()
-        ]
-    );
-
-    return response()->json(['status' => 'success']);
-}
-
 
 }
