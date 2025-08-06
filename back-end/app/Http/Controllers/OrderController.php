@@ -763,7 +763,7 @@ class OrderController extends Controller
             Notification::create([
                 'title'     => "Đơn hàng #{$order->id} đã giao",
                 'content'   => "Đơn hàng của bạn đã được giao thành công. Nhấn để xem chi tiết.",
-                'image_url' => '/images/order-delivered.png',
+                'image_url' => '/order-delivered.png',
                 'link'      => "/account?section=orders&order_id={$order->id}",
                 'is_read'   => 0,
             ]);
@@ -774,7 +774,7 @@ class OrderController extends Controller
             Notification::create([
                 'title'     => "Đơn hàng #{$order->id} đã bị huỷ",
                 'content'   => "Đơn hàng của bạn đã bị huỷ do khách hàng không nhận. Liên hệ hỗ trợ nếu cần.",
-                'image_url' => '/images/order-cancelled.png',
+                'image_url' => '/order-cancelled.png',
                 'link'      => "/account?section=orders&order_id={$order->id}",
                 'is_read'   => 0,
             ]);
