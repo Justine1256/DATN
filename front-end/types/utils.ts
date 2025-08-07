@@ -3,13 +3,20 @@ import { OrderStatus, ShippingStatus } from "./oder";
 
 export const formatImageUrl = (img: unknown): string => {
     if (Array.isArray(img)) img = img[0];
+
     if (typeof img !== "string" || !img.trim()) {
         return `${STATIC_BASE_URL}/products/default-product.png`;
     }
+
     if (img.startsWith("http")) return img;
-    return img.startsWith("/")
-        ? `${STATIC_BASE_URL}${img}`
-        : `${STATIC_BASE_URL}/${img}`;
+
+    // ✅ Nếu thiếu dấu / thì tự thêm
+    if (!img.startsWith("/")) {
+        img = `/${img}`;
+    }
+
+    // ✅ Nếu là ảnh tĩnh kiểu "images/..." hay "products/..."
+    return `${STATIC_BASE_URL}${img}`;
 };
 
 export const translateOrderStatus = (status: OrderStatus): string => {
