@@ -25,10 +25,10 @@ export default function ShopRegisterPage() {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [otp, setOtp] = useState("");
-    const [popup, setPopup] = useState<string>("");
     const [popupType, setPopupType] = useState<PopupType>("error");
     const [cooldown, setCooldown] = useState(60);
     const [loading, setLoading] = useState(false);
+    const [popup, setPopup] = useState<null | { type: "success" | "error"; message: string }>(null);
 
     // Constants
     const ALLOWED_FILE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
@@ -37,9 +37,8 @@ export default function ShopRegisterPage() {
 
     // Utility functions
     const showPopup = (msg: string, type: PopupType = "error") => {
-        setPopup(msg);
-        setPopupType(type);
-        setTimeout(() => setPopup(""), 3000);
+        setPopup({ type, message: msg });
+        setTimeout(() => setPopup(null), 3000);
     };
 
     const getErrorMessage = (err: any): string => {
@@ -315,13 +314,12 @@ export default function ShopRegisterPage() {
     const renderPopup = () => popup && (
         <div 
             className={`fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade transition-colors ${
-                popupType === "success" ? "border-green-500" : "border-[#db4444]"
+                popup.type === "success" ? "border-green-500" : "border-[#db4444]"
             }`}
         >
-            <div dangerouslySetInnerHTML={{ __html: popup }} />
+            <div dangerouslySetInnerHTML={{ __html: popup.message }} />
         </div>
     );
-
     return (
         <>
             <div className="min-h-screen flex items-center justify-center p-6">

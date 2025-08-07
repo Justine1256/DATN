@@ -44,9 +44,9 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [selectedA, setSelectedA] = useState('');
   const [selectedB, setSelectedB] = useState('');
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
-// thêm sản phẩm 
+  // thêm sản phẩm 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-// mua ngay 
+  // mua ngay 
   const [isBuyingNow, setIsBuyingNow] = useState(false);
 
   // ✅ State yêu thích / theo dõi / popup
@@ -74,7 +74,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       (!selectedA.trim() || !selectedB.trim())
     );
   };
- // tăng giảm số lượng 
+  // tăng giảm số lượng 
   const [isQuantityUpdating, setIsQuantityUpdating] = useState(false);
   const handleIncrease = () => {
     if (isQuantityUpdating) return;
@@ -275,6 +275,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       option2: product.option2 || 'Phân loại 2',
       variant_price: useVariant?.price ?? null,
       variant_sale_price: useVariant?.sale_price ?? null,
+      shop: {
+        id: product.shop?.id,
+        name: product.shop?.name,
+        slug: product.shop?.slug,
+      }
+
     };
 
     try {
@@ -441,6 +447,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       option2: product.option2 || 'Phân loại 2',
       variant_price: useVariant?.price ?? null,
       variant_sale_price: useVariant?.sale_price ?? null,
+      shop: {
+        id: product.shop?.id,
+        name: product.shop?.name,
+        slug: product.shop?.slug,
+      }
+
     };
 
     try {
@@ -647,10 +659,10 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               </div>
             </div>
             {showSelectionWarning && (
-  <p className="text-red-500 text-sm mt-1">
-    Vui lòng chọn đầy đủ phân loại hàng
-  </p>
-)}
+              <p className="text-red-500 text-sm mt-1">
+                Vui lòng chọn đầy đủ phân loại hàng
+              </p>
+            )}
 
             {/* Quantity & actions */}
             <div className="flex items-center gap-3 mt-4">
@@ -659,8 +671,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                   onClick={handleDecrease}
                   disabled={isQuantityUpdating || quantity <= 1}
                   className={`w-[55px] text-2xl font-extrabold transition ${quantity <= 1 || isQuantityUpdating
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-black hover:bg-brand hover:text-white'
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-black hover:bg-brand hover:text-white'
                     }`}
                 >
                   −
@@ -674,8 +686,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                   onClick={handleIncrease}
                   disabled={isQuantityUpdating || quantity >= getStock()}
                   className={`w-[55px] text-2xl font-extrabold transition ${quantity >= getStock() || isQuantityUpdating
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-black hover:bg-brand hover:text-white'
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-black hover:bg-brand hover:text-white'
                     }`}
                 >
                   +

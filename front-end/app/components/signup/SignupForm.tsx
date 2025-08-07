@@ -69,16 +69,12 @@ export default function SignupForm() {
       setOtpCountdown(300)
       setResendCountdown(60)
     } catch (err: any) {
-      console.log('Full error object:', err)
-      console.log('Error response:', err.response?.data) // Debug log
-      console.log('Error status:', err.response?.status) // Debug status
       
       // Xử lý lỗi validation từ Laravel (422 status)
       const errors = err.response?.data?.errors
       const errorMessage = err.response?.data?.message || ''
       
       if (errors) {
-        console.log('Validation errors found:', errors)
         
         // Set lỗi cho từng field tương ứng
         const formErrors: any[] = []
@@ -93,7 +89,6 @@ export default function SignupForm() {
         
         // Kiểm tra lỗi email
         if (errors.email && errors.email.length > 0) {
-          console.log('Email error found:', errors.email[0])
           formErrors.push({
             name: 'email',
             errors: [errors.email[0]]
@@ -111,7 +106,6 @@ export default function SignupForm() {
         // Kiểm tra lỗi username (không hiển thị vì username được tạo tự động từ email)
         if (errors.username && errors.username.length > 0) {
           // Chỉ log để debug, không hiển thị lỗi cho user vì username được tạo tự động
-          console.log('Username error (auto-generated):', errors.username[0])
         }
         
         // Kiểm tra lỗi password

@@ -8,10 +8,23 @@ use Illuminate\Support\Str;
 class BannerController extends Controller
 {
     // GET: Danh sách banner
-    public function index()
-    {
-        return response()->json(Banner::whereNull('deleted_at')->get());
-    }
+public function index()
+{
+    $today = now()->toDateString(); // Lấy ngày hiện tại (YYYY-MM-DD)
+
+    $banners = Banner::whereNull('deleted_at')
+        ->where('status', 1)
+        ->where(function ($query) use ($today) {
+            $query->whereNull('start_date')->orWhere('start_date', '<=', $today);
+        })
+        ->where(function ($query) use ($today) {
+            $query->whereNull('end_date')->orWhere('end_date', '>=', $today);
+        })
+        ->get();
+
+    return response()->json($banners);
+}
+
 
     // POST: Thêm mới banner
     public function store(Request $request)

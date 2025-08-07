@@ -36,8 +36,8 @@ export default function CategoryListPage() {
     const categoriesPerPage = 10;
 
     useEffect(() => {
-        const tk = Cookies.get("authToken");
-        setToken(tk || null);
+        const token = Cookies.get("authToken");
+        setToken(token || null);
     }, []);
 
     useEffect(() => {
@@ -75,19 +75,6 @@ export default function CategoryListPage() {
         }
     }, [token, shopId]);
 
-    const fetchProducts = useCallback(async () => {
-        if (!token) return;
-        try {
-            const res = await fetch(`${API_BASE_URL}/shop/products`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            
-            const data = await res.json();
-            setProducts(data.products || []);
-        } catch (error) {
-            console.error("Lỗi khi tải sản phẩm:", error);
-        }
-    }, [token]);
 
     const getProductCountForCategory = (categoryId: string) => {
         return products.filter((p) => p.category_id === categoryId).length;
@@ -100,8 +87,7 @@ export default function CategoryListPage() {
     useEffect(() => {
         if (!shopId) return;
         fetchCategories();
-        fetchProducts();
-    }, [shopId, fetchCategories, fetchProducts]);
+    }, [shopId, fetchCategories]);
 
     return (
         <div className="flex flex-col relative">

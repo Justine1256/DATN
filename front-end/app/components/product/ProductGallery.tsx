@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, ZoomIn, X } from 'lucide-react';
-import { STATIC_BASE_URL } from '@/utils/api';
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 
 // ✅ Props nhận vào từ cha
 interface ProductGalleryProps {
@@ -246,7 +246,7 @@ export default function ProductGallery({ images, mainImage, setMainImage }: Prod
                                     src={formattedImg}
                                     alt={`Thumbnail ${idx + 1}`}
                                     className="max-w-full max-h-full object-contain rounded-lg pointer-events-none"
-                                    onError={(e) => (e.currentTarget.src = '/placeholder.png')}
+                                    onError={(e) => (e.currentTarget.src = `${STATIC_BASE_URL}/products/default-product.png`)}
                                     draggable={false}
                                     style={{ userSelect: "none" }}  // Ngăn việc chọn ảnh
                                 />

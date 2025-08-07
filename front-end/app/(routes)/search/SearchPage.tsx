@@ -17,7 +17,6 @@ export default function SearchPageClient() {
         axios
             .get(`${API_BASE_URL}/search`, { params: { query } })
             .then((res) => {
-                console.log('🎯 Kết quả tìm kiếm:', res.data);
                 setResults(res.data);
             })
             .catch((err) => console.error('Search error:', err));

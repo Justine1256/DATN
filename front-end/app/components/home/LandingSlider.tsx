@@ -26,7 +26,6 @@ export default function LandingSlider() {
       try {
         const res = await fetch(`${API_BASE_URL}/banner`);
         const data = await res.json();
-        console.log("Fetched banners:", data);
         const formatted = data.map((item: any) => ({
           id: item.id,
           image: `${API_BASE_URL}/image/${item.image}`, // remove quotes

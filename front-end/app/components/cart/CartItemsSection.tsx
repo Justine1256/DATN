@@ -64,6 +64,7 @@ export default function CartItemsSection({
         });
       } catch (err) {
         console.error('❌ Lỗi parse local cart:', err);
+        
       }
     }
 
@@ -285,13 +286,14 @@ export default function CartItemsSection({
               key={item.id}
               className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:bg-gray-50 transition"
             >
-              {isLoggedIn && item.product.shop && (
+              {item.product.shop  && (
                 <div className="px-4 pt-3 pb-1 text-sm text-gray-500 font-medium border-b">
                   <Link
                     href={`/shop/${item.product.shop.slug || item.product.shop.id}`}
                     className="hover:text-red-500"
                   >
                     🏪 {item.product.shop.name}
+                    
                   </Link>
                 </div>
               )}

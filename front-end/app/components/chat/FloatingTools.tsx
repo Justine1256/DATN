@@ -74,7 +74,6 @@ useEffect(() => {
       })
       .then((res) => {
         setCurrentUser(res.data);
-        console.log('✅ User login:', res.data);
       })
       .catch((err) => console.error('❌ Lỗi auth:', err));
   }

@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
 import { API_BASE_URL } from '@/utils/api';
-
+import Cookies from 'js-cookie';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -38,16 +38,27 @@ const StockImportPage = () => {
     fetchLowStockProducts();
   }, []);
 
-  const fetchLowStockProducts = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/shop/products/stock/show`);
-      const productList: Product[] = res.data.products;
-      setProducts(productList);
-      setFilteredProducts(productList);
-    } catch (err) {
-      message.error('Không thể tải danh sách sản phẩm tồn kho thấp!');
+ const fetchLowStockProducts = async () => {
+  try {
+    const token = Cookies.get('authToken');
+    if (!token) {
+      message.error('Không tìm thấy token đăng nhập!');
+      return;
     }
-  };
+
+    const res = await axios.get(`${API_BASE_URL}/shop/products/stock/show`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const productList: Product[] = res.data.products;
+    setProducts(productList);
+    setFilteredProducts(productList);
+  } catch (err) {
+    message.error('Không thể tải danh sách sản phẩm tồn kho thấp!');
+  }
+};
 
   useEffect(() => {
     const filtered = products.filter(product =>
@@ -66,24 +77,36 @@ const StockImportPage = () => {
   };
 
   const handleSubmit = async (values: any) => {
-    setLoading(true);
-    try {
-      await axios.post(`${API_BASE_URL}/shop/products/stock/add`, {
-        product_id: values.product_id,
-        quantity: values.quantity
-      });
-
-      message.success(`Đã nhập ${values.quantity} sản phẩm vào kho thành công!`);
-      form.resetFields();
-      setSelectedProduct(null);
-      fetchLowStockProducts();
-    } catch (error: any) {
-      const errMsg = error.response?.data?.error || 'Có lỗi xảy ra, vui lòng thử lại!';
-      message.error(errMsg);
-    } finally {
+  setLoading(true);
+  try {
+    const token = Cookies.get('authToken');
+    if (!token) {
+      message.error('Không tìm thấy token đăng nhập!');
       setLoading(false);
+      return;
     }
-  };
+
+    await axios.post(`${API_BASE_URL}/shop/products/stock/add`, {
+      product_id: values.product_id,
+      quantity: values.quantity
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    message.success(`Đã nhập ${values.quantity} sản phẩm vào kho thành công!`);
+    form.resetFields();
+    setSelectedProduct(null);
+    fetchLowStockProducts();
+  } catch (error: any) {
+    const errMsg = error.response?.data?.error || 'Có lỗi xảy ra, vui lòng thử lại!';
+    message.error(errMsg);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const productColumns: ColumnType<Product>[] = [
     {

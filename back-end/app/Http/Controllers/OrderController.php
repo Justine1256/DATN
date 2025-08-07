@@ -763,7 +763,7 @@ class OrderController extends Controller
             Notification::create([
                 'title'     => "Đơn hàng #{$order->id} đã giao",
                 'content'   => "Đơn hàng của bạn đã được giao thành công. Nhấn để xem chi tiết.",
-                'image_url' => '/images/order-delivered.png',
+                'image_url' => '/order-delivered.png',
                 'link'      => "/account?section=orders&order_id={$order->id}",
                 'is_read'   => 0,
             ]);
@@ -774,7 +774,7 @@ class OrderController extends Controller
             Notification::create([
                 'title'     => "Đơn hàng #{$order->id} đã bị huỷ",
                 'content'   => "Đơn hàng của bạn đã bị huỷ do khách hàng không nhận. Liên hệ hỗ trợ nếu cần.",
-                'image_url' => '/images/order-cancelled.png',
+                'image_url' => '/order-cancelled.png',
                 'link'      => "/account?section=orders&order_id={$order->id}",
                 'is_read'   => 0,
             ]);
@@ -1124,7 +1124,7 @@ class OrderController extends Controller
             'user_id'   => $order->user_id,
             'title'     => "Yêu cầu hoàn đơn #{$order->id} bị từ chối",
             'content'   => "Lý do: {$validated['rejection_reason']}",
-            'image_url' => '/images/refund-rejected.png',
+            // 'image_url' => '/refund-rejected.png',
             'link'      => "/account?section=orders&order_id={$order->id}",
             'is_read'   => 0,
         ]);
@@ -1172,7 +1172,7 @@ class OrderController extends Controller
             'user_id' => $order->user_id,
             'title' => "Yêu cầu hoàn đơn #{$order->id} đã được duyệt",
             'content' => "Đơn hàng của bạn đã được chấp nhận hoàn trả. Vui lòng làm theo hướng dẫn từ shop.",
-            'image_url' => '/images/refund-approved.png',
+            // 'image_url' => '/refund-approved.png',
             'link' => "/account?section=orders&order_id={$order->id}",
             'is_read' => 0,
         ]);
@@ -1270,7 +1270,7 @@ public function approveRefundReport($orderId)
         'user_id' => $order->user_id,
         'title' => "Tố cáo đơn #{$order->id} được duyệt",
         'content' => "Sàn đã xử lý và đồng ý hoàn đơn cho bạn.",
-        'image_url' => '/images/refund-approved.png',
+        // 'image_url' => '/refund-approved.png',
         'link' => "/account?section=orders&order_id={$order->id}",
         'is_read' => 0,
     ]);
@@ -1304,7 +1304,7 @@ public function rejectRefundReport(Request $request, $orderId)
         'user_id' => $order->user_id,
         'title' => "Tố cáo đơn #{$order->id} bị từ chối",
         'content' => "Sàn không chấp nhận tố cáo của bạn: {$validated['rejection_reason']}",
-        'image_url' => '/images/refund-rejected.png',
+        // 'image_url' => '/refund-rejected.png',
         'link' => "/account?section=orders&order_id={$order->id}",
         'is_read' => 0,
     ]);
@@ -1317,7 +1317,7 @@ public function rejectRefundReport(Request $request, $orderId)
             'user_id' => $user->id,
             'title' => 'Cảnh báo: Tố cáo sai',
             'content' => "Tố cáo của bạn đã bị từ chối. Nếu tiếp tục gửi sai, bạn có thể bị cấm gửi tố cáo.",
-            'image_url' => '/images/warning.png',
+            // 'image_url' => '/warning.png',
             'link' => '/account',
             'is_read' => 0,
         ]);
@@ -1331,7 +1331,7 @@ public function rejectRefundReport(Request $request, $orderId)
             'user_id' => $user->id,
             'title' => 'Bạn đã bị chặn gửi tố cáo',
             'content' => 'Bạn đã gửi nhiều tố cáo sai và đã bị khóa quyền gửi tố cáo mới.',
-            'image_url' => '/images/report-blocked.png',
+            'image_url' => '/report-blocked.png',
             'link' => '/account',
             'is_read' => 0,
         ]);

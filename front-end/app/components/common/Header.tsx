@@ -242,17 +242,18 @@ const Header = () => {
   }, []);
 
   // 🔁 Kiểm tra đồng bộ cart giữa local và server
+  // 👂 Nghe sự kiện thay đổi localStorage để reloadCart() nếu cần
   useEffect(() => {
-    const interval = setInterval(() => {
-      const local = localStorage.getItem("cart");
-      const parsed = local ? JSON.parse(local) : [];
-      if (parsed.length !== cartItems.length) {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "cart") {
         reloadCart();
       }
-    }, 400); // mỗi 0.4 giây
+    };
 
-    return () => clearInterval(interval);
-  }, [cartItems.length]);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [reloadCart]);
+
 
   // 📨 Lấy danh sách thông báo
   useEffect(() => {
@@ -534,16 +535,16 @@ const Header = () => {
 
                       {(user?.role === "admin" || user?.role === "seller") && (
                         <Link
-                          href={
-                            user.role === "admin"
-                              ? "http://localhost:3001/admin/dashboard"
-                              : "http://localhost:3001/shop-admin/dashboard"
-                          }
-                          //   href={
+                          // href={
                           //   user.role === "admin"
-                          //     ? "https://admin.marketo.info.vn/admin/dashboard"
-                          //     : "https://admin.marketo.info.vn/shop-admin/dashboard"
+                          //     ? "http://localhost:3001/admin/dashboard"
+                          //     : "http://localhost:3001/shop-admin/dashboard"
                           // }
+                            href={
+                            user.role === "admin"
+                              ? "https://admin.marketo.info.vn/admin/dashboard"
+                              : "https://admin.marketo.info.vn/shop-admin/dashboard"
+                          }
                           
                           className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"
                         >

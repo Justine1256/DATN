@@ -29,7 +29,6 @@ export default function ProductReviews({ productId }: { productId: number }) {
                 const res = await axios.get(`${API_BASE_URL}/products/${productId}/reviews`, {
                     params: { page },
                 });
-                console.log("📦 API Response:", res.data);
                 let data = res.data.data ?? res.data;
                 if (!Array.isArray(data)) data = [data];
 

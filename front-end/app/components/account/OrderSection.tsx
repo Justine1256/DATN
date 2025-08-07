@@ -10,12 +10,14 @@ import OrderListItem from "./OrderListItem"
 import OrderDetailModal from "./OrderDetailModal"
 import RefundRequestModal from "./refund-request-modal"
 import { OrderStatus } from "../../../types/oder" // Declare OrderStatus here
-
+import ReportModal from "./reportmodal"
 export default function OrderSection() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
   const [activeTab, setActiveTab] = useState("all")
+  const [reportedOrderIds, setReportedOrderIds] = useState<number[]>([]);
+
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const perPage = 3
@@ -29,7 +31,16 @@ export default function OrderSection() {
   const [popup, setPopup] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
   const token = Cookies.get("authToken")
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportedOrder, setReportedOrder] = useState<Order | null>(null)
+  const [isReporting, setIsReporting] = useState(false)
 
+  const handleSubmitReport = (data: { reason: string; images: File[] }) => {
+    if (!reportedOrder) return
+    handleReportShop(reportedOrder, data)
+    setReportedOrder(null)
+    setShowReportModal(false)
+  }
   const fetchOrders = async () => {
     setLoading(true)
     try {
@@ -67,27 +78,38 @@ export default function OrderSection() {
   }, [popupVisible, showRefundModal])
 
   const filterOrders = (status: string, sourceOrders?: Order[]) => {
-    const list = sourceOrders || orders
-    setActiveTab(status)
-    let filtered: Order[] = []
+    const list = sourceOrders || orders;
+    setActiveTab(status);
+    let filtered: Order[] = [];
 
     if (status === "all") {
-      filtered = list
+      filtered = list;
     } else if (status === "processing") {
-      filtered = list.filter((o) => o.order_status === "Pending" || o.order_status === "order confirmation")
+      filtered = list.filter(
+        (o) => o.order_status === "Pending" || o.order_status === "order confirmation"
+      );
     } else if (status === "shipping") {
-      filtered = list.filter((o) => o.order_status === "Shipped")
+      filtered = list.filter((o) => o.order_status === "Shipped");
     } else if (status === "delivered") {
-      filtered = list.filter((o) => o.order_status === "Delivered")
+      filtered = list.filter((o) => o.order_status === "Delivered");
     } else if (status === "canceled") {
-      filtered = list.filter((o) => o.order_status === "Canceled")
-    } else if (status === "return_refund") {  // Gộp Trả hàng và Hoàn tiền
-      filtered = list.filter((o) => o.order_status === "Return Requested" || o.order_status === "Returning" || o.order_status === "Refunded")
+      filtered = list.filter((o) => o.order_status === "Canceled");
+    } else if (status === "return_refund") {
+      filtered = list.filter((o) =>
+        [
+          "Return Requested",
+          "Return Approved",
+          "Return Rejected",
+          "Returning",
+          "Refunded"
+        ].includes(o.order_status)
+      );
     }
 
-    setFilteredOrders(filtered)
-    setCurrentPage(1)
-  }
+    setFilteredOrders(filtered);
+    setCurrentPage(1);
+  };
+
 
 
   const handleViewOrderDetails = (order: Order) => {
@@ -131,9 +153,83 @@ export default function OrderSection() {
     setOrderToRefund(order)
     setShowRefundModal(true)
   }
+ const handleReportShop = async (
+  order: Order,
+  reportData: { reason: string; images: File[] }
+) => {
+  if (isProcessingRefund) return;
+
+  try {
+    setIsProcessingRefund(true);
+
+    const imageUrls: string[] = [];
+
+    // ✅ 1. Upload từng ảnh tố cáo
+    for (const image of reportData.images) {
+      const formData = new FormData();
+      formData.append("image", image);
+
+      const uploadRes = await axios.post(
+        `${API_BASE_URL}/upload-refund-image`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      const uploadedUrl = uploadRes.data?.images?.[0];
+      if (uploadedUrl) {
+        imageUrls.push(uploadedUrl);
+      } else {
+        throw new Error("Không thể upload ảnh");
+      }
+    }
+
+    // ✅ 2. Gửi yêu cầu tố cáo
+    const payload = {
+      reason: reportData.reason,
+      images: imageUrls,
+    };
+
+    const response = await axios.post(
+      `${API_BASE_URL}/reports/${order.id}/report-refund`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+
+    // ✅ 3. Cập nhật trạng thái UI
+    order.reported = true;
+    setReportedOrderIds((prev) => [...prev, order.id]);
+
+    setPopup({ type: "success", message: "✅ Đã gửi tố cáo thành công!" });
+  } catch (error: any) {
+    const msg = error?.response?.data?.message || "";
+
+    if (msg.includes("đã được tố cáo")) {
+      // Nếu đã tố cáo trước đó → cập nhật cờ
+      order.reported = true;
+      setPopup({ type: "error", message: "Đơn hàng này đã được tố cáo trước đó!" });
+    } else {
+      console.error("❌ Gửi tố cáo thất bại:", error);
+      setPopup({ type: "error", message: "Không thể gửi tố cáo. Vui lòng thử lại!" });
+    }
+  } finally {
+    setTimeout(() => setPopup(null), 3000);
+    setIsProcessingRefund(false);
+  }
+};
+
 
 const handleSubmitRefund = async (refundData: { reason: string; images: File[] }) => {
-  console.log("🧪 Bắt đầu gọi handleSubmitRefund");
   if (!orderToRefund) {
     console.warn("⚠️ Không có orderToRefund");
     return;
@@ -153,7 +249,6 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
       const imgForm = new FormData();
       imgForm.append("image", image);
 
-      console.log("📤 Uploading image:", image);
 
       const res = await axios.post(`${API_BASE_URL}/upload-refund-image`, imgForm, {
         headers: {
@@ -161,12 +256,10 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log("📥 Phản hồi từ API upload ảnh:", res.data);
 
       const uploaded = res.data?.images?.[0];
 
       if (uploaded) {
-        console.log("✅ Image uploaded successfully:", uploaded);
         imageUrls.push(uploaded);
       } else {
         console.error("❌ Không nhận được URL ảnh sau khi upload:", res.data);
@@ -179,7 +272,6 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
       images: imageUrls,
     };
 
-    console.log("📦 Payload gửi qua API hoàn đơn:", payload);
 
     const response = await axios.post(`${API_BASE_URL}/orders/${orderToRefund.id}/refund`, payload, {
       headers: {
@@ -188,7 +280,6 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
       },
     });
 
-    console.log("✅ Phản hồi từ API hoàn đơn:", response.data);
 
     setOrders((prev) =>
       prev.map((o) => (o.id === orderToRefund.id ? { ...o, refund_requested: true } : o))
@@ -209,6 +300,7 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
     setIsProcessingRefund(false);
   }
 };
+  
 
 
   const handleReorder = async (order: Order) => {
@@ -245,10 +337,23 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
                 <OrderListItem
                   key={order.id}
                   order={order}
+                  reportedOrderIds={reportedOrderIds}
                   onViewDetails={handleViewOrderDetails}
                   onReorder={handleReorder}
                   onCancelOrder={handleCancelOrder}
-                  onRefundRequest={handleRefundRequest}
+                  onRefundRequest={(order, refundData) => {
+                    setOrderToRefund(order);
+                    handleSubmitRefund(refundData);
+                  }}
+                  onReportShop={handleReportShop}
+                  onClickRefund={() => {
+                    setOrderToRefund(order)
+                    setShowRefundModal(true)
+                  }}
+                  onClickReport={() => {
+                    setReportedOrder(order)
+                    setShowReportModal(true)
+                  }}
                 />
               ))}
             </div>
@@ -287,6 +392,18 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
         />
       )}
 
+      {showReportModal && reportedOrder && (
+        <ReportModal
+          order={reportedOrder}
+          isVisible={showReportModal}
+          onClose={() => {
+            setShowReportModal(false)
+            setReportedOrder(null)
+          }}
+          onSubmit={handleSubmitReport}
+          isProcessing={isReporting}
+        />
+      )}
 
       {showRefundModal && orderToRefund && (
         <RefundRequestModal
@@ -302,7 +419,7 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
       )}
       {popup && (
         <div
-          className={`fixed top-20 right-5 z-[10001] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade
+          className={`fixed top-30 right-5 z-[10001] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade
       ${popup.type === "success"
               ? "bg-white text-black border-green-500"
               : "bg-white text-red-600 border-red-500"

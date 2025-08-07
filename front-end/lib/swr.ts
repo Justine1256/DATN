@@ -36,7 +36,6 @@ export const swrConfig: SWRConfiguration = {
   onSuccess: (data, key) => {
     // Optional: Log successful requests in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('SWR Success:', key, data);
     }
   }
 };

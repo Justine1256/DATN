@@ -17,7 +17,6 @@ export default function ShopProductSlider({ shopSlug }: { shopSlug: string }) {
 
     useEffect(() => {
         if (!shopSlug) return;
-        console.log("Shop slug:", shopSlug);
         setLoading(true);
 
         fetch(`${API_BASE_URL}/shop/${shopSlug}/products`)

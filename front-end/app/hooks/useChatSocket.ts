@@ -50,7 +50,6 @@ export const useChatSocket = (
 
       channel.bind('message.sent', (data: any) => {
         if (onMessage) {
-          console.log('📥 Realtime received:', data);
           onMessage(data); // Xử lý tin nhắn nhận được
         }
       });

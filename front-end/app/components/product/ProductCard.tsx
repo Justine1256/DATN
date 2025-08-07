@@ -72,7 +72,6 @@ export default function ProductCard({
 
   useEffect(() => {
     setLiked(isInWishlist);
-    // console.log("Product Data:", product);
     // ✅ Auto-select biến thể đầu tiên nếu có ít nhất 1 biến thể
     if (product && Array.isArray(product.variants) && product.variants.length > 0) {
       setSelectedVariant(product.variants[0]);

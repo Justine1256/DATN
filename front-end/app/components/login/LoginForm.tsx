@@ -6,6 +6,7 @@ import Cookies from 'js-cookie';
 import { API_BASE_URL } from '@/utils/api';
 import { ExclamationCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { Typography, notification } from 'antd';
+import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
@@ -14,6 +15,7 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -21,50 +23,6 @@ export default function LoginForm() {
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setError('');
-  //   const { email, password } = formData;
-
-  //   if (!email.trim()) return setError('Vui lòng nhập email.');
-  //   if (!isValidEmail(email.trim())) return setError('Email không đúng định dạng.');
-  //   if (!password.trim()) return setError('Vui lòng nhập mật khẩu.');
-  //   if (password.length < 6) return setError('Mật khẩu phải có ít nhất 6 ký tự.');
-
-  //   setIsLoading(true);
-
-  //   try {
-  //     const res = await axios.post(`${API_BASE_URL}/login`, formData);
-  //     const { token } = res.data;
-
-  //     // ✅ Lưu cookie dùng cho mọi subdomain
-  //     Cookies.set('authToken', token, {
-  //       domain: '.marketo.info.vn',
-  //       path: '/',
-  //       secure: true,
-  //       sameSite: 'None',
-  //       expires: 7,
-  //     });
-
-  //     setShowPopup(true);
-  //     const redirectTo = window.location.hostname === 'localhost'
-  //       ? 'http://localhost:3000'
-  //       : 'https://marketo.info.vn';
-  //     window.location.href = redirectTo;
-
-  //   } catch (err: any) {
-  //     const msg = err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
-  //     setError(msg);
-
-  //     notification.error({
-  //       message: 'Lỗi đăng nhập',
-  //       description: msg,
-  //       icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
-  //     });
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -81,17 +39,61 @@ export default function LoginForm() {
       const res = await axios.post(`${API_BASE_URL}/login`, formData);
       const { token } = res.data;
 
-      Cookies.set('authToken', token, { expires: 7 });
+      // ✅ Lưu cookie dùng cho mọi subdomain
+      Cookies.set('authToken', token, {
+        domain: '.marketo.info.vn',
+        path: '/',
+        secure: true,
+        sameSite: 'None',
+        expires: 7,
+      });
+
       setShowPopup(true);
-      window.location.href = 'http://localhost:3000';
+      const redirectTo = window.location.hostname === 'localhost'
+        ? 'http://localhost:3000'
+        : 'https://marketo.info.vn';
+      window.location.href = redirectTo;
+
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+      const msg = err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
       setError(msg);
+
+      notification.error({
+        message: 'Lỗi đăng nhập',
+        description: msg,
+        icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+      });
     } finally {
       setIsLoading(false);
     }
   };
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setError('');
+  //   const { email, password } = formData;
+
+  //   if (!email.trim()) return setError('Vui lòng nhập email.');
+  //   if (!isValidEmail(email.trim())) return setError('Email không đúng định dạng.');
+  //   if (!password.trim()) return setError('Vui lòng nhập mật khẩu.');
+  //   if (password.length < 6) return setError('Mật khẩu phải có ít nhất 6 ký tự.');
+
+  //   setIsLoading(true);
+
+  //   try {
+  //     const res = await axios.post(`${API_BASE_URL}/login`, formData);
+  //     const { token } = res.data;
+
+  //     Cookies.set('authToken', token, { expires: 7 });
+  //     setShowPopup(true);
+  //     window.location.href = 'http://localhost:3000';
+  //   } catch (err: any) {
+  //     const msg =
+  //       err?.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+  //     setError(msg);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
   useEffect(() => {
     const token = Cookies.get('authToken');
     if (token) {
@@ -118,14 +120,23 @@ export default function LoginForm() {
           className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2 w-full focus:outline-none text-sm text-black placeholder-gray-400"
           disabled={isLoading}
         />
-        <input
-          type="password"
-          name="password"
-          placeholder="Mật khẩu"
-          onChange={handleChange}
-          className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2 w-full focus:outline-none text-sm text-black placeholder-gray-400"
-          disabled={isLoading}
-        />
+        <div className="relative">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="password"
+            placeholder="Mật khẩu"
+            onChange={handleChange}
+            className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2 w-full focus:outline-none text-sm text-black placeholder-gray-400 pr-10"
+            disabled={isLoading}
+          />
+          <span
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500 hover:text-black"
+          >
+            {showPassword ? <EyeTwoTone /> : <EyeInvisibleOutlined />}
+          </span>
+        </div>
+
 
         <button
           type="submit"

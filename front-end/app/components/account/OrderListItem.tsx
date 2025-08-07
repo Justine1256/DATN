@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import type { Order } from "../../../types/oder"
 import { formatImageUrl, translateOrderStatus, groupByShop, translateShippingStatus } from "../../../types/utils"
 import ReviewModal from "./ReviewModal"
+
 import CancelOrderModal from "./cancel-order-modal"
 import {
     Calendar,
@@ -17,6 +18,7 @@ import {
     CheckCircle,
     Clock,
     ShoppingBag,
+    AlertCircle,
     Store,
     XCircle,
 } from "lucide-react"
@@ -28,6 +30,10 @@ interface OrderListItemProps {
     onReorder: (order: Order) => void
     onCancelOrder: (orderId: number, reason: string) => void
     onRefundRequest: (order: Order, refundData: { reason: string; images: File[] }) => void;
+    onReportShop: (order: Order, data: { reason: string; images: File[] }) => void;
+    onClickRefund: () => void;
+    reportedOrderIds: number[];
+    onClickReport: () => void;
 
 
 }
@@ -38,6 +44,10 @@ export default function OrderListItem({
     onReorder,
     onCancelOrder,
     onRefundRequest,
+    reportedOrderIds,
+    onReportShop,
+    onClickRefund,
+    onClickReport
 }: OrderListItemProps) {
     const [addToCartSuccess, setAddToCartSuccess] = useState(false)
     const [showReview, setShowReview] = useState(false)
@@ -46,7 +56,24 @@ export default function OrderListItem({
     const [showRefundModal, setShowRefundModal] = useState(false)
     const [isProcessingRefund, setIsProcessingRefund] = useState(false)
     const [popup, setPopup] = useState<{ type: "success" | "error"; message: string } | null>(null)
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [isReporting, setIsReporting] = useState(false);
+
     const router = useRouter()
+
+    const handleReportShop = async (data: { reason: string; images: File[] }) => {
+        setIsReporting(true);
+        try {
+            await onReportShop(order, data);
+            setPopup({ type: "success", message: "Đã gửi tố cáo thành công!" });
+            setShowReportModal(false);
+        } catch (error) {
+            setPopup({ type: "error", message: "Tố cáo thất bại. Vui lòng thử lại." });
+        } finally {
+            setIsReporting(false);
+            setTimeout(() => setPopup(null), 3000);
+        }
+    };
 
     // Enhanced status colors with gradients
     const getStatusConfig = (status: string) => {
@@ -58,7 +85,7 @@ export default function OrderListItem({
                     border: "border-amber-200",
                     icon: Clock,
                     iconColor: "text-amber-500",
-                }
+                };
             case "order confirmation":
                 return {
                     bg: "bg-gradient-to-r from-blue-50 to-indigo-50",
@@ -66,7 +93,7 @@ export default function OrderListItem({
                     border: "border-blue-200",
                     icon: CheckCircle,
                     iconColor: "text-blue-500",
-                }
+                };
             case "Shipped":
                 return {
                     bg: "bg-gradient-to-r from-cyan-50 to-blue-50",
@@ -74,7 +101,7 @@ export default function OrderListItem({
                     border: "border-cyan-200",
                     icon: Truck,
                     iconColor: "text-cyan-500",
-                }
+                };
             case "Delivered":
                 return {
                     bg: "bg-gradient-to-r from-emerald-50 to-green-50",
@@ -82,7 +109,7 @@ export default function OrderListItem({
                     border: "border-emerald-200",
                     icon: Package,
                     iconColor: "text-emerald-500",
-                }
+                };
             case "Canceled":
                 return {
                     bg: "bg-gradient-to-r from-red-50 to-rose-50",
@@ -90,7 +117,7 @@ export default function OrderListItem({
                     border: "border-red-200",
                     icon: XCircle,
                     iconColor: "text-red-500",
-                }
+                };
             case "Return Requested":
                 return {
                     bg: "bg-gradient-to-r from-orange-50 to-amber-50",
@@ -98,7 +125,23 @@ export default function OrderListItem({
                     border: "border-orange-200",
                     icon: RotateCcw,
                     iconColor: "text-orange-500",
-                }
+                };
+            case "Return Approved": // ✅ Mới thêm
+                return {
+                    bg: "bg-gradient-to-r from-blue-50 to-sky-50",
+                    text: "text-blue-700",
+                    border: "border-blue-200",
+                    icon: CheckCircle,
+                    iconColor: "text-blue-500",
+                };
+            case "Return Rejected": // ✅ Mới thêm
+                return {
+                    bg: "bg-gradient-to-r from-red-50 to-rose-50",
+                    text: "text-red-700",
+                    border: "border-red-200",
+                    icon: XCircle,
+                    iconColor: "text-red-500",
+                };
             case "Returning":
                 return {
                     bg: "bg-gradient-to-r from-purple-50 to-indigo-50",
@@ -106,7 +149,7 @@ export default function OrderListItem({
                     border: "border-purple-200",
                     icon: Truck,
                     iconColor: "text-purple-500",
-                }
+                };
             case "Refunded":
                 return {
                     bg: "bg-gradient-to-r from-green-50 to-emerald-50",
@@ -114,7 +157,7 @@ export default function OrderListItem({
                     border: "border-green-200",
                     icon: CheckCircle,
                     iconColor: "text-green-500",
-                }
+                };
             default:
                 return {
                     bg: "bg-gradient-to-r from-gray-50 to-slate-50",
@@ -122,9 +165,10 @@ export default function OrderListItem({
                     border: "border-gray-200",
                     icon: Package,
                     iconColor: "text-gray-500",
-                }
+                };
         }
-    }
+    };
+
 
     const handleReorder = (order: Order) => {
         if (order.order_status === "Canceled") {
@@ -185,7 +229,11 @@ export default function OrderListItem({
     const canCancel = order.order_status === "Pending" || order.order_status === "order confirmation"
 
     // Check if can request refund
-    const canRefund = order.order_status === "Delivered" && !order.refund_requested && !order.order_details.every((detail) => detail.reviewed)
+    const canRefund =
+        order.order_status === "Delivered" &&
+        !order.refund_requested &&
+        order.order_details.some((detail) => !detail.reviewed); // ✅ rõ nghĩa hơn
+
 
 
     const statusConfig = getStatusConfig(order.order_status)
@@ -213,6 +261,13 @@ export default function OrderListItem({
                                 </span>
 
                             </div>
+                            {/* ✅ Nếu đã gửi yêu cầu và chưa bị từ chối */}
+                            {order.refund_requested && order.refund_status !== "Rejected" && (
+                                <div className="inline-flex items-center gap-2 text-purple-600 font-semibold px-4 py-3">
+                                    <RotateCcw className="w-4 h-4" />
+                                    Đã yêu cầu hoàn đơn
+                                </div>
+                            )}
                         </div>
 
                         {/* Order Info Grid */}
@@ -368,23 +423,35 @@ export default function OrderListItem({
                             ))}
 
                         {/* Refund Button - Chỉ hiện khi có thể hoàn đơn */}
-                        {order.order_status === "Delivered" ? (
-                            order.refund_requested ? (
-                                <div className="inline-flex items-center gap-2 text-purple-600 font-semibold px-4 py-3">
-                                    <RotateCcw className="w-4 h-4" />
-                                    Đã yêu cầu hoàn đơn
-                                </div>
-                            ) : order.order_details.every((detail) => detail.reviewed) ? null : (
-                                    <button
-                                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg shadow-purple-500/20"
-                                        onClick={() => setShowRefundModal(true)} // ✅ sửa tại đây
-                                    >
-                                        <RotateCcw className="w-4 h-4" />
-                                        Hoàn đơn
-                                    </button>
+                        {/* Nếu đủ điều kiện hoàn đơn */}
+                        {order.order_status === "Delivered" && canRefund && (
+                            <button
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl hover:from-purple-600 hover:to-indigo-600 transition font-semibold"
+                                onClick={onClickRefund}
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                Hoàn đơn
+                            </button>
+                        )}
 
-                            )
-                        ) : null}
+                        {/* Nếu đã bị từ chối hoàn đơn */}
+                        {(order.order_status === "Return Rejected" || order.refund_status === "Rejected")
+                            && !reportedOrderIds.includes(Number(order.id))
+ && (
+                                <button
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#db4444] hover:bg-[#c73e3e] text-white rounded-xl transition font-semibold shadow-md"
+                                    onClick={onClickReport}
+                                >
+                                    <AlertCircle className="w-4 h-4" />
+                                    Tố cáo shop
+                                </button>
+                            )}
+
+
+
+
+
+
 
 
                         {order.order_status === "Canceled" && (
@@ -422,14 +489,18 @@ export default function OrderListItem({
             />
 
             {/* Popup Notification */}
-            {popup && (
-                <div
-                    className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade ${popup.type === "success" ? "bg-white text-black border-green-500" : "bg-white text-red-600 border-red-500"
-                        }`}
-                >
-                    {popup.message}
-                </div>
-            )}
+        {popup && (
+  <div
+    className={`fixed top-[140px] right-5 z-[9999] text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade ${
+      popup.type === "success"
+        ? "bg-green-100 text-green-800 border-green-500"
+        : "bg-red-100 text-red-800 border-red-500"
+    }`}
+  >
+    {popup.message}
+  </div>
+)}
+
 
         </div>
     )
