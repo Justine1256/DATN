@@ -14,14 +14,16 @@ export default function ShopRegisterPage() {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [otp, setOtp] = useState("");
-    const [popup, setPopup] = useState<string>("");
+
     const [cooldown, setCooldown] = useState(60);
     const [loading, setLoading] = useState(false);
+    const [popup, setPopup] = useState<null | { type: "success" | "error"; message: string }>(null);
 
-    const showPopup = (msg: string) => {
-        setPopup(msg);
-        setTimeout(() => setPopup(""), 3000);
+    const showPopup = (msg: string, type: "success" | "error" = "error") => {
+        setPopup({ type, message: msg });
+        setTimeout(() => setPopup(null), 3000);
     };
+
 
     const handleSendOtp = async () => {
         let errors: string[] = [];
@@ -55,12 +57,14 @@ export default function ShopRegisterPage() {
 
             const json = await res.json();
             if (!res.ok) throw json;
-            showPopup("Đã gửi OTP tới email của bạn.");
+            showPopup("Đã gửi OTP tới email của bạn.", "success");
+
             setStep(1);
             setCooldown(60);
             startCooldown();
         } catch (err: any) {
-            showPopup(JSON.stringify(err.errors || err.error || err));
+            showPopup(JSON.stringify(err.errors || err.error || err), "error");
+
         } finally {
             setLoading(false);
         }
@@ -79,10 +83,12 @@ export default function ShopRegisterPage() {
             });
             const json = await res.json();
             if (!res.ok) throw json;
-            showPopup("Tạo shop thành công!");
+            showPopup("Tạo shop thành công!", "success");
+
             setTimeout(() => (window.location.href = `/shop/${json.shop.slug}`), 1000);
         } catch (err: any) {
-            showPopup(JSON.stringify(err.errors || err.error || err));
+            showPopup(JSON.stringify(err.errors || err.error || err), "error");
+
         }
     };
 
@@ -220,10 +226,18 @@ export default function ShopRegisterPage() {
             </div>
 
             {popup && (
-                <div className="fixed top-20 right-5 z-[9999] bg-white text-black text-sm px-4 py-2 rounded shadow-lg border-b-4 border-[#db4444] animate-slideInFade">
-                    {popup}
+                <div
+                    className={`fixed top-[140px] right-5 z-[9999] text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade
+      ${popup.type === "success"
+                            ? "bg-green-100 text-green-800 border-green-500"
+                            : "bg-red-100 text-red-800 border-red-500"
+                        }`}
+                >
+                    {popup.message}
                 </div>
             )}
+
+
             <style jsx global>{`
                 @keyframes slideInFade {
                   0% { opacity: 0; transform: translateX(50%); }
