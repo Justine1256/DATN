@@ -6,6 +6,7 @@ import Cookies from 'js-cookie';
 import { API_BASE_URL } from '@/utils/api';
 import { ExclamationCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { Typography, notification } from 'antd';
+import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
@@ -14,6 +15,7 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -118,14 +120,23 @@ export default function LoginForm() {
           className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2 w-full focus:outline-none text-sm text-black placeholder-gray-400"
           disabled={isLoading}
         />
-        <input
-          type="password"
-          name="password"
-          placeholder="Mật khẩu"
-          onChange={handleChange}
-          className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2 w-full focus:outline-none text-sm text-black placeholder-gray-400"
-          disabled={isLoading}
-        />
+        <div className="relative">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            name="password"
+            placeholder="Mật khẩu"
+            onChange={handleChange}
+            className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2 w-full focus:outline-none text-sm text-black placeholder-gray-400 pr-10"
+            disabled={isLoading}
+          />
+          <span
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500 hover:text-black"
+          >
+            {showPassword ? <EyeTwoTone /> : <EyeInvisibleOutlined />}
+          </span>
+        </div>
+
 
         <button
           type="submit"
