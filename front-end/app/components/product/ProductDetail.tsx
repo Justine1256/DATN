@@ -63,11 +63,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const { reloadWishlist, wishlistItems } = useWishlist();
 
   // ✅ Tách giá trị biến thể từ chuỗi thành mảng
-  const parseOptionValues = (value?: string | string[]): string[] => {
-    if (!value) return [];
-    if (Array.isArray(value)) return value.map(v => v.trim());
-    return value.split(',').map(v => v.trim());
-  };
+const parseOptionValues = (value?: string | string[]): string[] => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map(v => v.trim());
+  return [value]; // trả nguyên chuỗi
+};
+
   const isVariantRequiredButNotSelected = () => {
     return (
       (product?.variants ?? []).length > 0 &&
