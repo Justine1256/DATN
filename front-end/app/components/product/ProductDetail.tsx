@@ -48,6 +48,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   // mua ngay 
   const [isBuyingNow, setIsBuyingNow] = useState(false);
+// tăng giảm số lượng nằm trong số lượng sp kho 
+  const [stockWarning, setStockWarning] = useState('');
 
   // ✅ State yêu thích / theo dõi / popup
   const [liked, setLiked] = useState(false);
@@ -81,14 +83,14 @@ const parseOptionValues = (value?: string | string[]): string[] => {
     if (isQuantityUpdating) return;
     setIsQuantityUpdating(true);
     setQuantity(prev => prev + 1);
-    setTimeout(() => setIsQuantityUpdating(false), 200); // delay 200ms
+    setTimeout(() => setIsQuantityUpdating(false), 100); // delay 200ms
   };
 
   const handleDecrease = () => {
     if (isQuantityUpdating || quantity <= 1) return;
     setIsQuantityUpdating(true);
     setQuantity(prev => Math.max(1, prev - 1));
-    setTimeout(() => setIsQuantityUpdating(false), 200); // delay 200ms
+    setTimeout(() => setIsQuantityUpdating(false), 100); // delay 200ms
   };
 
 
@@ -667,33 +669,72 @@ const parseOptionValues = (value?: string | string[]): string[] => {
 
             {/* Quantity & actions */}
             <div className="flex items-center gap-3 mt-4">
-              <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
-                <button
-                  onClick={handleDecrease}
-                  disabled={isQuantityUpdating || quantity <= 1}
-                  className={`w-[55px] text-2xl font-extrabold transition ${quantity <= 1 || isQuantityUpdating
-                    ? 'text-gray-400 cursor-not-allowed'
-                    : 'text-black hover:bg-brand hover:text-white'
-                    }`}
-                >
-                  −
-                </button>
+              <div className="flex flex-col items-start gap-1">
+                <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
+                  <button
+                    onClick={handleDecrease}
+                    disabled={isQuantityUpdating || quantity <= 1}
+                    className={`w-[55px] text-2xl font-extrabold transition ${quantity <= 1 || isQuantityUpdating
+                        ? 'text-gray-400 cursor-not-allowed'
+                        : 'text-black hover:bg-brand hover:text-white'
+                      }`}
+                  >
+                    −
+                  </button>
 
-                <span className="w-[55px] flex items-center justify-center text-base font-extrabold text-black">
-                  {quantity}
-                </span>
+                  <input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      const stock = getStock();
+                      if (!isNaN(val)) {
+                        if (val < 1) {
+                          setQuantity(1);
+                        } else if (val > stock) {
+                          setQuantity(stock); // ✅ Giới hạn không vượt kho
+                        } else {
+                          setQuantity(val);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!val || val < 1) setQuantity(1);
+                    }}
+                    className="w-[55px] text-center font-extrabold text-black focus:outline-none hide-arrows"
+                  />
 
-                <button
-                  onClick={handleIncrease}
-                  disabled={isQuantityUpdating || quantity >= getStock()}
-                  className={`w-[55px] text-2xl font-extrabold transition ${quantity >= getStock() || isQuantityUpdating
-                    ? 'text-gray-400 cursor-not-allowed'
-                    : 'text-black hover:bg-brand hover:text-white'
-                    }`}
-                >
-                  +
-                </button>
+
+                  <button
+                    onClick={handleIncrease}
+                    disabled={isQuantityUpdating || quantity >= getStock()}
+                    className={`w-[55px] text-2xl font-extrabold transition ${quantity >= getStock() || isQuantityUpdating
+                        ? 'text-gray-400 cursor-not-allowed'
+                        : 'text-black hover:bg-brand hover:text-white'
+                      }`}
+                  >
+                    +
+                  </button>
+                </div>
+
+
+              
+
+                {/* CSS ẩn mũi tên tăng/giảm trong input number */}
+                <style jsx>{`
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type='number'] {
+      -moz-appearance: textfield;
+    }
+  `}</style>
               </div>
+
 
 
               <button
