@@ -28,6 +28,8 @@ export default function FollowedShopsSection() {
     const [popupText, setPopupText] = useState("");
     const [showPopup, setShowPopup] = useState(false);
     const router = useRouter();
+    
+    const [popupType, setPopupType] = useState<"success" | "error">("success");
 
     const shopsPerPage = 6;
     const totalPages = Math.ceil(shops.length / shopsPerPage);
@@ -75,12 +77,21 @@ export default function FollowedShopsSection() {
             if (res.ok) {
                 setShops((prev) => prev.filter((s) => s.id !== shopId));
                 setPopupText("Đã hủy theo dõi shop");
+                setPopupType("success");
                 setShowPopup(true);
                 setTimeout(() => setShowPopup(false), 3000);
             } else {
+                setPopupText("Hủy theo dõi thất bại. Vui lòng thử lại!");
+                setPopupType("error");
+                setShowPopup(true);
+                setTimeout(() => setShowPopup(false), 3000);
                 console.error("❌ Hủy theo dõi thất bại");
             }
         } catch (err) {
+            setPopupText("Có lỗi xảy ra. Vui lòng thử lại!");
+            setPopupType("error");
+            setShowPopup(true);
+            setTimeout(() => setShowPopup(false), 3000);
             console.error("❌ Lỗi gửi yêu cầu hủy theo dõi:", err);
         } finally {
             setUnfollowing(null);
@@ -279,28 +290,38 @@ export default function FollowedShopsSection() {
                         </>
                     )}
 
-                    {/* Success Popup */}
-                    {showPopup && (
-                        <div className="fixed top-8 right-8 z-[9999] max-w-sm">
-                            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 transform animate-slideInFade">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900">{popupText}</p>
-                                        <p className="text-sm text-gray-500">Thao tác thành công</p>
-                                    </div>
-                                </div>
-                                <div className="absolute top-0 left-0 h-1 bg-gradient-to-r from-[#DB4444] to-[#ff6b6b] rounded-t-2xl animate-[shrink_3s_linear]"></div>
-                            </div>
-                        </div>
-                    )}
+                 
                 </section>
             </div>
+            {/* Success Popup */}
+            {showPopup && (
+                <div
+                    className={`fixed top-[140px] right-5 z-[9999] flex items-center gap-2 text-sm px-4 py-3 rounded shadow-lg border-b-4 animate-slideInFade
+      ${popupType === "success"
+                            ? "bg-green-100 text-green-800 border-green-500"
+                            : "bg-red-100 text-red-800 border-red-500"
+                        }`}
+                    role="status"
+                    aria-live="polite"
+                >
+                    {popupType === "success" ? (
+                        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 
+        01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 
+        0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                    ) : (
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11 7h2v6h-2zm0 8h2v2h-2z" /><path d="M12 2C6.48 2 2 6.48 2 12s4.48 
+        10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                        </svg>
+                    )}
+                    <span className="font-medium">{popupText}</span>
+                </div>
+            )}
+
         </div>
+        
     );
     
 }
