@@ -416,108 +416,121 @@ const handleAddToCart = async () => {
   };
 
   // ✅ Mua ngay (thêm vào giỏ và chuyển trang)
-  const handleBuyNow = async () => {
-    if (isBuyingNow) return;
-    setIsBuyingNow(true);
+const handleBuyNow = async () => {
+  if (isBuyingNow) return;
+  setIsBuyingNow(true);
 
-    const token = Cookies.get('authToken');
-    const hasVariants = product.variants?.length > 0;
-    const hasBaseOptions = !!(product.option1 && product.option2);
-    const selectedValuesFilled = selectedA && selectedB;
+  const token = Cookies.get('authToken');
+  const hasVariants = product.variants?.length > 0;
+  const hasOption1 = !!product.option1;
+  const hasOption2 = !!product.option2;
 
-    const matchedVariant = product.variants.find(
-      (v) => v.value1 === selectedA && v.value2 === selectedB
-    );
+  const selectedValuesFilled =
+    hasOption1 && hasOption2
+      ? (selectedA && selectedB)
+      : hasOption1
+        ? selectedA
+        : hasOption2
+          ? selectedB
+          : true;
 
-    const isFromProductValues =
-      product.value1?.toLowerCase() === selectedA?.toLowerCase() &&
-      product.value2?.toLowerCase() === selectedB?.toLowerCase();
+  const normalize = (val?: string) => (val || '').trim().toLowerCase();
 
-    if ((hasVariants || hasBaseOptions) && !selectedValuesFilled) {
-      setShowSelectionWarning(true);
-      setIsBuyingNow(false); // reset
-      return;
+  const matchedVariant = product.variants.find(
+    (v) =>
+      (!hasOption1 || normalize(v.value1) === normalize(selectedA)) &&
+      (!hasOption2 || normalize(v.value2) === normalize(selectedB))
+  );
+
+  const isFromProductValues =
+    (!hasOption1 || normalize(product.value1) === normalize(selectedA)) &&
+    (!hasOption2 || normalize(product.value2) === normalize(selectedB));
+
+  if ((hasVariants || hasOption1 || hasOption2) && !selectedValuesFilled) {
+    setShowSelectionWarning(true);
+    setIsBuyingNow(false);
+    return;
+  }
+
+  setShowSelectionWarning(false);
+
+  if ((hasVariants || hasOption1 || hasOption2) && !matchedVariant && !isFromProductValues) {
+    commonPopup("❌ Xin quý khách, hiện tại biến thể này đã hết hàng");
+    setIsBuyingNow(false);
+    return;
+  }
+
+  const useVariant = matchedVariant ?? null;
+  const price = useVariant?.price ?? product.price;
+  const sale_price = useVariant?.sale_price ?? product.sale_price;
+
+  const cartItem = {
+    product_id: product.id,
+    quantity,
+    name: product.name,
+    image: Array.isArray(product.image) ? product.image[0] : '',
+    price: Number(price || 0),
+    sale_price: sale_price ? Number(sale_price) : null,
+    value1: selectedA,
+    value2: selectedB,
+    variant_id: useVariant?.id ?? null,
+    option1: product.option1 || 'Phân loại 1',
+    option2: product.option2 || 'Phân loại 2',
+    variant_price: useVariant?.price ?? null,
+    variant_sale_price: useVariant?.sale_price ?? null,
+    shop: {
+      id: product.shop?.id,
+      name: product.shop?.name,
+      slug: product.shop?.slug,
     }
+  };
 
-    setShowSelectionWarning(false);
+  try {
+    if (!token) {
+      const local = localStorage.getItem("cart");
+      const cart = local ? JSON.parse(local) : [];
+      const index = cart.findIndex(
+        (i: any) =>
+          i.product_id === cartItem.product_id &&
+          i.variant_id === cartItem.variant_id
+      );
 
-     if ((hasVariants || hasBaseOptions) && !matchedVariant && !isFromProductValues) {
-      commonPopup("❌ Xin quý khách, hiện tại biến thể này đã hết hàng");
-      setIsBuyingNow(false);
-      return;
-    }
-
-    const useVariant = matchedVariant ?? null;
-    const price = useVariant?.price ?? product.price;
-    const sale_price = useVariant?.sale_price ?? product.sale_price;
-
-    const cartItem = {
-      product_id: product.id,
-      quantity,
-      name: product.name,
-      image: Array.isArray(product.image) ? product.image[0] : '',
-      price: Number(price || 0),
-      sale_price: sale_price ? Number(sale_price) : null,
-      value1: selectedA,
-      value2: selectedB,
-      variant_id: useVariant?.id ?? null,
-      option1: product.option1 || 'Phân loại 1',
-      option2: product.option2 || 'Phân loại 2',
-      variant_price: useVariant?.price ?? null,
-      variant_sale_price: useVariant?.sale_price ?? null,
-      shop: {
-        id: product.shop?.id,
-        name: product.shop?.name,
-        slug: product.shop?.slug,
+      if (index !== -1) {
+        cart[index].quantity += quantity;
+      } else {
+        cart.push(cartItem);
       }
 
-    };
+      localStorage.setItem("cart", JSON.stringify(cart));
+      await reloadCart();
+      router.push('/cart');
+    } else {
+      const res = await fetch(`${API_BASE_URL}/cart`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(cartItem),
+      });
 
-    try {
-      if (!token) {
-        const local = localStorage.getItem("cart");
-        const cart = local ? JSON.parse(local) : [];
-        const index = cart.findIndex(
-          (i: any) =>
-            i.product_id === cartItem.product_id &&
-            i.variant_id === cartItem.variant_id
-        );
-
-        if (index !== -1) {
-          cart[index].quantity += quantity;
-        } else {
-          cart.push(cartItem);
-        }
-
-        localStorage.setItem("cart", JSON.stringify(cart));
+      if (res.ok) {
         await reloadCart();
         router.push('/cart');
       } else {
-        const res = await fetch(`${API_BASE_URL}/cart`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(cartItem),
-        });
-
-        if (res.ok) {
-          await reloadCart();
-          router.push('/cart');
-        } else {
-          const err = await res.json();
-          console.error("❌ Cart API error:", err);
-          commonPopup("❌ Thêm vào giỏ hàng thất bại");
-        }
+        const err = await res.json();
+        console.error("❌ Cart API error:", err);
+        commonPopup("❌ Thêm vào giỏ hàng thất bại");
       }
-    } catch (error) {
-      console.error("❌ Cart request failed:", error);
-      commonPopup("❌ Lỗi khi gửi yêu cầu giỏ hàng");
-    } finally {
-      setIsBuyingNow(false);
     }
-  };
+  } catch (error) {
+    console.error("❌ Cart request failed:", error);
+    commonPopup("❌ Lỗi khi gửi yêu cầu giỏ hàng");
+  } finally {
+    setIsBuyingNow(false);
+  }
+};
+
 
 
 

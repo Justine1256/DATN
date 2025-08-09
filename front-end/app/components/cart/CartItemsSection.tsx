@@ -35,33 +35,45 @@ export default function CartItemsSection({
     if (guestCart) {
       try {
         const parsed = JSON.parse(guestCart);
-        localCartItems = parsed.map((item: any, index: number) => {
-          const isVariant = !!item.variant_id;
+localCartItems = parsed.map((item: any, index: number) => {
+  const isVariant = !!item.variant_id;
 
-          return {
-            id: item.id || index + 1,
-            quantity: item.quantity,
-            product: {
-              id: item.product_id,
-              name: item.name,
-              image: [formatImageUrl(item.image)],
-              price: item.price,
-              sale_price: isVariant ? undefined : item.sale_price ?? null,
-              shop: item.shop ?? undefined,
-            },
-            variant: isVariant
-              ? {
-                id: item.variant_id,
-                option1: item.option1 || 'Phân loại 1',
-                option2: item.option2 || 'Phân loại 2',
-                value1: item.value1,
-                value2: item.value2,
-                price: item.variant_price,
-                sale_price: item.variant_sale_price,
-              }
-              : null,
-          };
-        });
+  // Luôn tạo object variant, không để null
+  const variantData = isVariant
+    ? {
+        id: item.variant_id,
+        option1: item.option1 || 'Phân loại 1',
+        option2: item.option2 || 'Phân loại 2',
+        value1: item.value1 ?? null,
+        value2: item.value2 ?? null,
+        price: item.variant_price,
+        sale_price: item.variant_sale_price ?? null,
+      }
+    : {
+        id: null, // sản phẩm gốc không có variant id
+        option1: item.option1 || 'Phân loại 1',
+        option2: item.option2 || 'Phân loại 2',
+        value1: item.value1 ?? null,
+        value2: item.value2 ?? null,
+        price: item.price,
+        sale_price: item.sale_price ?? null,
+      };
+
+  return {
+    id: item.id || index + 1,
+    quantity: item.quantity,
+    product: {
+      id: item.product_id,
+      name: item.name,
+      image: [formatImageUrl(item.image)],
+      price: item.price,
+      sale_price: isVariant ? undefined : item.sale_price ?? null,
+      shop: item.shop ?? undefined,
+    },
+    variant: variantData,
+  };
+});
+ 
       } catch (err) {
         console.error('❌ Lỗi parse local cart:', err);
         
@@ -303,7 +315,7 @@ export default function CartItemsSection({
                   <div className="w-16 h-16 relative shrink-0">
                     <Image
                       src={formatImageUrl(item.product.image)}
-                      alt={item.product.name}
+                      alt={item.product.name || 'Sản phẩm'}
                       fill
                       className="object-contain rounded border"
                     />
