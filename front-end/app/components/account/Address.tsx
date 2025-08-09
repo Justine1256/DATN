@@ -76,6 +76,29 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
     const regex = /^(0|\+84)(3[2-9]|5[2689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$/;
     return regex.test(phone);
   };
+  function mapProvinceList(data: any): Province[] {
+    const list = Array.isArray(data) ? data : data?.data || data?.results || [];
+    return list.map((p: any) => ({
+      code: Number(p.code ?? p.province_code ?? p.id),
+      name: String(p.name ?? p.province_name ?? p.full_name).trim(),
+    }));
+  }
+
+  function mapDistrictList(data: any): District[] {
+    const list = Array.isArray(data) ? data : data?.data || data?.districts || [];
+    return list.map((d: any) => ({
+      code: Number(d.code ?? d.district_code ?? d.id),
+      name: String(d.name ?? d.district_name ?? d.full_name).trim(),
+    }));
+  }
+
+  function mapWardList(data: any): Ward[] {
+    const list = Array.isArray(data) ? data : data?.data || data?.wards || [];
+    return list.map((w: any) => ({
+      code: Number(w.code ?? w.ward_code ?? w.id),
+      name: String(w.name ?? w.ward_name ?? w.full_name).trim(),
+    }));
+  }
 
   // ✅ Ẩn popup thông báo sau 2.5 giây
   useEffect(() => {
@@ -91,43 +114,47 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
   // ✅ Lấy danh sách tỉnh từ API
   useEffect(() => {
     axios
-      .get("https://provinces.open-api.vn/api/p/")
-      .then((res) => setProvinces(res.data));
+      .get("https://tinhthanhpho.com/api/v1/new-provinces")
+      .then((res) => setProvinces(mapProvinceList(res.data)))
+      .catch(console.error);
   }, []);
+
 
   // ✅ Khi người dùng chọn tỉnh → tải danh sách huyện
   useEffect(() => {
-    const selectedProvince = provinces.find(
-      (p) => p.name === formData.province
-    );
-    if (selectedProvince) {
-      axios
-        .get(
-          `https://provinces.open-api.vn/api/p/${selectedProvince.code}?depth=2`
-        )
-        .then((res) => {
-          setDistricts(res.data.districts);
-          setFormData((prev) => ({ ...prev, district: "", ward: "" }));
-        });
-    }
+    if (!formData.province || !Array.isArray(provinces) || provinces.length === 0) return;
+
+    const selectedProvince = provinces.find((p) => p.name === formData.province);
+    if (!selectedProvince) return;
+
+    axios
+      .get(`https://tinhthanhpho.com/api/v1/provinces/${selectedProvince.code}/districts`)
+      .then((res) => {
+        setDistricts(mapDistrictList(res.data));
+        setFormData((prev) => ({ ...prev, district: "", ward: "" }));
+      })
+      .catch(console.error);
   }, [formData.province, provinces]);
+
+
 
   // ✅ Khi người dùng chọn huyện → tải danh sách xã
   useEffect(() => {
-    const selectedDistrict = districts.find(
-      (d) => d.name === formData.district
-    );
-    if (selectedDistrict) {
-      axios
-        .get(
-          `https://provinces.open-api.vn/api/d/${selectedDistrict.code}?depth=2`
-        )
-        .then((res) => {
-          setWards(res.data.wards);
-          setFormData((prev) => ({ ...prev, ward: "" }));
-        });
-    }
-  }, [formData.district, districts]);
+    if (!formData.province || !Array.isArray(provinces) || provinces.length === 0) return;
+
+    const selectedProvince = provinces.find((p) => p.name === formData.province);
+    if (!selectedProvince) return;
+
+    axios
+      .get(`https://tinhthanhpho.com/api/v1/new-provinces/${selectedProvince.code}/wards`)
+      .then((res) => {
+        setWards(mapWardList(res.data));
+        setFormData((prev) => ({ ...prev, ward: "" }));
+      })
+      .catch(console.error);
+  }, [formData.district, formData.province, provinces]);
+
+
 
   // ✅ Gọi API lấy user hiện tại
   const fetchUserId = async () => {

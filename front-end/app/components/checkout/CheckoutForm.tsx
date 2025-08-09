@@ -19,7 +19,12 @@ interface Province {
   code: number;
   name: string;
 }
-
+interface Ward {
+  code: number;
+  name: string;
+  districtCode?: number;
+  districtName?: string;
+}
 interface District {
   code: number;
   name: string;
@@ -49,10 +54,41 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
   const [districts, setDistricts] = useState<District[]>([]);
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
+  const [wards, setWards] = useState<Ward[]>([]);
+  const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
+
+  function mapProvinceList(data: any): Province[] {
+    const list = Array.isArray(data) ? data : data?.data || [];
+    return list.map((p: any) => ({
+      code: Number(p.code ?? p.province_code ?? p.id),
+      name: String(p.name ?? p.province_name ?? p.full_name).trim(),
+    }));
+  }
+
+  function mapDistrictList(data: any): District[] {
+    const list = Array.isArray(data) ? data : data?.data || data?.districts || [];
+    return list.map((d: any) => ({
+      code: Number(d.code ?? d.district_code ?? d.id),
+      name: String(d.name ?? d.district_name ?? d.full_name).trim(),
+    }));
+  }
+  function mapWardList(data: any): Ward[] {
+    const list = Array.isArray(data) ? data : data?.data || data?.wards || [];
+    return list.map((w: any) => ({
+      code: Number(w.code ?? w.ward_code ?? w.id),
+      name: String(w.name ?? w.ward_name ?? w.full_name).trim(),
+      districtCode: w.district_code ? Number(w.district_code) : undefined,
+      districtName: w.district_name ? String(w.district_name).trim() : undefined,
+    }));
+  }
 
   useEffect(() => {
-    axios.get('https://provinces.open-api.vn/api/p/').then((res) => setProvinces(res.data));
+    axios
+      .get('https://tinhthanhpho.com/api/v1/new-provinces')
+      .then((res) => setProvinces(mapProvinceList(res.data)))
+      .catch(console.error);
   }, []);
+
 
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
@@ -81,14 +117,43 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
   }, [onAddressSelect, onAddressChange, hasUserInput]);
 
   useEffect(() => {
-    if (selectedProvince) {
-      axios.get(`https://provinces.open-api.vn/api/p/${selectedProvince.code}?depth=2`)
-        .then((res) => setDistricts(res.data.districts));
-    } else {
+    if (!selectedProvince) {
       setDistricts([]);
       setSelectedDistrict(null);
+      return;
     }
+
+    axios
+      .get(`https://tinhthanhpho.com/api/v1/provinces/${selectedProvince.code}/districts`)
+      .then((res) => setDistricts(mapDistrictList(res.data)))
+      .catch(console.error);
   }, [selectedProvince]);
+
+useEffect(() => {
+  // Khi đổi Tỉnh: reset Huyện, Xã
+  if (!selectedProvince) {
+    setDistricts([]);
+    setSelectedDistrict(null);
+    setWards([]);
+    setSelectedWard(null);
+    return;
+  }
+
+  // Fetch quận/huyện (đang có)
+  axios
+    .get(`https://tinhthanhpho.com/api/v1/provinces/${selectedProvince.code}/districts`)
+    .then((res) => setDistricts(mapDistrictList(res.data)))
+    .catch(console.error);
+
+  // Fetch toàn bộ xã của Tỉnh để lọc theo Huyện
+  axios
+    .get(`https://tinhthanhpho.com/api/v1/new-provinces/${selectedProvince.code}/wards`)
+    .then((res) => setWards(mapWardList(res.data)))
+    .catch(console.error);
+
+  // reset ward
+  setSelectedWard(null);
+}, [selectedProvince]);
 
   const handleAddressChange = (value: string) => {
     setSelectedAddressId(value);
