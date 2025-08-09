@@ -9,15 +9,15 @@ use Illuminate\Http\Request;
 class WishlistController extends Controller
 {
     // Lấy danh sách wishlist của user hiện tại
-    public function index()
-    {
-        $wishlists = Wishlist::with('product')
-            ->where('user_id', Auth::id())
-            ->latest()
-            ->get();
+public function index()
+{
+    $wishlists = Wishlist::with(['product.shop'])
+        ->where('user_id', Auth::id())
+        ->latest()
+        ->get();
 
-        return response()->json($wishlists);
-    }
+    return response()->json($wishlists);
+}
 
     // Thêm sản phẩm vào wishlist
     public function store(Request $request)
