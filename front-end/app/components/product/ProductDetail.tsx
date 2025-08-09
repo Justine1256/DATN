@@ -220,8 +220,19 @@ useEffect(() => {
   const handleSelectB = (b: string) => setSelectedB(b);
 
   // ✅ Hiện popup nhanh
+  // ✅ Hiện popup nhanh (ẩn bớt tên nếu quá dài)
   const commonPopup = (msg: string) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    // Nếu là thông báo có chứa tên sản phẩm → cắt ngắn
+    if (msg.includes("🛒")) {
+      const match = msg.match(/"(.+?)"/); // Lấy phần tên trong dấu "
+      if (match && match[1].length > 30) {
+        const shortName = match[1].slice(0, 30) + "...";
+        msg = msg.replace(match[1], shortName);
+      }
+    }
+
     setPopupText(msg);
     setShowPopup(true);
     timeoutRef.current = setTimeout(() => {
@@ -229,6 +240,7 @@ useEffect(() => {
       timeoutRef.current = null;
     }, 2000);
   };
+
 
   // ✅ Thêm vào giỏ hàng (token hoặc localStorage)
 const handleAddToCart = async () => {

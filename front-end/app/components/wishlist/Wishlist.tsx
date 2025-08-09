@@ -7,12 +7,13 @@ import ProductCard from "../product/ProductCard";
 import { API_BASE_URL } from '@/utils/api';
 import type { Product } from "../product/ProductCard";
 
-
 interface WishlistItem {
   id: number;
   product_id: number;
   user_id: number;
-  product: Product;
+  product: Product & {
+    shop?: { id?: number; slug?: string; name?: string } | null;
+  };
 }
 
 const Wishlist = () => {
@@ -38,8 +39,21 @@ const Wishlist = () => {
       if (!res.ok) throw new Error("Không thể lấy wishlist!");
 
       const data: WishlistItem[] = await res.json();
-      const validData = data.filter((item) => item.product !== null);
 
+      // Log toàn bộ dữ liệu từ API
+      console.group("%c[Wishlist] Dữ liệu từ API", "color: #0ea5e9; font-weight: bold;");
+      console.log("Full data:", data);
+      console.table(
+        data.map((item) => ({
+          wishlist_id: item.id,
+          product_id: item.product?.id,
+          product_name: item.product?.name,
+          shop_slug: item.product?.shop?.slug ?? "(null)"
+        }))
+      );
+      console.groupEnd();
+
+      const validData = data.filter((item) => item.product !== null);
       setWishlistItems(validData);
     } catch (error) {
       console.error("❌ Lỗi lấy wishlist:", error);
@@ -48,20 +62,15 @@ const Wishlist = () => {
     }
   };
 
+
   const removeItem = (productId: number) => {
-    setWishlistItems((prev) =>
-      prev.filter((item) => item.product?.id !== productId)
-    );
+    setWishlistItems((prev) => prev.filter((item) => item.product?.id !== productId));
   };
 
   const addItem = (product: Product) => {
     setWishlistItems((prev) => {
-      const exists = prev.find((item) => item.product.id === product.id);
-      if (exists) return prev;
-      return [
-        ...prev,
-        { id: product.id, product_id: product.id, user_id: 0, product },
-      ];
+      if (prev.find((item) => item.product.id === product.id)) return prev;
+      return [...prev, { id: product.id, product_id: product.id, user_id: 0, product: product as any }];
     });
   };
 
@@ -91,7 +100,11 @@ const Wishlist = () => {
           {wishlistItems.map((item) => (
             <ProductCard
               key={item.product.id}
-              product={item.product}
+              product={{
+                ...item.product,
+                // Lấy slug trực tiếp từ shop
+                shop_slug: item.product.shop?.slug ?? null
+              } as Product}
               onUnlike={removeItem}
               onLiked={addItem}
               wishlistProductIds={wishlistProductIds}

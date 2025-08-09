@@ -328,9 +328,14 @@ localCartItems = parsed.map((item: any, index: number) => {
                     </button>
                   </div>
 
-                  <div className="flex flex-col text-sm font-medium text-black">
-                    <span>{item.product.name}</span>
-                  </div>
+                <div className="flex flex-col text-sm font-medium text-black">
+  <span>
+    {item.product.name && item.product.name.length > 40
+      ? item.product.name.slice(0, 40) + "..."
+      : item.product.name}
+  </span>
+</div>
+
                 </div>
 
                 <div>{renderVariant(item)}</div>
