@@ -18,9 +18,9 @@ export interface Product {
   image: string[];
   slug: string;
   price: number;
-  oldPrice: number;
+  oldPrice?: number;
   rating: number;
-  discount: number;
+  discount?: number;
   option1?: string;
   value1?: string;
   sale_price?: number;

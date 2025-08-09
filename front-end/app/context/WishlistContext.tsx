@@ -107,8 +107,9 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
     // ✅ Thêm sản phẩm vào wishlist context
     const addItem = useCallback((product: Product): void => {
         setWishlistItems((prev: WishlistItem[]) => {
-            if (prev.some((item: WishlistItem) => item.product.id === product.id)) return prev;
-            return [
+            if (prev.some((item) => item.product.id === product.id)) return prev;
+
+            const updated = [
                 ...prev,
                 {
                     id: product.id,
@@ -117,15 +118,27 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
                     product,
                 },
             ];
+
+            // 🔔 Bắn sự kiện cho các component khác biết
+            window.dispatchEvent(new Event("wishlistUpdated"));
+
+            return updated;
         });
     }, []);
 
+
     // ✅ Xoá sản phẩm khỏi wishlist context
     const removeItem = useCallback((productId: number): void => {
-        setWishlistItems((prev: WishlistItem[]) =>
-            prev.filter((item: WishlistItem) => item.product.id !== productId)
-        );
+        setWishlistItems((prev: WishlistItem[]) => {
+            const updated = prev.filter((item) => item.product.id !== productId);
+
+            // 🔔 Bắn sự kiện
+            window.dispatchEvent(new Event("wishlistUpdated"));
+
+            return updated;
+        });
     }, []);
+
 
     return (
         <WishlistContext.Provider
