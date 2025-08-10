@@ -24,6 +24,20 @@ export interface CartItem {
   };
 }
 
+// ✅ Voucher types
+export type VoucherType = 'percent' | 'amount' | 'shipping' | string;
+export interface Voucher {
+  id: number | string;
+  code: string;
+  title?: string;
+  description?: string;
+  type: VoucherType;
+  value: number;
+  min_order?: number;
+  expires_at?: string;
+  is_active?: boolean;
+}
+
 // ✅ Body gửi lên API khi đặt hàng
 interface OrderRequestBody {
   payment_method: string;
@@ -43,7 +57,11 @@ interface Props {
   cartItems: CartItem[];
   paymentMethod: string;
   addressId: number | null;
+
+  // 👉 truyền hẳn object voucher (ưu tiên dùng), còn voucherCode là fallback
+  appliedVoucher?: Voucher | null;
   voucherCode?: string | null;
+
   manualAddressData?: {
     full_name: string;
     address: string;
@@ -60,6 +78,7 @@ export default function OrderSummary({
   paymentMethod,
   addressId,
   voucherCode = null,
+  appliedVoucher = null,
   manualAddressData,
   setCartItems,
 }: Props) {
@@ -71,7 +90,7 @@ export default function OrderSummary({
   const [popupType, setPopupType] = useState<'success' | 'error' | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
 
-  // ✅ Tính toán đơn hàng
+  // ✅ Tính toán đơn hàng (giữ nguyên base + thêm voucher)
   const subtotal = cartItems.reduce((sum, item) => {
     const originalPrice = item.variant?.price ?? item.product.price;
     return sum + originalPrice * item.quantity;
@@ -85,10 +104,40 @@ export default function OrderSummary({
     return sum + (originalPrice - discountedPrice) * item.quantity;
   }, 0);
 
-  const discountedSubtotal = subtotal - promotionDiscount;
-  const shipping = 20000; // phí vận chuyển cố định
-  const voucherDiscount = 0; // xử lý sau nếu cần
-  const finalTotal = discountedSubtotal - voucherDiscount + shipping;
+  const discountedSubtotal = Math.max(0, subtotal - promotionDiscount);
+  const shippingBase = cartItems.length > 0 ? 20000 : 0;
+
+  // đủ điều kiện đơn tối thiểu cho voucher?
+  const meetsMinOrder = (v: Voucher | null) => {
+    if (!v?.min_order) return true;
+    return discountedSubtotal >= v.min_order;
+  };
+
+  // ✅ giảm từ voucher (percent/amount – chỉ khi đủ điều kiện)
+  const voucherDiscount = (() => {
+    if (!appliedVoucher || !meetsMinOrder(appliedVoucher)) return 0;
+    const type = (appliedVoucher.type || 'amount').toLowerCase();
+    const val = Number(appliedVoucher.value || 0);
+
+    if (type === 'percent') {
+      return Math.max(0, Math.floor((discountedSubtotal * val) / 100));
+    }
+    if (type === 'amount') {
+      return Math.min(discountedSubtotal, Math.max(0, Math.floor(val)));
+    }
+    // shipping: không giảm vào hàng
+    return 0;
+  })();
+
+  // ✅ phí ship sau voucher (shipping = free nếu hợp lệ)
+  const shipping = (() => {
+    if (!appliedVoucher || !meetsMinOrder(appliedVoucher)) return shippingBase;
+    const type = (appliedVoucher.type || '').toLowerCase();
+    if (type === 'shipping') return 0;
+    return shippingBase;
+  })();
+
+  const finalTotal = Math.max(0, discountedSubtotal - voucherDiscount + shipping);
 
   // ✅ Đặt hàng
   const handlePlaceOrder = async () => {
@@ -110,7 +159,7 @@ export default function OrderSummary({
       const isGuest = !token;
 
       // ✅ Lấy giỏ hàng (login hoặc khách)
-      let cartPayload;
+      let cartPayload: any[];
       if (isGuest) {
         cartPayload = JSON.parse(localStorage.getItem('cart') || '[]');
         if (!cartPayload.length) throw new Error('Giỏ hàng trống.');
@@ -130,26 +179,30 @@ export default function OrderSummary({
           payment_method: paymentMethod,
           address_manual: {
             full_name: manualAddressData?.full_name || '',
-            address: `${manualAddressData?.address ?? ''}${manualAddressData?.apartment ? ', ' + manualAddressData.apartment : ''}`,
+            address: `${manualAddressData?.address ?? ''}${manualAddressData?.apartment ? ', ' + manualAddressData.apartment : ''
+              }`,
             city: manualAddressData?.city || '',
             phone: manualAddressData?.phone || '',
             email: manualAddressData?.email || '',
           },
           cart_items: cartPayload,
+          // 👉 truyền mã voucher nếu có
+          voucher_code: appliedVoucher?.code || voucherCode || null,
         };
 
         await axios.post(`${API_BASE_URL}/nologin`, guestPayload);
       } else {
         const requestBody: OrderRequestBody = {
           payment_method: paymentMethod,
-          voucher_code: voucherCode || null,
+          voucher_code: appliedVoucher?.code || voucherCode || null, // 👉 ưu tiên object
         };
 
         // ✅ Nếu người dùng nhập địa chỉ tay
-        if (manualAddressData && Object.values(manualAddressData).some((v) => v.trim() !== '')) {
+        if (manualAddressData && Object.values(manualAddressData).some((v) => (v ?? '').toString().trim() !== '')) {
           requestBody.address_manual = {
             full_name: manualAddressData.full_name,
-            address: `${manualAddressData.address}${manualAddressData.apartment ? ', ' + manualAddressData.apartment : ''}`,
+            address: `${manualAddressData.address}${manualAddressData.apartment ? ', ' + manualAddressData.apartment : ''
+              }`,
             city: manualAddressData.city,
             phone: manualAddressData.phone,
             email: manualAddressData.email,
@@ -220,10 +273,7 @@ export default function OrderSummary({
     };
   }, [showPopup]);
 
-  // ✅ JSX hiển thị sẽ viết phía dưới
-
-
-
+  // ✅ JSX hiển thị
   return (
     <div className="space-y-6 text-sm relative">
       <div>
@@ -231,23 +281,33 @@ export default function OrderSummary({
         <div className="border-t border-gray-300 pt-4 space-y-1">
           <div className="flex justify-between pb-2 border-b border-gray-200">
             <span>Tạm tính (giá gốc):</span>
-            <span>{subtotal.toLocaleString()}đ</span>
+            <span>{subtotal.toLocaleString('vi-VN')}đ</span>
           </div>
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Khuyến mãi:</span>
-            <span className="text-green-700">-{promotionDiscount.toLocaleString()}đ</span>
+            <span className="text-green-700">-{promotionDiscount.toLocaleString('vi-VN')}đ</span>
           </div>
-          <div className="flex justify-between py-2 border-b border-gray-200">
-            <span>Voucher:</span>
-            <span className="text-green-700">-{voucherDiscount.toLocaleString()}đ</span>
-          </div>
+
+          {/* Voucher (chỉ hiện số nếu có áp dụng và đủ điều kiện) */}
+          {appliedVoucher && meetsMinOrder(appliedVoucher) ? (
+            <div className="flex justify-between py-2 border-b border-gray-200">
+              <span>Voucher:</span>
+              <span className="text-green-700">-{voucherDiscount.toLocaleString('vi-VN')}đ</span>
+            </div>
+          ) : (
+            <div className="flex justify-between py-2 border-b border-gray-200">
+              <span>Voucher:</span>
+              <span>-0đ</span>
+            </div>
+          )}
+
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Phí vận chuyển:</span>
             <span>{shipping.toLocaleString('vi-VN')}đ</span>
           </div>
           <div className="flex justify-between font-semibold text-lg text-brand pt-3">
             <span>Tổng thanh toán:</span>
-            <span>{finalTotal.toLocaleString()}đ</span>
+            <span>{finalTotal.toLocaleString('vi-VN')}đ</span>
           </div>
         </div>
 
