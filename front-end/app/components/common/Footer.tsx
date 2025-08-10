@@ -51,7 +51,7 @@ export default function Footer() {
           <h3 className="text-lg font-bold mb-2">Liên kết nhanh</h3>
           <ul className="space-y-1 text-sm">
             <li><Link href="#" className="link-underline">Chính sách bảo mật</Link></li>
-            <li><Link href="#" className="link-underline">Điều khoản sử dụng</Link></li>
+            <li><Link href="/dieu-khoan" className="link-underline">Điều khoản sử dụng</Link></li>
             <li><Link href="#" className="link-underline">Câu hỏi thường gặp</Link></li>
             <li><Link href="#" className="link-underline">Liên hệ</Link></li>
           </ul>
