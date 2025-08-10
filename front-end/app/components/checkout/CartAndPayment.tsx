@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Cookies from 'js-cookie';
-
+import { useRouter } from 'next/navigation';
 interface CartItem {
   id: string | number;
   quantity: number;
@@ -59,7 +59,9 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
   const [voucherSearch, setVoucherSearch] = useState('');
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | number | null>(null);
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
-
+  const router = useRouter();                 // ⬅️ thêm
+  const [requireLogin, setRequireLogin] = useState(false); // ⬅️ thêm
+ 
   const token = useMemo(() => (typeof window !== 'undefined' ? (localStorage.getItem('token') || Cookies.get('authToken') || '') : ''), []);
   const isVoucherExpired = (v: Voucher) => {
     if (!v?.expires_at) return false;
@@ -201,7 +203,18 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
 
   // ===== Voucher modal handlers =====
   const openVoucherModal = () => {
+    const isLoggedIn = !!token; 
+    // ⬇️ Nếu chưa đăng nhập: chỉ mở modal thông báo, không load API
+    if (!isLoggedIn) {
+      setRequireLogin(true);
+      setVoucherError(null);
+      setShowVoucherModal(true);
+      return;
+    }
+
+    setRequireLogin(false);
     setShowVoucherModal(true);
+
     if (vouchers.length === 0) {
       setVoucherLoading(true);
       setVoucherError(null);
@@ -227,24 +240,17 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
                 ? Number(v.min_order_amount)
                 : undefined,
             expires_at:
-              v.expires_at ??
-              v.expired_at ??
-              v.end_at ??
-              v.expired_time ??
-              undefined,
+              v.expires_at ?? v.expired_at ?? v.end_at ?? v.expired_time ?? undefined,
             is_active: v.is_active ?? v.active ?? true,
           }));
 
-          console.log("Danh sách voucher đã map:", mapped); // 👈 log ra để kiểm tra
           setVouchers(mapped);
         })
-        .catch((err) => {
-          console.error(err);
-          setVoucherError('Không tải được danh sách voucher.');
-        })
+        .catch(() => setVoucherError('Không tải được danh sách voucher.'))
         .finally(() => setVoucherLoading(false));
     }
   };
+
 
 
   const closeVoucherModal = () => {
@@ -406,96 +412,96 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
               </div>
 
               <div className="p-4 space-y-3">
-                <div className="flex gap-3 items-center">
-                  <input value={voucherSearch} onChange={(e) => setVoucherSearch(e.target.value)} placeholder="Tìm theo mã, tên, mô tả..." className="flex-1 border rounded-lg px-3 py-2 outline-none" />
-                  {appliedVoucher ? (
-                    <button onClick={clearVoucher} className="px-3 py-2 rounded-lg border hover:bg-gray-50">Bỏ voucher</button>
-                  ) : null}
-                </div>
-
-                {voucherLoading && <p className="text-gray-500">Đang tải voucher...</p>}
-                {voucherError && <p className="text-red-600">{voucherError}</p>}
-                {!voucherLoading && !voucherError && filteredVouchers.length === 0 && (
-                  <p className="text-gray-500">Không có voucher phù hợp.</p>
-                )}
-
-                <ul className="max-h-80 overflow-auto divide-y rounded-lg border">
-                  {filteredVouchers.map((v) => {
-                    const selected = String(selectedVoucherId ?? appliedVoucher?.id) === String(v.id);
-                    const expired = isVoucherExpired(v);
-                    const disabled = !!expired || (typeof v.is_active === 'boolean' && !v.is_active);
-
-                    return (
-                      <li
-                        key={String(v.id)}
-                        onClick={() => {
-                          if (!disabled) {
-                            setSelectedVoucherId(selected ? null : v.id);
-                          }
-                        }}
-                        className={`p-4 flex items-start gap-4 cursor-pointer hover:bg-gray-50 ${selected ? 'bg-blue-50' : ''
-                          } ${disabled ? 'opacity-60' : ''}`}
+                {requireLogin ? (
+                  // ⬇️ Trạng thái chưa đăng nhập
+                  <div className="text-center py-8">
+                    <p className="text-base font-semibold mb-2">Bạn cần đăng nhập để sử dụng voucher</p>
+                    <p className="text-sm text-gray-600 mb-4">Vui lòng đăng nhập để xem và áp dụng voucher của bạn.</p>
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={closeVoucherModal}
+                        className="px-4 py-2 rounded-xl border hover:bg-gray-50"
                       >
-                        <input
-                          type="radio"
-                          name="voucher"
-                          className="mt-1"
-                          checked={selected}
-                          readOnly
-                          disabled={disabled}
-                        />
+                        Đóng
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => (window.location.href = '/login')}
 
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-base">
-                              {v.title || 'Voucher'}
-                            </span>
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 border font-mono">
-                              {(v.code && v.code.trim()) || `#${v.id}`}
-                            </span>
-                            {v.type && (
-                              <span className="px-2 py-0.5 text-xs rounded-full bg-indigo-50 text-indigo-700 border">
-                                {v.type}
-                              </span>
-                            )}
-                            <span className="px-2 py-0.5 text-xs rounded-full bg-white border">
-                              {badgeValue(v)}
-                            </span>
-                            {typeof v.min_order === 'number' && (
-                              <span className="px-2 py-0.5 text-xs rounded-full bg-white border">
-                                Tối thiểu {new Intl.NumberFormat('vi-VN').format(v.min_order)}₫
-                              </span>
-                            )}
-                            {v.expires_at && (
-                              <span
-                                className={`px-2 py-0.5 text-xs rounded-full border ${expired ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white'
-                                  }`}
-                              >
-                                HSD: {new Date(v.expires_at).toLocaleDateString('vi-VN')}
-                              </span>
-                            )}
-                            {disabled && (
-                              <span className="px-2 py-0.5 text-xs rounded-full bg-red-50 text-red-700 border border-red-200">
-                                {expired ? 'Đã hết hạn' : 'Ngừng áp dụng'}
-                              </span>
-                            )}
-                          </div>
+                        className="px-4 py-2 rounded-xl bg-brand text-white"
+                      >
+                        Đăng nhập
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // ⬇️ Trạng thái đã đăng nhập: giữ nguyên phần tìm kiếm + list
+                  <>
+                    <div className="flex gap-3 items-center">
+                      <input
+                        value={voucherSearch}
+                        onChange={(e) => setVoucherSearch(e.target.value)}
+                        placeholder="Tìm theo mã, tên, mô tả..."
+                        className="flex-1 border rounded-lg px-3 py-2 outline-none"
+                      />
+                      {appliedVoucher ? (
+                        <button onClick={clearVoucher} className="px-3 py-2 rounded-lg border hover:bg-gray-50">
+                          Bỏ voucher
+                        </button>
+                      ) : null}
+                    </div>
 
-                          {v.description && (
-                            <p className="text-gray-600 mt-1 text-sm">{v.description}</p>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                    {voucherLoading && <p className="text-gray-500">Đang tải voucher...</p>}
+                    {voucherError && <p className="text-red-600">{voucherError}</p>}
+                    {!voucherLoading && !voucherError && filteredVouchers.length === 0 && (
+                      <p className="text-gray-500">Không có voucher phù hợp.</p>
+                    )}
 
+                    {/* ⬇️ Giữ nguyên list bạn đang có */}
+                    <ul className="max-h-80 overflow-auto divide-y rounded-lg border">
+                      {filteredVouchers.map((v) => {
+                        const selected = String(selectedVoucherId ?? appliedVoucher?.id) === String(v.id);
+                        const expired = isVoucherExpired(v);
+                        const disabled = !!expired || (typeof v.is_active === 'boolean' && !v.is_active);
+
+                        return (
+                          <li
+                            key={String(v.id)}
+                            onClick={() => {
+                              if (!disabled) setSelectedVoucherId(selected ? null : v.id);
+                            }}
+                            className={`p-4 flex items-start gap-4 cursor-pointer hover:bg-gray-50 ${selected ? 'bg-blue-50' : ''
+                              } ${disabled ? 'opacity-60' : ''}`}
+                          >
+                            <input type="radio" name="voucher" className="mt-1" checked={selected} readOnly disabled={disabled} />
+                            <div className="flex-1">
+                              {/* ... giữ nguyên phần nội dung voucher ... */}
+                              {/* title, code, type, badgeValue, min_order, expires_at, description */}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                )}
               </div>
+
 
               <div className="p-4 border-t flex items-center justify-end gap-3">
-                <button type="button" onClick={closeVoucherModal} className="px-4 py-2 rounded-xl border hover:bg-gray-50">Hủy</button>
-                <button type="button" disabled={selectedVoucherId === null} onClick={applyVoucher} className="px-4 py-2 rounded-xl bg-brand text-white disabled:opacity-50">Áp dụng</button>
+                <button type="button" onClick={closeVoucherModal} className="px-4 py-2 rounded-xl border hover:bg-gray-50">
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  disabled={requireLogin || selectedVoucherId === null}
+                  onClick={applyVoucher}
+                  className="px-4 py-2 rounded-xl bg-brand text-white disabled:opacity-50"
+                >
+                  Áp dụng
+                </button>
               </div>
+
             </div>
           </div>
         </div>

@@ -41,7 +41,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
   const [disableForm, setDisableForm] = useState(false);
   const [hasUserInput, setHasUserInput] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
-
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     streetAddress: '',
@@ -182,7 +182,14 @@ useEffect(() => {
         setPhoneError(null);
       }
     }
-
+    if (field === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (value.trim() !== '' && !emailRegex.test(value)) {
+        setEmailError('Email không hợp lệ');
+      } else {
+        setEmailError(null);
+      }
+    }
     setFormData(updated);
 
     const hasInput = Object.values(updated).some((val) => val.trim() !== '') || !!selectedProvince || !!selectedDistrict;
@@ -313,7 +320,16 @@ useEffect(() => {
         </div>
 
         <InputField label="Số điện thoại" field="phone" required value={formData.phone} onChange={handleInputChange} disabled={disableForm} error={phoneError} />
-        <InputField label="Email" field="email" required value={formData.email} onChange={handleInputChange} disabled={disableForm} />
+        <InputField
+          label="Email"
+          field="email"
+          required
+          value={formData.email}
+          onChange={handleInputChange}
+          disabled={disableForm}
+          error={emailError}
+        />
+
       </div>
     </div>
   );
