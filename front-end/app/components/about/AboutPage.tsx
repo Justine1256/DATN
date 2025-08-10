@@ -3,76 +3,29 @@
 import Image from 'next/image';
 import {
   FaStore, FaDollarSign, FaUsers, FaMoneyBillWave,
-  FaTwitter, FaInstagram, FaLinkedin, FaTruck, FaHeadset, FaShieldAlt
+  FaTruck, FaHeadset, FaShieldAlt
 } from 'react-icons/fa';
 import CountUp from 'react-countup';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Inter } from 'next/font/google';
 
 const inter = Inter({ subsets: ['latin'] });
 
-// ====== NEW: Kiểu dữ liệu thành viên
-type Stack = 'Backend' | 'Frontend' | 'Fullstack' | 'Mobile' | 'Data' | 'Design' | 'PM' | 'Figma'| 'Ui/Ux';
+type Stack = 'Backend' | 'Frontend' | 'Fullstack' | 'Mobile' | 'Data' | 'Design' | 'PM' | 'Figma' | 'Ui/Ux' | 'Tester';
 interface TeamMember {
   name: string;
-  role: string;          // Chức danh
-  stacks: Stack[];       // Làm gì: BE/FE/...
-  mssv: string;          // Mã số sinh viên
-  image: string;         // Ảnh
-  socials?: ('twitter' | 'instagram' | 'linkedin')[];
+  role: string;
+  stacks: Stack[];
+  mssv: string;
+  image: string;
 }
 
-// ====== NEW: Danh sách team có đủ thông tin
 const teamMembers: TeamMember[] = [
-  {
-    name: 'Nguyễn Văn Nhật',
-    role: 'Trưởng nhóm',
-    stacks: ['Frontend','Design'],
-    mssv: 'Ps38490',
-    image: '/team/man1.jpg',
-    // socials: ['twitter', 'instagram', 'linkedin'],
-  },
-  {
-    name: 'Emma Watson',
-    role: 'Giám đốc điều hành',
-    stacks: ['PM'],
-    mssv: '20124567',
-    image: '/team/woman1.webp',
-    // socials: ['twitter', 'instagram', 'linkedin'],
-  },
-  {
-    name: 'Will Smith',
-    role: 'Nhà thiết kế sản phẩm',
-    stacks: ['Design', 'Frontend'],
-    mssv: '20125678',
-    image: '/team/man3.jpg',
-    // socials: ['twitter', 'instagram', 'linkedin'],
-  },
-  {
-    name: 'Scarlett Johansson',
-    role: 'Trưởng bộ phận Marketing',
-    stacks: ['PM'],
-    mssv: '20126789',
-    image: '/team/woman2.webp',
-    // socials: ['twitter', 'instagram', 'linkedin'],
-  },
-  {
-    name: 'Chris Hemsworth',
-    role: 'Lập trình viên chính',
-    stacks: ['Backend', 'Data'],
-    mssv: '20127890',
-    image: '/team/man2.jpg',
-    // socials: ['twitter', 'instagram', 'linkedin'],
-  },
-  {
-    name: 'Gal Gadot',
-    role: 'Nhà thiết kế UI/UX',
-    stacks: ['Design'],
-    mssv: '20128901',
-    image: '/team/woman3.avif',
-    socials: ['twitter', 'instagram', 'linkedin'],
-  },
- 
+  { name: 'Nguyễn Văn Nhật', role: 'Trưởng nhóm', stacks: ['Frontend', 'Design'], mssv: 'Ps38490', image: '/team/vn.jpg' },
+  { name: 'Ngô Duy Nhân', role: 'Thành Viên', stacks: ['Backend', 'Frontend'], mssv: 'PS42395', image: '/team/dn.jpg' },
+  { name: 'Trương Hiền Bảo', role: 'Thành Viên', stacks: ['Backend', 'Frontend'], mssv: '20125678', image: '/team/hb.png' },
+  { name: 'Huỳnh Phạm Thùy Anh', role: 'Thành Viên', stacks: ['Figma', 'Frontend'], mssv: 'PS42206', image: '/team/ta.jpg' },
+  { name: 'Nguyễn Trần Thanh Tú', role: 'Thành Viên', stacks: ['Tester'], mssv: 'PS37977', image: '/team/tt.jpg' },
 ];
 
 const features = [
@@ -89,16 +42,33 @@ const stats = [
 ];
 
 export default function AboutPage() {
-  const itemsPerPage = 3;
-  const totalPages = Math.ceil(teamMembers.length / itemsPerPage);
-  const [currentTeamPage, setCurrentTeamPage] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // ==== Carousel state ====
+  const perSlide = 3;                     // 3 card/slide
+  const slides = useMemo(() => {
+    const chunks: TeamMember[][] = [];
+    for (let i = 0; i < teamMembers.length; i += perSlide) {
+      chunks.push(teamMembers.slice(i, i + perSlide));
+    }
+    return chunks;
+  }, []);
+  const totalSlides = slides.length;
+  const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const autoplayRef = useRef<NodeJS.Timeout | null>(null);
+
+  const next = () => setCurrent((c) => (c + 1) % totalSlides);
+  const prev = () => setCurrent((c) => (c - 1 + totalSlides) % totalSlides);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTeamPage((prev) => (prev + 1) % totalPages);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [totalPages]);
+    if (paused) return;
+    autoplayRef.current = setInterval(next, 4000); // auto trượt 4s
+    return () => {
+      if (autoplayRef.current) clearInterval(autoplayRef.current);
+    };
+  }, [paused, totalSlides]);
 
   return (
     <div className={`container mx-auto px-4 ${inter.className}`}>
@@ -120,7 +90,9 @@ export default function AboutPage() {
             <Image
               src="/about1.avif"
               alt="Câu chuyện của chúng tôi"
-              width={0} height={0} sizes="100vw"
+              width={0}
+              height={0}
+              sizes="100vw"
               className="w-full h-auto object-cover rounded-lg"
               style={{ objectFit: 'cover' }}
             />
@@ -130,16 +102,24 @@ export default function AboutPage() {
         {/* Thống kê */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-24">
           {stats.map((item, idx) => (
-            <div key={idx}
-              className="group w-full aspect-square flex flex-col items-center justify-center bg-white text-black border border-black hover:bg-[#db4444] hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-md">
+            <div
+              key={idx}
+              className="group w-full aspect-square flex flex-col items-center justify-center bg-white text-black border border-black hover:bg-[#db4444] hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-md"
+            >
               <div className="flex justify-center mb-4">
                 <div className="w-12 h-12 rounded-full bg-black group-hover:bg-white border-4 border-gray-300 group-hover:border-white flex items-center justify-center transition-all duration-300">
                   <item.icon className="text-xl text-white group-hover:text-black transition-all duration-300" />
                 </div>
               </div>
               <p className="text-3xl font-bold mb-2 text-black group-hover:text-white transition-all duration-300">
-                <CountUp end={item.number} decimals={item.number % 1 !== 0 ? 1 : 0} duration={2} />
-                {item.suffix}
+                {mounted ? (
+                  <>
+                    <CountUp end={item.number} decimals={item.number % 1 !== 0 ? 1 : 0} duration={2} />
+                    {item.suffix}
+                  </>
+                ) : (
+                  `${item.number}${item.suffix}`
+                )}
               </p>
               <p className="text-[13px] px-2 text-center break-words text-black group-hover:text-white transition-all duration-300">
                 {item.label}
@@ -148,68 +128,70 @@ export default function AboutPage() {
           ))}
         </div>
 
-        {/* Đội ngũ của chúng tôi */}
-        <div className="overflow-hidden relative mb-24">
+        {/* Đội ngũ của chúng tôi - Slider 3 ảnh/slide */}
+        <div className="mb-24">
           <h2 className="text-3xl font-bold text-center mb-12">Đội ngũ của chúng tôi</h2>
-          <div
-            className="flex transition-transform duration-700 ease-in-out"
-            style={{ transform: `translateX(-${currentTeamPage * (100 / totalPages)}%)`, width: `${totalPages * 100}%` }}
-          >
-            {Array.from({ length: totalPages }).map((_, pageIndex) => {
-              const start = pageIndex * itemsPerPage;
-              const pageTeam = teamMembers.slice(start, start + itemsPerPage);
-              return (
-                <div key={pageIndex}
-                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 flex-shrink-0 px-4"
-                  style={{ width: `${100 / totalPages}%` }}
-                >
-                  {pageTeam.map((member, index) => (
-                    <div key={index} className="text-center">
-                      <div className="w-full h-80 relative mb-4">
-                        <Image src={member.image} alt={member.name} fill className="rounded-md object-cover" />
-                      </div>
 
+          {/* Uniform card width */}
+          <style jsx>{`
+            .member-card { width: 260px; }
+            @media (max-width: 640px) { .member-card { width: 100%; } }
+          `}</style>
+
+          <div
+            className="relative overflow-hidden"
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+          >
+            {/* Track */}
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{
+                width: `${totalSlides * 100}%`,
+                transform: `translateX(-${(100 / totalSlides) * current}%)`,
+              }}
+            >
+              {slides.map((slide, sIdx) => (
+                <div
+                  key={sIdx}
+                  className="flex justify-center gap-8 px-2 flex-shrink-0"
+                  style={{ width: `${100 / totalSlides}%` }}
+                >
+                  {slide.map((member, idx) => (
+                    <div key={idx} className="text-center member-card">
+                      <div className="relative w-full aspect-[4/5] mb-4 rounded-md overflow-hidden bg-gray-100">
+                        <Image src={member.image} alt={member.name} fill className="object-cover" />
+                      </div>
                       <h3 className="text-lg font-semibold text-black">{member.name}</h3>
                       <p className="text-sm text-gray-700">{member.role}</p>
-
-                      {/* NEW: MSSV + Stacks */}
                       <div className="mt-2 text-sm">
                         <p className="text-gray-600">
                           <span className="font-semibold text-black">MSSV:</span> {member.mssv}
                         </p>
                         <p className="text-gray-600">
-                          <span className="font-semibold text-black">Phụ trách:</span>{' '}
-                          {member.stacks.join(' · ')}
+                          <span className="font-semibold text-black">Phụ trách:</span> {member.stacks.join(' · ')}
                         </p>
-                      </div>
-
-                      {/* Socials */}
-                      <div className="flex justify-center space-x-4 mt-3 text-gray-600 text-lg">
-                        {member.socials?.includes('twitter') && (
-                          <a href="#" aria-label="Twitter"><FaTwitter className="hover:text-blue-400" /></a>
-                        )}
-                        {member.socials?.includes('instagram') && (
-                          <a href="#" aria-label="Instagram"><FaInstagram className="hover:text-pink-500" /></a>
-                        )}
-                        {member.socials?.includes('linkedin') && (
-                          <a href="#" aria-label="LinkedIn"><FaLinkedin className="hover:text-blue-600" /></a>
-                        )}
                       </div>
                     </div>
                   ))}
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
 
-          <div className="flex justify-center space-x-2 mt-6">
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentTeamPage(i)}
-                className={`h-3 w-3 rounded-full transition-colors duration-300 ${currentTeamPage === i ? 'bg-red-500' : 'bg-gray-300'}`}
-              />
-            ))}
+            {/* Controls */}
+            
+
+            {/* Dots */}
+            <div className="flex justify-center gap-2 mt-6">
+              {Array.from({ length: totalSlides }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrent(i)}
+                  aria-label={`Go to slide ${i + 1}`}
+                  className={`h-2.5 w-2.5 rounded-full transition-colors ${current === i ? 'bg-red-500' : 'bg-gray-300'}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
