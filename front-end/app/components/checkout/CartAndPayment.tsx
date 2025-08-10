@@ -288,10 +288,22 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
   };
 
   const filteredVouchers = (() => {
-    if (!voucherSearch.trim()) return vouchers;
-    const q = voucherSearch.toLowerCase();
-    return vouchers.filter((v) => [v.code, v.title, v.description].filter(Boolean).some((s) => String(s).toLowerCase().includes(q)));
+    const list = !voucherSearch.trim()
+      ? [...vouchers]
+      : vouchers.filter((v) =>
+        [v.code, v.title, v.description]
+          .filter(Boolean)
+          .some((s) => String(s).toLowerCase().includes(voucherSearch.toLowerCase()))
+      );
+
+    // Ưu tiên: đang hoạt động & chưa hết hạn -> còn lại
+    return list.sort((a, b) => {
+      const ad = (a.is_active !== false) && !isVoucherExpired(a) ? 1 : 0;
+      const bd = (b.is_active !== false) && !isVoucherExpired(b) ? 1 : 0;
+      return bd - ad; // voucher còn hạn/active lên đầu
+    });
   })();
+
 
   const VND = (n: number) => new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.floor(n))) + 'đ';
 
