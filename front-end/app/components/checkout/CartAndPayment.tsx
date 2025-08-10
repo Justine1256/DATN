@@ -427,7 +427,7 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
                       </button>
                       <button
                         type="button"
-                        onClick={() => (window.location.href = '/login')}
+                   onClick={() => (window.location.href = '/login')}
 
                         className="px-4 py-2 rounded-xl bg-brand text-white"
                       >
