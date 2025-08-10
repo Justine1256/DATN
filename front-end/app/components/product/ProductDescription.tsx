@@ -13,7 +13,7 @@ export default function ProductDescription({ html }: ProductDescriptionProps) {
         const container = document.createElement('div');
         container.innerHTML = html;
 
-        // ✅ Xử lý mục "Danh Mục"
+        // Đoạn code xử lý class CSS cho các thẻ HTML bên trong
         const rows = container.querySelectorAll('tr');
         rows.forEach((tr) => {
             const th = tr.querySelector('th')?.textContent?.trim()?.toLowerCase();
@@ -32,7 +32,6 @@ export default function ProductDescription({ html }: ProductDescriptionProps) {
             }
         });
 
-        // ✅ Thêm Tailwind class cho ul > li
         const listItems = container.querySelectorAll('ul > li');
         listItems.forEach((li) => {
             li.classList.add(
@@ -44,27 +43,22 @@ export default function ProductDescription({ html }: ProductDescriptionProps) {
             );
         });
 
-        // ✅ Thêm class cho strong
         container.querySelectorAll('ul > li > strong').forEach((el) => {
             el.classList.add('font-semibold', 'text-black');
         });
 
-        // ✅ Thêm class cho table
         container.querySelectorAll('table').forEach((table) => {
             table.classList.add('w-full', 'text-sm');
         });
 
-        // ✅ Thêm class cho th
         container.querySelectorAll('th').forEach((th) => {
             th.classList.add('text-left', 'align-top', 'py-2');
         });
 
-        // ✅ Thêm class cho td
         container.querySelectorAll('td').forEach((td) => {
             td.classList.add('align-top', 'py-2');
         });
 
-        // ✅ Chuyển #Hashtag thành <a href="/search?query=hashtag">
         container.querySelectorAll('p, li, td, span, div').forEach((el) => {
             el.innerHTML = el.innerHTML.replace(
                 /#([a-zA-Z0-9-_]+)/g,
@@ -80,22 +74,27 @@ export default function ProductDescription({ html }: ProductDescriptionProps) {
         <>
             <div className="flex items-center">
                 <div className="w-[10px] h-[22px] bg-[#db4444] rounded-tl-sm rounded-bl-sm mr-2" />
-                <p className="font-medium text-brand text-base">THôNG TIN SẢN PHẨM</p>
+                <p className="font-medium text-brand text-base">THÔNG TIN SẢN PHẨM</p>
             </div>
 
+            {/* Hiển thị dựa trên điều kiện */}
             <div className="border rounded-xl p-6 bg-white shadow-sm">
-                <article
-                    className="
-            leading-relaxed text-[15px] text-black
-            [&_a[href^='http']]:text-black 
-            [&_a[href^='http']:hover]:text-brand
-            [&_a[href^='/']]:text-brand
-            [&_a[href^='/']:hover]:text-brand
-            [&_a[href^='#']]:text-brand
-            [&_a[href^='#']:hover]:text-[#b91c1c]
-          "
-                    dangerouslySetInnerHTML={{ __html: processedHtml }}
-                />
+                {html ? (
+                    <article
+                        className="
+                            leading-relaxed text-[15px] text-black
+                            [&_a[href^='http']]:text-black 
+                            [&_a[href^='http']:hover]:text-brand
+                            [&_a[href^='/']]:text-brand
+                            [&_a[href^='/']:hover]:text-brand
+                            [&_a[href^='#']]:text-brand
+                            [&_a[href^='#']:hover]:text-[#b91c1c]
+                        "
+                        dangerouslySetInnerHTML={{ __html: processedHtml }}
+                    />
+                ) : (
+                        <p className="text-center">Chưa có thông tin sản phẩm</p>
+                )}
             </div>
         </>
     );

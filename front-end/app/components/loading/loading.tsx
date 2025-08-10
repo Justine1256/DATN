@@ -49,56 +49,119 @@ export const LoadingShopInfo = () => {
 };
 
 // ✅ Loading chi tiết sản phẩm
-export const LoadingProductDetail = () => {
+// components/loading/ProductDetailSkeleton.tsx
+
+export default function ProductDetailSkeleton() {
   return (
-    <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 animate-pulse">
+    <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10">
+      <div className="mb-8">
+        {/* Breadcrumb skeleton */}
+        <div className="h-4 bg-gray-200 rounded-md w-1/4 animate-pulse"></div>
+      </div>
+
       <div className="rounded-xl border shadow-sm bg-white p-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
-          {/* ✅ Hình ảnh bên trái */}
-          <div className="md:col-span-6 space-y-4">
-            <div className="bg-gray-200 rounded-lg w-full h-[320px]" />
-            <div className="flex gap-3">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-[80px] h-[80px] bg-gray-300 rounded-lg"
-                />
-              ))}
+          {/* Gallery & Like Button Skeleton */}
+          <div className="md:col-span-6 flex flex-col gap-4 relative">
+            <div className="w-full aspect-square bg-gray-200 rounded-lg animate-pulse"></div>
+            <div className="flex gap-2 mt-2">
+              <div className="w-16 h-16 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="w-16 h-16 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="w-16 h-16 bg-gray-200 rounded-lg animate-pulse"></div>
             </div>
           </div>
 
-          {/* ✅ Thông tin bên phải */}
-          <div className="md:col-span-6 space-y-4">
-            <div className="h-6 bg-gray-300 rounded w-1/2" />
-            <div className="h-4 bg-gray-200 rounded w-1/3" />
-            <div className="h-8 bg-gray-400 rounded w-1/4" />
-            <div className="h-4 bg-gray-300 rounded w-2/3" />
-            <div className="h-10 bg-gray-300 rounded w-3/4" />
-            <div className="flex gap-4 mt-4">
-              <div className="w-[165px] h-[44px] bg-gray-300 rounded" />
-              <div className="w-[165px] h-[44px] bg-gray-300 rounded" />
-              <div className="w-11 h-[44px] bg-gray-200 rounded" />
+          {/* Info Skeleton */}
+          <div className="md:col-span-6 space-y-6">
+            <div className="h-8 bg-gray-200 rounded-md w-3/4 animate-pulse"></div>
+            <div className="flex items-center gap-3 text-sm">
+              <div className="h-4 bg-gray-200 rounded-md w-1/6 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded-md w-1/6 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded-md w-1/4 animate-pulse"></div>
             </div>
-            <div className="h-[100px] bg-gray-100 rounded-lg mt-6" />
+
+            <div className="h-10 bg-gray-200 rounded-md w-1/3 animate-pulse"></div>
+
+            {/* Options Skeleton */}
+            <div className="space-y-4">
+              <div className="h-4 bg-gray-200 rounded-md w-1/5 animate-pulse"></div>
+              <div className="flex gap-2">
+                <div className="h-8 w-20 bg-gray-200 rounded-md animate-pulse"></div>
+                <div className="h-8 w-20 bg-gray-200 rounded-md animate-pulse"></div>
+                <div className="h-8 w-20 bg-gray-200 rounded-md animate-pulse"></div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="h-4 bg-gray-200 rounded-md w-1/5 animate-pulse"></div>
+              <div className="flex gap-2">
+                <div className="h-8 w-20 bg-gray-200 rounded-md animate-pulse"></div>
+                <div className="h-8 w-20 bg-gray-200 rounded-md animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Buttons Skeleton */}
+            <div className="flex gap-4 mt-6">
+              <div className="h-11 w-40 bg-gray-200 rounded-md animate-pulse"></div>
+              <div className="h-11 w-40 bg-gray-200 rounded-md animate-pulse"></div>
+            </div>
+
+            {/* Policy Skeleton */}
+            <div className="border rounded-lg divide-y text-sm mt-6">
+              <div className="p-4 flex items-center gap-3">
+                <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 bg-gray-200 rounded-md w-3/4 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded-md w-full animate-pulse"></div>
+                </div>
+              </div>
+              <div className="p-4 flex items-center gap-3">
+                <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 bg-gray-200 rounded-md w-3/4 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded-md w-full animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional sections skeletons */}
+      <div className="max-w-screen-xl mx-auto px-4 mt-16 space-y-16">
+        {/* Shop Info Skeleton */}
+        <div className="border shadow-sm p-6 rounded-xl space-y-4 animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
+            <div className="flex-1 space-y-2">
+              <div className="h-6 bg-gray-200 rounded-md w-1/3"></div>
+              <div className="h-4 bg-gray-200 rounded-md w-1/2"></div>
+            </div>
+            <div className="h-10 w-24 bg-gray-200 rounded-md"></div>
+          </div>
+        </div>
+
+        {/* Product Description Skeleton */}
+        <div className="border rounded-xl shadow-sm p-6 space-y-4 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded-md w-1/4"></div>
+          <div className="h-4 bg-gray-200 rounded-md w-full"></div>
+          <div className="h-4 bg-gray-200 rounded-md w-full"></div>
+          <div className="h-4 bg-gray-200 rounded-md w-2/3"></div>
+        </div>
+
+        {/* Reviews Skeleton */}
+        <div className="border rounded-xl shadow-sm p-6 space-y-4 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded-md w-1/4"></div>
+          <div className="flex gap-4">
+            <div className="flex-1 space-y-2">
+              <div className="h-6 bg-gray-200 rounded-md w-1/3"></div>
+              <div className="h-4 bg-gray-200 rounded-md w-full"></div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-};
+}
 
-// ✅ Loading đơn giản khi chờ API
-export default function FollowedShopLoading() {
-  return (
-    <div className="flex justify-center items-center py-8">
-      <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-}
-export function AddressCardLoading() {
-  return (
-    <div className="flex justify-center items-center py-10">
-      <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-}
+
