@@ -34,7 +34,7 @@ interface Variant {
 
 // ===== Kiểu dữ liệu item trong giỏ hàng =====
 export interface CartItem {
-    id: number;
+    id: number | string;    
     quantity: number;
     product: Product;
     variant?: Variant | null;

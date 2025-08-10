@@ -258,20 +258,7 @@ export default function OrderSummary({
   }, [showPopup]);
 
   // ✅ Click ra ngoài popup để đóng
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
-        setShowPopup(false);
-        setPopupType(null);
-      }
-    };
-    if (showPopup) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showPopup]);
+
 
   // ✅ JSX hiển thị
   return (
@@ -323,11 +310,29 @@ export default function OrderSummary({
       </div>
 
       {showPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[9999]">
+        <div className="fixed inset-0 z-[9999] flex justify-center items-center pointer-events-none">
           <div
             ref={popupRef}
-            className="bg-white rounded-lg p-6 w-80 flex flex-col items-center relative animate-scaleIn"
+            className="bg-white rounded-lg p-6 w-80 flex flex-col items-center relative animate-scaleIn shadow-lg border pointer-events-auto"
           >
+            {/* Nút đóng */}
+            <button
+              onClick={() => setShowPopup(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Icon trạng thái */}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className={`h-16 w-16 mb-4 ${popupType === 'success' ? 'text-green-600' : 'text-red-600'}`}
@@ -342,14 +347,18 @@ export default function OrderSummary({
                 d={popupType === 'success' ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'}
               />
             </svg>
+
+            {/* Nội dung */}
             <p
-              className={`text-base font-semibold text-center ${popupType === 'success' ? 'text-green-700' : 'text-red-700'}`}
+              className={`text-base font-semibold text-center ${popupType === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}
             >
               {popupType === 'success' ? successMessage : error}
             </p>
           </div>
         </div>
       )}
+
     </div>
   );
 }
