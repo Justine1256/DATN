@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import Cookies from 'js-cookie';
-import { useRouter } from 'next/navigation';
+
 interface CartItem {
   id: string | number;
   quantity: number;
@@ -59,7 +59,7 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
   const [voucherSearch, setVoucherSearch] = useState('');
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | number | null>(null);
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
-  const router = useRouter();                 // ⬅️ thêm
+
   const [requireLogin, setRequireLogin] = useState(false); // ⬅️ thêm
  
   const token = useMemo(() => (typeof window !== 'undefined' ? (localStorage.getItem('token') || Cookies.get('authToken') || '') : ''), []);
@@ -203,8 +203,10 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
 
   // ===== Voucher modal handlers =====
   const openVoucherModal = () => {
-    const isLoggedIn = !!token; 
-    // ⬇️ Nếu chưa đăng nhập: chỉ mở modal thông báo, không load API
+    const isLoggedIn = !!token;
+    console.log("isLoggedIn:", isLoggedIn); // ✅ Log trạng thái đăng nhập
+    console.log("token:", token);
+
     if (!isLoggedIn) {
       setRequireLogin(true);
       setVoucherError(null);
@@ -216,40 +218,55 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
     setShowVoucherModal(true);
 
     if (vouchers.length === 0) {
+      console.log("Chưa có voucher, gọi API để lấy...");
       setVoucherLoading(true);
       setVoucherError(null);
+
       axios
         .get(`${API_BASE_URL}/my-vouchers`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         })
         .then((res) => {
+          console.log("API response raw:", res.data);
+
           const listRaw = Array.isArray(res.data?.data)
             ? res.data.data
             : res.data?.data?.vouchers || res.data || [];
 
-          const mapped: Voucher[] = listRaw.map((v: any) => ({
-            id: v.id ?? v.voucher_id ?? v.code,
-            code: String(v.code ?? v.voucher_code ?? v.coupon_code ?? '').trim(),
-            title: v.title ?? v.name ?? v.label ?? undefined,
-            description: v.description ?? v.desc ?? undefined,
-            type: (v.type ?? v.voucher_type ?? 'amount') as VoucherType,
-            value: Number(v.value ?? v.discount_value ?? v.amount ?? 0),
-            min_order: v.min_order
-              ? Number(v.min_order)
-              : v.min_order_amount
-                ? Number(v.min_order_amount)
-                : undefined,
-            expires_at:
-              v.expires_at ?? v.expired_at ?? v.end_at ?? v.expired_time ?? undefined,
-            is_active: v.is_active ?? v.active ?? true,
-          }));
+          console.log("listRaw:", listRaw);
 
+          const mapped: Voucher[] = listRaw.map((v: any) => {
+            const src = v.voucher ?? v; // lấy nhánh voucher nếu có
+            const discountType = String(src.discount_type ?? src.type ?? 'amount').toLowerCase();
+
+            return {
+              id: v.id ?? src.id ?? src.voucher_id ?? src.code,
+              code: String(src.code ?? src.voucher_code ?? src.coupon_code ?? '').trim(),
+              title: src.title ?? src.name ?? src.label ?? undefined,
+              description: src.description ?? src.desc ?? undefined,
+              type: discountType === 'percent' || discountType === 'amount' || discountType === 'shipping'
+                ? (discountType as VoucherType)
+                : 'amount',
+              value: Number(src.discount_value ?? src.value ?? src.amount ?? 0),
+              min_order: src.min_order_value ? Number(src.min_order_value) :
+                src.min_order_amount ? Number(src.min_order_amount) : undefined,
+              expires_at: src.end_date ?? src.expires_at ?? src.expired_at ?? src.end_at ?? src.expired_time ?? undefined,
+              is_active: src.is_active ?? src.active ?? true,
+            };
+          });
+
+
+          console.log("mapped vouchers:", mapped);
           setVouchers(mapped);
         })
-        .catch(() => setVoucherError('Không tải được danh sách voucher.'))
+        .catch((err) => {
+          console.error("Lỗi khi load voucher:", err);
+          setVoucherError('Không tải được danh sách voucher.');
+        })
         .finally(() => setVoucherLoading(false));
     }
   };
+
 
 
 
@@ -475,10 +492,58 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange }: Pr
                               } ${disabled ? 'opacity-60' : ''}`}
                           >
                             <input type="radio" name="voucher" className="mt-1" checked={selected} readOnly disabled={disabled} />
-                            <div className="flex-1">
-                              {/* ... giữ nguyên phần nội dung voucher ... */}
-                              {/* title, code, type, badgeValue, min_order, expires_at, description */}
-                            </div>
+                           <div className="flex-1">
+  {/* Dòng đầu: mã + loại + giá trị */}
+  <div className="flex flex-wrap items-center gap-2">
+    <span className="px-2 py-0.5 text-xs rounded bg-gray-100 border font-mono">
+      {(v.code && v.code.trim()) || `#${v.id}`}
+    </span>
+    {v.type && (
+      <span className="px-2 py-0.5 text-xs rounded bg-indigo-50 text-indigo-700 border">
+        {v.type}
+      </span>
+    )}
+    <span className="px-2 py-0.5 text-xs rounded bg-white border">
+      {badgeValue(v)}
+    </span>
+    {isVoucherExpired(v) && (
+      <span className="ml-2 text-xs text-red-600">Hết hạn</span>
+    )}
+  </div>
+
+  {/* Tiêu đề (nếu có) */}
+  {v.title && (
+    <p className="mt-1 text-sm font-medium">{v.title}</p>
+  )}
+
+  {/* Thông tin chi tiết */}
+  <div className="mt-1 text-xs text-gray-600 grid grid-cols-2 gap-x-6 gap-y-1">
+    {typeof v.min_order === 'number' && (
+      <div>
+        <span className="text-gray-500">ĐH tối thiểu: </span>
+        {new Intl.NumberFormat('vi-VN').format(v.min_order)}₫
+      </div>
+    )}
+    {v.expires_at && (
+      <div>
+        <span className="text-gray-500">HSD: </span>
+        {new Date(v.expires_at).toLocaleDateString('vi-VN')}
+      </div>
+    )}
+    {typeof v.is_active === 'boolean' && (
+      <div className="col-span-2">
+        <span className="text-gray-500">Trạng thái: </span>
+        {v.is_active ? 'Đang hoạt động' : 'Ngừng'}
+      </div>
+    )}
+  </div>
+
+  {/* Mô tả (nếu có) */}
+  {v.description && (
+    <p className="mt-1 text-xs text-gray-700 line-clamp-2">{v.description}</p>
+  )}
+</div>
+
                           </li>
                         );
                       })}
