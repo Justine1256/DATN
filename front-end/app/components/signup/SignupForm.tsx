@@ -49,6 +49,7 @@ export default function SignupForm() {
   const [googleToken, setGoogleToken] = useState("")
   const [phoneForm] = Form.useForm()
   const [showPhoneModal, setShowPhoneModal] = useState(false)
+  const [isGoogleInitialized, setIsGoogleInitialized] = useState(false)
 
   useEffect(() => {
     notification.config({ placement: "topRight", duration: 4, rtl: false })
@@ -57,114 +58,42 @@ export default function SignupForm() {
   }, [])
 
   const loadGoogleScript = () => {
-    if (typeof window !== "undefined" && !window.google) {
-      const script = document.createElement("script")
-      script.src = "https://accounts.google.com/gsi/client"
-      script.async = true
-      script.defer = true
-      script.onload = initializeGoogleSignIn
-      document.head.appendChild(script)
-    } else if (window.google) {
-      initializeGoogleSignIn()
-    }
+    // No longer need to load Google Sign-In script
+    setIsGoogleInitialized(true)
   }
 
   const initializeGoogleSignIn = () => {
-    if (window.google) {
-      const clientId =
-        process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-        "553566941191-tqfldc33jpnvpn0q0tjpa8m4pv8k1bv.apps.googleusercontent.com"
-
-      try {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleGoogleSignup,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-        })
-        console.log("Google Sign-In initialized successfully with Client ID:", clientId)
-      } catch (error) {
-        console.error("Failed to initialize Google Sign-In:", error)
-        notification.error({
-          message: "Lỗi khởi tạo Google",
-          description: "Không thể khởi tạo dịch vụ Google Sign-In. Vui lòng kiểm tra cấu hình.",
-          icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
-        })
-      }
-    }
+    // OAuth 2.0 flow doesn't need initialization
+    setIsGoogleInitialized(true)
   }
 
   const handleGoogleSignup = async (response: any) => {
-    setGoogleLoading(true)
-    try {
-      // Decode the JWT token to get user info
-      const userInfo = JSON.parse(atob(response.credential.split(".")[1]))
+    // This will be handled by the callback page
+  }
 
-      // Send Google signup request to your backend
-      const res = await axios.post(`${API_BASE_URL}/google-signup`, {
-        google_token: response.credential,
-        name: userInfo.name,
-        email: userInfo.email,
-        avatar: userInfo.picture,
+  const handlePhoneSubmit = async (values: any) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/google-signup-complete`, {
+        google_id: googleUserInfo.google_id,
+        email: googleUserInfo.email,
+        name: googleUserInfo.name,
+        username: googleUserInfo.username,
+        phone: values.phone,
+        avatar: googleUserInfo.avatar,
       })
 
       if (res.data.success) {
+        setShowPhoneModal(false)
         notification.success({
           message: "Đăng ký thành công!",
-          description: "Tài khoản Google của bạn đã được tạo thành công. Đang chuyển hướng...",
+          description: "Tài khoản của bạn đã được tạo thành công. Đang chuyển hướng...",
           icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
         })
 
         setTimeout(() => {
           router.push("/login")
         }, 2000)
-      } else if (res.data.requires_phone) {
-        // If phone number is required, show a modal to collect it
-        setGoogleUserInfo(userInfo)
-        setGoogleToken(response.credential)
-        setShowPhoneModal(true)
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || "Có lỗi xảy ra khi đăng ký bằng Google"
-
-      if (err.response?.status === 409) {
-        notification.warning({
-          message: "Email đã tồn tại",
-          description: "Email này đã được sử dụng. Vui lòng đăng nhập hoặc sử dụng email khác.",
-          icon: <ExclamationCircleOutlined style={{ color: "#faad14" }} />,
-        })
-      } else {
-        notification.error({
-          message: "Đăng ký thất bại",
-          description: errorMessage,
-          icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
-        })
-      }
-    } finally {
-      setGoogleLoading(false)
-    }
-  }
-
-  const handlePhoneSubmit = async (values: any) => {
-    try {
-      const res = await axios.post(`${API_BASE_URL}/google-signup-complete`, {
-        google_token: googleToken,
-        phone: values.phone,
-        name: googleUserInfo.name,
-        email: googleUserInfo.email,
-        avatar: googleUserInfo.picture,
-      })
-
-      setShowPhoneModal(false)
-      notification.success({
-        message: "Đăng ký thành công!",
-        description: "Tài khoản của bạn đã được tạo thành công. Đang chuyển hướng...",
-        icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
-      })
-
-      setTimeout(() => {
-        router.push("/login")
-      }, 2000)
     } catch (err: any) {
       notification.error({
         message: "Đăng ký thất bại",
@@ -175,21 +104,33 @@ export default function SignupForm() {
   }
 
   const handleGoogleClick = () => {
-    if (window.google && window.google.accounts) {
-      try {
-        window.google.accounts.id.prompt()
-      } catch (error) {
-        console.error("Google Sign-In prompt error:", error)
-        notification.error({
-          message: "Lỗi Google Sign-In",
-          description: "Không thể hiển thị cửa sổ đăng nhập Google. Vui lòng thử lại.",
-          icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
-        })
-      }
-    } else {
+    try {
+      // Generate state for security
+      const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+      localStorage.setItem("google_oauth_state", state)
+
+      // Build OAuth URL
+      const clientId = "553566941191-cl318lbk0e7j768kkdc7ltpnl3p93rd1.apps.googleusercontent.com"
+      const redirectUri = window.location.origin + "/auth/google/callback"
+      const scope = "email profile"
+
+      const oauthUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(clientId)}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `response_type=code&` +
+        `scope=${encodeURIComponent(scope)}&` +
+        `state=${encodeURIComponent(state)}&` +
+        `access_type=offline&` +
+        `prompt=consent`
+
+      // Redirect to Google OAuth
+      window.location.href = oauthUrl
+    } catch (error) {
+      console.error("OAuth redirect error:", error)
       notification.error({
-        message: "Lỗi tải Google",
-        description: "Không thể tải dịch vụ Google. Vui lòng thử lại.",
+        message: "Lỗi chuyển hướng",
+        description: "Không thể chuyển hướng đến Google OAuth. Vui lòng thử lại.",
         icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
       })
     }
