@@ -54,15 +54,18 @@ class AuthController extends Controller
                 ], 409);
             }
 
-            // Generate unique username
-            $baseUsername = strtolower(str_replace(' ', '', $name));
+            // Lấy phần trước @ từ email
+            $baseUsername = explode('@', $email)[0];
+            $baseUsername = strtolower(preg_replace('/[^a-z0-9]/', '', $baseUsername)); // lọc ký tự lạ
             $username = $baseUsername;
             $counter = 1;
 
+            // Nếu trùng thì thêm số phía sau
             while (User::where('username', $username)->exists()) {
                 $username = $baseUsername . $counter;
                 $counter++;
-            }
+                }
+
 
             // Create user directly without requiring phone for Google signup
             $user = User::create([

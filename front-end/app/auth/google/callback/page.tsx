@@ -107,6 +107,7 @@ export default function GoogleCallback() {
             body: JSON.stringify({
               credential: tokenData.id_token,
               email: userData.email,
+              username: userData.email.split("@")[0],
               name: userData.name,
               picture: userData.picture,
             }),
