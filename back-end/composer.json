@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "google/apiclient": "*",
         "http-interop/http-factory-guzzle": "^1.2",
         "laravel/framework": "^12.19",
         "laravel/sanctum": "^4.1",

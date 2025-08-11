@@ -98,6 +98,8 @@ Route::delete('/product/{id}', [ProductController::class, 'delete']);
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/verify-otp', [UserController::class, 'verifyOtp']);
 Route::post('/login', [UserController::class, 'login']);
+Route::post('/google-signup', [AuthController::class, 'googleSignup']);
+Route::post('/google-signup-complete', [AuthController::class, 'googleSignupComplete']);
 
 Route::get('/{shopslug}/product/{productslug}/comments', [CommentController::class, 'getCommentsInProduct']);
 Route::get('/shop/{slug}', [ShopController::class, 'showShopInfo']);

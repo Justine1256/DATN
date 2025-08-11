@@ -1,37 +1,176 @@
-'use client'
+"use client"
 
-import { useState, useRef, useEffect } from 'react'
-import axios from 'axios'
-import { useRouter } from 'next/navigation'
-import { API_BASE_URL } from '@/utils/api'
-import { Modal, Input, Button, Form, Checkbox, message, Typography, notification } from 'antd'
-import { EyeInvisibleOutlined, EyeTwoTone, MailOutlined, ClockCircleOutlined, CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import axios from "axios"
+import { useRouter } from "next/navigation"
+import { API_BASE_URL } from "@/utils/api"
+import { Modal, Input, Button, Form, Checkbox, Typography, notification } from "antd"
+import {
+  EyeInvisibleOutlined,
+  EyeTwoTone,
+  MailOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+} from "@ant-design/icons"
 
 const { Title, Text } = Typography
+
+declare global {
+  interface Window {
+    google: any
+  }
+}
 
 export default function SignupForm() {
   const [form] = Form.useForm()
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    password_confirmation: '',
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    password_confirmation: "",
     agree: false,
   })
   const [showOtpModal, setShowOtpModal] = useState(false)
-  const [otpCode, setOtpCode] = useState('')
+  const [otpCode, setOtpCode] = useState("")
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
   const [otpCountdown, setOtpCountdown] = useState(300) // 5 minutes
   const [resendCountdown, setResendCountdown] = useState(60) // 1 minute for resend
   const [loading, setLoading] = useState(false)
   const [verifyLoading, setVerifyLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const router = useRouter()
 
+  const [googleUserInfo, setGoogleUserInfo] = useState<any>(null)
+  const [googleToken, setGoogleToken] = useState("")
+  const [phoneForm] = Form.useForm()
+  const [showPhoneModal, setShowPhoneModal] = useState(false)
+
   useEffect(() => {
-    notification.config({ placement: 'topRight', duration: 4, rtl: false })
+    notification.config({ placement: "topRight", duration: 4, rtl: false })
+
+    loadGoogleScript()
   }, [])
+
+  const loadGoogleScript = () => {
+    if (typeof window !== "undefined" && !window.google) {
+      const script = document.createElement("script")
+      script.src = "https://accounts.google.com/gsi/client"
+      script.async = true
+      script.defer = true
+      script.onload = initializeGoogleSignIn
+      document.head.appendChild(script)
+    } else if (window.google) {
+      initializeGoogleSignIn()
+    }
+  }
+
+  const initializeGoogleSignIn = () => {
+    if (window.google) {
+      window.google.accounts.id.initialize({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID",
+        callback: handleGoogleSignup,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      })
+    }
+  }
+
+  const handleGoogleSignup = async (response: any) => {
+    setGoogleLoading(true)
+    try {
+      // Decode the JWT token to get user info
+      const userInfo = JSON.parse(atob(response.credential.split(".")[1]))
+
+      // Send Google signup request to your backend
+      const res = await axios.post(`${API_BASE_URL}/google-signup`, {
+        google_token: response.credential,
+        name: userInfo.name,
+        email: userInfo.email,
+        avatar: userInfo.picture,
+      })
+
+      if (res.data.success) {
+        notification.success({
+          message: "Đăng ký thành công!",
+          description: "Tài khoản Google của bạn đã được tạo thành công. Đang chuyển hướng...",
+          icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
+        })
+
+        setTimeout(() => {
+          router.push("/login")
+        }, 2000)
+      } else if (res.data.requires_phone) {
+        // If phone number is required, show a modal to collect it
+        setGoogleUserInfo(userInfo)
+        setGoogleToken(response.credential)
+        setShowPhoneModal(true)
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || "Có lỗi xảy ra khi đăng ký bằng Google"
+
+      if (err.response?.status === 409) {
+        notification.warning({
+          message: "Email đã tồn tại",
+          description: "Email này đã được sử dụng. Vui lòng đăng nhập hoặc sử dụng email khác.",
+          icon: <ExclamationCircleOutlined style={{ color: "#faad14" }} />,
+        })
+      } else {
+        notification.error({
+          message: "Đăng ký thất bại",
+          description: errorMessage,
+          icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
+        })
+      }
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
+
+  const handlePhoneSubmit = async (values: any) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/google-signup-complete`, {
+        google_token: googleToken,
+        phone: values.phone,
+        name: googleUserInfo.name,
+        email: googleUserInfo.email,
+        avatar: googleUserInfo.picture,
+      })
+
+      setShowPhoneModal(false)
+      notification.success({
+        message: "Đăng ký thành công!",
+        description: "Tài khoản của bạn đã được tạo thành công. Đang chuyển hướng...",
+        icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
+      })
+
+      setTimeout(() => {
+        router.push("/login")
+      }, 2000)
+    } catch (err: any) {
+      notification.error({
+        message: "Đăng ký thất bại",
+        description: err.response?.data?.message || "Có lỗi xảy ra",
+        icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
+      })
+    }
+  }
+
+  const handleGoogleClick = () => {
+    if (window.google) {
+      window.google.accounts.id.prompt()
+    } else {
+      notification.error({
+        message: "Lỗi tải Google",
+        description: "Không thể tải dịch vụ Google. Vui lòng thử lại.",
+        icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
+      })
+    }
+  }
 
   useEffect(() => {
     if (showOtpModal && otpCountdown > 0) {
@@ -52,7 +191,7 @@ export default function SignupForm() {
     try {
       const res = await axios.post(`${API_BASE_URL}/register`, {
         name: values.name,
-        username: values.email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, ''), // Loại bỏ ký tự đặc biệt
+        username: values.email.split("@")[0].replace(/[^a-zA-Z0-9_-]/g, ""), // Loại bỏ ký tự đặc biệt
         email: values.email,
         phone: values.phone,
         password: values.password,
@@ -61,69 +200,67 @@ export default function SignupForm() {
 
       setFormData(values)
       notification.success({
-        message: 'Mã OTP đã được gửi',
+        message: "Mã OTP đã được gửi",
         description: `Chúng tôi đã gửi mã xác nhận đến ${values.email}. Vui lòng kiểm tra hộp thư.`,
-        icon: <MailOutlined style={{ color: '#52c41a' }} />,
+        icon: <MailOutlined style={{ color: "#52c41a" }} />,
       })
       setShowOtpModal(true)
       setOtpCountdown(300)
       setResendCountdown(60)
     } catch (err: any) {
-      
       // Xử lý lỗi validation từ Laravel (422 status)
       const errors = err.response?.data?.errors
-      const errorMessage = err.response?.data?.message || ''
-      
+      const errorMessage = err.response?.data?.message || ""
+
       if (errors) {
-        
         // Set lỗi cho từng field tương ứng
         const formErrors: any[] = []
-        
+
         // Kiểm tra lỗi name
         if (errors.name && errors.name.length > 0) {
           formErrors.push({
-            name: 'name',
-            errors: [errors.name[0]]
+            name: "name",
+            errors: [errors.name[0]],
           })
         }
-        
+
         // Kiểm tra lỗi email
         if (errors.email && errors.email.length > 0) {
           formErrors.push({
-            name: 'email',
-            errors: [errors.email[0]]
+            name: "email",
+            errors: [errors.email[0]],
           })
         }
-        
+
         // Kiểm tra lỗi phone
         if (errors.phone && errors.phone.length > 0) {
           formErrors.push({
-            name: 'phone',
-            errors: [errors.phone[0]]
+            name: "phone",
+            errors: [errors.phone[0]],
           })
         }
-        
+
         // Kiểm tra lỗi username (không hiển thị vì username được tạo tự động từ email)
         if (errors.username && errors.username.length > 0) {
           // Chỉ log để debug, không hiển thị lỗi cho user vì username được tạo tự động
         }
-        
+
         // Kiểm tra lỗi password
         if (errors.password && errors.password.length > 0) {
           formErrors.push({
-            name: 'password',
-            errors: [errors.password[0]]
+            name: "password",
+            errors: [errors.password[0]],
           })
         }
-        
+
         // Kiểm tra lỗi password confirmation
         if (errors.password_confirmation && errors.password_confirmation.length > 0) {
           formErrors.push({
-            name: 'password_confirmation',
-            errors: [errors.password_confirmation[0]]
+            name: "password_confirmation",
+            errors: [errors.password_confirmation[0]],
           })
         }
-        
+
         // Set lỗi cho form
         if (formErrors.length > 0) {
           form.setFields(formErrors)
@@ -131,15 +268,15 @@ export default function SignupForm() {
       }
       // Fallback cho các lỗi khác không phải validation
       else {
-        let messageText = 'Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại.'
+        let messageText = "Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại."
         if (errorMessage) {
           messageText = errorMessage
         }
-        
+
         notification.error({
-          message: 'Đăng ký thất bại',
+          message: "Đăng ký thất bại",
           description: messageText,
-          icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+          icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
         })
       }
     } finally {
@@ -150,18 +287,18 @@ export default function SignupForm() {
   const verifyOtp = async () => {
     if (!otpCode.trim()) {
       notification.warning({
-        message: 'Thiếu mã OTP',
-        description: 'Vui lòng nhập mã OTP để tiếp tục.',
-        icon: <ExclamationCircleOutlined style={{ color: '#faad14' }} />,
+        message: "Thiếu mã OTP",
+        description: "Vui lòng nhập mã OTP để tiếp tục.",
+        icon: <ExclamationCircleOutlined style={{ color: "#faad14" }} />,
       })
       return
     }
 
     if (otpCode.length !== 6) {
       notification.error({
-        message: 'Mã OTP không hợp lệ',
-        description: 'Mã OTP phải có đủ 6 chữ số. Vui lòng kiểm tra lại.',
-        icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+        message: "Mã OTP không hợp lệ",
+        description: "Mã OTP phải có đủ 6 chữ số. Vui lòng kiểm tra lại.",
+        icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
       })
       return
     }
@@ -177,37 +314,37 @@ export default function SignupForm() {
       setShowSuccessPopup(true)
 
       notification.success({
-        message: 'Xác thực thành công!',
-        description: 'Tài khoản của bạn đã được kích hoạt. Đang chuyển hướng đến trang đăng nhập...',
-        icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+        message: "Xác thực thành công!",
+        description: "Tài khoản của bạn đã được kích hoạt. Đang chuyển hướng đến trang đăng nhập...",
+        icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
         duration: 3,
       })
 
       setTimeout(() => {
         setShowSuccessPopup(false)
-        router.push('/login')
+        router.push("/login")
       }, 2000)
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Mã OTP không hợp lệ'
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || "Mã OTP không hợp lệ"
 
-      let title = 'Xác thực thất bại'
+      let title = "Xác thực thất bại"
       let desc = errorMessage
 
-      if (errorMessage.toLowerCase().includes('hết hạn') || errorMessage.toLowerCase().includes('expired')) {
-        title = 'Mã OTP đã hết hạn'
+      if (errorMessage.toLowerCase().includes("hết hạn") || errorMessage.toLowerCase().includes("expired")) {
+        title = "Mã OTP đã hết hạn"
         desc = 'Mã OTP đã hết hiệu lực. Vui lòng nhấn "Gửi lại mã" để nhận mã mới.'
-      } else if (errorMessage.toLowerCase().includes('sai') || errorMessage.toLowerCase().includes('invalid')) {
-        title = 'Mã OTP không chính xác'
-        desc = 'Mã OTP bạn nhập không đúng. Vui lòng kiểm tra lại email và nhập mã chính xác.'
+      } else if (errorMessage.toLowerCase().includes("sai") || errorMessage.toLowerCase().includes("invalid")) {
+        title = "Mã OTP không chính xác"
+        desc = "Mã OTP bạn nhập không đúng. Vui lòng kiểm tra lại email và nhập mã chính xác."
       }
 
       notification.error({
         message: title,
         description: desc,
-        icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+        icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
         duration: 5,
       })
-      setOtpCode('')
+      setOtpCode("")
     } finally {
       setVerifyLoading(false)
     }
@@ -218,25 +355,25 @@ export default function SignupForm() {
     try {
       const res = await axios.post(`${API_BASE_URL}/register`, {
         name: formData.name,
-        username: formData.email.split('@')[0].replace(/[^a-zA-Z0-9_-]/g, ''), // Loại bỏ ký tự đặc biệt
+        username: formData.email.split("@")[0].replace(/[^a-zA-Z0-9_-]/g, ""), // Loại bỏ ký tự đặc biệt
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
         password_confirmation: formData.password_confirmation, // Sử dụng giá trị từ formData
       })
-      
+
       notification.success({
-        message: 'Mã OTP mới đã được gửi',
-        description: 'Chúng tôi đã gửi mã xác nhận mới đến email của bạn. Vui lòng kiểm tra hộp thư.',
-        icon: <MailOutlined style={{ color: '#52c41a' }} />,
+        message: "Mã OTP mới đã được gửi",
+        description: "Chúng tôi đã gửi mã xác nhận mới đến email của bạn. Vui lòng kiểm tra hộp thư.",
+        icon: <MailOutlined style={{ color: "#52c41a" }} />,
       })
       setResendCountdown(60)
-      setOtpCode('')
+      setOtpCode("")
     } catch (err: any) {
       notification.error({
-        message: 'Không thể gửi lại mã',
-        description: 'Có lỗi xảy ra khi gửi lại mã OTP. Vui lòng thử lại sau.',
-        icon: <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+        message: "Không thể gửi lại mã",
+        description: "Có lỗi xảy ra khi gửi lại mã OTP. Vui lòng thử lại sau.",
+        icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
       })
     } finally {
       setResendLoading(false)
@@ -246,24 +383,24 @@ export default function SignupForm() {
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60)
     const s = sec % 60
-    return `${m}:${s < 10 ? '0' : ''}${s}`
+    return `${m}:${s < 10 ? "0" : ""}${s}`
   }
 
   const handleOtpChange = (value: string) => {
     // Only allow numbers and limit to 6 digits
-    const numericValue = value.replace(/\D/g, '').slice(0, 6)
+    const numericValue = value.replace(/\D/g, "").slice(0, 6)
     setOtpCode(numericValue)
   }
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault()
-    const pastedData = e.clipboardData.getData('text')
-    const numericData = pastedData.replace(/\D/g, '').slice(0, 6)
+    const pastedData = e.clipboardData.getData("text")
+    const numericData = pastedData.replace(/\D/g, "").slice(0, 6)
     setOtpCode(numericData)
-    
+
     // Focus the last filled input or the next empty input
     setTimeout(() => {
-      const inputs = document.querySelectorAll('.otp-input') as NodeListOf<HTMLInputElement>
+      const inputs = document.querySelectorAll(".otp-input") as NodeListOf<HTMLInputElement>
       const targetIndex = Math.min(numericData.length, 5)
       inputs[targetIndex]?.focus()
     }, 0)
@@ -274,17 +411,12 @@ export default function SignupForm() {
       <h2 className="text-[1.5rem] font-semibold mb-1">Tạo tài khoản</h2>
       <p className="text-sm text-gray-700 mb-6">Vui lòng nhập thông tin bên dưới</p>
 
-      <Form
-        form={form}
-        onFinish={handleSubmit}
-        layout="vertical"
-        className="space-y-4"
-      >
+      <Form form={form} onFinish={handleSubmit} layout="vertical" className="space-y-4">
         <Form.Item
           name="name"
           rules={[
-            { required: true, message: 'Vui lòng nhập họ và tên' },
-            { min: 2, message: 'Họ và tên phải có ít nhất 2 ký tự' }
+            { required: true, message: "Vui lòng nhập họ và tên" },
+            { min: 2, message: "Họ và tên phải có ít nhất 2 ký tự" },
           ]}
         >
           <Input
@@ -297,8 +429,8 @@ export default function SignupForm() {
         <Form.Item
           name="email"
           rules={[
-            { required: true, message: 'Vui lòng nhập email' },
-            { type: 'email', message: 'Email không hợp lệ' }
+            { required: true, message: "Vui lòng nhập email" },
+            { type: "email", message: "Email không hợp lệ" },
           ]}
         >
           <Input
@@ -311,11 +443,11 @@ export default function SignupForm() {
         <Form.Item
           name="phone"
           rules={[
-            { required: true, message: 'Vui lòng nhập số điện thoại' },
+            { required: true, message: "Vui lòng nhập số điện thoại" },
             {
               pattern: /^(03|05|07|08|09)[0-9]{8}$/,
-              message: 'Số điện thoại không hợp lệ'
-            }
+              message: "Số điện thoại không hợp lệ",
+            },
           ]}
         >
           <Input
@@ -328,8 +460,8 @@ export default function SignupForm() {
         <Form.Item
           name="password"
           rules={[
-            { required: true, message: 'Vui lòng nhập mật khẩu' },
-            { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
+            { required: true, message: "Vui lòng nhập mật khẩu" },
+            { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự" },
           ]}
         >
           <Input.Password
@@ -343,14 +475,14 @@ export default function SignupForm() {
         <Form.Item
           name="password_confirmation"
           rules={[
-            { required: true, message: 'Vui lòng nhập xác nhận mật khẩu' },
-            { min: 6, message: 'Xác nhận mật khẩu phải có ít nhất 6 ký tự' },
+            { required: true, message: "Vui lòng nhập xác nhận mật khẩu" },
+            { min: 6, message: "Xác nhận mật khẩu phải có ít nhất 6 ký tự" },
             ({ getFieldValue }) => ({
               validator(_, value) {
-                if (!value || getFieldValue('password') === value) {
-                  return Promise.resolve();
+                if (!value || getFieldValue("password") === value) {
+                  return Promise.resolve()
                 }
-                return Promise.reject(new Error('Xác nhận mật khẩu không khớp!'));
+                return Promise.reject(new Error("Xác nhận mật khẩu không khớp!"))
               },
             }),
           ]}
@@ -369,13 +501,13 @@ export default function SignupForm() {
           rules={[
             {
               validator: (_, value) =>
-                value ? Promise.resolve() : Promise.reject(new Error('Bạn cần đồng ý với điều khoản')),
+                value ? Promise.resolve() : Promise.reject(new Error("Bạn cần đồng ý với điều khoản")),
             },
           ]}
         >
           <Checkbox className="custom-checkbox text-sm">
             <span className="text-gray-700">
-              Tôi đồng ý với{' '}
+              Tôi đồng ý với{" "}
               <a href="/dieu-khoan" className="text-blue-600 underline">
                 Điều khoản & Chính sách
               </a>
@@ -404,30 +536,70 @@ export default function SignupForm() {
 
       <Button
         className="w-full mb-2 h-10 border flex items-center justify-center text-black hover:bg-gray-100"
-        onClick={() => notification.info({
-          message: 'Tính năng sắp ra mắt',
-          description: 'Đăng ký bằng Google sẽ sớm có mặt. Hiện tại vui lòng sử dụng email để đăng ký.',
-          icon: <ExclamationCircleOutlined style={{ color: '#1890ff' }} />,
-        })}
+        onClick={handleGoogleClick}
+        loading={googleLoading}
         size="large"
       >
         <img src="/google-logo.png" alt="Google" className="w-5 h-5 mr-2" />
-        Đăng ký bằng Google
+        {googleLoading ? "Đang xử lý..." : "Đăng ký bằng Google"}
       </Button>
 
       <p className="text-center mt-6 text-sm">
-        Đã có tài khoản?{' '}
+        Đã có tài khoản?{" "}
         <a href="/login" className="underline hover:text-blue-600">
           Đăng nhập
         </a>
       </p>
+
+      <Modal
+        title="Hoàn tất đăng ký"
+        open={showPhoneModal}
+        onCancel={() => setShowPhoneModal(false)}
+        footer={null}
+        centered
+        width={400}
+      >
+        <div className="py-4">
+          <p className="text-gray-600 mb-4">
+            Vui lòng nhập số điện thoại để hoàn tất đăng ký tài khoản Google của bạn.
+          </p>
+          <Form form={phoneForm} onFinish={handlePhoneSubmit} layout="vertical">
+            <Form.Item
+              name="phone"
+              rules={[
+                { required: true, message: "Vui lòng nhập số điện thoại" },
+                {
+                  pattern: /^(03|05|07|08|09)[0-9]{8}$/,
+                  message: "Số điện thoại không hợp lệ",
+                },
+              ]}
+            >
+              <Input
+                placeholder="Số điện thoại"
+                className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2"
+                size="large"
+              />
+            </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                className="custom-button w-full h-10 bg-[#db4444] hover:bg-[#c03d3d] border-[#db4444] hover:border-[#c03d3d] text-white font-medium"
+                size="large"
+              >
+                Hoàn tất đăng ký
+              </Button>
+            </Form.Item>
+          </Form>
+        </div>
+      </Modal>
 
       {/* OTP Modal */}
       <Modal
         title={null}
         open={showOtpModal}
         onCancel={() => {
-          setOtpCode('')
+          setOtpCode("")
           setShowOtpModal(false)
         }}
         footer={null}
@@ -442,18 +614,16 @@ export default function SignupForm() {
             <div className="w-16 h-16 mx-auto mb-3 bg-[#db4444] rounded-full flex items-center justify-center">
               <MailOutlined className="text-2xl text-white" />
             </div>
-            
-            <h2 className="text-xl font-bold text-gray-800 mb-2">
-              Xác nhận email
-            </h2>
-            
+
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Xác nhận email</h2>
+
             <p className="text-gray-600 text-sm mb-3 leading-relaxed">
-              Chúng tôi đã gửi mã xác nhận 6 chữ số đến email<br />của bạn
+              Chúng tôi đã gửi mã xác nhận 6 chữ số đến email
+              <br />
+              của bạn
             </p>
-            
-            <p className="text-[#db4444] font-semibold text-base mb-6">
-              {formData.email}
-            </p>
+
+            <p className="text-[#db4444] font-semibold text-base mb-6">{formData.email}</p>
           </div>
 
           {/* 6 ô OTP */}
@@ -463,17 +633,17 @@ export default function SignupForm() {
                 key={index}
                 type="text"
                 maxLength={1}
-                value={otpCode[index] || ''}
+                value={otpCode[index] || ""}
                 className="otp-input w-14 h-14 text-center text-xl font-semibold border-2 border-gray-300 rounded-lg focus:border-[#db4444] focus:outline-none transition-colors"
                 autoFocus={index === 0}
                 onChange={(e) => {
                   const target = e.target as HTMLInputElement
-                  const value = target.value.replace(/\D/g, '')
-                  const newOtp = otpCode.split('')
+                  const value = target.value.replace(/\D/g, "")
+                  const newOtp = otpCode.split("")
                   newOtp[index] = value
-                  const newOtpString = newOtp.join('').slice(0, 6)
+                  const newOtpString = newOtp.join("").slice(0, 6)
                   setOtpCode(newOtpString)
-                  
+
                   // Auto focus next input
                   if (value && index < 5) {
                     const nextInput = target.parentElement?.children[index + 1] as HTMLInputElement
@@ -483,7 +653,7 @@ export default function SignupForm() {
                 onKeyDown={(e) => {
                   const target = e.target as HTMLInputElement
                   // Handle backspace
-                  if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
+                  if (e.key === "Backspace" && !otpCode[index] && index > 0) {
                     const prevInput = target.parentElement?.children[index - 1] as HTMLInputElement
                     prevInput?.focus()
                   }
@@ -508,10 +678,10 @@ export default function SignupForm() {
               disabled={otpCode.length !== 6 || verifyLoading}
               className="w-full h-11 bg-[#db4444] hover:bg-[#c03d3d] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-lg transition-colors"
               style={{
-                opacity: otpCode.length !== 6 ? 0.5 : 1
+                opacity: otpCode.length !== 6 ? 0.5 : 1,
               }}
             >
-              {verifyLoading ? 'Đang xác nhận...' : 'Xác nhận và hoàn tất đăng ký'}
+              {verifyLoading ? "Đang xác nhận..." : "Xác nhận và hoàn tất đăng ký"}
             </button>
           </div>
 
@@ -523,7 +693,7 @@ export default function SignupForm() {
               disabled={resendCountdown > 0 || resendLoading}
               className="text-gray-400 disabled:text-gray-300 hover:text-gray-600 text-sm underline bg-transparent border-none cursor-pointer disabled:cursor-not-allowed"
             >
-              {resendLoading ? 'Đang gửi...' : resendCountdown > 0 ? `Gửi lại mã (${resendCountdown}s)` : 'Gửi lại mã'}
+              {resendLoading ? "Đang gửi..." : resendCountdown > 0 ? `Gửi lại mã (${resendCountdown}s)` : "Gửi lại mã"}
             </button>
           </div>
 
@@ -531,7 +701,7 @@ export default function SignupForm() {
           <div className="text-center">
             <button
               onClick={() => {
-                setOtpCode('')
+                setOtpCode("")
                 setShowOtpModal(false)
               }}
               className="text-gray-500 hover:text-gray-700 text-sm bg-transparent border-none cursor-pointer flex items-center justify-center mx-auto"
@@ -562,9 +732,7 @@ export default function SignupForm() {
           <Title level={3} className="!mb-2 !text-green-700">
             Đăng ký thành công!
           </Title>
-          <Text className="text-gray-600">
-            Tài khoản của bạn đã được tạo thành công
-          </Text>
+          <Text className="text-gray-600">Tài khoản của bạn đã được tạo thành công</Text>
         </div>
       </Modal>
 
