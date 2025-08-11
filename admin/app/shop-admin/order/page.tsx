@@ -1592,16 +1592,21 @@ export default function OrderManagementPage() {
                           style={{ marginBottom: 12, padding: 8, border: "1px solid #f0f0f0", borderRadius: 4 }}
                         >
                           <Col span={4}>
-                            <Image
-                              src={
-                                item.product_image
-                                  ? `${STATIC_BASE_URL}/${item.product_image}`
-                                  : `/placeholder.svg?height=60&width=60&text=Product${item.product_id}`
-                              }
-                              width={50}
-                              height={50}
-                              fallback="/placeholder.svg?height=60&width=60&text=Error"
-                            />
+<Image
+  src={
+    item.product_image
+      ? (item.product_image.startsWith('http') || item.product_image.startsWith('/')
+          ? item.product_image
+          : `${STATIC_BASE_URL}/${item.product_image}`
+        )
+      : `/placeholder.svg?height=60&width=60&text=Product${item.product_id}`
+  }
+  width={50}
+  height={50}
+  alt={`Product ${item.product_id}`}
+  fallback="/placeholder.svg?height=60&width=60&text=Error"
+/>
+
                           </Col>
                           <Col span={12}>
                             <div style={{ fontWeight: 500 }}>

@@ -88,13 +88,21 @@ export default function ShopInfo({ shop, followed, onFollowToggle }: ShopInfoPro
         <div className="flex gap-4 flex-shrink-0">
           <div className="relative w-[60px] h-[60px] rounded-full overflow-hidden cursor-pointer">
             <Link href={`/shop/${shop.slug}`}>
-              <Image
-                src={shop.logo ? formatImageUrl(shop.logo) : `${STATIC_BASE_URL}/avatars/default-avatar.png`}
-                alt="Logo"
-                width={60}
-                height={60}
-                className="object-cover w-full h-full"
-              />
+<Image
+  src={
+    shop.logo
+      ? (shop.logo.startsWith('http') || shop.logo.startsWith('/')
+          ? shop.logo
+          : formatImageUrl(shop.logo)
+        )
+      : `${STATIC_BASE_URL}/avatars/default-avatar.png`
+  }
+  alt="Logo"
+  width={60}
+  height={60}
+  className="object-cover w-full h-full"
+/>
+
             </Link>
             <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
               <button

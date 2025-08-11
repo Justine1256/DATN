@@ -199,7 +199,11 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
       title={
         <Space>
           <Avatar
-            src={`${STATIC_BASE_URL}/${user.avatar}`}
+            src={
+              user.avatar?.startsWith('http') || user.avatar?.startsWith('/')
+                ? user.avatar
+                : `${STATIC_BASE_URL}/${user.avatar || 'avatars/default-avatar.jpg'}`
+            }
           />
           <span>Chi tiết người dùng - {user.name}</span>
         </Space>
@@ -216,10 +220,15 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
         </div>
           <Row gutter={16}>
             <Col span={4}>
-              <Avatar
-                src={`${STATIC_BASE_URL}/${user.avatar}`}
-                size={80}
-              />
+<Avatar
+  src={
+    user.avatar?.startsWith('http') || user.avatar?.startsWith('/')
+      ? user.avatar
+      : `${STATIC_BASE_URL}/${user.avatar || 'avatars/default-avatar.jpg'}`
+  }
+  size={80}
+/>
+
             </Col>
             <Col span={18}>
               <Row gutter={[16, 12]}>

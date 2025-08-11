@@ -500,18 +500,22 @@ const Header = () => {
 
             {user && (
               <div className="relative" ref={dropdownRef}>
-                <Image
-                  src={
-                    user?.avatar
-                      ? `${STATIC_BASE_URL}/${user.avatar}`
-                      : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
-                  }
-                  alt="Avatar"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 rounded-full object-cover cursor-pointer"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                />
+<Image
+  src={
+    user?.avatar
+      ? (user.avatar.startsWith('http') || user.avatar.startsWith('/')
+          ? user.avatar
+          : `${STATIC_BASE_URL}/${user.avatar}`
+        )
+      : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+  }
+  alt="Avatar"
+  width={32}
+  height={32}
+  className="h-8 w-8 rounded-full object-cover cursor-pointer"
+  onClick={() => setDropdownOpen(!dropdownOpen)}
+/>
+
 
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-3 w-56 rounded-md shadow-xl bg-[rgba(30,30,30,0.7)] backdrop-blur p-3 z-50">
