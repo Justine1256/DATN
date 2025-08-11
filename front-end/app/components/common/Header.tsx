@@ -542,16 +542,16 @@ const Header = () => {
 
                       {(user?.role === "admin" || user?.role === "seller") && (
                         <Link
-                          // href={
-                          //   user.role === "admin"
-                          //     ? "http://localhost:3001/admin/dashboard"
-                          //     : "http://localhost:3001/shop-admin/dashboard"
-                          // }
-                            href={
+                          href={
                             user.role === "admin"
-                              ? "https://admin.marketo.info.vn/admin/dashboard"
-                              : "https://admin.marketo.info.vn/shop-admin/dashboard"
+                              ? "http://localhost:3001/admin/dashboard"
+                              : "http://localhost:3001/shop-admin/dashboard"
                           }
+                          //   href={
+                          //   user.role === "admin"
+                          //     ? "https://admin.marketo.info.vn/admin/dashboard"
+                          //     : "https://admin.marketo.info.vn/shop-admin/dashboard"
+                          // }
                           
                           className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"
                         >
