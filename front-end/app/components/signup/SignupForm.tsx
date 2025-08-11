@@ -71,12 +71,26 @@ export default function SignupForm() {
 
   const initializeGoogleSignIn = () => {
     if (window.google) {
-      window.google.accounts.id.initialize({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID",
-        callback: handleGoogleSignup,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      })
+      const clientId =
+        process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+        "553566941191-tqfldc33jpnvpn0q0tjpa8m4pv8k1bv.apps.googleusercontent.com"
+
+      try {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleSignup,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        })
+        console.log("Google Sign-In initialized successfully with Client ID:", clientId)
+      } catch (error) {
+        console.error("Failed to initialize Google Sign-In:", error)
+        notification.error({
+          message: "Lỗi khởi tạo Google",
+          description: "Không thể khởi tạo dịch vụ Google Sign-In. Vui lòng kiểm tra cấu hình.",
+          icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
+        })
+      }
     }
   }
 
@@ -161,8 +175,17 @@ export default function SignupForm() {
   }
 
   const handleGoogleClick = () => {
-    if (window.google) {
-      window.google.accounts.id.prompt()
+    if (window.google && window.google.accounts) {
+      try {
+        window.google.accounts.id.prompt()
+      } catch (error) {
+        console.error("Google Sign-In prompt error:", error)
+        notification.error({
+          message: "Lỗi Google Sign-In",
+          description: "Không thể hiển thị cửa sổ đăng nhập Google. Vui lòng thử lại.",
+          icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
+        })
+      }
     } else {
       notification.error({
         message: "Lỗi tải Google",
