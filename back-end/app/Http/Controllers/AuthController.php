@@ -198,4 +198,90 @@ class AuthController extends Controller
             ], 500);
         }
     }
+    public function googleLogin(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'credential' => 'required|string',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid request data',
+            'errors' => $validator->errors()
+        ], 400);
+    }
+
+    try {
+        // Verify Google token
+        $client = new GoogleClient(['client_id' => env('GOOGLE_CLIENT_ID')]);
+        $payload = $client->verifyIdToken($request->credential);
+
+        if (!$payload) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid Google token'
+            ], 400);
+        }
+
+        $email = $payload['email'];
+        $googleId = $payload['sub'];
+        $name = $payload['name'];
+        $avatar = $payload['picture'] ?? null;
+
+        // Tìm user theo email
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản Google chưa được đăng ký'
+            ], 404);
+        }
+
+        // Kiểm tra trạng thái tài khoản
+        if ($user->status !== 'activated') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài khoản của bạn hiện không hoạt động',
+                'status'  => $user->status
+            ], 403);
+        }
+
+        // Cập nhật avatar mới từ Google (nếu có)
+        if ($avatar && $user->avatar !== $avatar) {
+            $user->avatar = $avatar;
+        }
+
+        // Cập nhật last_login
+        $user->last_login = now();
+        $user->save();
+
+        // Tạo token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đăng nhập thành công',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'avatar' => $user->avatar,
+                'role' => $user->role,
+                'rank' => $user->rank,
+                'status' => $user->status,
+            ],
+            'token' => $token
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Đăng nhập thất bại: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }
