@@ -17,6 +17,8 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'shop_id',
+                'voucher_id',        // ✅ thêm
+        'discount_amount',
         'final_amount',
         'total_amount',
         'payment_method',

@@ -73,5 +73,8 @@ public function defaultAddress()
 {
     return $this->hasOne(Address::class)->where('is_default', 1);
 }
-
+public function shop1()
+{
+    return $this->hasOne(Shop::class, 'user_id', 'id');
+}
 }
