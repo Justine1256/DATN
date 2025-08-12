@@ -238,13 +238,14 @@ public function verifyOtp(Request $request)
     $data = $otpData['data'];
 
     User::create([
-        'name' => $data['name'],
-        'username' => $data['username'],
-        'email' => $data['email'],
-        'phone' => $data['phone'],
-        'password' => $data['password'],
-        'email_verified_at' => now(),
-    ]);
+    'name' => $data['name'],
+    'username' => $data['username'],
+    'email' => $data['email'],
+    'phone' => $data['phone'],
+    'password' => $data['password'],
+    'email_verified_at' => now(),
+    'status' => 'activated',
+]);
 // hiện ra thời gian tạo tài khoản
     $user = User::where('email', $data['email'])->first();
     if (!$user) {
