@@ -182,18 +182,34 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   ].filter(Boolean)));
 
   // Kiểm tra sự kết hợp hợp lệ giữa A và B
-  const hasCombination = (a: string, b: string) => {
-    if (!product.variants.length) return true;
-    const inVariant = product.variants.some(v => {
-      const matchA = !a || v.value1 === a;
-      const matchB = !b || v.value2 === b;
-      return matchA && matchB;
-    });
-    const fromProduct =
-      parseOptionValues(product.value1).includes(a) &&
-      parseOptionValues(product.value2).includes(b);
-    return inVariant || fromProduct;
-  };
+// Thay thế hàm cũ:
+const hasCombination = (a: string, b: string) => {
+  const norm = (s?: string) => (s || '').trim().toLowerCase();
+
+  // Không có variants -> dùng stock của product
+  if (!product.variants.length) {
+    return (product.stock ?? 0) > 0;
+  }
+
+  const aN = norm(a);
+  const bN = norm(b);
+
+  // Còn hàng ở biến thể (nếu đã chọn A/B thì khớp theo A/B; nếu chưa chọn B thì chỉ cần khớp A)
+  const variantInStock = product.variants.some(v =>
+    (!a || norm(v.value1) === aN) &&
+    (!b || norm(v.value2) === bN) &&
+    (v.stock ?? 0) > 0
+  );
+
+  // Còn hàng ở "biến thể gốc" (giá trị value1/value2 trực tiếp trên bảng products)
+  const baseInStock =
+    (!a || norm(product.value1) === aN) &&
+    (!b || norm(product.value2) === bN) &&
+    (product.stock ?? 0) > 0;
+
+  return variantInStock || baseInStock;
+};
+
 
   // Kiểm tra selected có nằm trong product gốc
   const isFromProduct = parseOptionValues(product.value1).includes(selectedA)
