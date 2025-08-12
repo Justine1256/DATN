@@ -44,8 +44,6 @@ public function googleLogin(Request $request)
             }
 
             $email = $request->email;
-            $name = $request->name;
-            $avatar = $request->picture;
 
             // Check if user exists
             $user = User::where('email', $email)->first();
@@ -56,10 +54,8 @@ public function googleLogin(Request $request)
                 ], 404);
             }
 
-            // Update user's last login and avatar if needed
             $user->update([
                 'last_login' => now(),
-                'avatar' => $avatar ?? $user->avatar,
             ]);
 
             $token = $user->createToken('auth_token')->plainTextToken;
