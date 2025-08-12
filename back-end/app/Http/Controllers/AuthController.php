@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Google\Client as GoogleClient;
+use Google_Client;
 
 class AuthController extends Controller
 {
@@ -198,10 +199,11 @@ class AuthController extends Controller
             ], 500);
         }
     }
-    public function googleLogin(Request $request)
+public function googleLogin(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'credential' => 'required|string',
+            'access_token' => 'required|string',
+            'user_info' => 'required|array',
         ]);
 
         if ($validator->fails()) {
@@ -213,21 +215,10 @@ class AuthController extends Controller
         }
 
         try {
-            // Verify Google token
-            $client = new GoogleClient(['client_id' => env('GOOGLE_CLIENT_ID')]);
-            $payload = $client->verifyIdToken($request->credential);
-
-            if (!$payload) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid Google token'
-                ], 400);
-            }
-
-            $googleId = $payload['sub'];
-            $email = $payload['email'];
-            $name = $payload['name'];
-            $avatar = $payload['picture'] ?? null;
+            $userInfo = $request->user_info;
+            $email = $userInfo['email'];
+            $name = $userInfo['name'];
+            $avatar = $userInfo['picture'] ?? null;
 
             // Check if user exists
             $user = User::where('email', $email)->first();
@@ -241,10 +232,9 @@ class AuthController extends Controller
             // Update user's last login and avatar if needed
             $user->update([
                 'last_login' => now(),
-                'avatar' => $avatar ?? $user->avatar, // Update avatar if provided
+                'avatar' => $avatar ?? $user->avatar,
             ]);
 
-            // Create token
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
