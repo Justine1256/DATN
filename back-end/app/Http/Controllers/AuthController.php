@@ -12,9 +12,69 @@ use Google\Client as GoogleClient;
 class AuthController extends Controller
 {
     /**
+     * Handle Google OAuth login
+     */
+public function googleLogin(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'credential' => 'required|string',
+            'email' => 'required|email',
+            'name' => 'required|string',
+            'username' => 'required|string',
+            'picture' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Invalid request data',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        try {
+            $client = new GoogleClient(['client_id' => env('GOOGLE_CLIENT_ID')]);
+            $payload = $client->verifyIdToken($request->credential);
+
+            if (!$payload) {
+                return response()->json([
+                    'message' => 'Invalid Google token'
+                ], 400);
+            }
+
+            $email = $request->email;
+
+            // Check if user exists
+            $user = User::where('email', $email)->first();
+            if (!$user) {
+                return response()->json(['message' => 'Tài khoản không tồn tại'], 404);
+            }
+
+            if ($user->status !== 'activated') {
+                return response()->json([
+                    'message' => 'Tài khoản của bạn hiện không hoạt động',
+                    'status'  => $user->status
+                ], 403);
+            }
+
+            $token = $user->createToken('api_token')->plainTextToken;
+            $user->update(['last_login' => now()]);
+
+            return response()->json([
+                'message' => 'Đăng nhập thành công',
+                'token'   => $token,
+                'user'    => $user
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Đăng nhập thất bại: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    /**
      * Handle Google OAuth signup
      */
-    public function googleSignup(Request $request)
+public function googleSignup(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'credential' => 'required|string',
@@ -22,20 +82,18 @@ class AuthController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'success' => false,
                 'message' => 'Invalid request data',
                 'errors' => $validator->errors()
             ], 400);
         }
 
         try {
-            // Verify Google token
+            // Verify Google ID token
             $client = new GoogleClient(['client_id' => env('GOOGLE_CLIENT_ID')]);
             $payload = $client->verifyIdToken($request->credential);
 
             if (!$payload) {
                 return response()->json([
-                    'success' => false,
                     'message' => 'Invalid Google token'
                 ], 400);
             }
@@ -49,25 +107,21 @@ class AuthController extends Controller
             $existingUser = User::where('email', $email)->first();
             if ($existingUser) {
                 return response()->json([
-                    'success' => false,
                     'message' => 'Email đã được sử dụng'
                 ], 409);
             }
 
-            // Lấy phần trước @ từ email
+            // Generate unique username from email
             $baseUsername = explode('@', $email)[0];
-            $baseUsername = strtolower(preg_replace('/[^a-z0-9]/', '', $baseUsername)); // lọc ký tự lạ
+            $baseUsername = strtolower(preg_replace('/[^a-z0-9]/', '', $baseUsername));
             $username = $baseUsername;
             $counter = 1;
 
-            // Nếu trùng thì thêm số phía sau
             while (User::where('username', $username)->exists()) {
                 $username = $baseUsername . $counter;
                 $counter++;
-                }
+            }
 
-
-            // Create user directly without requiring phone for Google signup
             $user = User::create([
                 'name' => $name,
                 'username' => $username,
@@ -84,30 +138,16 @@ class AuthController extends Controller
                 'last_login' => now(),
             ]);
 
-            // Create token
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken('api_token')->plainTextToken;
 
             return response()->json([
-                'success' => true,
                 'message' => 'Đăng ký thành công',
-                'requires_phone' => false, // No phone required for Google signup
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'avatar' => $user->avatar,
-                    'role' => $user->role,
-                    'rank' => $user->rank,
-                    'status' => $user->status,
-                ],
-                'token' => $token
+                'token' => $token,
+                'user' => $user
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
                 'message' => 'Đăng ký thất bại: ' . $e->getMessage()
             ], 500);
         }
@@ -118,7 +158,6 @@ class AuthController extends Controller
      */
     public function googleSignupComplete(Request $request)
     {
-        // This method is no longer needed for Google signup but kept for compatibility
         $validator = Validator::make($request->all(), [
             'google_id' => 'required|string',
             'email' => 'required|email',
@@ -171,8 +210,7 @@ class AuthController extends Controller
                 'last_login' => now(),
             ]);
 
-            // Create token
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken('api_token')->plainTextToken;
 
             return response()->json([
                 'success' => true,
@@ -195,79 +233,6 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Đăng ký thất bại: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-    public function googleLogin(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'credential' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid request data',
-                'errors' => $validator->errors()
-            ], 400);
-        }
-
-        try {
-            // Verify Google token
-            $client = new GoogleClient(['client_id' => env('GOOGLE_CLIENT_ID')]);
-            $payload = $client->verifyIdToken($request->credential);
-
-            if (!$payload) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid Google token'
-                ], 400);
-            }
-
-            $googleId = $payload['sub'];
-            $email = $payload['email'];
-            $name = $payload['name'];
-            $avatar = $payload['picture'] ?? null;
-
-            // Check if user exists
-            $user = User::where('email', $email)->first();
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tài khoản không tồn tại. Vui lòng đăng ký trước.'
-                ], 404);
-            }
-
-            // Update user's last login and avatar if needed
-            $user->update([
-                'last_login' => now(),
-                'avatar' => $avatar ?? $user->avatar, // Update avatar if provided
-            ]);
-
-            // Create token
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Đăng nhập thành công',
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'avatar' => $user->avatar,
-                    'role' => $user->role,
-                    'rank' => $user->rank,
-                    'status' => $user->status,
-                ],
-                'token' => $token
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Đăng nhập thất bại: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -53,35 +53,72 @@ class UserController extends Controller
 
     // }
 
+    // public function login(Request $request)
+    // {
+    //     $request->validate([
+    //         'email' => 'required|email',
+    //         'password' => 'required'
+    //     ]);
+
+    //     $user = User::where('email', $request->email)->first();
+
+    //     if (!$user || !Hash::check($request->password, $user->password)) {
+    //         return response()->json(['error' => 'Email hoặc mật khẩu không đúng'], 401);
+    //     }
+
+    //     if (is_null($user->email_verified_at)) {
+    //         return response()->json(['error' => 'Tài khoản chưa được xác minh. Vui lòng kiểm tra email.'], 403);
+    //     }
+
+    //     try {
+    //         $token = $user->createToken('web')->plainTextToken;
+    //     } catch (\Exception $e) {
+    //         return response()->json(['error' => 'Không thể tạo token.'], 500);
+    //     }
+
+    //     return response()->json([
+    //         'user' => $user,
+    //         'token' => $token,
+    //     ], 200);
+    // }
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
-            'password' => 'required'
+            'login' => 'required|string',
+            'password' => 'required|string'
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $loginField = filter_var($request->login, FILTER_VALIDATE_EMAIL)
+            ? 'email'
+            : (is_numeric($request->login) ? 'phone' : 'username');
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['error' => 'Email hoặc mật khẩu không đúng'], 401);
+        $user = User::where($loginField, $request->login)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'Tài khoản không tồn tại'], 404);
         }
 
-        if (is_null($user->email_verified_at)) {
-            return response()->json(['error' => 'Tài khoản chưa được xác minh. Vui lòng kiểm tra email.'], 403);
+        // ❌ Nếu không phải activated thì chặn luôn
+        if ($user->status !== 'activated') {
+            return response()->json([
+                'message' => 'Tài khoản của bạn hiện không hoạt động',
+                'status'  => $user->status
+            ], 403);
         }
 
-        try {
-            $token = $user->createToken('web')->plainTextToken;
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Không thể tạo token.'], 500);
+        if (!Auth::attempt([$loginField => $request->login, 'password' => $request->password])) {
+            return response()->json(['message' => 'Thông tin đăng nhập không đúng'], 401);
         }
+
+        $token = $user->createToken('api_token')->plainTextToken;
+        $user->update(['last_login' => now()]);
 
         return response()->json([
-            'user' => $user,
-            'token' => $token,
-        ], 200);
+            'message' => 'Đăng nhập thành công',
+            'token'   => $token,
+            'user'    => $user
+        ]);
     }
-
     public function index(){
         return response()->json(User::all());
     }
