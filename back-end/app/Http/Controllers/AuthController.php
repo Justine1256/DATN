@@ -26,7 +26,6 @@ public function googleLogin(Request $request)
 
         if ($validator->fails()) {
             return response()->json([
-                'success' => false,
                 'message' => 'Invalid request data',
                 'errors' => $validator->errors()
             ], 400);
@@ -38,7 +37,6 @@ public function googleLogin(Request $request)
 
             if (!$payload) {
                 return response()->json([
-                    'success' => false,
                     'message' => 'Invalid Google token'
                 ], 400);
             }
@@ -48,43 +46,31 @@ public function googleLogin(Request $request)
             // Check if user exists
             $user = User::where('email', $email)->first();
             if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tài khoản không tồn tại. Vui lòng đăng ký trước.'
-                ], 404);
+                return response()->json(['message' => 'Tài khoản không tồn tại'], 404);
             }
 
-            $user->update([
-                'last_login' => now(),
-            ]);
+            if ($user->status !== 'activated') {
+                return response()->json([
+                    'message' => 'Tài khoản của bạn hiện không hoạt động',
+                    'status'  => $user->status
+                ], 403);
+            }
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken('api_token')->plainTextToken;
+            $user->update(['last_login' => now()]);
 
             return response()->json([
-                'success' => true,
                 'message' => 'Đăng nhập thành công',
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'avatar' => $user->avatar,
-                    'role' => $user->role,
-                    'rank' => $user->rank,
-                    'status' => $user->status,
-                ],
-                'token' => $token
+                'token'   => $token,
+                'user'    => $user
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
                 'message' => 'Đăng nhập thất bại: ' . $e->getMessage()
             ], 500);
         }
     }
-
     /**
      * Handle Google OAuth signup
      */
