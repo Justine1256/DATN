@@ -28,6 +28,12 @@ class User extends Authenticatable
         'verify_token',
         'avatar',
         'email_verified_at',
+        'role',
+        'rank',
+        'status',
+        'report_violations',
+        'is_report_blocked',
+        'last_login',
     ];
 
     /**
@@ -50,31 +56,36 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_login' => 'datetime',
+            'is_report_blocked' => 'boolean',
+            'report_violations' => 'integer',
         ];
     }
+
     public function getAvatarAttribute($value)
     {
         return $value ?? 'avatars/default-avatar.jpg';
     }
+
     public function shop()
-{
-    return $this->hasOne(Shop::class);
-}
+    {
+        return $this->hasOne(Shop::class);
+    }
+
     public function follows()
-{
-    return $this->hasMany(Follow::class);
-}
-public function followedShops()
-{
-    return $this->belongsToMany(Shop::class, 'follows', 'user_id', 'shop_id')
-                ->withTimestamps();
-}
-public function defaultAddress()
-{
-    return $this->hasOne(Address::class)->where('is_default', 1);
-}
-public function shop1()
-{
-    return $this->hasOne(Shop::class, 'user_id', 'id');
-}
+    {
+        return $this->hasMany(Follow::class);
+    }
+
+    public function followedShops()
+    {
+        return $this->belongsToMany(Shop::class, 'follows', 'user_id', 'shop_id')
+                    ->withTimestamps();
+    }
+
+    public function defaultAddress()
+    {
+        return $this->hasOne(Address::class)->where('is_default', 1);
+    }
+
 }
