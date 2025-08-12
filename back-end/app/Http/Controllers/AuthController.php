@@ -198,19 +198,11 @@ class AuthController extends Controller
             ], 500);
         }
     }
-<<<<<<< HEAD
 public function googleLogin(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'code' => 'required|string',
-            'redirect_uri' => 'required|string',
-=======
-    public function googleLogin(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'credential' => 'required|string',
->>>>>>> fb425bdc9731a0a69d2850b5033970e0fdfd7341
-        ]);
+            'access_token' => 'required|string',
+            'user_info' => 'required|array',
 
         if ($validator->fails()) {
             return response()->json([
@@ -221,7 +213,6 @@ public function googleLogin(Request $request)
         }
 
         try {
-<<<<<<< HEAD
             // Exchange code for access token
             $client = new GoogleClient([
                 'client_id' => env('GOOGLE_CLIENT_ID'),
@@ -250,7 +241,6 @@ public function googleLogin(Request $request)
             // Find or create user
             $user = User::where('email', $email)->first();
 
-=======
             // Verify Google token
             $client = new GoogleClient(['client_id' => env('GOOGLE_CLIENT_ID')]);
             $payload = $client->verifyIdToken($request->credential);
@@ -266,10 +256,13 @@ public function googleLogin(Request $request)
             $email = $payload['email'];
             $name = $payload['name'];
             $avatar = $payload['picture'] ?? null;
+            $userInfo = $request->user_info;
+            $email = $userInfo['email'];
+            $name = $userInfo['name'];
+            $avatar = $userInfo['picture'] ?? null;
 
             // Check if user exists
             $user = User::where('email', $email)->first();
->>>>>>> fb425bdc9731a0a69d2850b5033970e0fdfd7341
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -277,25 +270,17 @@ public function googleLogin(Request $request)
                 ], 404);
             }
 
-<<<<<<< HEAD
-            // Generate token or session
-=======
-            // Update user's last login and avatar if needed
             $user->update([
                 'last_login' => now(),
-                'avatar' => $avatar ?? $user->avatar, // Update avatar if provided
+                'avatar' => $avatar ?? $user->avatar,
             ]);
 
-            // Create token
->>>>>>> fb425bdc9731a0a69d2850b5033970e0fdfd7341
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
                 'success' => true,
                 'message' => 'Đăng nhập thành công',
-<<<<<<< HEAD
                 'user' => $user,
-=======
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -307,7 +292,6 @@ public function googleLogin(Request $request)
                     'rank' => $user->rank,
                     'status' => $user->status,
                 ],
->>>>>>> fb425bdc9731a0a69d2850b5033970e0fdfd7341
                 'token' => $token
             ]);
 
