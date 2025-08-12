@@ -107,7 +107,8 @@ export default function SignupForm() {
     try {
       // Generate state for security
       const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-      localStorage.setItem("google_oauth_state", state)
+      sessionStorage.setItem("google_oauth_state", state)
+      sessionStorage.setItem("oauth_action", "signup")
 
       // Build OAuth URL
       const clientId = "553566941191-cl318lbk0e7j768kkdc7ltpnl3p93rd1.apps.googleusercontent.com"
