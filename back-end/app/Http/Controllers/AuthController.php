@@ -74,7 +74,7 @@ public function googleLogin(Request $request)
     /**
      * Handle Google OAuth signup
      */
-    public function googleSignup(Request $request)
+public function googleSignup(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'credential' => 'required|string',
@@ -82,7 +82,6 @@ public function googleLogin(Request $request)
 
         if ($validator->fails()) {
             return response()->json([
-                'success' => false,
                 'message' => 'Invalid request data',
                 'errors' => $validator->errors()
             ], 400);
@@ -95,7 +94,6 @@ public function googleLogin(Request $request)
 
             if (!$payload) {
                 return response()->json([
-                    'success' => false,
                     'message' => 'Invalid Google token'
                 ], 400);
             }
@@ -109,7 +107,6 @@ public function googleLogin(Request $request)
             $existingUser = User::where('email', $email)->first();
             if ($existingUser) {
                 return response()->json([
-                    'success' => false,
                     'message' => 'Email đã được sử dụng'
                 ], 409);
             }
@@ -125,7 +122,6 @@ public function googleLogin(Request $request)
                 $counter++;
             }
 
-            // Create user directly without requiring phone for Google signup
             $user = User::create([
                 'name' => $name,
                 'username' => $username,
@@ -142,30 +138,16 @@ public function googleLogin(Request $request)
                 'last_login' => now(),
             ]);
 
-            // Create token
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken('api_token')->plainTextToken;
 
             return response()->json([
-                'success' => true,
                 'message' => 'Đăng ký thành công',
-                'requires_phone' => false, // No phone required for Google signup
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'avatar' => $user->avatar,
-                    'role' => $user->role,
-                    'rank' => $user->rank,
-                    'status' => $user->status,
-                ],
-                'token' => $token
+                'token' => $token,
+                'user' => $user
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
                 'message' => 'Đăng ký thất bại: ' . $e->getMessage()
             ], 500);
         }
@@ -228,8 +210,7 @@ public function googleLogin(Request $request)
                 'last_login' => now(),
             ]);
 
-            // Create token
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken('api_token')->plainTextToken;
 
             return response()->json([
                 'success' => true,

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { notification } from "antd"
 import { CheckCircleOutlined, ExclamationCircleOutlined } from "@ant-design/icons"
+import Cookies from "js-cookie"
 
 export default function GoogleCallback() {
   const router = useRouter()
@@ -16,10 +17,9 @@ export default function GoogleCallback() {
       const state = searchParams.get("state")
       const error = searchParams.get("error")
 
-      // <CHANGE> Check if this is login or signup flow
       const oauthAction = sessionStorage.getItem("oauth_action") || "signup"
       const isLogin = oauthAction === "login"
-      
+
       setStatus(isLogin ? "Đang xử lý đăng nhập Google..." : "Đang xử lý đăng ký Google...")
 
       if (error) {
@@ -39,7 +39,6 @@ export default function GoogleCallback() {
         return
       }
 
-      // Verify state
       const storedState = sessionStorage.getItem("google_oauth_state")
       if (state !== storedState) {
         setStatus("Lỗi xác thực state")
@@ -100,17 +99,15 @@ export default function GoogleCallback() {
           throw new Error("Failed to get user info")
         }
 
-        // <CHANGE> Call appropriate API endpoint based on action
-        const endpoint = isLogin ? "google-login" : "google-signup"
         setStatus(isLogin ? "Đang đăng nhập..." : "Đang tạo tài khoản...")
 
-        const apiResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"}/${endpoint}`,
+        const apiEndpoint = isLogin ? "/google-login" : "/google-signup"
+        const authResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"}${apiEndpoint}`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Accept": "application/json", // <CHANGE> Ensure we expect JSON response
             },
             body: JSON.stringify({
               credential: tokenData.id_token,
@@ -122,38 +119,41 @@ export default function GoogleCallback() {
           },
         )
 
-        let apiData
-        const apiText = await apiResponse.text()
-        console.log("API response:", apiText)
+        let authData
+        const authText = await authResponse.text()
 
         try {
-          apiData = JSON.parse(apiText)
+          authData = JSON.parse(authText)
         } catch (parseError) {
-          console.error("Failed to parse API response as JSON:", apiText)
-          throw new Error(`Invalid API response: ${apiText.substring(0, 200)}`)
+          console.error("Failed to parse auth response as JSON:", authText)
+          throw new Error(`Invalid auth response: ${authText.substring(0, 200)}`)
         }
 
-        if (!apiResponse.ok) {
-          throw new Error(apiData.message || `${isLogin ? "Login" : "Signup"} failed`)
+        if (!authResponse.ok) {
+          throw new Error(authData.message || `${isLogin ? "Login" : "Signup"} failed`)
         }
 
-        // <CHANGE> Different success messages and redirects for login vs signup
+        console.log("Auth response data:", authData)
+
         notification.success({
           message: isLogin ? "Đăng nhập thành công!" : "Đăng ký thành công!",
-          description: isLogin 
-            ? "Chào mừng bạn quay trở lại!" 
+          description: isLogin
+            ? "Bạn đã đăng nhập thành công bằng Google."
             : "Tài khoản Google của bạn đã được tạo thành công.",
           icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
         })
 
-        if (apiData.token) {
-          localStorage.setItem("auth_token", apiData.token)
+        if (authData.token) {
+          Cookies.set("authToken", authData.token, { expires: 7 })
+          console.log("Cookie set with token:", authData.token)
+        } else {
+          console.error("No token found in response:", authData)
         }
 
-        // <CHANGE> Redirect to appropriate page
         if (isLogin) {
-          router.push("/dashboard") // or wherever logged-in users should go
+          router.push("/")
         } else {
+          // For signup, redirect to login page
           router.push("/login")
         }
       } catch (error: any) {
@@ -166,7 +166,6 @@ export default function GoogleCallback() {
         })
         setTimeout(() => router.push(isLogin ? "/login" : "/signup"), 3000)
       } finally {
-        // <CHANGE> Clean up both state and action from storage
         sessionStorage.removeItem("google_oauth_state")
         sessionStorage.removeItem("oauth_action")
       }
