@@ -205,11 +205,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
 
     // Mã giảm giá
-    Route::post('/voucher', [VoucherController::class, 'apply']);
+    Route::post('/vouchers/apply', [VoucherController::class, 'apply']);
     Route::post('/voucherseve', [VoucherController::class, 'saveVoucherForUser']);
     Route::post('/vouchers/unsave', [VoucherUserController::class, 'unsaveVoucher']);
     Route::get('/my-vouchers', [VoucherUserController::class, 'showMySavedVouchers']);
     Route::post('/vouchers', [VoucherController::class, 'store']);
+    Route::post('/vouchers/shop', [VoucherController::class, 'storeShopVoucher']);
     Route::get('/vouchers/{id}', [VoucherController::class, 'show']);
     Route::put('/vouchers/{id}', [VoucherController::class, 'update']);
     Route::delete('/vouchers/{id}', [VoucherController::class, 'destroy']);
