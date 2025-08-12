@@ -49,6 +49,15 @@ export const menu = [
     href: "/shop-admin/customers",
   },
   {
+    label: "Mã Giảm Giá",
+    icon: <MessageSquare size={18} />,
+    children: [
+      { label: "Mã giảm giá", href: "/shop-admin/voucher" },
+      { label: "Tạo mã giảm giá", href: "/shop-admin/voucher/create" },
+
+    ],
+  },
+  {
     label: "Tin nhắn",
     icon: <MessageSquare size={18} />,
     href: "/shop-admin/chat",
