@@ -8,8 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Google\Client as GoogleClient;
-use Google_Client;
-
+use Google\Service\Oauth2 as GoogleOauth2;
 class AuthController extends Controller
 {
     /**
@@ -204,7 +203,6 @@ public function googleLogin(Request $request)
         $validator = Validator::make($request->all(), [
             'access_token' => 'required|string',
             'user_info' => 'required|array',
-        ]);
 
         if ($validator->fails()) {
             return response()->json([
@@ -215,6 +213,49 @@ public function googleLogin(Request $request)
         }
 
         try {
+            // Exchange code for access token
+            $client = new GoogleClient([
+                'client_id' => env('GOOGLE_CLIENT_ID'),
+                'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+                'redirect_uri' => $request->redirect_uri
+            ]);
+
+            $token = $client->fetchAccessTokenWithAuthCode($request->code);
+
+            if (isset($token['error'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid authorization code'
+                ], 400);
+            }
+
+            $client->setAccessToken($token);
+            $oauth2 = new GoogleOauth2($client);
+            $userInfo = $oauth2->userinfo->get();
+
+            $email = $userInfo->email;
+            $googleId = $userInfo->id;
+            $name = $userInfo->name;
+            $avatar = $userInfo->picture ?? null;
+
+            // Find or create user
+            $user = User::where('email', $email)->first();
+
+            // Verify Google token
+            $client = new GoogleClient(['client_id' => env('GOOGLE_CLIENT_ID')]);
+            $payload = $client->verifyIdToken($request->credential);
+
+            if (!$payload) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid Google token'
+                ], 400);
+            }
+
+            $googleId = $payload['sub'];
+            $email = $payload['email'];
+            $name = $payload['name'];
+            $avatar = $payload['picture'] ?? null;
             $userInfo = $request->user_info;
             $email = $userInfo['email'];
             $name = $userInfo['name'];
@@ -229,7 +270,6 @@ public function googleLogin(Request $request)
                 ], 404);
             }
 
-            // Update user's last login and avatar if needed
             $user->update([
                 'last_login' => now(),
                 'avatar' => $avatar ?? $user->avatar,
@@ -240,6 +280,7 @@ public function googleLogin(Request $request)
             return response()->json([
                 'success' => true,
                 'message' => 'Đăng nhập thành công',
+                'user' => $user,
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
