@@ -14,11 +14,14 @@ class AuthController extends Controller
     /**
      * Handle Google OAuth login
      */
-    public function googleLogin(Request $request)
+public function googleLogin(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'access_token' => 'required|string',
-            'user_info' => 'required|array',
+            'credential' => 'required|string',
+            'email' => 'required|email',
+            'name' => 'required|string',
+            'username' => 'required|string',
+            'picture' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -30,10 +33,19 @@ class AuthController extends Controller
         }
 
         try {
-            $userInfo = $request->user_info;
-            $email = $userInfo['email'];
-            $name = $userInfo['name'];
-            $avatar = $userInfo['picture'] ?? null;
+            $client = new GoogleClient(['client_id' => env('GOOGLE_CLIENT_ID')]);
+            $payload = $client->verifyIdToken($request->credential);
+
+            if (!$payload) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid Google token'
+                ], 400);
+            }
+
+            $email = $request->email;
+            $name = $request->name;
+            $avatar = $request->picture;
 
             // Check if user exists
             $user = User::where('email', $email)->first();
