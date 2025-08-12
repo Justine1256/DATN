@@ -8,7 +8,7 @@ import { CheckCircleOutlined, ExclamationCircleOutlined } from "@ant-design/icon
 export default function GoogleCallback() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [status, setStatus] = useState("Đang xử lý đăng ký Google...")
+  const [status, setStatus] = useState("Đang xử lý...")
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -16,28 +16,34 @@ export default function GoogleCallback() {
       const state = searchParams.get("state")
       const error = searchParams.get("error")
 
+      // <CHANGE> Check if this is login or signup flow
+      const oauthAction = sessionStorage.getItem("oauth_action") || "signup"
+      const isLogin = oauthAction === "login"
+      
+      setStatus(isLogin ? "Đang xử lý đăng nhập Google..." : "Đang xử lý đăng ký Google...")
+
       if (error) {
         setStatus("Lỗi: " + error)
         notification.error({
-          message: "Đăng ký thất bại",
-          description: "Có lỗi xảy ra khi đăng ký bằng Google: " + error,
+          message: isLogin ? "Đăng nhập thất bại" : "Đăng ký thất bại",
+          description: `Có lỗi xảy ra khi ${isLogin ? "đăng nhập" : "đăng ký"} bằng Google: ` + error,
           icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
         })
-        setTimeout(() => router.push("/signup"), 3000)
+        setTimeout(() => router.push(isLogin ? "/login" : "/signup"), 3000)
         return
       }
 
       if (!code || !state) {
         setStatus("Thiếu thông tin xác thực")
-        setTimeout(() => router.push("/signup"), 3000)
+        setTimeout(() => router.push(isLogin ? "/login" : "/signup"), 3000)
         return
       }
 
       // Verify state
-      const storedState = localStorage.getItem("google_oauth_state")
+      const storedState = sessionStorage.getItem("google_oauth_state")
       if (state !== storedState) {
         setStatus("Lỗi xác thực state")
-        setTimeout(() => router.push("/signup"), 3000)
+        setTimeout(() => router.push(isLogin ? "/login" : "/signup"), 3000)
         return
       }
 
@@ -51,8 +57,7 @@ export default function GoogleCallback() {
           },
           body: new URLSearchParams({
             code,
-            client_id:
-              process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "",
+            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "",
             client_secret: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET ?? "",
             redirect_uri: window.location.origin + "/auth/google/callback",
             grant_type: "authorization_code",
@@ -95,14 +100,17 @@ export default function GoogleCallback() {
           throw new Error("Failed to get user info")
         }
 
-        setStatus("Đang tạo tài khoản...")
+        // <CHANGE> Call appropriate API endpoint based on action
+        const endpoint = isLogin ? "google-login" : "google-signup"
+        setStatus(isLogin ? "Đang đăng nhập..." : "Đang tạo tài khoản...")
 
-        const signupResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"}/google-signup`,
+        const apiResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"}/${endpoint}`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "Accept": "application/json", // <CHANGE> Ensure we expect JSON response
             },
             body: JSON.stringify({
               credential: tokenData.id_token,
@@ -114,40 +122,53 @@ export default function GoogleCallback() {
           },
         )
 
-        let signupData
-        const signupText = await signupResponse.text()
+        let apiData
+        const apiText = await apiResponse.text()
+        console.log("API response:", apiText)
 
         try {
-          signupData = JSON.parse(signupText)
+          apiData = JSON.parse(apiText)
         } catch (parseError) {
-          console.error("Failed to parse signup response as JSON:", signupText)
-          throw new Error(`Invalid signup response: ${signupText.substring(0, 200)}`)
+          console.error("Failed to parse API response as JSON:", apiText)
+          throw new Error(`Invalid API response: ${apiText.substring(0, 200)}`)
         }
 
-        if (!signupResponse.ok) {
-          throw new Error(signupData.message || "Signup failed")
+        if (!apiResponse.ok) {
+          throw new Error(apiData.message || `${isLogin ? "Login" : "Signup"} failed`)
         }
 
+        // <CHANGE> Different success messages and redirects for login vs signup
         notification.success({
-          message: "Đăng ký thành công!",
-          description: "Tài khoản Google của bạn đã được tạo thành công.",
+          message: isLogin ? "Đăng nhập thành công!" : "Đăng ký thành công!",
+          description: isLogin 
+            ? "Chào mừng bạn quay trở lại!" 
+            : "Tài khoản Google của bạn đã được tạo thành công.",
           icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
         })
-        if (signupData.token) {
-          localStorage.setItem("auth_token", signupData.token)
+
+        if (apiData.token) {
+          localStorage.setItem("auth_token", apiData.token)
         }
-        router.push("/login")
+
+        // <CHANGE> Redirect to appropriate page
+        if (isLogin) {
+          router.push("/dashboard") // or wherever logged-in users should go
+        } else {
+          router.push("/login")
+        }
       } catch (error: any) {
         console.error("OAuth callback error:", error)
         setStatus("Lỗi: " + error.message)
         notification.error({
-          message: "Đăng ký thất bại",
-          description: error.message || "Có lỗi xảy ra khi đăng ký bằng Google",
+          message: isLogin ? "Đăng nhập thất bại" : "Đăng ký thất bại",
+          description: error.message || `Có lỗi xảy ra khi ${isLogin ? "đăng nhập" : "đăng ký"} bằng Google`,
           icon: <ExclamationCircleOutlined style={{ color: "#ff4d4f" }} />,
         })
-        setTimeout(() => router.push("/signup"), 3000)
+        setTimeout(() => router.push(isLogin ? "/login" : "/signup"), 3000)
       } finally {
-        localStorage.removeItem("google_oauth_state")
+        // <CHANGE> Clean up both state and action from storage
+        sessionStorage.removeItem("google_oauth_state")
+        sessionStorage.removeItem("oauth_action")
       }
     }
 
