@@ -13,19 +13,19 @@ import { usePusherChat } from "@/app/hooks/usePusherChat"
 interface User {
   id: number
   name: string
-  avatar: string | null
-  role: string
+  avatar?: string
+  role?: string
+  online?: boolean
   last_message?: string
   last_time?: string
-  online?: boolean
 }
 
 interface Message {
-  id: number
+  id: number | string
   sender_id: number
   receiver_id: number
-  message: string | null
-  image: string | null
+  message: string
+  image?: string | null
   created_at: string
   sender: User
   receiver: User
@@ -34,16 +34,18 @@ interface Message {
 interface NotificationMessage {
   id: number
   sender: User
-  message: string | null
-  image: string | null
+  message: string
+  image?: string | null
 }
 
 interface ChatSocketData {
-  type: string
+  type: "message" | "typing"
   message?: Message
   user_id?: number
   is_typing?: boolean
 }
+
+type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error"
 
 export default function EnhancedChatTools() {
   const [showList, setShowList] = useState(false)
@@ -62,9 +64,9 @@ export default function EnhancedChatTools() {
   const [isUserTyping, setIsUserTyping] = useState(false)
   const [isReceiverTyping, setIsReceiverTyping] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "disconnected" | "error">(
-    "connecting",
-  )
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting")
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [lastMessageCount, setLastMessageCount] = useState(0)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -78,13 +80,25 @@ export default function EnhancedChatTools() {
 
   useEffect(() => {
     if (activeChat && mounted && receiver?.id) {
+      setIsInitialLoad(true)
+      setLastMessageCount(0)
       fetchMessages()
     }
   }, [activeChat, mounted, receiver?.id])
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    if (messages.length > 0) {
+      if (isInitialLoad) {
+        // Load lần đầu: scroll ngay xuống tin nhắn mới nhất (không smooth)
+        messagesEndRef.current?.scrollIntoView({ behavior: "instant" })
+        setIsInitialLoad(false)
+      } else if (messages.length > lastMessageCount) {
+        // Có tin nhắn mới: scroll smooth
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+      }
+      setLastMessageCount(messages.length)
+    }
+  }, [messages, isInitialLoad, lastMessageCount])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -118,29 +132,99 @@ export default function EnhancedChatTools() {
     }
   }, [])
 
+  const fetchRecentContacts = useCallback(async () => {
+    const token = localStorage.getItem("token") || Cookies.get("authToken")
+    if (!token) return
+
+    try {
+      const res = await axios.get(`${API_BASE_URL}/recent-contacts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setRecentContacts(res.data)
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách đã nhắn:", err)
+    }
+  }, [])
+
   const handleSocketData = useCallback(
     (data: ChatSocketData) => {
       console.log("📨 Socket data received:", data)
 
-      if (data.type === "message") {
+      if (data.type === "message" && data.message) {
         console.log("💬 New message:", data.message)
-        setMessages((prev) => [...prev, data.message!])
+        console.log("🔍 Debug info:")
+        console.log("  - Current user ID:", currentUser?.id)
+        console.log("  - Receiver ID:", receiver?.id)
+        console.log("  - Message sender ID:", data.message.sender_id)
+        console.log("  - Message receiver ID:", data.message.receiver_id)
+        console.log("  - Active chat:", activeChat)
 
-        if (!activeChat || receiver?.id !== data.message?.sender_id) {
-          setNotifications((prev) => [
-            ...prev,
-            {
-              id: data.message!.id,
-              sender: data.message!.sender,
-              message: data.message!.message,
-              image: data.message!.image,
-            },
-          ])
-          setUnreadCount((prev) => prev + 1)
+        const isCurrentConversation =
+          receiver?.id &&
+          currentUser?.id &&
+          ((Number(data.message.sender_id) === Number(receiver.id) &&
+            Number(data.message.receiver_id) === Number(currentUser.id)) ||
+            (Number(data.message.sender_id) === Number(currentUser.id) &&
+              Number(data.message.receiver_id) === Number(receiver.id)))
+
+        console.log("🎯 Is current conversation:", isCurrentConversation)
+
+        if (isCurrentConversation) {
+          console.log("📝 Adding message to current conversation")
+          setMessages((prev) => {
+            const messageExists = prev.some((msg) => {
+              return String(msg.id) === String(data.message!.id)
+            })
+
+            if (messageExists) {
+              console.log("📝 Message already exists, skipping...")
+              return prev
+            }
+
+            console.log("✅ Message added to conversation")
+            const newMessages = [...prev, data.message!]
+            return newMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+          })
+        }
+
+        if (
+          Number(data.message.sender_id) === Number(currentUser?.id) ||
+          Number(data.message.receiver_id) === Number(currentUser?.id)
+        ) {
+          console.log("🔄 Message involves current user, refreshing recent contacts...")
+          setTimeout(() => {
+            fetchRecentContacts()
+          }, 200)
+        }
+
+        if (
+          Number(data.message.receiver_id) === Number(currentUser?.id) &&
+          Number(data.message.sender_id) !== Number(currentUser?.id)
+        ) {
+          console.log("🔔 Processing notification for received message")
+
+          if (!isCurrentConversation || !activeChat) {
+            console.log("🔔 Creating notification for received message")
+            setNotifications((prev) => {
+              const notificationExists = prev.some((n) => String(n.id) === String(data.message!.id))
+              if (notificationExists) return prev
+
+              return [
+                ...prev,
+                {
+                  id: Number(data.message!.id),
+                  sender: data.message!.sender,
+                  message: data.message!.message,
+                  image: data.message!.image,
+                },
+              ]
+            })
+            setUnreadCount((prev) => prev + 1)
+          }
         }
       } else if (data.type === "typing") {
         console.log("⌨️ Typing event received:", data, "Current user:", currentUser?.id)
-        if (data.user_id !== currentUser?.id) {
+        if (Number(data.user_id) !== Number(currentUser?.id)) {
           setIsReceiverTyping(data.is_typing!)
           if (data.is_typing!) {
             setTimeout(() => setIsReceiverTyping(false), 3000)
@@ -148,10 +232,10 @@ export default function EnhancedChatTools() {
         }
       }
     },
-    [currentUser?.id, activeChat, receiver?.id],
+    [currentUser?.id, receiver?.id, activeChat, fetchRecentContacts],
   )
 
-  const handleConnectionStatus = useCallback((status: "connecting" | "connected" | "disconnected" | "error") => {
+  const handleConnectionStatus = useCallback((status: ConnectionStatus) => {
     console.log("🔌 Connection status changed:", status)
     setConnectionStatus(status)
   }, [])
@@ -164,20 +248,6 @@ export default function EnhancedChatTools() {
     handleConnectionStatus,
   )
 
-  const fetchRecentContacts = async () => {
-    const token = localStorage.getItem("token") || Cookies.get("authToken")
-    if (!token) return
-
-    try {
-      const res = await axios.get(`${API_BASE_URL}/recent-contacts`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      setRecentContacts(res.data)
-    } catch (err) {
-      console.error("Lỗi khi lấy danh sách đã nhắn:", err)
-    }
-  }
-
   const fetchMessages = async () => {
     if (!receiver?.id) return
     const token = localStorage.getItem("token") || Cookies.get("authToken")
@@ -186,14 +256,39 @@ export default function EnhancedChatTools() {
     setLoading(true)
     try {
       const res = await axios.get(`${API_BASE_URL}/messages`, {
-        params: { user_id: receiver.id },
+        params: {
+          user_id: receiver.id,
+          limit: 50,
+          offset: 0,
+        },
         headers: { Authorization: `Bearer ${token}` },
       })
-      setMessages(
-        res.data.sort((a: Message, b: Message) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+
+      console.log("📨 Raw response data:", res.data)
+
+      let messagesData = res.data
+
+      if (res.data && typeof res.data === "object" && res.data.data && Array.isArray(res.data.data)) {
+        messagesData = res.data.data
+      } else if (!Array.isArray(res.data)) {
+        console.error("❌ Response data is not an array:", res.data)
+        messagesData = []
+      }
+
+      const sortedMessages = messagesData.sort(
+        (a: Message, b: Message) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       )
+
+      setMessages(sortedMessages)
+      console.log("✅ Messages loaded:", sortedMessages.length)
     } catch (error) {
-      console.error("Lỗi khi lấy tin nhắn:", error)
+      console.error("❌ Lỗi khi lấy tin nhắn:", error)
+      if (axios.isAxiosError(error)) {
+        console.error("📊 Response status:", error.response?.status)
+        console.error("📄 Response data:", error.response?.data)
+        console.error("🔗 Request URL:", error.config?.url)
+      }
+      setMessages([])
     } finally {
       setLoading(false)
     }
@@ -230,11 +325,28 @@ export default function EnhancedChatTools() {
       formData.append("image", images[0])
     }
 
-    console.log("🌐 API URL:", `${API_BASE_URL}/messages`)
-    console.log("📋 FormData contents:")
-    for (const [key, value] of formData.entries()) {
-      console.log(`  ${key}:`, value)
+    const optimisticId = `temp-${Date.now()}-${Math.random()}`
+    const optimisticMessage: Message = {
+      id: optimisticId as any,
+      sender_id: currentUser?.id || 0,
+      receiver_id: receiver.id,
+      message: input,
+      image: null,
+      created_at: new Date().toISOString(),
+      sender: currentUser!,
+      receiver: receiver,
     }
+
+    setMessages((prev) => [...prev, optimisticMessage])
+    const originalInput = input
+    const originalImages = [...images]
+    const originalPreviews = [...imagePreviews]
+
+    setInput("")
+    setImages([])
+    setImagePreviews([])
+
+    console.log("🌐 API URL:", `${API_BASE_URL}/messages`)
 
     try {
       const res = await axios.post(`${API_BASE_URL}/messages`, formData, {
@@ -246,13 +358,24 @@ export default function EnhancedChatTools() {
 
       console.log("✅ Message sent successfully:", res.data)
 
-      // Message will be added via WebSocket, no need to manually add here
-      setInput("")
-      setImages([])
-      setImagePreviews([])
+      const realMessage = res.data
+      if (realMessage && realMessage.id) {
+        setMessages((prev) => {
+          return prev
+            .map((msg) => (msg.id === optimisticId ? realMessage : msg))
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        })
+      }
+
       fetchRecentContacts()
     } catch (error) {
       console.error("❌ Lỗi khi gửi tin nhắn:", error)
+
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
+      setInput(originalInput)
+      setImages(originalImages)
+      setImagePreviews(originalPreviews)
+
       if (axios.isAxiosError(error)) {
         console.error("📊 Response status:", error.response?.status)
         console.error("📄 Response data:", error.response?.data)
@@ -266,7 +389,6 @@ export default function EnhancedChatTools() {
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value)
 
-    // Handle typing indicator for current user
     setIsUserTyping(true)
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current)
@@ -279,15 +401,12 @@ export default function EnhancedChatTools() {
 
     typingTimeoutRef.current = setTimeout(() => {
       setIsUserTyping(false)
-      // Send stop typing event
       if (sendTypingEvent) {
         console.log("⌨️ Sending typing stop event")
         sendTypingEvent(false, receiver?.id)
       }
     }, 1000)
   }
-
-  // ... existing code for image handling, formatting, etc. ...
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -328,6 +447,14 @@ export default function EnhancedChatTools() {
     setUnreadCount((prev) => Math.max(0, prev - 1))
   }
 
+  const handleContactClick = (user: User) => {
+    console.log("👤 Contact clicked:", user.name, "ID:", user.id)
+    setReceiver(user)
+    setActiveChat(true)
+    setIsInitialLoad(true)
+    console.log("✅ Active chat set to true for user:", user.id)
+  }
+
   useEffect(() => {
     const handleOpenChatBox = (e: Event) => {
       const detail = (e as CustomEvent).detail
@@ -356,9 +483,9 @@ export default function EnhancedChatTools() {
       <div className="fixed top-4 right-4 z-[10000] space-y-2">
         {notifications.map((notification) => (
           <ChatNotification
-            key={notification.id}
+            key={`notification-${notification.id}`}
             message={notification}
-            onClose={() => removeNotification(notification.id)}
+            onClose={() => removeNotification(Number(notification.id))}
             onClick={() => handleNotificationClick(notification)}
           />
         ))}
@@ -396,11 +523,8 @@ export default function EnhancedChatTools() {
             </div>
             {recentContacts.map((user) => (
               <div
-                key={user.id}
-                onClick={() => {
-                  setReceiver(user)
-                  setActiveChat(true)
-                }}
+                key={`contact-${user.id}`}
+                onClick={() => handleContactClick(user)}
                 className={`flex items-center gap-3 px-3 py-3 hover:bg-white cursor-pointer border-b transition-colors ${
                   receiver?.id === user.id ? "bg-white border-l-4 border-l-[#db4444]" : ""
                 }`}
@@ -410,7 +534,9 @@ export default function EnhancedChatTools() {
                     src={
                       user.avatar?.startsWith("http") || user.avatar?.startsWith("/")
                         ? user.avatar
-                        : `${STATIC_BASE_URL}/${user.avatar}`
+                        : user.avatar
+                          ? `${STATIC_BASE_URL}/${user.avatar}`
+                          : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
                     }
                     alt={user.name}
                     width={40}
@@ -527,7 +653,7 @@ export default function EnhancedChatTools() {
                 messages.map((msg) => {
                   const isCurrentUser = msg.sender_id === currentUser?.id
 
-                  let avatarUrl = "/placeholder.svg?height=32&width=32"
+                  let avatarUrl = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
                   let userName = "User"
 
                   if (isCurrentUser) {
@@ -549,7 +675,10 @@ export default function EnhancedChatTools() {
                   }
 
                   return (
-                    <div key={msg.id} className={`flex gap-2 ${isCurrentUser ? "justify-end" : "justify-start"}`}>
+                    <div
+                      key={`message-${msg.id}`}
+                      className={`flex gap-2 ${isCurrentUser ? "justify-end" : "justify-start"}`}
+                    >
                       {!isCurrentUser && (
                         <img
                           src={avatarUrl || "/placeholder.svg"}

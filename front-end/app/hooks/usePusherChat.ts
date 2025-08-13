@@ -80,11 +80,34 @@ export function usePusherChat(
       console.log("✅ Channel subscription succeeded:", channelName)
     })
 
+    channel.bind_global((eventName: string, data: any) => {
+      console.log("🎯 Pusher event received:", eventName, data)
+    })
+
     channel.bind("MessageSent", (payload: any) => {
-      onData?.({ type: "message", message: payload.message ?? payload })
+      console.log("📨 MessageSent event received:", payload)
+      const messageData = {
+        id: payload.id,
+        sender_id: payload.sender_id,
+        receiver_id: payload.receiver_id,
+        message: payload.message,
+        image: payload.image,
+        created_at: payload.created_at,
+        sender: payload.sender,
+      }
+
+      // Thêm delay nhỏ để tránh xung đột với API response
+      setTimeout(() => {
+        onData?.({
+          type: "message",
+          message: messageData, // Truyền object đầy đủ thay vì chỉ string
+          shouldRefreshContacts: true,
+        })
+      }, 100)
     })
 
     channel.bind("UserTyping", (payload: any) => {
+      console.log("⌨️ UserTyping event received:", payload)
       onData?.({ type: "typing", user_id: payload.user_id, is_typing: payload.is_typing })
     })
 
