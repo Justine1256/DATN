@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { FaChevronRight } from "react-icons/fa"
-import { Package, Tags, Warehouse, Truck, Users, Inbox, MessageSquare, LayoutDashboard, PlusCircle } from "lucide-react"
+import { Package, Tags, Warehouse, Truck, Users, Inbox, MessageSquare, LayoutDashboard, PlusCircle, Settings } from "lucide-react"
 
 export const menu = [
   {
@@ -34,15 +34,7 @@ export const menu = [
     icon: <Truck size={18} />,
     children: [{ label: "Danh sách", href: "/shop-admin/order" }],
   },
-  {
-    label: "Quản lý shop",
-    icon: <Warehouse size={18} />,
-    children: [
-      { label: "Thông tin shop", href: "/shop-admin/shop/info" },
-      { label: "Chỉnh sửa shop", href: "/shop-admin/shop/update" },
-
-    ],
-  },
+  
   {
     label: "Khách Hàng",
     icon: <Users size={18} />,
@@ -61,6 +53,15 @@ export const menu = [
     label: "Tin nhắn",
     icon: <MessageSquare size={18} />,
     href: "/shop-admin/chat",
+  },
+  {
+    label: "Cài đặt",
+    icon: <Settings size={18} />,
+    children: [
+      { label: "Thông tin shop", href: "/shop-admin/shop/info" },
+      { label: "Chỉnh sửa shop", href: "/shop-admin/shop/update" },
+      { label: "Quản lý thanh toán", href: "/shop-admin/payment" },
+    ],
   },
 ]
 
