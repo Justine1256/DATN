@@ -107,6 +107,7 @@ return [
     ],
     'providers' => [
 
+        App\Providers\BroadcastServiceProvider::class,
     /*
     |--------------------------------------------------------------------------
     | Laravel Framework Service Providers...
