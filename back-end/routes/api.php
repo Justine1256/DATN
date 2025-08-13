@@ -20,6 +20,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderDetailController;
+use App\Http\Controllers\PaymentAccountController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\VoucherUserController;
@@ -273,6 +274,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/shop/comments/{id}', [ProductController::class, 'deleteComment']);
     Route::post('/shop/comments/{id}', [ProductController::class, 'restoreComment']);
 
+    // quản lý tài khoản thanh toán
+    Route::get('/payment-accounts/{shopId}', [PaymentAccountController::class, 'index']);
+    Route::post('/payment-accounts', [PaymentAccountController::class, 'store']);
+    Route::put('/payment-accounts/{id}', [PaymentAccountController::class, 'update']);
+    Route::delete('/payment-accounts/{id}', [PaymentAccountController::class, 'destroy']);
 
 Route::post('/broadcasting/auth', function (Request $request) {
     // Get token from Bearer header or cookie
