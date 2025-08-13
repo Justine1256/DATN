@@ -328,7 +328,8 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
             const src = row.voucher ?? row;
             const dt = String(src.discount_type ?? src.type ?? 'amount').toLowerCase();
             return {
-              id: row.id ?? src.id ?? src.voucher_id ?? src.code,
+              // ✅ CHỈ dùng id của voucher (không dùng row.id từ pivot)
+              id: src.id ?? src.voucher_id ?? src.code,
               code: String(src.code ?? src.voucher_code ?? src.coupon_code ?? '').trim(),
               title: src.title ?? src.name ?? src.label ?? undefined,
               description: src.description ?? src.desc ?? undefined,
@@ -337,9 +338,11 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
               min_order: src.min_order_value ? Number(src.min_order_value) : src.min_order_amount ? Number(src.min_order_amount) : undefined,
               expires_at: src.end_date ?? src.expires_at ?? src.expired_at ?? src.end_at ?? undefined,
               is_active: src.is_active ?? src.active ?? true,
-              shop_id: src.shop_id ?? row.shop_id ?? null,
+              shop_id: src.shop_id ?? null,                  // ✅ không lấy row.shop_id
             };
           });
+          const dedup = Array.from(new Map(mapped.map(v => [`${v.code}|${v.shop_id ?? 'all'}`, v])).values());
+          setVouchers(dedup);
           setVouchers(mapped);
         })
         .catch(() => setVoucherErr('Không tải được danh sách voucher.'))
@@ -455,10 +458,10 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
             </Tag>
           )}
         </Space>
-        
+
       </Space>
       {/* 👉 Đặt nút trước, pill sau để pill nằm BÊN PHẢI đúng ý bạn */}
-     
+
       {/* Phương thức thanh toán */}
       <Card title={<Text strong>Phương thức thanh toán</Text>} styles={{ body: { padding: 12 } }} variant="outlined">
         <Radio.Group value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>

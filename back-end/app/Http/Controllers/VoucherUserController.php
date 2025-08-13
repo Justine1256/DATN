@@ -101,18 +101,29 @@ class VoucherUserController extends Controller
 
         return response()->json(['saved' => $exists]);
     }
-    public function showMySavedVouchers()
-    {
-        $user = Auth::user();
-
-        if (!$user) {
-            return response()->json(['message' => 'Bạn cần đăng nhập'], 401);
-        }
-
-        $data = VoucherUser::with('voucher')
-            ->where('user_id', $user->id)
-            ->get();
-
-        return response()->json(['data' => $data]);
+    public function showMySavedVouchers(Request $request)
+{
+    $user = Auth::user();
+    if (!$user) {
+        return response()->json(['message' => 'Bạn cần đăng nhập'], 401);
     }
+
+    $shopId      = $request->query('shop_id');            // ví dụ: /my-vouchers?shop_id=1
+    $onlyActive  = filter_var($request->query('only_active'), FILTER_VALIDATE_BOOLEAN); // ?only_active=1
+    $now         = now();
+
+    $vouchers = Voucher::query()
+        ->select('vouchers.*')
+        ->join('voucher_users as vu', 'vu.voucher_id', '=', 'vouchers.id')
+        ->where('vu.user_id', $user->id)
+        ->when($shopId !== null, fn($q) => $q->where('vouchers.shop_id', $shopId))
+        ->when($onlyActive, fn($q) => $q->whereDate('vouchers.start_date', '<=', $now)
+                                        ->whereDate('vouchers.end_date', '>=', $now))
+        ->distinct() // <- Mỗi voucher 1 dòng
+        ->orderByDesc('vouchers.created_at')
+        ->get();
+
+    return response()->json(['data' => $vouchers]);
+}
+
 }
