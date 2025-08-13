@@ -19,36 +19,34 @@ class MessageSent implements ShouldBroadcast
 
     public function __construct(Message $message)
     {
-        $this->message = $message->load(['sender', 'receiver']);
+        $this->message = $message;
     }
 
-    /**
-     * Get the channels the event should broadcast on.
-     */
-    public function broadcastOn(): array
+    public function broadcastOn()
     {
-        // Broadcast to both sender and receiver channels
         return [
-            new PrivateChannel('private-chat.' . $this->message->sender_id),
-            new PrivateChannel('private-chat.' . $this->message->receiver_id),
+            new PrivateChannel('chat.' . $this->message->sender_id),
+            new PrivateChannel('chat.' . $this->message->receiver_id),
         ];
     }
 
-    /**
-     * The event's broadcast name.
-     */
-    public function broadcastAs(): string
+    public function broadcastAs()
     {
         return 'MessageSent';
     }
 
-    /**
-     * Get the data to broadcast.
-     */
-    public function broadcastWith(): array
+    public function broadcastWith()
     {
         return [
-            'message' => $this->message->toArray(),
+            'id' => $this->message->id,
+            'sender_id' => $this->message->sender_id,
+            'receiver_id' => $this->message->receiver_id,
+            'message' => $this->message->message,
+            'image' => $this->message->image,
+            'status' => $this->message->status,
+            'created_at' => $this->message->created_at,
+            'sender' => $this->message->sender,
+            'receiver' => $this->message->receiver,
         ];
     }
 }

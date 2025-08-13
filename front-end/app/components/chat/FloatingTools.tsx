@@ -43,6 +43,7 @@ interface ChatSocketData {
   message?: Message
   user_id?: number
   is_typing?: boolean
+  shouldRefreshContacts?: boolean
 }
 
 export default function EnhancedChatTools() {
@@ -118,15 +119,52 @@ export default function EnhancedChatTools() {
     }
   }, [])
 
+  const fetchRecentContacts = useCallback(async () => {
+    const token = localStorage.getItem("token") || Cookies.get("authToken")
+    if (!token) return
+
+    try {
+      const res = await axios.get(`${API_BASE_URL}/recent-contacts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setRecentContacts(res.data)
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách đã nhắn:", err)
+    }
+  }, [])
+
   const handleSocketData = useCallback(
     (data: ChatSocketData) => {
       console.log("📨 Socket data received:", data)
 
-      if (data.type === "message") {
+      if (data.type === "message" && data.message) {
         console.log("💬 New message:", data.message)
-        setMessages((prev) => [...prev, data.message!])
 
-        if (!activeChat || receiver?.id !== data.message?.sender_id) {
+        // Kiểm tra xem tin nhắn có liên quan đến cuộc trò chuyện hiện tại không
+        const isCurrentConversation =
+          activeChat &&
+          receiver?.id &&
+          (data.message.sender_id === receiver.id ||
+            data.message.receiver_id === receiver.id ||
+            data.message.sender_id === currentUser?.id ||
+            data.message.receiver_id === currentUser?.id)
+
+        // Nếu đang trong cuộc trò chuyện liên quan, thêm tin nhắn vào messages
+        if (isCurrentConversation) {
+          setMessages((prev) => {
+            // Kiểm tra xem tin nhắn đã tồn tại chưa để tránh duplicate
+            const messageExists = prev.some((msg) => msg.id === data.message!.id)
+            if (messageExists) {
+              console.log("📝 Message already exists, skipping...")
+              return prev
+            }
+            console.log("📝 Adding message to current conversation")
+            return [...prev, data.message!]
+          })
+        }
+
+        // Nếu tin nhắn không phải từ user hiện tại và không đang trong chat đó, tạo notification
+        if (data.message.sender_id !== currentUser?.id && (!activeChat || receiver?.id !== data.message.sender_id)) {
           setNotifications((prev) => [
             ...prev,
             {
@@ -138,6 +176,12 @@ export default function EnhancedChatTools() {
           ])
           setUnreadCount((prev) => prev + 1)
         }
+
+        // Luôn refresh recent contacts khi có tin nhắn mới
+        if (data.shouldRefreshContacts) {
+          console.log("🔄 Refreshing recent contacts...")
+          fetchRecentContacts()
+        }
       } else if (data.type === "typing") {
         console.log("⌨️ Typing event received:", data, "Current user:", currentUser?.id)
         if (data.user_id !== currentUser?.id) {
@@ -148,7 +192,7 @@ export default function EnhancedChatTools() {
         }
       }
     },
-    [currentUser?.id, activeChat, receiver?.id],
+    [currentUser?.id, activeChat, receiver?.id, fetchRecentContacts],
   )
 
   const handleConnectionStatus = useCallback((status: "connecting" | "connected" | "disconnected" | "error") => {
@@ -163,20 +207,6 @@ export default function EnhancedChatTools() {
     handleSocketData,
     handleConnectionStatus,
   )
-
-  const fetchRecentContacts = async () => {
-    const token = localStorage.getItem("token") || Cookies.get("authToken")
-    if (!token) return
-
-    try {
-      const res = await axios.get(`${API_BASE_URL}/recent-contacts`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      setRecentContacts(res.data)
-    } catch (err) {
-      console.error("Lỗi khi lấy danh sách đã nhắn:", err)
-    }
-  }
 
   const fetchMessages = async () => {
     if (!receiver?.id) return
@@ -246,10 +276,23 @@ export default function EnhancedChatTools() {
 
       console.log("✅ Message sent successfully:", res.data)
 
-      // Message will be added via WebSocket, no need to manually add here
+      // Điều này giúp UI phản hồi nhanh hơn
+      const newMessage = res.data
+      if (newMessage && newMessage.id) {
+        setMessages((prev) => {
+          const messageExists = prev.some((msg) => msg.id === newMessage.id)
+          if (!messageExists) {
+            return [...prev, newMessage]
+          }
+          return prev
+        })
+      }
+
       setInput("")
       setImages([])
       setImagePreviews([])
+
+      // Refresh recent contacts sau khi gửi tin nhắn
       fetchRecentContacts()
     } catch (error) {
       console.error("❌ Lỗi khi gửi tin nhắn:", error)
@@ -286,8 +329,6 @@ export default function EnhancedChatTools() {
       }
     }, 1000)
   }
-
-  // ... existing code for image handling, formatting, etc. ...
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
