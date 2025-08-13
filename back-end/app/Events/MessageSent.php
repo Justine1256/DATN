@@ -10,6 +10,7 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class MessageSent implements ShouldBroadcast
 {
@@ -20,14 +21,25 @@ class MessageSent implements ShouldBroadcast
     public function __construct(Message $message)
     {
         $this->message = $message;
+        Log::info('MessageSent event created', [
+            'message_id' => $message->id,
+            'sender_id' => $message->sender_id,
+            'receiver_id' => $message->receiver_id
+        ]);
     }
 
     public function broadcastOn()
     {
-        return [
+        $channels = [
             new PrivateChannel('chat.' . $this->message->sender_id),
             new PrivateChannel('chat.' . $this->message->receiver_id),
         ];
+
+        Log::info('Broadcasting on channels', [
+            'channels' => array_map(fn($ch) => $ch->name, $channels)
+        ]);
+
+        return $channels;
     }
 
     public function broadcastAs()
@@ -37,7 +49,7 @@ class MessageSent implements ShouldBroadcast
 
     public function broadcastWith()
     {
-        return [
+        $data = [
             'id' => $this->message->id,
             'sender_id' => $this->message->sender_id,
             'receiver_id' => $this->message->receiver_id,
@@ -48,5 +60,13 @@ class MessageSent implements ShouldBroadcast
             'sender' => $this->message->sender,
             'receiver' => $this->message->receiver,
         ];
+
+        Log::info('Broadcasting message data', $data);
+        return $data;
+    }
+
+    public function broadcastQueue()
+    {
+        return null; // Broadcast ngay lập tức, không dùng queue
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class MessageController extends Controller
 {
@@ -145,7 +146,21 @@ class MessageController extends Controller
 
         $messageWithRelations = $message->load(['sender:id,name,email,avatar', 'receiver:id,name,email,avatar']);
 
-        event(new MessageSent($messageWithRelations));
+        try {
+            Log::info('Attempting to broadcast message', [
+                'message_id' => $messageWithRelations->id,
+                'broadcast_driver' => config('broadcasting.default')
+            ]);
+
+            event(new MessageSent($messageWithRelations));
+
+            Log::info('Message broadcast event dispatched successfully');
+        } catch (\Exception $e) {
+            Log::error('Failed to broadcast message', [
+                'error' => $e->getMessage(),
+                'message_id' => $messageWithRelations->id
+            ]);
+        }
 
         return response()->json([
             'success' => true,
