@@ -312,7 +312,6 @@ Route::post('/broadcasting/auth', function (Request $request) {
                 'channel_user_id' => $userIdFromChannel,
                 'channelName' => $channelName,
             ]);
-
             return response()->json([
                 'error' => 'Forbidden',
                 'reason' => 'user_id_mismatch',
@@ -322,18 +321,14 @@ Route::post('/broadcasting/auth', function (Request $request) {
         }
     }
 
-    $pusher = new Pusher(
-        env('PUSHER_APP_KEY'),
-        env('PUSHER_APP_SECRET'),
-        env('PUSHER_APP_ID'),
-        [
-            'cluster' => env('PUSHER_APP_CLUSTER'),
-            'useTLS' => true,
-        ]
+    $pusher = new \Pusher\Pusher(
+        config('broadcasting.connections.pusher.key'),
+        config('broadcasting.connections.pusher.secret'),
+        config('broadcasting.connections.pusher.app_id'),
+        config('broadcasting.connections.pusher.options')
     );
 
     $auth = $pusher->authorizeChannel($channelName, $socketId);
-
     return response()->json(json_decode($auth, true));
 });
 });
