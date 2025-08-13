@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import Pusher from "pusher-js"
 import axios from "axios"
 import { API_BASE_URL } from "@/utils/api"
@@ -16,9 +16,22 @@ export function usePusherChat(
 ) {
   const pusherRef = useRef<Pusher | null>(null)
   const channelRef = useRef<any>(null)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const cleanupRef = useRef<(() => void) | null>(null)
+
+  const cleanup = useCallback(() => {
+    if (cleanupRef.current) {
+      cleanupRef.current()
+      cleanupRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
-    if (!currentUserId || !token) return
+    if (!currentUserId || !token || isConnecting) return
+
+    setIsConnecting(true)
+
+    cleanup()
 
     const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_APP_KEY || "", {
       cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER as string,
@@ -28,16 +41,44 @@ export function usePusherChat(
           Authorization: `Bearer ${token}`,
         },
       },
+      enabledTransports: ["ws", "wss"],
+      disabledTransports: [],
     })
 
-    // connection events
-    pusher.connection.bind("connecting", () => onConnectionStatus?.("connecting"))
-    pusher.connection.bind("connected", () => onConnectionStatus?.("connected"))
-    pusher.connection.bind("disconnected", () => onConnectionStatus?.("disconnected"))
-    pusher.connection.bind("error", () => onConnectionStatus?.("error"))
+    pusher.connection.bind("connecting", () => {
+      console.log("🔌 Pusher connecting...")
+      onConnectionStatus?.("connecting")
+    })
+
+    pusher.connection.bind("connected", () => {
+      console.log("✅ Pusher connected")
+      setIsConnecting(false)
+      onConnectionStatus?.("connected")
+    })
+
+    pusher.connection.bind("disconnected", () => {
+      console.log("❌ Pusher disconnected")
+      setIsConnecting(false)
+      onConnectionStatus?.("disconnected")
+    })
+
+    pusher.connection.bind("error", (error: any) => {
+      console.error("🚨 Pusher connection error:", error)
+      setIsConnecting(false)
+      onConnectionStatus?.("error")
+    })
 
     const channelName = `private-chat.${currentUserId}`
     const channel = pusher.subscribe(channelName)
+
+    channel.bind("pusher:subscription_error", (error: any) => {
+      console.error("🚨 Channel subscription error:", error)
+      onConnectionStatus?.("error")
+    })
+
+    channel.bind("pusher:subscription_succeeded", () => {
+      console.log("✅ Channel subscription succeeded:", channelName)
+    })
 
     channel.bind("MessageSent", (payload: any) => {
       onData?.({ type: "message", message: payload.message ?? payload })
@@ -50,18 +91,31 @@ export function usePusherChat(
     pusherRef.current = pusher
     channelRef.current = channel
 
-    return () => {
+    cleanupRef.current = () => {
       try {
-        channel.unbind_all?.()
-        pusher.unsubscribe(channelName)
-        pusher.disconnect()
+        if (channel) {
+          channel.unbind_all()
+          pusher.unsubscribe(channelName)
+        }
+        if (pusher && pusher.connection.state !== "disconnected") {
+          pusher.disconnect()
+        }
       } catch (e) {
-        // ignore
+        console.warn("Cleanup error:", e)
       }
       pusherRef.current = null
       channelRef.current = null
+      setIsConnecting(false)
     }
-  }, [currentUserId, token, onData, onConnectionStatus])
+
+    return cleanupRef.current
+  }, [currentUserId, token, onData, onConnectionStatus, isConnecting, cleanup])
+
+  useEffect(() => {
+    return () => {
+      cleanup()
+    }
+  }, [cleanup])
 
   async function sendTypingEvent(isTyping: boolean, targetReceiverId?: number | null) {
     if (!token) return
@@ -80,5 +134,5 @@ export function usePusherChat(
     }
   }
 
-  return { sendTypingEvent }
+  return { sendTypingEvent, isConnecting }
 }
