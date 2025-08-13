@@ -305,35 +305,26 @@ const Header = () => {
 
   // 🚪 Xử lý đăng xuất
 const handleLogout = () => {
-  // Lấy domain gốc (bỏ subdomain nếu có)
-  const hostnameParts = window.location.hostname.split(".");
-  const rootDomain =
-    hostnameParts.length > 2
-      ? `.${hostnameParts.slice(-2).join(".")}`
-      : window.location.hostname;
-
-  // Xóa cookie cho local
-  Cookies.remove("authToken");
-
-  // Xóa cookie cho production
+  // Xóa cookie ở production
   Cookies.remove("authToken", {
-    domain: rootDomain,
-    secure: window.location.protocol === "https:",
+    domain: ".marketo.info.vn",
+    secure: true,
     sameSite: "None",
   });
 
-  // Clear state ứng dụng
+  // Xóa cookie ở local
+  Cookies.remove("authToken");
+
   setUser(null);
-  setDropdownOpen(false);
-  setUnreadNotificationCount(0);
-  setCartItems([]);
 
-  // Điều hướng về trang chủ
-  router.replace("/");
+  const baseUrl =
+    window.location.hostname === "localhost"
+      ? "http://localhost:3000"
+      : "https://marketo.info.vn";
 
-  // Gửi sự kiện cập nhật wishlist
-  window.dispatchEvent(new Event("wishlistUpdated"));
+  window.location.href = `${baseUrl}/`;
 };
+
 
   // 📨 Xử lý khi click vào thông báo
   const handleNotificationClick = async (id: number, link: string) => {

@@ -156,7 +156,18 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
     setSelectedVariant(matched || null);
   }, [selectedA, selectedB, product]);
+  useEffect(() => {
+  // Nếu chưa có product thì thoát sớm để tránh đọc null.stock
+  if (!product) return;
 
+  const s = selectedVariant?.stock ?? product.stock ?? 0;
+
+  setQuantity((prev) => {
+    if (s <= 0) return 1;
+    return prev > s ? s : prev;
+  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [selectedVariant, selectedA, selectedB, product]);
 
   // Loading khi chưa có dữ liệu
   if (loading || !product) {
@@ -235,6 +246,14 @@ const hasCombination = (a: string, b: string) => {
     if (isFromProduct) return product.stock;
     return product.stock;
   };
+  const currentStock = selectedVariant?.stock ?? product.stock ?? 0;
+    // Trạng thái hết hàng cho lựa chọn hiện tại
+  const isOutOfStock = () => {
+    if (!product.variants.length) return (product.stock ?? 0) <= 0;
+    if (selectedVariant) return (selectedVariant.stock ?? 0) <= 0;
+    if (isFromProduct) return (product.stock ?? 0) <= 0;
+    return false; // chưa chọn đủ hoặc chưa khớp cụ thể -> không coi là hết
+  };
 
   // Chọn biến thể A / B
   const handleSelectA = (a: string) => setSelectedA(a);
@@ -307,6 +326,24 @@ const hasCombination = (a: string, b: string) => {
       commonPopup("❌ Xin quý khách, hiện tại biến thể này đã hết hàng");
       setIsAddingToCart(false);
       return;
+    }
+        // Chặn thêm giỏ khi hết hàng theo lựa chọn hiện tại
+    {
+      const chosenStock = matchedVariant
+        ? (matchedVariant.stock ?? 0)
+        : (isFromProductValues ? (product.stock ?? 0) : 0);
+
+      if ((hasVariants || hasOption1 || hasOption2) && chosenStock <= 0) {
+        commonPopup("❌ Xin quý khách, biến thể này đã hết hàng");
+        setIsAddingToCart(false);
+        return;
+      }
+
+      if (!hasVariants && (product.stock ?? 0) <= 0) {
+        commonPopup("❌ Xin quý khách, sản phẩm này đã hết hàng");
+        setIsAddingToCart(false);
+        return;
+      }
     }
 
     const useVariant = matchedVariant ?? null;
@@ -492,6 +529,23 @@ const hasCombination = (a: string, b: string) => {
       setIsBuyingNow(false);
       return;
     }
+    {
+      const chosenStock = matchedVariant
+        ? (matchedVariant.stock ?? 0)
+        : (isFromProductValues ? (product.stock ?? 0) : 0);
+
+      if ((hasVariants || hasOption1 || hasOption2) && chosenStock <= 0) {
+        commonPopup("❌ Xin quý khách, biến thể này đã hết hàng");
+        setIsBuyingNow(false);
+        return;
+      }
+
+      if (!hasVariants && (product.stock ?? 0) <= 0) {
+        commonPopup("❌ Xin quý khách, sản phẩm này đã hết hàng");
+        setIsBuyingNow(false);
+        return;
+      }
+    }
 
     const useVariant = matchedVariant ?? null;
     const price = useVariant?.price ?? product.price;
@@ -646,7 +700,7 @@ const hasCombination = (a: string, b: string) => {
 
               <span className="text-gray-300">|</span>
               <span className="text-emerald-400 font-medium">
-                Hàng trong kho: {product.stock || 0} sản phẩm
+                Hàng trong kho: {currentStock} sản phẩm
               </span>
             </div>
 
@@ -801,17 +855,17 @@ const hasCombination = (a: string, b: string) => {
 
               <button
                 onClick={handleBuyNow}
-                disabled={isBuyingNow}
-                className={`w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded transition font-medium hover:bg-red-600 ${isBuyingNow ? 'pointer-events-none opacity-50' : ''
-                  }`}
+                disabled={isBuyingNow || isOutOfStock()}
+                className={`w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded transition font-medium hover:bg-red-600 $${(isBuyingNow || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''}
+`}
               >
                 Mua Ngay
               </button>
 
               <button
                 onClick={handleAddToCart}
-                disabled={isAddingToCart}
-                className={`w-[165px] h-[44px] text-sm md:text-base rounded transition font-medium border text-brand border-brand hover:bg-brand hover:text-white ${isAddingToCart ? 'pointer-events-none opacity-50' : ''
+                disabled={isAddingToCart || isOutOfStock()}
+                className={`w-[165px] h-[44px] text-sm md:text-base rounded transition font-medium border text-brand border-brand hover:bg-brand hover:text-white ${(isAddingToCart || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''
                   }`}
               >
                 Thêm Vào Giỏ Hàng
