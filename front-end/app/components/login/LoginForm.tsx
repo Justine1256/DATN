@@ -61,7 +61,7 @@ export default function LoginForm() {
 
     const { token } = res.data;
     Cookies.set("authToken", token, { 
-  expires: 7,
+  expires: 1,
   domain: process.env.NODE_ENV === "production" ? ".marketo.info.vn" : undefined,
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax"

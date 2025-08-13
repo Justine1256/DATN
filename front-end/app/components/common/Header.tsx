@@ -304,15 +304,36 @@ const Header = () => {
   };
 
   // 🚪 Xử lý đăng xuất
-  const handleLogout = () => {
-    Cookies.remove("authToken");
-    setUser(null);
-    setDropdownOpen(false);
-    setUnreadNotificationCount(0);
-    setCartItems([]);
-    router.replace("/");
-    window.dispatchEvent(new Event("wishlistUpdated"));
-  };
+const handleLogout = () => {
+  // Lấy domain gốc (bỏ subdomain nếu có)
+  const hostnameParts = window.location.hostname.split(".");
+  const rootDomain =
+    hostnameParts.length > 2
+      ? `.${hostnameParts.slice(-2).join(".")}`
+      : window.location.hostname;
+
+  // Xóa cookie cho local
+  Cookies.remove("authToken");
+
+  // Xóa cookie cho production
+  Cookies.remove("authToken", {
+    domain: rootDomain,
+    secure: window.location.protocol === "https:",
+    sameSite: "None",
+  });
+
+  // Clear state ứng dụng
+  setUser(null);
+  setDropdownOpen(false);
+  setUnreadNotificationCount(0);
+  setCartItems([]);
+
+  // Điều hướng về trang chủ
+  router.replace("/");
+
+  // Gửi sự kiện cập nhật wishlist
+  window.dispatchEvent(new Event("wishlistUpdated"));
+};
 
   // 📨 Xử lý khi click vào thông báo
   const handleNotificationClick = async (id: number, link: string) => {
