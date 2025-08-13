@@ -219,11 +219,35 @@ export default function EnhancedChatTools() {
         params: { user_id: receiver.id },
         headers: { Authorization: `Bearer ${token}` },
       })
-      setMessages(
-        res.data.sort((a: Message, b: Message) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+
+      console.log("📨 Raw response data:", res.data)
+
+      let messagesData = res.data
+
+      // Kiểm tra nếu response có cấu trúc nested (ví dụ: {data: [], meta: {}})
+      if (res.data && typeof res.data === "object" && res.data.data && Array.isArray(res.data.data)) {
+        messagesData = res.data.data
+      }
+      // Kiểm tra nếu response trực tiếp là array
+      else if (!Array.isArray(res.data)) {
+        console.error("❌ Response data is not an array:", res.data)
+        messagesData = []
+      }
+
+      // Sắp xếp messages theo thời gian tạo
+      const sortedMessages = messagesData.sort(
+        (a: Message, b: Message) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       )
+
+      setMessages(sortedMessages)
+      console.log("✅ Messages loaded:", sortedMessages.length)
     } catch (error) {
-      console.error("Lỗi khi lấy tin nhắn:", error)
+      console.error("❌ Lỗi khi lấy tin nhắn:", error)
+      if (axios.isAxiosError(error)) {
+        console.error("📊 Response status:", error.response?.status)
+        console.error("📄 Response data:", error.response?.data)
+      }
+      setMessages([])
     } finally {
       setLoading(false)
     }
