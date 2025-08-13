@@ -6,10 +6,8 @@ import "./globals.css";
 import Header from "./components/common/Header";
 import ShopSidebar from "./components/common/ShopSidebar";
 import ModernAdminSidebar from "./components/common/Adminsiderbar";
-import Head from 'next/head';
 import { AuthProvider, useAuth } from "./AuthContext";
 import axios from 'axios';
-
 axios.defaults.baseURL = 'https://marketo.info.vn';
 axios.defaults.withCredentials = true;
 const roboto = Roboto({
@@ -52,7 +50,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <Head><title>Quản trị</title></Head>
+      <head><title>Admin Marketo</title></head>
       <body className={`bg-[#f9fafb] text-gray-900 font-sans antialiased ${roboto.variable}`}>
         <AuthProvider>
           <LayoutContent>{children}</LayoutContent>
