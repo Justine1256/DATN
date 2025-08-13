@@ -60,7 +60,13 @@ export default function LoginForm() {
     });
 
     const { token } = res.data;
-    Cookies.set("authToken", token, { expires: 7 });
+    Cookies.set("authToken", token, { 
+  expires: 7,
+  domain: process.env.NODE_ENV === "production" ? ".marketo.info.vn" : undefined,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax"
+});
+
     setShowPopup(true);
     window.location.href = "/";
   } catch (err: any) {
