@@ -36,8 +36,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return response()->json($request->user()->load('shop')->toArray());
 });
 // routes/api.php
+
 Route::post('/pusher/auth', function (Request $request) {
-    $user = Auth::user();// Hoặc cách xác thực user của bạn
+    $user = Auth::user(); // Hoặc cách xác thực user của bạn
 
     if (!$user) {
         return response()->json(['error' => 'Unauthorized'], 401);
@@ -63,8 +64,9 @@ Route::post('/pusher/auth', function (Request $request) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
     }
+    // Cách mới thay cho socket_auth
+    $auth = $pusher->authorizeChannel($channelName, $socketId);
 
-    $auth = $pusher->socket_auth($channelName, $socketId);
     return response($auth);
 });
 

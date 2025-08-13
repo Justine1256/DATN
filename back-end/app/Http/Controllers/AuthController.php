@@ -198,7 +198,7 @@ public function googleSignup(Request $request)
                 'name' => $request->name,
                 'username' => $request->username,
                 'email' => $request->email,
-                'phone' => $request->phone,
+                'phone' => null,
                 'avatar' => $request->avatar,
                 'password' => Hash::make(Str::random(32)), // Random password for Google users
                 'email_verified_at' => now(), // Google emails are pre-verified
