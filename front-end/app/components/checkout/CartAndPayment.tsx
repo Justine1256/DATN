@@ -77,17 +77,26 @@ export interface PaymentInfoChangePayload {
   summary: { subTotal: number; discount: number; shipping: number; total: number };
 }
 
+/** ✅ Payload voucher phát lên cha để gửi đúng cho BE */
+export type VoucherPayload =
+  | { mode: 'none' }
+  | { mode: 'global'; voucher_code: string }
+  | { mode: 'per_shop'; shop_vouchers: Array<{ shop_id: number; code: string }> };
+
 interface Props {
   onPaymentInfoChange?: (info: PaymentInfoChangePayload) => void;
   onCartChange?: (items: CartItem[]) => void;
 
-  /** ✅ Cho CheckoutPage bắt sự kiện áp dụng/bỏ voucher toàn sàn */
+  /** Cho CheckoutPage bắt sự kiện áp dụng/bỏ voucher toàn sàn (giữ nguyên nếu bạn còn dùng) */
   onVoucherApplied?: (res: {
     voucher: Voucher | null;
     serverDiscount: number | null;
     serverFreeShipping: boolean;
     code?: string | null;
   }) => void;
+
+  /** ✅ Mới: phát payload voucher (XOR) lên cha */
+  onVoucherPayloadChange?: (payload: VoucherPayload) => void;
 }
 
 /* ===================== Component ===================== */
@@ -111,7 +120,12 @@ const OneLine: React.FC<React.PropsWithChildren> = ({ children }) => (
   </span>
 );
 
-const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVoucherApplied }) => {
+const CartByShop: React.FC<Props> = ({
+  onPaymentInfoChange,
+  onCartChange,
+  onVoucherApplied,
+  onVoucherPayloadChange,
+}) => {
   /* ---------- State ---------- */
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [items, setItems] = useState<CartItem[]>([]);
@@ -127,8 +141,11 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   const [voucherSearch, setVoucherSearch] = useState('');
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | number | null>(null);
 
-  // voucher đã áp dụng
-  const [applied, setApplied] = useState<{ global: Voucher | null; byShop: Record<number, Voucher | null> }>({ global: null, byShop: {} });
+  // voucher đã áp dụng theo XOR
+  const [applied, setApplied] = useState<{ global: Voucher | null; byShop: Record<number, Voucher | null> }>({
+    global: null,
+    byShop: {},
+  });
 
   // toast trượt
   const [popupMsg, setPopupMsg] = useState<string | null>(null);
@@ -138,11 +155,13 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
 
   // Modal xem toàn bộ items của 1 shop
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
-  const [itemsModalShop, setItemsModalShop] = useState<{ shop_id: number; shop_name?: string; items: CartItem[] } | null>(null);
+  const [itemsModalShop, setItemsModalShop] =
+    useState<{ shop_id: number; shop_name?: string; items: CartItem[] } | null>(null);
 
-  const token = useMemo(() => (typeof window !== 'undefined'
-    ? localStorage.getItem('token') || Cookies.get('authToken') || ''
-    : ''), []);
+  const token = useMemo(
+    () => (typeof window !== 'undefined' ? localStorage.getItem('token') || Cookies.get('authToken') || '' : ''),
+    []
+  );
 
   /* ---------- Helpers ---------- */
 
@@ -168,9 +187,10 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     return i.startsWith('/') ? `${STATIC_BASE_URL}${i}` : `${STATIC_BASE_URL}/${i}`;
   }, []);
 
-  const unitPrice = useCallback((it: CartItem) => (
-    it.variant?.sale_price ?? it.variant?.price ?? it.product.sale_price ?? it.product.price ?? 0
-  ), []);
+  const unitPrice = useCallback(
+    (it: CartItem) => it.variant?.sale_price ?? it.variant?.price ?? it.product.sale_price ?? it.product.price ?? 0,
+    []
+  );
 
   /* ---------- Group cart theo shop ---------- */
   const grouped = useMemo(() => {
@@ -184,12 +204,15 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
 
   /* ---------- Tính tiền per shop & toàn giỏ ---------- */
 
-  const perShopRaw = useMemo(() =>
-    grouped.map((g) => ({
-      shop_id: g.shop_id,
-      shop_name: g.shop_name,
-      sub: g.items.reduce((s, it) => s + unitPrice(it) * it.quantity, 0),
-    })), [grouped, unitPrice]);
+  const perShopRaw = useMemo(
+    () =>
+      grouped.map((g) => ({
+        shop_id: g.shop_id,
+        shop_name: g.shop_name,
+        sub: g.items.reduce((s, it) => s + unitPrice(it) * it.quantity, 0),
+      })),
+    [grouped, unitPrice]
+  );
 
   const globalVoucherDiscount = useMemo(() => {
     const v = applied.global;
@@ -209,26 +232,33 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     return v.type === 'shipping';
   }, [applied.global, isExpired, perShopRaw]);
 
-  const perShopComputed = useMemo(() => grouped.map((g) => {
-    const sub = g.items.reduce((s, it) => s + unitPrice(it) * it.quantity, 0);
-    const v = applied.byShop[g.shop_id];
+  const perShopComputed = useMemo(
+    () =>
+      grouped.map((g) => {
+        const sub = g.items.reduce((s, it) => s + unitPrice(it) * it.quantity, 0);
+        const v = applied.byShop[g.shop_id];
 
-    let vDiscount = 0;
-    let ship = SHIPPING_EACH_SHOP;
+        let vDiscount = 0;
+        let ship = SHIPPING_EACH_SHOP;
 
-    if (v && !(isExpired(v) || v.is_active === false)) {
-      if (typeof v.min_order !== 'number' || sub >= v.min_order) {
-        if (v.type === 'percent') vDiscount = Math.floor((sub * v.value) / 100);
-        else if (v.type === 'amount') vDiscount = Math.min(sub, Math.floor(v.value));
-        else if (v.type === 'shipping') { ship = 0; vDiscount = 0; }
-      }
-    }
+        if (v && !(isExpired(v) || v.is_active === false)) {
+          if (typeof v.min_order !== 'number' || sub >= v.min_order) {
+            if (v.type === 'percent') vDiscount = Math.floor((sub * v.value) / 100);
+            else if (v.type === 'amount') vDiscount = Math.min(sub, Math.floor(v.value));
+            else if (v.type === 'shipping') {
+              ship = 0;
+              vDiscount = 0;
+            }
+          }
+        }
 
-    if (globalFreeShipping) ship = 0;
+        if (globalFreeShipping) ship = 0;
 
-    const lineTotal = Math.max(0, sub - vDiscount) + ship;
-    return { shop_id: g.shop_id, shop_name: g.shop_name, subTotal: sub, voucherDiscount: vDiscount, shipping: ship, lineTotal };
-  }), [grouped, applied.byShop, unitPrice, globalFreeShipping, isExpired]);
+        const lineTotal = Math.max(0, sub - vDiscount) + ship;
+        return { shop_id: g.shop_id, shop_name: g.shop_name, subTotal: sub, voucherDiscount: vDiscount, shipping: ship, lineTotal };
+      }),
+    [grouped, applied.byShop, unitPrice, globalFreeShipping, isExpired]
+  );
 
   const summary = useMemo(() => {
     const subAll = perShopComputed.reduce((s, r) => s + r.subTotal, 0);
@@ -307,65 +337,91 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
         if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [onCartChange]);
 
   /* ---------- Voucher: open / fetch / filter / apply / clear ---------- */
 
-  const openVoucherModal = useCallback((shopId: number | null) => {
-    setVoucherModalShopId(shopId);
-    setSelectedVoucherId((shopId == null ? applied.global?.id : applied.byShop[shopId]?.id) ?? null);
-    setVoucherModalOpen(true);
+  const openVoucherModal = useCallback(
+    (shopId: number | null) => {
+      setVoucherModalShopId(shopId);
+      setSelectedVoucherId((shopId == null ? applied.global?.id : applied.byShop[shopId]?.id) ?? null);
+      setVoucherModalOpen(true);
 
-    if (vouchers.length === 0) {
-      setVoucherLoading(true);
-      setVoucherErr(null);
-      axios
-        .get(`${API_BASE_URL}/my-vouchers`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
-        .then((res) => {
-          const list = Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.vouchers || res.data || [];
-          const mapped: Voucher[] = list.map((row: any) => {
-            const src = row.voucher ?? row;
-            const dt = String(src.discount_type ?? src.type ?? 'amount').toLowerCase();
-            return {
-              // ✅ CHỈ dùng id của voucher (không dùng row.id từ pivot)
-              id: src.id ?? src.voucher_id ?? src.code,
-              code: String(src.code ?? src.voucher_code ?? src.coupon_code ?? '').trim(),
-              title: src.title ?? src.name ?? src.label ?? undefined,
-              description: src.description ?? src.desc ?? undefined,
-              type: (['percent', 'amount', 'shipping'].includes(dt) ? dt : 'amount') as VoucherType,
-              value: Number(src.discount_value ?? src.value ?? src.amount ?? 0),
-              min_order: src.min_order_value ? Number(src.min_order_value) : src.min_order_amount ? Number(src.min_order_amount) : undefined,
-              expires_at: src.end_date ?? src.expires_at ?? src.expired_at ?? src.end_at ?? undefined,
-              is_active: src.is_active ?? src.active ?? true,
-              shop_id: src.shop_id ?? null,                  // ✅ không lấy row.shop_id
-            };
-          });
-          const dedup = Array.from(new Map(mapped.map(v => [`${v.code}|${v.shop_id ?? 'all'}`, v])).values());
-          setVouchers(dedup);
-          setVouchers(mapped);
-        })
-        .catch(() => setVoucherErr('Không tải được danh sách voucher.'))
-        .finally(() => setVoucherLoading(false));
-    }
-  }, [token, vouchers.length, applied.global?.id, applied.byShop]);
+      if (vouchers.length === 0) {
+        setVoucherLoading(true);
+        setVoucherErr(null);
+        axios
+          .get(`${API_BASE_URL}/my-vouchers`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+          .then((res) => {
+            const list = Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.vouchers || res.data || [];
+            const mapped: Voucher[] = list.map((row: any) => {
+              const src = row.voucher ?? row;
+              const dt = String(src.discount_type ?? src.type ?? 'amount').toLowerCase();
+              return {
+                // ✅ CHỈ dùng id của voucher (không dùng row.id từ pivot)
+                id: src.id ?? src.voucher_id ?? src.code,
+                code: String(src.code ?? src.voucher_code ?? src.coupon_code ?? '').trim(),
+                title: src.title ?? src.name ?? src.label ?? undefined,
+                description: src.description ?? src.desc ?? undefined,
+                type: (['percent', 'amount', 'shipping'].includes(dt) ? dt : 'amount') as VoucherType,
+                value: Number(src.discount_value ?? src.value ?? src.amount ?? 0),
+                min_order: src.min_order_value
+                  ? Number(src.min_order_value)
+                  : src.min_order_amount
+                  ? Number(src.min_order_amount)
+                  : undefined,
+                expires_at: src.end_date ?? src.expires_at ?? src.expired_at ?? src.end_at ?? undefined,
+                is_active: src.is_active ?? src.active ?? true,
+                shop_id: src.shop_id ?? null,
+              };
+            });
+            const dedup = Array.from(new Map(mapped.map((v) => [`${v.code}|${v.shop_id ?? 'all'}`, v])).values());
+            setVouchers(dedup); // ✅ GIỮ dedup, không set lại mapped lần 2
+          })
+          .catch(() => setVoucherErr('Không tải được danh sách voucher.'))
+          .finally(() => setVoucherLoading(false));
+      }
+    },
+    [token, vouchers.length, applied.global?.id, applied.byShop]
+  );
 
   const closeVoucherModal = useCallback(() => {
     setVoucherModalOpen(false);
     setVoucherSearch('');
   }, []);
 
-  const clearVoucher = useCallback((shopId: number | null) => {
-    setApplied((prev) => (shopId == null ? { ...prev, global: null } : { ...prev, byShop: { ...prev.byShop, [shopId]: null } }));
-    // báo lên cha khi bỏ voucher toàn sàn
-    if (shopId == null) {
-      onVoucherApplied?.({ voucher: null, serverDiscount: 0, serverFreeShipping: false, code: null });
-    }
-    setPopupMsg('Đã bỏ voucher.');
-    setShowPopup(true);
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => setShowPopup(false), 2000);
-  }, [onVoucherApplied]);
+  const clearVoucher = useCallback(
+    (shopId: number | null) => {
+      setApplied((prev) => {
+        if (shopId == null) {
+          // bỏ global
+          const list = Object.entries(prev.byShop)
+            .filter(([, vv]) => !!vv)
+            .map(([sid, vv]) => ({ shop_id: Number(sid), code: (vv as Voucher).code }));
+          onVoucherPayloadChange?.(list.length ? { mode: 'per_shop', shop_vouchers: list } : { mode: 'none' });
+          onVoucherApplied?.({ voucher: null, serverDiscount: 0, serverFreeShipping: false, code: null });
+          return { global: null, byShop: prev.byShop };
+        } else {
+          // bỏ voucher shop
+          const next = { ...prev.byShop, [shopId]: null };
+          const list = Object.entries(next)
+            .filter(([, vv]) => !!vv)
+            .map(([sid, vv]) => ({ shop_id: Number(sid), code: (vv as Voucher).code }));
+          onVoucherPayloadChange?.(list.length ? { mode: 'per_shop', shop_vouchers: list } : { mode: 'none' });
+          return { global: prev.global, byShop: next };
+        }
+      });
+
+      setPopupMsg('Đã bỏ voucher.');
+      setShowPopup(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => setShowPopup(false), 2000);
+    },
+    [onVoucherApplied, onVoucherPayloadChange]
+  );
 
   const applyVoucher = useCallback(() => {
     if (selectedVoucherId == null) return;
@@ -373,15 +429,26 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     if (!v) return;
 
     if (voucherModalShopId == null) {
+      // === Toàn sàn ===
       if (v.shop_id != null) return msgApi.warning('Voucher này là của shop, không áp dụng toàn sàn.');
-      setApplied((prev) => ({ ...prev, global: v }));
-      // báo lên cha khi áp dụng voucher toàn sàn
+      // XOR: clear all shop vouchers
+      setApplied({ global: v, byShop: {} });
       onVoucherApplied?.({ voucher: v, serverDiscount: null, serverFreeShipping: v.type === 'shipping', code: v.code ?? null });
+      onVoucherPayloadChange?.({ mode: 'global', voucher_code: v.code ?? '' });
     } else {
+      // === Theo shop ===
       if (v.shop_id == null) return msgApi.warning('Voucher toàn sàn, không áp dụng cho shop cụ thể.');
       if (Number(v.shop_id) !== Number(voucherModalShopId)) return msgApi.warning('Voucher không thuộc shop này.');
-      setApplied((prev) => ({ ...prev, byShop: { ...prev.byShop, [voucherModalShopId]: v } }));
-      // (không bắn lên cha vì OrderSummary đang nhận 1 voucher tổng)
+      setApplied((prev) => {
+        // XOR: clear global, thêm/ghi voucher cho shop
+        const nextByShop = { ...prev.byShop, [voucherModalShopId]: v };
+        const list = Object.entries(nextByShop)
+          .filter(([, vv]) => !!vv)
+          .map(([sid, vv]) => ({ shop_id: Number(sid), code: (vv as Voucher).code }));
+        onVoucherPayloadChange?.(list.length ? { mode: 'per_shop', shop_vouchers: list } : { mode: 'none' });
+        return { global: null, byShop: nextByShop };
+      });
+      // (không cần onVoucherApplied cho shop nếu OrderSummary chỉ biết voucher tổng)
     }
 
     setVoucherModalOpen(false);
@@ -389,7 +456,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     setShowPopup(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     hideTimerRef.current = setTimeout(() => setShowPopup(false), 2000);
-  }, [selectedVoucherId, vouchers, voucherModalShopId, msgApi, onVoucherApplied]);
+  }, [selectedVoucherId, vouchers, voucherModalShopId, msgApi, onVoucherApplied, onVoucherPayloadChange]);
 
   useEffect(() => () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); }, []);
 
@@ -417,10 +484,18 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   }, [vouchers, voucherSearch, voucherModalShopId, isExpired]);
 
   /* ---------- util tính tiền shop ---------- */
-  const calcShopMoney = useCallback((shopId: number) =>
-    perShopComputed.find((x) => Number(x.shop_id) === Number(shopId)) ?? {
-      shop_id: shopId, subTotal: 0, voucherDiscount: 0, shipping: 0, lineTotal: 0, shop_name: '',
-    }, [perShopComputed]);
+  const calcShopMoney = useCallback(
+    (shopId: number) =>
+      perShopComputed.find((x) => Number(x.shop_id) === Number(shopId)) ?? {
+        shop_id: shopId,
+        subTotal: 0,
+        voucherDiscount: 0,
+        shipping: 0,
+        lineTotal: 0,
+        shop_name: '',
+      },
+    [perShopComputed]
+  );
 
   /* ===================== UI ===================== */
 
@@ -440,7 +515,9 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
 
       {/* Header */}
       <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>Giỏ hàng</Title>
+        <Title level={4} style={{ margin: 0 }}>
+          Giỏ hàng
+        </Title>
         <Space>
           <Button type="primary" onClick={() => openVoucherModal(null)} style={{ background: BRAND, borderColor: BRAND }}>
             Voucher toàn sàn
@@ -450,7 +527,10 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
             <Tag
               color="blue"
               closable
-              onClose={(e) => { e.preventDefault(); clearVoucher(null); }}
+              onClose={(e) => {
+                e.preventDefault();
+                clearVoucher(null);
+              }}
               style={{ paddingInline: 10, height: 28, display: 'inline-flex', alignItems: 'center' }}
             >
               <strong>Voucher sàn:</strong>&nbsp;
@@ -458,9 +538,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
             </Tag>
           )}
         </Space>
-
       </Space>
-      {/* 👉 Đặt nút trước, pill sau để pill nằm BÊN PHẢI đúng ý bạn */}
 
       {/* Phương thức thanh toán */}
       <Card title={<Text strong>Phương thức thanh toán</Text>} styles={{ body: { padding: 12 } }} variant="outlined">
@@ -475,7 +553,9 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
       {/* Danh sách theo shop */}
       <Card title={<Text strong>Giỏ Hàng</Text>} styles={{ body: { padding: 12 } }} variant="outlined">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 24 }}><Spin /></div>
+          <div style={{ textAlign: 'center', padding: 24 }}>
+            <Spin />
+          </div>
         ) : grouped.length === 0 ? (
           <Alert type="info" message="Giỏ hàng đang trống." />
         ) : (
@@ -514,9 +594,13 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                       </Text>
 
                       <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 12, color: '#666' }}>
-                        <span>Tạm tính: <Text strong>{VND(money.subTotal)}</Text></span>
+                        <span>
+                          Tạm tính: <Text strong>{VND(money.subTotal)}</Text>
+                        </span>
                         {!!money.voucherDiscount && (
-                          <span>Giảm: <Text type="danger">-{VND(money.voucherDiscount)}</Text></span>
+                          <span>
+                            Giảm: <Text type="danger">-{VND(money.voucherDiscount)}</Text>
+                          </span>
                         )}
                         <span>Phí VC: {VND(money.shipping)}</span>
                       </div>
@@ -527,7 +611,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                   <List<CartItem>
                     itemLayout="horizontal"
                     dataSource={firstTwo}
-                    rowKey={(it) => String(it.id)}  // ✅ FIX TS rowKey
+                    rowKey={(it) => String(it.id)} // ✅ FIX TS rowKey
                     renderItem={(it) => {
                       const u = unitPrice(it);
                       const total = u * it.quantity;
@@ -544,16 +628,30 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                                 style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, border: '1px solid #f0f0f0' }}
                               />
                             }
-                            title={<OneLine><strong>{it.product.name}</strong></OneLine>}
+                            title={
+                              <OneLine>
+                                <strong>{it.product.name}</strong>
+                              </OneLine>
+                            }
                             description={<Text type="secondary">SL: {it.quantity}</Text>}
                           />
                           <div style={{ textAlign: 'right', minWidth: 120 }}>
                             {hasSale ? (
                               <>
-                                <div><Text delete type="secondary">{VND(ori)}</Text></div>
-                                <div><Text strong type="danger">{VND(total)}</Text></div>
+                                <div>
+                                  <Text delete type="secondary">
+                                    {VND(ori)}
+                                  </Text>
+                                </div>
+                                <div>
+                                  <Text strong type="danger">
+                                    {VND(total)}
+                                  </Text>
+                                </div>
                               </>
-                            ) : <Text strong>{VND(total)}</Text>}
+                            ) : (
+                              <Text strong>{VND(total)}</Text>
+                            )}
                           </div>
                         </List.Item>
                       );
@@ -563,7 +661,13 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                   {/* Nếu còn sp ẩn → nút xem modal */}
                   {hiddenCount > 0 && (
                     <div style={{ textAlign: 'center', marginTop: 4 }}>
-                      <Button type="link" onClick={() => { setItemsModalShop(g); setItemsModalOpen(true); }}>
+                      <Button
+                        type="link"
+                        onClick={() => {
+                          setItemsModalShop(g);
+                          setItemsModalOpen(true);
+                        }}
+                      >
                         Xem tất cả {g.items.length} sản phẩm
                       </Button>
                     </div>
@@ -572,7 +676,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                   {/* Đường kẻ → Voucher row → Tóm tắt */}
                   <Divider style={{ margin: '10px 0' }} />
 
-                  {/* Voucher shop row (ngay dưới đường kẻ, trước tóm tắt) */}
+                  {/* Voucher shop row */}
                   <div style={{ marginTop: 6, marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     {shopVoucher && (
                       <div className="voucher-pill" title={`Voucher: ${shopVoucher.code} • ${badge(shopVoucher)}`}>
@@ -584,7 +688,10 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                           type="button"
                           className="voucher-close"
                           aria-label="Bỏ voucher"
-                          onClick={(e) => { e.preventDefault(); clearVoucher(g.shop_id); }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            clearVoucher(g.shop_id);
+                          }}
                         >
                           ×
                         </button>
@@ -599,13 +706,16 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                   {/* Tóm tắt per shop */}
                   <div style={{ fontSize: 13 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Tạm tính</span><strong>{VND(money.subTotal)}</strong>
+                      <span>Tạm tính</span>
+                      <strong>{VND(money.subTotal)}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Giảm voucher shop</span><span style={{ color: '#d0302f' }}>-{VND(money.voucherDiscount)}</span>
+                      <span>Giảm voucher shop</span>
+                      <span style={{ color: '#d0302f' }}>-{VND(money.voucherDiscount)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Phí vận chuyển</span><span>{VND(money.shipping)}</span>
+                      <span>Phí vận chuyển</span>
+                      <span>{VND(money.shipping)}</span>
                     </div>
                   </div>
                 </Panel>
@@ -628,7 +738,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
           <List<CartItem>
             itemLayout="horizontal"
             dataSource={itemsModalShop.items}
-            rowKey={(it) => String(it.id)}  // ✅ key ổn định & đúng TS
+            rowKey={(it) => String(it.id)} // ✅ key ổn định & đúng TS
             renderItem={(it) => {
               const u = unitPrice(it);
               const total = u * it.quantity;
@@ -644,16 +754,30 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                         style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 8, border: '1px solid #f0f0f0' }}
                       />
                     }
-                    title={<OneLine><strong>{it.product.name}</strong></OneLine>}
+                    title={
+                      <OneLine>
+                        <strong>{it.product.name}</strong>
+                      </OneLine>
+                    }
                     description={<Text type="secondary">SL: {it.quantity}</Text>}
                   />
                   <div style={{ textAlign: 'right', minWidth: 140 }}>
                     {hasSale ? (
                       <>
-                        <div><Text delete type="secondary">{VND(ori)}</Text></div>
-                        <div><Text strong type="danger">{VND(total)}</Text></div>
+                        <div>
+                          <Text delete type="secondary">
+                            {VND(ori)}
+                          </Text>
+                        </div>
+                        <div>
+                          <Text strong type="danger">
+                            {VND(total)}
+                          </Text>
+                        </div>
                       </>
-                    ) : <Text strong>{VND(total)}</Text>}
+                    ) : (
+                      <Text strong>{VND(total)}</Text>
+                    )}
                   </div>
                 </List.Item>
               );
@@ -690,7 +814,11 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
           allowClear
         />
 
-        {voucherLoading && <div style={{ textAlign: 'center', padding: 16 }}><Spin /></div>}
+        {voucherLoading && (
+          <div style={{ textAlign: 'center', padding: 16 }}>
+            <Spin />
+          </div>
+        )}
         {voucherErr && <Alert type="error" showIcon message={voucherErr} />}
 
         {!voucherLoading && !voucherErr && (
@@ -709,7 +837,9 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
 
                     return (
                       <List.Item
-                        onClick={() => { if (!disabled) setSelectedVoucherId(selected ? null : v.id); }}
+                        onClick={() => {
+                          if (!disabled) setSelectedVoucherId(selected ? null : v.id);
+                        }}
                         style={{
                           cursor: disabled ? 'not-allowed' : 'pointer',
                           background: selected ? '#f5faff' : undefined,
@@ -724,18 +854,30 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                           <Radio checked={selected} disabled={disabled} />
                           <Space direction="vertical" size={4} style={{ flex: 1, minWidth: 0 }}>
                             <Space wrap>
-                              <Tag bordered={false}><OneLine>{v.code}</OneLine></Tag>
+                              <Tag bordered={false}>
+                                <OneLine>{v.code}</OneLine>
+                              </Tag>
                               <Tag color={v.shop_id == null ? 'blue' : 'purple'}>
                                 {v.shop_id == null ? 'Toàn sàn' : `Shop #${v.shop_id}`}
                               </Tag>
                               <Tag bordered={false}>{badge(v)}</Tag>
                               {expired && <Tag color="red">Hết hạn</Tag>}
                             </Space>
-                            {v.title && <OneLine><Text strong>{v.title}</Text></OneLine>}
-                            {v.description && <Text type="secondary"><OneLine>{v.description}</OneLine></Text>}
+                            {v.title && (
+                              <OneLine>
+                                <Text strong>{v.title}</Text>
+                              </OneLine>
+                            )}
+                            {v.description && (
+                              <Text type="secondary">
+                                <OneLine>{v.description}</OneLine>
+                              </Text>
+                            )}
                             <Space size="small" wrap>
                               {typeof v.min_order === 'number' && (
-                                <Text type="secondary">ĐH tối thiểu: {new Intl.NumberFormat('vi-VN').format(v.min_order)}₫</Text>
+                                <Text type="secondary">
+                                  ĐH tối thiểu: {new Intl.NumberFormat('vi-VN').format(v.min_order)}₫
+                                </Text>
                               )}
                               {v.expires_at && (
                                 <Text type={expired ? 'danger' : 'secondary'}>
@@ -757,37 +899,61 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
 
       {/* animation + style */}
       <style jsx global>{`
-        @keyframes slideInFade { 0% { transform: translateY(-8px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-        .animate-slideInFade { animation: slideInFade 260ms ease-out; }
+        @keyframes slideInFade {
+          0% {
+            transform: translateY(-8px);
+            opacity: 0;
+          }
+          100% {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slideInFade {
+          animation: slideInFade 260ms ease-out;
+        }
 
         /* Voucher pill */
-        .voucher-pill{
-          display:inline-flex;
-          align-items:center;
-          gap:6px;
-          max-width:100%;
-          padding:6px 8px;
-          border:1px solid #e8ddff;
-          background:#f6f0ff;
-          color:#5b21b6;
-          border-radius:8px;
-          line-height:1;
+        .voucher-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          max-width: 100%;
+          padding: 6px 8px;
+          border: 1px solid #e8ddff;
+          background: #f6f0ff;
+          color: #5b21b6;
+          border-radius: 8px;
+          line-height: 1;
         }
-        .voucher-label{ font-weight:600; white-space:nowrap; }
-        .voucher-code, .voucher-benefit{
-          max-width:180px;
-          overflow:hidden;
-          text-overflow:ellipsis;
-          white-space:nowrap;
+        .voucher-label {
+          font-weight: 600;
+          white-space: nowrap;
         }
-        .voucher-dot{ opacity:.7; }
-        .voucher-close{
-          margin-left:2px;
-          border:0; background:transparent; cursor:pointer;
-          font-size:16px; line-height:1; color:#7c3aed;
-          padding:0 2px; border-radius:6px;
+        .voucher-code,
+        .voucher-benefit {
+          max-width: 180px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
-        .voucher-close:hover{ background:rgba(124,58,237,.08); }
+        .voucher-dot {
+          opacity: 0.7;
+        }
+        .voucher-close {
+          margin-left: 2px;
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+          font-size: 16px;
+          line-height: 1;
+          color: #7c3aed;
+          padding: 0 2px;
+          border-radius: 6px;
+        }
+        .voucher-close:hover {
+          background: rgba(124, 58, 237, 0.08);
+        }
       `}</style>
     </div>
   );
