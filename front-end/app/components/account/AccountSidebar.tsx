@@ -86,10 +86,12 @@ export default function AccountSidebar({
     setIsAccountOpen(!isAccountOpen);
   };
 
-  const avatarUrl =
-    user?.avatar
-      ? `${STATIC_BASE_URL}/${user.avatar}`
-      : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+const avatarUrl = user?.avatar
+  ? user.avatar.startsWith("http")
+    ? user.avatar
+    : `${STATIC_BASE_URL}${user.avatar.startsWith("/") ? "" : "/"}${user.avatar}`
+  : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
+
 
   // ✅ Hàm upload ảnh
   const handleUploadAvatar = async (file: File) => {
@@ -161,17 +163,22 @@ export default function AccountSidebar({
             {/* Ảnh đại diện */}
             <div className="relative group">
               <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-100">
-                <Image
-                  src={avatarUrl}
-                  alt="Avatar"
-                  width={64}
-                  height={64}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).onerror = null;
-                    e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
-                  }}
-                />
+              <Image
+                src={
+                  avatarUrl.startsWith("http")
+                    ? avatarUrl
+                    : `${STATIC_BASE_URL}/${avatarUrl}`
+                }
+                alt="Avatar"
+                width={64}
+                height={64}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).onerror = null;
+                  e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
+                }}
+              />
+
               </div>
 
               {/* Nút chọn ảnh */}
