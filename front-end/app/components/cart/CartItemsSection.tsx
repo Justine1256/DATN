@@ -495,7 +495,7 @@ export default function CartItemsSection({
 
       {/* Footer hành động */}
       <Flex justify="end" align="center" gap={12} style={{ padding: 16 }}>
-        <Link href="/products">
+        <Link href="/">
           <Button>Tiếp tục mua sắm</Button>
         </Link>
         <Link href="/checkout">

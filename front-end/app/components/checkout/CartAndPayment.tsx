@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import {
   Button,
   Modal,
@@ -16,28 +15,19 @@ import {
   Space,
   Alert,
   Spin,
-  // Divider,
+  Divider,
   message,
+  Collapse,
 } from 'antd';
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 
+const { Panel } = Collapse;
 const { Text, Title } = Typography;
 
-// ===== Types =====
-interface CartItem {
-  id: string | number;
-  quantity: number;
-  product: {
-    name: string;
-    image: string[];
-    price: number;
-    sale_price?: number | null;
-  };
-  variant?: {
-    price?: number | null;
-    sale_price?: number | null;
-  };
-}
+/* ===================== Types ===================== */
+
 export type VoucherType = 'percent' | 'amount' | 'shipping' | string;
+
 export interface Voucher {
   id: number | string;
   code: string;
@@ -48,481 +38,430 @@ export interface Voucher {
   min_order?: number;
   expires_at?: string;
   is_active?: boolean;
+  shop_id?: number | null; // null: toàn sàn; number: voucher theo shop
+}
+
+export interface CartItem {
+  id: string | number;
+  quantity: number;
+  shop_id: number;
+  shop_name?: string;
+  product: {
+    id?: number;
+    name: string;
+    image: string[] | string;
+    price: number;
+    sale_price?: number | null;
+  };
+  variant?: {
+    price?: number | null;
+    sale_price?: number | null;
+  } | null;
+}
+
+type PaymentMethod = 'cod' | 'vnpay';
+
+/** ✅ Export để CheckoutPage dùng làm type của onPaymentInfoChange */
+export interface PaymentInfoChangePayload {
+  paymentMethod: PaymentMethod;
+  perShop: Array<{
+    shop_id: number;
+    shop_name?: string;
+    subTotal: number;
+    voucherDiscount: number;
+    shipping: number;
+    lineTotal: number;
+  }>;
+  globalVoucherDiscount: number;
+  globalFreeShipping: boolean;
+  summary: { subTotal: number; discount: number; shipping: number; total: number };
 }
 
 interface Props {
-  onPaymentInfoChange: (info: {
-    paymentMethod: string;
-    subtotal: number;
-    promotionDiscount: number;
-    shipping: number;
-    total: number;
-  }) => void;
-  onCartChange: (items: CartItem[]) => void;
+  onPaymentInfoChange?: (info: PaymentInfoChangePayload) => void;
+  onCartChange?: (items: CartItem[]) => void;
 
+  /** ✅ Cho CheckoutPage bắt sự kiện áp dụng/bỏ voucher toàn sàn */
   onVoucherApplied?: (res: {
     voucher: Voucher | null;
     serverDiscount: number | null;
     serverFreeShipping: boolean;
-    code: string | null;
+    code?: string | null;
   }) => void;
 }
 
-export default function CartAndPayment({ onPaymentInfoChange, onCartChange, onVoucherApplied }: Props) {
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
+/* ===================== Component ===================== */
 
-  // ===== Voucher state =====
-  const [showVoucherModal, setShowVoucherModal] = useState(false);
+const BRAND = '#DB4444';
+const SHIPPING_EACH_SHOP = 20000;
+const COLLAPSE_COUNT = 2; // chỉ show 2 sản phẩm đầu
+
+const OneLine: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <span
+    style={{
+      display: 'inline-block',
+      maxWidth: 280,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    }}
+    title={typeof children === 'string' ? children : undefined}
+  >
+    {children}
+  </span>
+);
+
+const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVoucherApplied }) => {
+  /* ---------- State ---------- */
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeShopId, setActiveShopId] = useState<string>();
+
+  // voucher state
+  const [voucherModalOpen, setVoucherModalOpen] = useState(false);
+  const [voucherModalShopId, setVoucherModalShopId] = useState<number | null>(null); // null = toàn sàn
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [voucherLoading, setVoucherLoading] = useState(false);
-  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [voucherErr, setVoucherErr] = useState<string | null>(null);
   const [voucherSearch, setVoucherSearch] = useState('');
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | number | null>(null);
-  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
-  const [requireLogin, setRequireLogin] = useState(false);
 
-  const [applying, setApplying] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage();
+  // voucher đã áp dụng
+  const [applied, setApplied] = useState<{ global: Voucher | null; byShop: Record<number, Voucher | null> }>({ global: null, byShop: {} });
 
-  // ===== Popup trượt từ phải =====
+  // toast trượt
+  const [popupMsg, setPopupMsg] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
-  const [popupMessage, setPopupMessage] = useState<string | null>(null);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [msgApi, ctxMsg] = message.useMessage();
 
-  const token = useMemo(
-    () =>
-      typeof window !== 'undefined'
-        ? (localStorage.getItem('token') || Cookies.get('authToken') || '')
-        : '',
-    []
-  );
+  // Modal xem toàn bộ items của 1 shop
+  const [itemsModalOpen, setItemsModalOpen] = useState(false);
+  const [itemsModalShop, setItemsModalShop] = useState<{ shop_id: number; shop_name?: string; items: CartItem[] } | null>(null);
 
-  // ========= Helpers =========
-  const isVoucherExpired = useCallback((v: Voucher) => {
+  const token = useMemo(() => (typeof window !== 'undefined'
+    ? localStorage.getItem('token') || Cookies.get('authToken') || ''
+    : ''), []);
+
+  /* ---------- Helpers ---------- */
+
+  const isExpired = useCallback((v: Voucher) => {
     if (!v?.expires_at) return false;
     const t = new Date(v.expires_at).getTime();
     return Number.isFinite(t) && t < Date.now();
   }, []);
-  // Hiển thị tên loại voucher theo tiếng Việt
-  const displayVoucherType = (t?: VoucherType) => {
-    if (!t) return '';
-    const type = String(t).toLowerCase();
-    if (type === 'percent') return 'Giảm %';
-    if (type === 'amount') return 'Giảm tiền';
-    if (type === 'shipping') return 'Miễn phí vận chuyển';
-    return t; // fallback
-  };
-  const badgeValue = useCallback((v: Voucher) => {
-    if (!v) return '';
+
+  const badge = useCallback((v: Voucher) => {
     if (v.type === 'percent') return `${v.value}%`;
-    if (v.type === 'shipping') return 'Miễn phí vận chuyển';
     if (v.type === 'amount') return `Giảm ${new Intl.NumberFormat('vi-VN').format(v.value)}₫`;
+    if (v.type === 'shipping') return 'Miễn phí vận chuyển';
     return '';
   }, []);
 
+  const VND = useCallback((n: number) => new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.floor(n))) + 'đ', []);
 
-  const getPriceToUse = useCallback((item: CartItem) => {
-    return (
-      item.variant?.sale_price ??
-      item.variant?.price ??
-      item.product.sale_price ??
-      item.product.price ??
-      0
-    );
+  const imageUrl = useCallback((img: string[] | string) => {
+    let i = Array.isArray(img) ? img[0] : img;
+    if (!i) return `${STATIC_BASE_URL}/products/default-product.png`;
+    if (i.startsWith('http')) return i;
+    return i.startsWith('/') ? `${STATIC_BASE_URL}${i}` : `${STATIC_BASE_URL}/${i}`;
   }, []);
 
-  const formatImageUrl = useCallback((img: string | string[]): string => {
-    if (Array.isArray(img)) img = img[0];
-    if (!img || !img.trim()) return `${STATIC_BASE_URL}/products/default-product.png`;
-    if (img.startsWith('http')) return img;
-    return img.startsWith('/') ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
-  }, []);
+  const unitPrice = useCallback((it: CartItem) => (
+    it.variant?.sale_price ?? it.variant?.price ?? it.product.sale_price ?? it.product.price ?? 0
+  ), []);
 
-  const VND = useCallback(
-    (n: number) => new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.floor(n))) + 'đ',
-    []
-  );
+  /* ---------- Group cart theo shop ---------- */
+  const grouped = useMemo(() => {
+    const map = new Map<number, { shop_id: number; shop_name?: string; items: CartItem[] }>();
+    for (const it of items) {
+      if (!map.has(it.shop_id)) map.set(it.shop_id, { shop_id: it.shop_id, shop_name: it.shop_name, items: [] });
+      map.get(it.shop_id)!.items.push(it);
+    }
+    return Array.from(map.values());
+  }, [items]);
 
-  // ========= Cart compute (memo) =========
-  const subtotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
-    [cartItems]
-  );
+  /* ---------- Tính tiền per shop & toàn giỏ ---------- */
 
-  const discountedSubtotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + getPriceToUse(item) * item.quantity, 0),
-    [cartItems, getPriceToUse]
-  );
+  const perShopRaw = useMemo(() =>
+    grouped.map((g) => ({
+      shop_id: g.shop_id,
+      shop_name: g.shop_name,
+      sub: g.items.reduce((s, it) => s + unitPrice(it) * it.quantity, 0),
+    })), [grouped, unitPrice]);
 
-  const baseDiscount = Math.max(0, subtotal - discountedSubtotal);
-  const shippingBase = cartItems.length > 0 ? 20000 : 0;
-
-  const meetsMinOrder = useCallback(
-    (v: Voucher | null) => {
-      if (!v?.min_order) return true;
-      return discountedSubtotal >= v.min_order;
-    },
-    [discountedSubtotal]
-  );
-
-  const voucherDiscount = useMemo(() => {
-    if (!appliedVoucher || !meetsMinOrder(appliedVoucher)) return 0;
-    const type = (appliedVoucher.type || 'amount').toLowerCase();
-    const val = Number(appliedVoucher.value || 0);
-    if (type === 'percent') return Math.max(0, Math.floor((discountedSubtotal * val) / 100));
-    if (type === 'amount') return Math.min(discountedSubtotal, Math.max(0, Math.floor(val)));
+  const globalVoucherDiscount = useMemo(() => {
+    const v = applied.global;
+    if (!v || isExpired(v) || v.is_active === false) return 0;
+    const subAll = perShopRaw.reduce((s, r) => s + r.sub, 0);
+    if (typeof v.min_order === 'number' && subAll < v.min_order) return 0;
+    if (v.type === 'percent') return Math.floor((subAll * v.value) / 100);
+    if (v.type === 'amount') return Math.min(subAll, Math.floor(v.value));
     return 0;
-  }, [appliedVoucher, discountedSubtotal, meetsMinOrder]);
+  }, [applied.global, isExpired, perShopRaw]);
 
-  const shippingAfterVoucher = useMemo(() => {
-    if (!appliedVoucher || !meetsMinOrder(appliedVoucher)) return shippingBase;
-    const type = (appliedVoucher.type || '').toLowerCase();
-    if (type === 'shipping') return 0;
-    return shippingBase;
-  }, [appliedVoucher, meetsMinOrder, shippingBase]);
+  const globalFreeShipping = useMemo(() => {
+    const v = applied.global;
+    if (!v || isExpired(v) || v.is_active === false) return false;
+    const subAll = perShopRaw.reduce((s, r) => s + r.sub, 0);
+    if (typeof v.min_order === 'number' && subAll < v.min_order) return false;
+    return v.type === 'shipping';
+  }, [applied.global, isExpired, perShopRaw]);
 
-  const promotionDiscount = baseDiscount + voucherDiscount;
-  const total = Math.max(0, discountedSubtotal - voucherDiscount + shippingAfterVoucher);
+  const perShopComputed = useMemo(() => grouped.map((g) => {
+    const sub = g.items.reduce((s, it) => s + unitPrice(it) * it.quantity, 0);
+    const v = applied.byShop[g.shop_id];
 
-  // ========= Fetch Cart =========
+    let vDiscount = 0;
+    let ship = SHIPPING_EACH_SHOP;
+
+    if (v && !(isExpired(v) || v.is_active === false)) {
+      if (typeof v.min_order !== 'number' || sub >= v.min_order) {
+        if (v.type === 'percent') vDiscount = Math.floor((sub * v.value) / 100);
+        else if (v.type === 'amount') vDiscount = Math.min(sub, Math.floor(v.value));
+        else if (v.type === 'shipping') { ship = 0; vDiscount = 0; }
+      }
+    }
+
+    if (globalFreeShipping) ship = 0;
+
+    const lineTotal = Math.max(0, sub - vDiscount) + ship;
+    return { shop_id: g.shop_id, shop_name: g.shop_name, subTotal: sub, voucherDiscount: vDiscount, shipping: ship, lineTotal };
+  }), [grouped, applied.byShop, unitPrice, globalFreeShipping, isExpired]);
+
+  const summary = useMemo(() => {
+    const subAll = perShopComputed.reduce((s, r) => s + r.subTotal, 0);
+    const shopDiscounts = perShopComputed.reduce((s, r) => s + r.voucherDiscount, 0);
+    const shippingAll = perShopComputed.reduce((s, r) => s + r.shipping, 0);
+    const discountAll = shopDiscounts + globalVoucherDiscount;
+    const total = Math.max(0, subAll - globalVoucherDiscount) - shopDiscounts + shippingAll;
+    return { subTotal: subAll, discount: discountAll, shipping: shippingAll, total };
+  }, [perShopComputed, globalVoucherDiscount]);
+
+  useEffect(() => {
+    onPaymentInfoChange?.({
+      paymentMethod,
+      perShop: perShopComputed,
+      globalVoucherDiscount,
+      globalFreeShipping,
+      summary,
+    });
+  }, [paymentMethod, perShopComputed, globalVoucherDiscount, globalFreeShipping, summary, onPaymentInfoChange]);
+
+  /* ---------- Fetch cart ---------- */
   useEffect(() => {
     let mounted = true;
-    const t = localStorage.getItem('token') || Cookies.get('authToken');
-
     (async () => {
+      setLoading(true);
       try {
+        const t = localStorage.getItem('token') || Cookies.get('authToken');
         if (!t) {
-          const guestCart = localStorage.getItem('cart');
-          const parsed = guestCart ? JSON.parse(guestCart) : [];
-          const formatted: CartItem[] = parsed.map((item: any, index: number) => ({
-            id: `guest-${index}`,
-            quantity: item.quantity,
+          const guest = localStorage.getItem('cart');
+          const parsed = guest ? JSON.parse(guest) : [];
+          const mapped: CartItem[] = parsed.map((it: any, idx: number) => ({
+            id: it.id ?? `guest-${idx}`,
+            quantity: it.quantity,
+            shop_id: Number(it.shop_id ?? 0),
+            shop_name: it.shop_name ?? 'Shop',
             product: {
-              id: Number(item.product_id ?? item.id ?? 0),
-              name: item.name,
-              image: [item.image],
-              price: item.price,
-              sale_price: item.sale_price ?? null,
-            } as any,
-            variant: item.variant ?? null,
+              id: Number(it.product_id ?? it.id ?? 0),
+              name: it.name,
+              image: it.image,
+              price: Number(it.price ?? 0),
+              sale_price: it.sale_price ?? null,
+            },
+            variant: it.variant ?? null,
           }));
           if (!mounted) return;
-          setCartItems(formatted);
-          onCartChange(formatted);
+          setItems(mapped);
+          onCartChange?.(mapped);
           return;
         }
 
-        const res = await axios.get(`${API_BASE_URL}/cart`, {
-          headers: { Authorization: `Bearer ${t}` },
-        });
-
-        const serverCart: CartItem[] = (res.data || []).map((item: any) => ({
-          id: item.id,
-          quantity: item.quantity,
+        const res = await axios.get(`${API_BASE_URL}/cart`, { headers: { Authorization: `Bearer ${t}` } });
+        const sv: CartItem[] = (res.data || []).map((it: any, idx: number) => ({
+          id: it.id ?? `srv-${idx}`,
+          quantity: it.quantity,
+          shop_id: Number(it.product?.shop_id ?? it.shop_id ?? 0),
+          shop_name: it.product?.shop?.name ?? it.shop_name ?? 'Shop',
           product: {
-            id: Number(item.product?.id ?? item.product_id ?? 0),
-            name: item.product?.name || 'Sản phẩm',
-            image: Array.isArray(item.product?.image) ? item.product.image : [item.product?.image],
-            price: item.product?.price || 0,
-            sale_price: item.product?.sale_price ?? null,
-          } as any,
-          variant: item.variant ?? null,
+            id: Number(it.product?.id ?? it.product_id ?? 0),
+            name: it.product?.name ?? 'Sản phẩm',
+            image: Array.isArray(it.product?.image) ? it.product.image : it.product?.image ?? [],
+            price: Number(it.product?.price ?? 0),
+            sale_price: it.product?.sale_price ?? null,
+          },
+          variant: it.variant ?? null,
         }));
-
         if (!mounted) return;
-        setCartItems(serverCart);
-        onCartChange(serverCart);
+        setItems(sv);
+        onCartChange?.(sv);
         localStorage.removeItem('cart');
-      } catch (err) {
-        console.error('Lỗi khi lấy giỏ hàng:', err);
+      } catch (e) {
+        console.error('Load cart error:', e);
         if (!mounted) return;
-        setCartItems([]);
-        onCartChange([]);
+        setItems([]);
+        onCartChange?.([]);
       } finally {
         if (mounted) setLoading(false);
       }
     })();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [onCartChange]);
 
-  // ========= Emit payment info to parent =========
-  useEffect(() => {
-    onPaymentInfoChange({
-      paymentMethod,
-      subtotal,
-      promotionDiscount,
-      shipping: shippingAfterVoucher,
-      total,
-    });
-  }, [paymentMethod, subtotal, promotionDiscount, shippingAfterVoucher, total, onPaymentInfoChange]);
+  /* ---------- Voucher: open / fetch / filter / apply / clear ---------- */
 
-  // ========= Voucher modal =========
-  const openVoucherModal = useCallback(() => {
-    const isLoggedIn = !!token;
-    if (!isLoggedIn) {
-      setRequireLogin(true);
-      setVoucherError(null);
-      setShowVoucherModal(true);
-      return;
-    }
-
-    setRequireLogin(false);
-    setShowVoucherModal(true);
+  const openVoucherModal = useCallback((shopId: number | null) => {
+    setVoucherModalShopId(shopId);
+    setSelectedVoucherId((shopId == null ? applied.global?.id : applied.byShop[shopId]?.id) ?? null);
+    setVoucherModalOpen(true);
 
     if (vouchers.length === 0) {
       setVoucherLoading(true);
-      setVoucherError(null);
-
+      setVoucherErr(null);
       axios
-        .get(`${API_BASE_URL}/my-vouchers`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        })
+        .get(`${API_BASE_URL}/my-vouchers`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
         .then((res) => {
-          const listRaw = Array.isArray(res.data?.data)
-            ? res.data.data
-            : res.data?.data?.vouchers || res.data || [];
-
-          const mapped: Voucher[] = listRaw.map((v: any) => {
-            const src = v.voucher ?? v;
-            const discountType = String(src.discount_type ?? src.type ?? 'amount').toLowerCase();
+          const list = Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.vouchers || res.data || [];
+          const mapped: Voucher[] = list.map((row: any) => {
+            const src = row.voucher ?? row;
+            const dt = String(src.discount_type ?? src.type ?? 'amount').toLowerCase();
             return {
-              id: v.id ?? src.id ?? src.voucher_id ?? src.code,
+              id: row.id ?? src.id ?? src.voucher_id ?? src.code,
               code: String(src.code ?? src.voucher_code ?? src.coupon_code ?? '').trim(),
               title: src.title ?? src.name ?? src.label ?? undefined,
               description: src.description ?? src.desc ?? undefined,
-              type:
-                discountType === 'percent' ||
-                  discountType === 'amount' ||
-                  discountType === 'shipping'
-                  ? (discountType as VoucherType)
-                  : 'amount',
+              type: (['percent', 'amount', 'shipping'].includes(dt) ? dt : 'amount') as VoucherType,
               value: Number(src.discount_value ?? src.value ?? src.amount ?? 0),
-              min_order: src.min_order_value
-                ? Number(src.min_order_value)
-                : src.min_order_amount
-                  ? Number(src.min_order_amount)
-                  : undefined,
-              expires_at:
-                src.end_date ??
-                src.expires_at ??
-                src.expired_at ??
-                src.end_at ??
-                src.expired_time ??
-                undefined,
+              min_order: src.min_order_value ? Number(src.min_order_value) : src.min_order_amount ? Number(src.min_order_amount) : undefined,
+              expires_at: src.end_date ?? src.expires_at ?? src.expired_at ?? src.end_at ?? undefined,
               is_active: src.is_active ?? src.active ?? true,
+              shop_id: src.shop_id ?? row.shop_id ?? null,
             };
           });
-
           setVouchers(mapped);
         })
-        .catch((err) => {
-          console.error('Lỗi khi load voucher:', err);
-          setVoucherError('Không tải được danh sách voucher.');
-        })
+        .catch(() => setVoucherErr('Không tải được danh sách voucher.'))
         .finally(() => setVoucherLoading(false));
     }
-  }, [token, vouchers.length]);
+  }, [token, vouchers.length, applied.global?.id, applied.byShop]);
 
   const closeVoucherModal = useCallback(() => {
-    setShowVoucherModal(false);
+    setVoucherModalOpen(false);
     setVoucherSearch('');
-    setSelectedVoucherId(appliedVoucher?.id ?? null);
-  }, [appliedVoucher?.id]);
-
-  const clearVoucher = useCallback(() => {
-    setAppliedVoucher(null);
-    setSelectedVoucherId(null);
-    onVoucherApplied?.({ voucher: null, serverDiscount: 0, serverFreeShipping: false, code: null });
-
-    // Show toast trượt từ phải
-    setPopupMessage('Đã bỏ voucher.');
-    setShowPopup(true);
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => setShowPopup(false), 2500);
-  }, [onVoucherApplied]);
-
-  // Debounce search
-  const debouncedSearch = useMemo(() => voucherSearch.trim().toLowerCase(), [voucherSearch]);
-
-  const filteredVouchers = useMemo(() => {
-    const s = debouncedSearch;
-    const list = !s
-      ? vouchers.slice()
-      : vouchers.filter((v) =>
-        [v.code, v.title, v.description].filter(Boolean).some((x) => String(x).toLowerCase().includes(s))
-      );
-
-    return list.sort((a, b) => {
-      const ad = (a.is_active !== false) && !isVoucherExpired(a) ? 1 : 0;
-      const bd = (b.is_active !== false) && !isVoucherExpired(b) ? 1 : 0;
-      return bd - ad;
-    });
-  }, [vouchers, debouncedSearch, isVoucherExpired]);
-
-  const applyVoucher = useCallback(async () => {
-    const v = vouchers.find((x) => String(x.id) === String(selectedVoucherId)) || null;
-    if (!v) return;
-
-    if (!token) {
-      setRequireLogin(true);
-      return;
-    }
-
-    try {
-      setApplying(true);
-      setVoucherError(null);
-
-      const res = await axios.post(
-        `${API_BASE_URL}/vouchers/apply`,
-        { code: v.code },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const { discount_amount, is_free_shipping } = res.data || {};
-
-      setAppliedVoucher(v);
-      setShowVoucherModal(false);
-
-      onVoucherApplied?.({
-        voucher: v,
-        serverDiscount: typeof discount_amount === 'number' ? discount_amount : 0,
-        serverFreeShipping: !!is_free_shipping,
-        code: v.code || null,
-      });
-
-      // Show toast trượt từ phải
-      setPopupMessage('Áp dụng voucher thành công!');
-      setShowPopup(true);
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = setTimeout(() => setShowPopup(false), 2500);
-    } catch (err: any) {
-      setVoucherError(err?.response?.data?.message || 'Không áp dụng được voucher.');
-      messageApi.error('Áp dụng voucher thất bại.');
-    } finally {
-      setApplying(false);
-    }
-  }, [selectedVoucherId, vouchers, token, onVoucherApplied, messageApi]);
-
-  useEffect(() => {
-    return () => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    };
   }, []);
 
-  // ====== UI ======
+  const clearVoucher = useCallback((shopId: number | null) => {
+    setApplied((prev) => (shopId == null ? { ...prev, global: null } : { ...prev, byShop: { ...prev.byShop, [shopId]: null } }));
+    // báo lên cha khi bỏ voucher toàn sàn
+    if (shopId == null) {
+      onVoucherApplied?.({ voucher: null, serverDiscount: 0, serverFreeShipping: false, code: null });
+    }
+    setPopupMsg('Đã bỏ voucher.');
+    setShowPopup(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setShowPopup(false), 2000);
+  }, [onVoucherApplied]);
+
+  const applyVoucher = useCallback(() => {
+    if (selectedVoucherId == null) return;
+    const v = vouchers.find((x) => String(x.id) === String(selectedVoucherId));
+    if (!v) return;
+
+    if (voucherModalShopId == null) {
+      if (v.shop_id != null) return msgApi.warning('Voucher này là của shop, không áp dụng toàn sàn.');
+      setApplied((prev) => ({ ...prev, global: v }));
+      // báo lên cha khi áp dụng voucher toàn sàn
+      onVoucherApplied?.({ voucher: v, serverDiscount: null, serverFreeShipping: v.type === 'shipping', code: v.code ?? null });
+    } else {
+      if (v.shop_id == null) return msgApi.warning('Voucher toàn sàn, không áp dụng cho shop cụ thể.');
+      if (Number(v.shop_id) !== Number(voucherModalShopId)) return msgApi.warning('Voucher không thuộc shop này.');
+      setApplied((prev) => ({ ...prev, byShop: { ...prev.byShop, [voucherModalShopId]: v } }));
+      // (không bắn lên cha vì OrderSummary đang nhận 1 voucher tổng)
+    }
+
+    setVoucherModalOpen(false);
+    setPopupMsg('Áp dụng voucher thành công!');
+    setShowPopup(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setShowPopup(false), 2000);
+  }, [selectedVoucherId, vouchers, voucherModalShopId, msgApi, onVoucherApplied]);
+
+  useEffect(() => () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); }, []);
+
+  /** ✅ Sắp xếp voucher: hoạt động & chưa hết hạn trước, rồi freeship → % cao → số tiền cao → hạn gần */
+  const filteredVouchers = useMemo(() => {
+    const s = voucherSearch.trim().toLowerCase();
+    const scopeFiltered = vouchers.filter((v) => {
+      if (voucherModalShopId == null) return v.shop_id == null;
+      return v.shop_id != null && Number(v.shop_id) === Number(voucherModalShopId);
+    });
+    const searched = !s
+      ? scopeFiltered
+      : scopeFiltered.filter((v) => [v.code, v.title, v.description].filter(Boolean).some((x) => String(x).toLowerCase().includes(s)));
+
+    const score = (v: Voucher) => {
+      const activeScore = v.is_active !== false && !isExpired(v) ? 1000000 : 0; // ưu tiên hoạt động
+      const freeShipScore = v.type === 'shipping' ? 500000 : 0;
+      const percentScore = v.type === 'percent' ? Math.min(100, v.value) * 1000 : 0;
+      const amountScore = v.type === 'amount' ? Math.min(10_000_000, v.value) : 0;
+      const expiryScore = v.expires_at ? (10_000_000_000 - new Date(v.expires_at).getTime()) / 1_000_000 : 0; // hạn gần cao hơn
+      return activeScore + freeShipScore + percentScore + amountScore + expiryScore;
+    };
+
+    return searched.slice().sort((a, b) => score(b) - score(a));
+  }, [vouchers, voucherSearch, voucherModalShopId, isExpired]);
+
+  /* ---------- util tính tiền shop ---------- */
+  const calcShopMoney = useCallback((shopId: number) =>
+    perShopComputed.find((x) => Number(x.shop_id) === Number(shopId)) ?? {
+      shop_id: shopId, subTotal: 0, voucherDiscount: 0, shipping: 0, lineTotal: 0, shop_name: '',
+    }, [perShopComputed]);
+
+  /* ===================== UI ===================== */
+
   return (
     <div className="space-y-4">
-      {contextHolder}
+      {ctxMsg}
 
-      {/* Toast trượt từ góc phải */}
+      {/* toast trượt góc phải */}
       {showPopup && (
-        <div className="fixed top-[140px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
-          {popupMessage}
+        <div
+          className="fixed top-[140px] right-5 z-[9999] text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade"
+          style={{ backgroundColor: '#dcfce7', color: '#166534', borderBottomColor: '#22c55e' }}
+        >
+          {popupMsg}
         </div>
       )}
 
       {/* Header */}
-      <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+      <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
         <Title level={4} style={{ margin: 0 }}>Giỏ hàng</Title>
-        <Button
-          type="primary"
-          onClick={openVoucherModal}
-          style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
-        >
-          Chọn voucher
-        </Button>
+        <Space>
+          <Button type="primary" onClick={() => openVoucherModal(null)} style={{ background: BRAND, borderColor: BRAND }}>
+            Voucher toàn sàn
+          </Button>
+
+          {applied.global && (
+            <Tag
+              color="blue"
+              closable
+              onClose={(e) => { e.preventDefault(); clearVoucher(null); }}
+              style={{ paddingInline: 10, height: 28, display: 'inline-flex', alignItems: 'center' }}
+            >
+              <strong>Voucher sàn:</strong>&nbsp;
+              <OneLine>{applied.global.code}</OneLine>&nbsp;•&nbsp;{badge(applied.global)}
+            </Tag>
+          )}
+        </Space>
+        
       </Space>
-
-      {/* Voucher đang chọn */}
-      {appliedVoucher && (
-        <Alert
-          type="success"
-          showIcon
-          message={
-            <Space wrap>
-              <Text strong>Voucher đã chọn:</Text>
-              <Tag bordered={false} color="default">{appliedVoucher.code || `#${appliedVoucher.id}`}</Tag>
-              {appliedVoucher.type && <Tag color="blue">{displayVoucherType(appliedVoucher.type)}</Tag>}
-              <Tag bordered={false}>{badgeValue(appliedVoucher)}</Tag>
-
-              {typeof appliedVoucher.min_order === 'number' && (
-                <Text type="secondary">
-                  ĐH tối thiểu:{' '}
-                  {new Intl.NumberFormat('vi-VN').format(appliedVoucher.min_order)}₫
-                </Text>
-              )}
-              {appliedVoucher.expires_at && (
-                <Text type={isVoucherExpired(appliedVoucher) ? 'danger' : undefined}>
-                  HSD: {new Date(appliedVoucher.expires_at).toLocaleDateString('vi-VN')}
-                </Text>
-              )}
-            </Space>
-          }
-          action={<Button size="small" onClick={clearVoucher}>Bỏ voucher</Button>}
-        />
-      )}
-
-      {/* Danh sách sản phẩm */}
-      <Card size="small" styles={{ body: { padding: 12 } }} title={<Text strong>Mặt hàng</Text>}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: 24 }}><Spin /></div>
-        ) : cartItems.length === 0 ? (
-          <Alert type="info" message="Giỏ hàng của bạn đang trống." />
-        ) : (
-          <List
-            itemLayout="horizontal"
-            dataSource={cartItems}
-            renderItem={(item) => {
-              const price = getPriceToUse(item);
-              const originalTotal = item.product.price * item.quantity;
-              const finalTotal = price * item.quantity;
-              const hasDiscount = price < item.product.price;
-
-              return (
-                <List.Item>
-                  <List.Item.Meta
-                    avatar={
-                      <img
-                        src={formatImageUrl(item.product.image)}
-                        alt={item.product.name || 'Product'}
-                        style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 8, border: '1px solid #f0f0f0' }}
-                      />
-                    }
-                    title={<Text strong>{item.product.name}</Text>}
-                    description={
-                      <Space size="small" wrap>
-                        <Text type="secondary">SL: {item.quantity}</Text>
-                      </Space>
-                    }
-                  />
-                  <div style={{ textAlign: 'right', minWidth: 140 }}>
-                    {hasDiscount ? (
-                      <>
-                        <div><Text delete type="secondary">{VND(originalTotal)}</Text></div>
-                        <div><Text strong type="danger">{VND(finalTotal)}</Text></div>
-                      </>
-                    ) : (
-                      <Text strong>{VND(finalTotal)}</Text>
-                    )}
-                  </div>
-                </List.Item>
-              );
-            }}
-          />
-        )}
-      </Card>
-
+      {/* 👉 Đặt nút trước, pill sau để pill nằm BÊN PHẢI đúng ý bạn */}
+     
       {/* Phương thức thanh toán */}
-      <Card size="small" styles={{ body: { padding: 12 } }} title={<Text strong>Phương thức thanh toán</Text>}>
-        <Radio.Group
-          value={paymentMethod}
-          onChange={(e) => setPaymentMethod(e.target.value)}
-        >
+      <Card title={<Text strong>Phương thức thanh toán</Text>} styles={{ body: { padding: 12 } }} variant="outlined">
+        <Radio.Group value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
           <Space direction="vertical">
             <Radio value="cod">Thanh toán khi nhận hàng (COD)</Radio>
             <Radio value="vnpay">VNPAY</Radio>
@@ -530,127 +469,277 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange, onVo
         </Radio.Group>
       </Card>
 
-      {/* (Giữ nguyên phần tóm tắt tiền nếu cần bật lại) */}
+      {/* Danh sách theo shop */}
+      <Card title={<Text strong>Giỏ Hàng</Text>} styles={{ body: { padding: 12 } }} variant="outlined">
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 24 }}><Spin /></div>
+        ) : grouped.length === 0 ? (
+          <Alert type="info" message="Giỏ hàng đang trống." />
+        ) : (
+          <Collapse
+            accordion
+            activeKey={activeShopId}
+            onChange={(k) => setActiveShopId(Array.isArray(k) ? String(k[0]) : String(k))}
+            style={{ background: 'transparent' }}
+          >
+            {grouped.map((g) => {
+              const shopVoucher = applied.byShop[g.shop_id] ?? null;
+              const money = calcShopMoney(g.shop_id);
+              const firstTwo = g.items.slice(0, COLLAPSE_COUNT);
+              const hiddenCount = Math.max(0, g.items.length - COLLAPSE_COUNT);
+
+              return (
+                <Panel
+                  key={String(g.shop_id)}
+                  header={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+                      <Text strong>
+                        Shop:{' '}
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            maxWidth: 180,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            verticalAlign: 'bottom',
+                          }}
+                          title={g.shop_name ?? `#${g.shop_id}`}
+                        >
+                          {g.shop_name ?? `#${g.shop_id}`}
+                        </span>
+                      </Text>
+
+                      <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 12, color: '#666' }}>
+                        <span>Tạm tính: <Text strong>{VND(money.subTotal)}</Text></span>
+                        {!!money.voucherDiscount && (
+                          <span>Giảm: <Text type="danger">-{VND(money.voucherDiscount)}</Text></span>
+                        )}
+                        <span>Phí VC: {VND(money.shipping)}</span>
+                      </div>
+                    </div>
+                  }
+                >
+                  {/* Sản phẩm (tối đa 2) */}
+                  <List<CartItem>
+                    itemLayout="horizontal"
+                    dataSource={firstTwo}
+                    rowKey={(it) => String(it.id)}  // ✅ FIX TS rowKey
+                    renderItem={(it) => {
+                      const u = unitPrice(it);
+                      const total = u * it.quantity;
+                      const ori = it.product.price * it.quantity;
+                      const hasSale = u < it.product.price;
+
+                      return (
+                        <List.Item style={{ padding: '6px 0' }}>
+                          <List.Item.Meta
+                            avatar={
+                              <img
+                                src={imageUrl(it.product.image)}
+                                alt={it.product.name}
+                                style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, border: '1px solid #f0f0f0' }}
+                              />
+                            }
+                            title={<OneLine><strong>{it.product.name}</strong></OneLine>}
+                            description={<Text type="secondary">SL: {it.quantity}</Text>}
+                          />
+                          <div style={{ textAlign: 'right', minWidth: 120 }}>
+                            {hasSale ? (
+                              <>
+                                <div><Text delete type="secondary">{VND(ori)}</Text></div>
+                                <div><Text strong type="danger">{VND(total)}</Text></div>
+                              </>
+                            ) : <Text strong>{VND(total)}</Text>}
+                          </div>
+                        </List.Item>
+                      );
+                    }}
+                  />
+
+                  {/* Nếu còn sp ẩn → nút xem modal */}
+                  {hiddenCount > 0 && (
+                    <div style={{ textAlign: 'center', marginTop: 4 }}>
+                      <Button type="link" onClick={() => { setItemsModalShop(g); setItemsModalOpen(true); }}>
+                        Xem tất cả {g.items.length} sản phẩm
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Đường kẻ → Voucher row → Tóm tắt */}
+                  <Divider style={{ margin: '10px 0' }} />
+
+                  {/* Voucher shop row (ngay dưới đường kẻ, trước tóm tắt) */}
+                  <div style={{ marginTop: 6, marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {shopVoucher && (
+                      <div className="voucher-pill" title={`Voucher: ${shopVoucher.code} • ${badge(shopVoucher)}`}>
+                        <span className="voucher-label">Voucher shop:</span>
+                        <span className="voucher-code">{shopVoucher.code}</span>
+                        <span className="voucher-dot">•</span>
+                        <span className="voucher-benefit">{badge(shopVoucher)}</span>
+                        <button
+                          type="button"
+                          className="voucher-close"
+                          aria-label="Bỏ voucher"
+                          onClick={(e) => { e.preventDefault(); clearVoucher(g.shop_id); }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+
+                    <Button size="small" onClick={() => openVoucherModal(g.shop_id)}>
+                      Voucher shop
+                    </Button>
+                  </div>
+
+                  {/* Tóm tắt per shop */}
+                  <div style={{ fontSize: 13 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Tạm tính</span><strong>{VND(money.subTotal)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Giảm voucher shop</span><span style={{ color: '#d0302f' }}>-{VND(money.voucherDiscount)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Phí vận chuyển</span><span>{VND(money.shipping)}</span>
+                    </div>
+                  </div>
+                </Panel>
+              );
+            })}
+          </Collapse>
+        )}
+      </Card>
+
+      {/* Modal xem toàn bộ sản phẩm của 1 shop */}
+      <Modal
+        open={itemsModalOpen}
+        onCancel={() => setItemsModalOpen(false)}
+        title={itemsModalShop ? `Sản phẩm - ${itemsModalShop.shop_name ?? `#${itemsModalShop.shop_id}`}` : 'Sản phẩm'}
+        footer={<Button onClick={() => setItemsModalOpen(false)}>Đóng</Button>}
+        width={760}
+        style={{ maxHeight: 460, overflowY: 'auto' }}
+      >
+        {itemsModalShop && (
+          <List<CartItem>
+            itemLayout="horizontal"
+            dataSource={itemsModalShop.items}
+            rowKey={(it) => String(it.id)}  // ✅ key ổn định & đúng TS
+            renderItem={(it) => {
+              const u = unitPrice(it);
+              const total = u * it.quantity;
+              const ori = it.product.price * it.quantity;
+              const hasSale = u < it.product.price;
+              return (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={
+                      <img
+                        src={imageUrl(it.product.image)}
+                        alt={it.product.name}
+                        style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 8, border: '1px solid #f0f0f0' }}
+                      />
+                    }
+                    title={<OneLine><strong>{it.product.name}</strong></OneLine>}
+                    description={<Text type="secondary">SL: {it.quantity}</Text>}
+                  />
+                  <div style={{ textAlign: 'right', minWidth: 140 }}>
+                    {hasSale ? (
+                      <>
+                        <div><Text delete type="secondary">{VND(ori)}</Text></div>
+                        <div><Text strong type="danger">{VND(total)}</Text></div>
+                      </>
+                    ) : <Text strong>{VND(total)}</Text>}
+                  </div>
+                </List.Item>
+              );
+            }}
+          />
+        )}
+      </Modal>
 
       {/* Modal chọn voucher */}
       <Modal
-        open={showVoucherModal}
+        open={voucherModalOpen}
         onCancel={closeVoucherModal}
-        title="Chọn voucher của bạn"
+        title={voucherModalShopId == null ? 'Chọn voucher toàn sàn' : `Chọn voucher shop #${voucherModalShopId}`}
         footer={
-          requireLogin ? (
-            <Space>
-              <Button onClick={closeVoucherModal}>Đóng</Button>
-              <Button
-                type="primary"
-                onClick={() => (window.location.href = '/login')}
-                style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
-              >
-                Đăng nhập
-              </Button>
-            </Space>
-          ) : (
-            <Space>
-              <Button onClick={closeVoucherModal}>Hủy</Button>
-              <Button
-                type="primary"
-                disabled={selectedVoucherId === null || applying}
-                loading={applying}
-                onClick={applyVoucher}
-                style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
-              >
-                Áp dụng
-              </Button>
-            </Space>
-          )
+          <Space>
+            <Button onClick={closeVoucherModal}>Hủy</Button>
+            <Button
+              type="primary"
+              style={{ background: BRAND, borderColor: BRAND }}
+              disabled={selectedVoucherId == null}
+              onClick={applyVoucher}
+            >
+              Áp dụng
+            </Button>
+          </Space>
         }
+        width={720}
       >
-        {requireLogin ? (
-          <Alert
-            type="warning"
-            showIcon
-            message="Bạn cần đăng nhập để sử dụng voucher."
-            description="Vui lòng đăng nhập để xem và áp dụng voucher của bạn."
-          />
-        ) : (
+        <Input
+          placeholder="Tìm theo mã, tên, mô tả..."
+          value={voucherSearch}
+          onChange={(e) => setVoucherSearch(e.target.value)}
+          style={{ marginBottom: 12 }}
+          allowClear
+        />
+
+        {voucherLoading && <div style={{ textAlign: 'center', padding: 16 }}><Spin /></div>}
+        {voucherErr && <Alert type="error" showIcon message={voucherErr} />}
+
+        {!voucherLoading && !voucherErr && (
           <>
-            <Input
-              placeholder="Tìm theo mã, tên, mô tả..."
-              value={voucherSearch}
-              onChange={(e) => setVoucherSearch(e.target.value)}
-              style={{ marginBottom: 12 }}
-            />
-
-            {voucherLoading && <div style={{ textAlign: 'center', padding: 16 }}><Spin /></div>}
-            {voucherError && <Alert type="error" showIcon message={voucherError} />}
-            {!voucherLoading && !voucherError && filteredVouchers.length === 0 && (
+            {filteredVouchers.length === 0 ? (
               <Alert type="info" showIcon message="Không có voucher phù hợp." />
-            )}
-
-            {!voucherLoading && !voucherError && filteredVouchers.length > 0 && (
-              <div style={{ maxHeight: 420, overflowY: 'auto', paddingRight: 8 }}>
-                <List
+            ) : (
+              <div style={{ maxHeight: 460, overflowY: 'auto', paddingRight: 6 }}>
+                <List<Voucher>
                   dataSource={filteredVouchers}
                   rowKey={(v) => String(v.id)}
                   renderItem={(v) => {
-                    const selected = String(selectedVoucherId ?? appliedVoucher?.id) === String(v.id);
-                    const expired = isVoucherExpired(v);
-                    const disabled = !!expired || (typeof v.is_active === 'boolean' && !v.is_active);
+                    const selected = String(selectedVoucherId ?? '') === String(v.id);
+                    const expired = isExpired(v);
+                    const disabled = !!expired || v.is_active === false;
 
                     return (
                       <List.Item
-                        onClick={() => {
-                          if (!disabled) setSelectedVoucherId(selected ? null : v.id);
-                        }}
+                        onClick={() => { if (!disabled) setSelectedVoucherId(selected ? null : v.id); }}
                         style={{
                           cursor: disabled ? 'not-allowed' : 'pointer',
-                          background: selected ? '#edf5ff' : undefined,
+                          background: selected ? '#f5faff' : undefined,
                           opacity: disabled ? 0.6 : 1,
-                          borderRadius: 8,
+                          borderRadius: 10,
                           padding: 12,
-                          marginBottom: 8,
+                          marginBottom: 10,
+                          border: selected ? '1px solid #91caff' : '1px solid #f0f0f0',
                         }}
                       >
-                        <Space align="start">
+                        <Space align="start" style={{ width: '100%', alignItems: 'center' }}>
                           <Radio checked={selected} disabled={disabled} />
-                          <Space direction="vertical" size={4}>
+                          <Space direction="vertical" size={4} style={{ flex: 1, minWidth: 0 }}>
                             <Space wrap>
-                              <Tag bordered={false}>{v.code || `#${v.id}`}</Tag>
-                              {v.type && (
-                                <Tag color="blue">
-                                  {v.type === 'amount'
-                                    ? 'Giảm tiền'
-                                    : v.type === 'percent'
-                                      ? 'Giảm %'
-                                      : v.type === 'shipping'
-                                        ? 'Miễn phí vận chuyển'
-                                        : v.type}
-                                </Tag>
-                              )}
-
-                              <Tag bordered={false}>{badgeValue(v)}</Tag>
+                              <Tag bordered={false}><OneLine>{v.code}</OneLine></Tag>
+                              <Tag color={v.shop_id == null ? 'blue' : 'purple'}>
+                                {v.shop_id == null ? 'Toàn sàn' : `Shop #${v.shop_id}`}
+                              </Tag>
+                              <Tag bordered={false}>{badge(v)}</Tag>
                               {expired && <Tag color="red">Hết hạn</Tag>}
                             </Space>
-
-                            {v.title && <Text strong>{v.title}</Text>}
-
+                            {v.title && <OneLine><Text strong>{v.title}</Text></OneLine>}
+                            {v.description && <Text type="secondary"><OneLine>{v.description}</OneLine></Text>}
                             <Space size="small" wrap>
                               {typeof v.min_order === 'number' && (
-                                <Text type="secondary">
-                                  ĐH tối thiểu: {new Intl.NumberFormat('vi-VN').format(v.min_order)}₫
-                                </Text>
+                                <Text type="secondary">ĐH tối thiểu: {new Intl.NumberFormat('vi-VN').format(v.min_order)}₫</Text>
                               )}
                               {v.expires_at && (
                                 <Text type={expired ? 'danger' : 'secondary'}>
                                   HSD: {new Date(v.expires_at).toLocaleDateString('vi-VN')}
                                 </Text>
                               )}
-                              {typeof v.is_active === 'boolean' && (
-                                <Text type="secondary">Trạng thái: {v.is_active ? 'Đang hoạt động' : 'Ngừng'}</Text>
-                              )}
                             </Space>
-
-                            {v.description && <Text type="secondary">{v.description}</Text>}
                           </Space>
                         </Space>
                       </List.Item>
@@ -662,6 +751,43 @@ export default function CartAndPayment({ onPaymentInfoChange, onCartChange, onVo
           </>
         )}
       </Modal>
+
+      {/* animation + style */}
+      <style jsx global>{`
+        @keyframes slideInFade { 0% { transform: translateY(-8px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        .animate-slideInFade { animation: slideInFade 260ms ease-out; }
+
+        /* Voucher pill */
+        .voucher-pill{
+          display:inline-flex;
+          align-items:center;
+          gap:6px;
+          max-width:100%;
+          padding:6px 8px;
+          border:1px solid #e8ddff;
+          background:#f6f0ff;
+          color:#5b21b6;
+          border-radius:8px;
+          line-height:1;
+        }
+        .voucher-label{ font-weight:600; white-space:nowrap; }
+        .voucher-code, .voucher-benefit{
+          max-width:180px;
+          overflow:hidden;
+          text-overflow:ellipsis;
+          white-space:nowrap;
+        }
+        .voucher-dot{ opacity:.7; }
+        .voucher-close{
+          margin-left:2px;
+          border:0; background:transparent; cursor:pointer;
+          font-size:16px; line-height:1; color:#7c3aed;
+          padding:0 2px; border-radius:6px;
+        }
+        .voucher-close:hover{ background:rgba(124,58,237,.08); }
+      `}</style>
     </div>
   );
-}
+};
+
+export default CartByShop;
