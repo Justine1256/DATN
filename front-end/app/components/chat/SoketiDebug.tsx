@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button, Card, Tag, Typography, Space, Alert } from "antd"
+import { Button, Card, Tag, Typography, Space } from "antd"
 import {
   PlayCircleOutlined,
   HeartOutlined,
@@ -13,7 +13,7 @@ import Pusher from "pusher-js"
 
 const { Title, Text, Paragraph } = Typography
 
-export function SoketiDebug() {
+export function PusherDebug() {
   const [connectionStatus, setConnectionStatus] = useState<string>("disconnected")
   const [pusherInstance, setPusherInstance] = useState<Pusher | null>(null)
   const [logs, setLogs] = useState<string[]>([])
@@ -22,78 +22,53 @@ export function SoketiDebug() {
     setLogs((prev) => [...prev.slice(-9), `${new Date().toLocaleTimeString()}: ${message}`])
   }
 
-  const testConnection = async () => {
+  const testPusherConnection = async () => {
     if (pusherInstance) {
       pusherInstance.disconnect()
       setPusherInstance(null)
     }
 
-    const config = {
-      key: process.env.NEXT_PUBLIC_PUSHER_APP_KEY,
-      host: process.env.NEXT_PUBLIC_PUSHER_HOST,
-      port: process.env.NEXT_PUBLIC_PUSHER_PORT,
-      scheme: process.env.NEXT_PUBLIC_PUSHER_SCHEME,
-    }
+    const key = process.env.NEXT_PUBLIC_PUSHER_APP_KEY
+    const cluster = process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER
 
-    addLog(`Testing connection with config: ${JSON.stringify(config)}`)
+    addLog(`Testing Pusher Cloud connection with key=${key}, cluster=${cluster}`)
 
     try {
-      const pusher = new Pusher(config.key!, {
-        cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER || "ap1",
-        wsHost: config.host,
-        wsPort: Number.parseInt(config.port!),
-        wssPort: Number.parseInt(config.port!),
-        forceTLS: false,
-        enabledTransports: ["ws"],
-        disableStats: true,
-        activityTimeout: 30000,
-        pongTimeout: 6000,
-        unavailableTimeout: 10000,
+      const pusher = new Pusher(key!, {
+        cluster:  cluster || "mt1",
+        forceTLS: true,
+        enabledTransports: ["ws", "wss"],
+        disableStats: false,
       })
 
       pusher.connection.bind("connecting", () => {
         setConnectionStatus("connecting")
-        addLog("Connecting to Soketi server...")
+        addLog("Connecting to Pusher Cloud...")
       })
 
       pusher.connection.bind("connected", () => {
         setConnectionStatus("connected")
-        addLog(`Connected! Socket ID: ${pusher.connection.socket_id}`)
+        addLog(`✅ Connected! Socket ID: ${pusher.connection.socket_id}`)
       })
 
       pusher.connection.bind("error", (error: any) => {
         setConnectionStatus("error")
-        addLog(`Connection error: ${JSON.stringify(error)}`)
+        addLog(`❌ Connection error: ${JSON.stringify(error)}`)
       })
 
       pusher.connection.bind("disconnected", () => {
         setConnectionStatus("disconnected")
-        addLog("Disconnected from server")
+        addLog("Disconnected from Pusher Cloud")
+      })
+
+      pusher.connection.bind("state_change", (states: any) => {
+        addLog(`State change: ${states.previous} -> ${states.current}`)
       })
 
       setPusherInstance(pusher)
     } catch (error) {
       addLog(`Failed to create Pusher instance: ${error}`)
       setConnectionStatus("error")
-    }
-  }
-
-  const testSoketiHealth = async () => {
-    const host = process.env.NEXT_PUBLIC_PUSHER_HOST
-    const port = process.env.NEXT_PUBLIC_PUSHER_PORT
-    const scheme = process.env.NEXT_PUBLIC_PUSHER_SCHEME
-
-    try {
-      addLog("Testing Soketi health endpoint...")
-      const response = await fetch(`${scheme}://${host}:${port}/health`)
-      if (response.ok) {
-        const data = await response.text()
-        addLog(`Soketi health check: OK - ${data}`)
-      } else {
-        addLog(`Soketi health check failed: ${response.status}`)
-      }
-    } catch (error) {
-      addLog(`Soketi health check error: ${error}`)
     }
   }
 
@@ -119,18 +94,9 @@ export function SoketiDebug() {
   }
 
   return (
-    <Card
-      style={{ maxWidth: 800, margin: "0 auto" }}
-      title={
-        <Space>
-          <Title level={3} style={{ margin: 0 }}>
-            Soketi Connection Debug
-          </Title>
-        </Space>
-      }
-    >
+    <Card style={{ maxWidth: 800, margin: "0 auto" }} title="Pusher Connection Debug">
       <Space direction="vertical" size="large" style={{ width: "100%" }}>
-        <Paragraph type="secondary">Debug tool để kiểm tra kết nối Soketi server</Paragraph>
+        <Paragraph type="secondary">Debug tool để kiểm tra kết nối Pusher Cloud</Paragraph>
 
         <Space align="center">
           <Text strong>Status:</Text>
@@ -142,19 +108,17 @@ export function SoketiDebug() {
           <Card size="small" style={{ backgroundColor: "#f5f5f5" }}>
             <Space direction="vertical" style={{ width: "100%" }}>
               <Text code>PUSHER_APP_KEY: {process.env.NEXT_PUBLIC_PUSHER_APP_KEY || "❌ Not set"}</Text>
-              <Text code>PUSHER_HOST: {process.env.NEXT_PUBLIC_PUSHER_HOST || "❌ Not set"}</Text>
-              <Text code>PUSHER_PORT: {process.env.NEXT_PUBLIC_PUSHER_PORT || "❌ Not set"}</Text>
-              <Text code>PUSHER_SCHEME: {process.env.NEXT_PUBLIC_PUSHER_SCHEME || "❌ Not set"}</Text>
+              <Text code>PUSHER_APP_CLUSTER: {process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER || "❌ Not set"}</Text>
             </Space>
           </Card>
         </div>
 
-        <Space>
-          <Button type="primary" icon={<PlayCircleOutlined />} onClick={testConnection}>
+        <Space wrap>
+          <Button type="primary" icon={<PlayCircleOutlined />} onClick={testPusherConnection}>
             Test Pusher Connection
           </Button>
-          <Button icon={<HeartOutlined />} onClick={testSoketiHealth}>
-            Test Soketi Health
+          <Button icon={<HeartOutlined />} onClick={() => pusherInstance?.disconnect()}>
+            Disconnect
           </Button>
         </Space>
 
@@ -181,51 +145,6 @@ export function SoketiDebug() {
               </Space>
             )}
           </Card>
-        </div>
-
-        <div>
-          <Title level={5}>Troubleshooting Steps:</Title>
-          <Space direction="vertical" style={{ width: "100%" }}>
-            <Alert
-              message="1. Kiểm tra Soketi server config:"
-              description={
-                <pre style={{ fontSize: "11px", margin: "8px 0 0 0" }}>
-                  {`# Trong file .env của Soketi server
-PUSHER_APP_ID=2019673
-PUSHER_APP_KEY=d13455038dedab3f3d3e
-PUSHER_APP_SECRET=0dd7be24fcdccf67189d
-PUSHER_APP_CLUSTER=ap1`}
-                </pre>
-              }
-              type="warning"
-              showIcon
-            />
-
-            <Alert
-              message="2. Restart Soketi server:"
-              description={
-                <pre style={{ fontSize: "11px", margin: "8px 0 0 0" }}>
-                  {`pm2 restart soketi
-# hoặc
-docker restart soketi-container`}
-                </pre>
-              }
-              type="info"
-              showIcon
-            />
-
-            <Alert
-              message="3. Kiểm tra firewall:"
-              description={
-                <pre style={{ fontSize: "11px", margin: "8px 0 0 0" }}>
-                  {`# Đảm bảo port 6001 được mở
-sudo ufw allow 6001`}
-                </pre>
-              }
-              type="success"
-              showIcon
-            />
-          </Space>
         </div>
       </Space>
     </Card>

@@ -6,9 +6,11 @@ import { MessageCircle, X, Plus, Send, Phone, Video, MoreVertical } from "lucide
 import Image from "next/image"
 import axios from "axios"
 import Cookies from "js-cookie"
-import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
-import { useChatSocket } from "../../hooks/useChatSocket"
 import ChatNotification from "./ChatNotification"
+import { useChatSocket } from "@/app/hooks/useChatSocket"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api"
+const STATIC_BASE_URL = process.env.NEXT_PUBLIC_STATIC_BASE_URL || ""
 
 interface User {
   id: number
@@ -91,7 +93,6 @@ export default function EnhancedChatTools() {
   }
 
   useEffect(() => {
-    // 🔍 Checking authentication...
     console.log("🔍 Checking authentication...")
     const token = localStorage.getItem("token") || Cookies.get("authToken")
     console.log("🔑 Token found:", token ? "Yes" : "No")
@@ -119,10 +120,9 @@ export default function EnhancedChatTools() {
     }
   }, [])
 
-  // Enhanced WebSocket integration with notifications
   const handleSocketData = useCallback(
     (data: ChatSocketData) => {
-      console.log("📨 Socket data received:", data)
+      console.log("📨 Pusher data received:", data)
 
       if (data.type === "message") {
         console.log("💬 New message:", data.message)
@@ -141,7 +141,7 @@ export default function EnhancedChatTools() {
   )
 
   const handleConnectionStatus = useCallback((status: "connecting" | "connected" | "disconnected" | "error") => {
-    console.log("🔌 Connection status changed:", status)
+    console.log("🔌 Pusher connection status changed:", status)
     setConnectionStatus(status)
   }, [])
 
@@ -152,25 +152,6 @@ export default function EnhancedChatTools() {
     handleSocketData,
     handleConnectionStatus,
   )
-
-  useEffect(() => {
-    const checkConnection = () => {
-      if (typeof window !== "undefined" && window.navigator.onLine) {
-        setConnectionStatus("connected")
-      } else {
-        setConnectionStatus("disconnected")
-      }
-    }
-
-    checkConnection()
-    window.addEventListener("online", checkConnection)
-    window.addEventListener("offline", checkConnection)
-
-    return () => {
-      window.removeEventListener("online", checkConnection)
-      window.removeEventListener("offline", checkConnection)
-    }
-  }, [])
 
   const fetchRecentContacts = async () => {
     const token = localStorage.getItem("token") || Cookies.get("authToken")
@@ -208,7 +189,6 @@ export default function EnhancedChatTools() {
   }
 
   const sendMessage = async () => {
-    // 🚀 sendMessage called
     console.log("🚀 sendMessage called")
     console.log("📝 Input:", input)
     console.log("👤 Receiver:", receiver)
@@ -239,7 +219,6 @@ export default function EnhancedChatTools() {
       formData.append("image", images[0])
     }
 
-    // 🌐 API URL
     console.log("🌐 API URL:", `${API_BASE_URL}/messages`)
     console.log("📋 FormData contents:")
     for (const [key, value] of formData.entries()) {
@@ -254,16 +233,14 @@ export default function EnhancedChatTools() {
         },
       })
 
-      // ✅ Message sent successfully
       console.log("✅ Message sent successfully:", res.data)
 
-      // Message will be added via WebSocket, no need to manually add here
+      // Message will be added via Pusher, no need to manually add here
       setInput("")
       setImages([])
       setImagePreviews([])
       fetchRecentContacts()
     } catch (error) {
-      // ❌ Lỗi khi gửi tin nhắn
       console.error("❌ Lỗi khi gửi tin nhắn:", error)
       if (axios.isAxiosError(error)) {
         console.error("📊 Response status:", error.response?.status)
@@ -285,7 +262,7 @@ export default function EnhancedChatTools() {
     }
 
     if (sendTypingEvent) {
-      console.log("⌨️ Sending typing start event")
+      console.log("⌨️ Sending typing start event via Pusher")
       sendTypingEvent(true)
     }
 
@@ -293,7 +270,7 @@ export default function EnhancedChatTools() {
       setIsUserTyping(false)
       // Send stop typing event
       if (sendTypingEvent) {
-        console.log("⌨️ Sending typing stop event")
+        console.log("⌨️ Sending typing stop event via Pusher")
         sendTypingEvent(false)
       }
     }, 1000)
@@ -399,7 +376,7 @@ export default function EnhancedChatTools() {
             setShowList(!showList)
             setActiveChat(false)
             if (showList) {
-              setUnreadCount(0) // Clear unread count when opening chat
+              setUnreadCount(0)
             }
           }}
           className="relative w-12 h-12 bg-[#db4444] hover:bg-[#c93333] text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
@@ -489,10 +466,10 @@ export default function EnhancedChatTools() {
                         ? `${receiver?.name} đang nhập...`
                         : "Đang hoạt động"
                       : connectionStatus === "connecting"
-                        ? "Đang kết nối WebSocket..."
+                        ? "Đang kết nối Pusher..."
                         : connectionStatus === "error"
-                          ? "Lỗi WebSocket - chỉ dùng API"
-                          : "WebSocket mất kết nối"}
+                          ? "Lỗi Pusher - chỉ dùng API"
+                          : "Pusher mất kết nối"}
                   </p>
                 </div>
               </div>
@@ -513,7 +490,7 @@ export default function EnhancedChatTools() {
             </div>
 
             {/* Connection Status Display */}
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 px-4 pt-2">
               <div
                 className={`w-2 h-2 rounded-full ${
                   connectionStatus === "connected"
@@ -525,12 +502,12 @@ export default function EnhancedChatTools() {
               />
               <span>
                 {connectionStatus === "connected"
-                  ? "WebSocket đã kết nối"
+                  ? "Pusher đã kết nối"
                   : connectionStatus === "connecting"
-                    ? "Đang kết nối WebSocket..."
+                    ? "Đang kết nối Pusher..."
                     : connectionStatus === "error"
-                      ? "Lỗi WebSocket - chỉ dùng API"
-                      : "WebSocket mất kết nối"}
+                      ? "Lỗi Pusher - chỉ dùng API"
+                      : "Pusher mất kết nối"}
               </span>
             </div>
 
@@ -555,12 +532,10 @@ export default function EnhancedChatTools() {
                 messages.map((msg) => {
                   const isCurrentUser = msg.sender_id === currentUser?.id
 
-                  // Xác định avatar đúng cho từng loại tin nhắn
                   let avatarUrl = "/placeholder.svg?height=32&width=32"
                   let userName = "User"
 
                   if (isCurrentUser) {
-                    // Tin nhắn từ người gửi - dùng currentUser avatar
                     if (currentUser?.avatar) {
                       avatarUrl =
                         currentUser.avatar.startsWith("http") || currentUser.avatar.startsWith("/")
@@ -569,7 +544,6 @@ export default function EnhancedChatTools() {
                     }
                     userName = currentUser?.name || "You"
                   } else {
-                    // Tin nhắn từ người nhận - dùng receiver avatar
                     if (receiver?.avatar) {
                       avatarUrl =
                         receiver.avatar.startsWith("http") || receiver.avatar.startsWith("/")

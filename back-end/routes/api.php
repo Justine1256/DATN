@@ -29,33 +29,43 @@ use App\Http\Controllers\ReviewController;
 use App\Models\Banner;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Broadcast;
-
+use Pusher\Pusher;
 // test api
 // Route::get('/userall', [UserController::class, 'index']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return response()->json($request->user()->load('shop')->toArray());
 });
 // routes/api.php
-Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
-    // Lấy token từ header
-    $token = $request->bearerToken();
+Route::post('/pusher/auth', function (Request $request) {
+    $user = Auth::user();// Hoặc cách xác thực user của bạn
 
-    // Kiểm tra token qua Sanctum
-    if ($token) {
-        $user = Auth::guard('sanctum')->user();
+    if (!$user) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
 
-        if ($user) {
-            // Kiểm tra quyền truy cập vào channel
-            $user1 = $request->route('user1');
-            $user2 = $request->route('user2');
+    $pusher = new Pusher(
+        env('PUSHER_APP_KEY'),
+        env('PUSHER_APP_SECRET'),
+        env('PUSHER_APP_ID'),
+        [
+            'cluster' => env('PUSHER_APP_CLUSTER'),
+            'useTLS' => true,
+        ]
+    );
 
-            if (in_array($user->id, [(int)$user1, (int)$user2])) {
-                return Broadcast::auth($request);
-            }
+    $socketId = $request->socket_id;
+    $channelName = $request->channel_name;
+
+    // Kiểm tra quyền truy cập channel
+    if (str_starts_with($channelName, 'private-user.')) {
+        $userId = str_replace('private-user.', '', $channelName);
+        if ($user->id != $userId) {
+            return response()->json(['error' => 'Forbidden'], 403);
         }
     }
 
-    return response()->json(['message' => 'Unauthorized'], 403);
+    $auth = $pusher->socket_auth($channelName, $socketId);
+    return response($auth);
 });
 
 Route::get('/banner', [BannerController::class, 'index']);
