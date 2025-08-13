@@ -46,18 +46,15 @@ export function usePusherChat(
     })
 
     pusher.connection.bind("connecting", () => {
-      console.log("🔌 Pusher connecting...")
       onConnectionStatus?.("connecting")
     })
 
     pusher.connection.bind("connected", () => {
-      console.log("✅ Pusher connected")
       setIsConnecting(false)
       onConnectionStatus?.("connected")
     })
 
     pusher.connection.bind("disconnected", () => {
-      console.log("❌ Pusher disconnected")
       setIsConnecting(false)
       onConnectionStatus?.("disconnected")
     })
@@ -77,15 +74,12 @@ export function usePusherChat(
     })
 
     channel.bind("pusher:subscription_succeeded", () => {
-      console.log("✅ Channel subscription succeeded:", channelName)
     })
 
     channel.bind_global((eventName: string, data: any) => {
-      console.log("🎯 Pusher event received:", eventName, data)
     })
 
     channel.bind("MessageSent", (payload: any) => {
-      console.log("📨 MessageSent event received:", payload)
       const messageData = {
         id: payload.id,
         sender_id: payload.sender_id,
@@ -107,7 +101,6 @@ export function usePusherChat(
     })
 
     channel.bind("UserTyping", (payload: any) => {
-      console.log("⌨️ UserTyping event received:", payload)
       onData?.({ type: "typing", user_id: payload.user_id, is_typing: payload.is_typing })
     })
 
