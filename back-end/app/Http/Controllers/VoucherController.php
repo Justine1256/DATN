@@ -77,7 +77,7 @@ class VoucherController extends Controller
             return response()->json(['message' => 'Bạn chưa có shop'], 400);
         }
 
-        $q = Voucher::query()->where('shop_id', $user->shop->id);
+        $q = Voucher::with('shop:id,name')->where('shop_id', $user->shop->id);
 
         if ($search = $request->query('search')) {
             $q->where('code', 'like', "%{$search}%");
