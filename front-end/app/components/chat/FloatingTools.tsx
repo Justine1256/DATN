@@ -7,8 +7,8 @@ import Image from "next/image"
 import axios from "axios"
 import Cookies from "js-cookie"
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
-import { useChatSocket } from "../../hooks/useChatSocket"
 import ChatNotification from "./ChatNotification"
+import { usePusherChat } from "@/app/hooks/usePusherChat"
 
 interface User {
   id: number
@@ -91,7 +91,6 @@ export default function EnhancedChatTools() {
   }
 
   useEffect(() => {
-    // 🔍 Checking authentication...
     console.log("🔍 Checking authentication...")
     const token = localStorage.getItem("token") || Cookies.get("authToken")
     console.log("🔑 Token found:", token ? "Yes" : "No")
@@ -119,7 +118,6 @@ export default function EnhancedChatTools() {
     }
   }, [])
 
-  // Enhanced WebSocket integration with notifications
   const handleSocketData = useCallback(
     (data: ChatSocketData) => {
       console.log("📨 Socket data received:", data)
@@ -127,6 +125,19 @@ export default function EnhancedChatTools() {
       if (data.type === "message") {
         console.log("💬 New message:", data.message)
         setMessages((prev) => [...prev, data.message!])
+
+        if (!activeChat || receiver?.id !== data.message?.sender_id) {
+          setNotifications((prev) => [
+            ...prev,
+            {
+              id: data.message!.id,
+              sender: data.message!.sender,
+              message: data.message!.message,
+              image: data.message!.image,
+            },
+          ])
+          setUnreadCount((prev) => prev + 1)
+        }
       } else if (data.type === "typing") {
         console.log("⌨️ Typing event received:", data, "Current user:", currentUser?.id)
         if (data.user_id !== currentUser?.id) {
@@ -137,7 +148,7 @@ export default function EnhancedChatTools() {
         }
       }
     },
-    [currentUser?.id],
+    [currentUser?.id, activeChat, receiver?.id],
   )
 
   const handleConnectionStatus = useCallback((status: "connecting" | "connected" | "disconnected" | "error") => {
@@ -145,32 +156,13 @@ export default function EnhancedChatTools() {
     setConnectionStatus(status)
   }, [])
 
-  const { sendTypingEvent } = useChatSocket(
+  const { sendTypingEvent } = usePusherChat(
     currentUser?.id,
     token || "",
     receiver?.id,
     handleSocketData,
     handleConnectionStatus,
   )
-
-  useEffect(() => {
-    const checkConnection = () => {
-      if (typeof window !== "undefined" && window.navigator.onLine) {
-        setConnectionStatus("connected")
-      } else {
-        setConnectionStatus("disconnected")
-      }
-    }
-
-    checkConnection()
-    window.addEventListener("online", checkConnection)
-    window.addEventListener("offline", checkConnection)
-
-    return () => {
-      window.removeEventListener("online", checkConnection)
-      window.removeEventListener("offline", checkConnection)
-    }
-  }, [])
 
   const fetchRecentContacts = async () => {
     const token = localStorage.getItem("token") || Cookies.get("authToken")
@@ -208,7 +200,6 @@ export default function EnhancedChatTools() {
   }
 
   const sendMessage = async () => {
-    // 🚀 sendMessage called
     console.log("🚀 sendMessage called")
     console.log("📝 Input:", input)
     console.log("👤 Receiver:", receiver)
@@ -239,7 +230,6 @@ export default function EnhancedChatTools() {
       formData.append("image", images[0])
     }
 
-    // 🌐 API URL
     console.log("🌐 API URL:", `${API_BASE_URL}/messages`)
     console.log("📋 FormData contents:")
     for (const [key, value] of formData.entries()) {
@@ -254,7 +244,6 @@ export default function EnhancedChatTools() {
         },
       })
 
-      // ✅ Message sent successfully
       console.log("✅ Message sent successfully:", res.data)
 
       // Message will be added via WebSocket, no need to manually add here
@@ -263,7 +252,6 @@ export default function EnhancedChatTools() {
       setImagePreviews([])
       fetchRecentContacts()
     } catch (error) {
-      // ❌ Lỗi khi gửi tin nhắn
       console.error("❌ Lỗi khi gửi tin nhắn:", error)
       if (axios.isAxiosError(error)) {
         console.error("📊 Response status:", error.response?.status)
@@ -286,7 +274,7 @@ export default function EnhancedChatTools() {
 
     if (sendTypingEvent) {
       console.log("⌨️ Sending typing start event")
-      sendTypingEvent(true)
+      sendTypingEvent(true, receiver?.id)
     }
 
     typingTimeoutRef.current = setTimeout(() => {
@@ -294,10 +282,12 @@ export default function EnhancedChatTools() {
       // Send stop typing event
       if (sendTypingEvent) {
         console.log("⌨️ Sending typing stop event")
-        sendTypingEvent(false)
+        sendTypingEvent(false, receiver?.id)
       }
     }, 1000)
   }
+
+  // ... existing code for image handling, formatting, etc. ...
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -319,24 +309,6 @@ export default function EnhancedChatTools() {
           minute: "2-digit",
         })
       : ""
-
-  const renderAvatar = (msg: Message) => {
-    const isReceiver = msg.sender_id === receiver?.id
-    const user = isReceiver ? msg.sender : msg.receiver
-    const avatarUrl =
-      user.avatar?.startsWith("http") || user.avatar?.startsWith("/")
-        ? user.avatar
-        : `${STATIC_BASE_URL}/${user.avatar}`
-    return (
-      <Image
-        src={avatarUrl || `${STATIC_BASE_URL}/avatars/default-avatar.jpg`}
-        alt={user.name}
-        width={24}
-        height={24}
-        className="w-6 h-6 rounded-full object-cover"
-      />
-    )
-  }
 
   const handleNotificationClick = (notification: NotificationMessage) => {
     setReceiver({
@@ -399,7 +371,7 @@ export default function EnhancedChatTools() {
             setShowList(!showList)
             setActiveChat(false)
             if (showList) {
-              setUnreadCount(0) // Clear unread count when opening chat
+              setUnreadCount(0)
             }
           }}
           className="relative w-12 h-12 bg-[#db4444] hover:bg-[#c93333] text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
@@ -513,7 +485,7 @@ export default function EnhancedChatTools() {
             </div>
 
             {/* Connection Status Display */}
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 px-4 py-2">
               <div
                 className={`w-2 h-2 rounded-full ${
                   connectionStatus === "connected"
@@ -555,12 +527,10 @@ export default function EnhancedChatTools() {
                 messages.map((msg) => {
                   const isCurrentUser = msg.sender_id === currentUser?.id
 
-                  // Xác định avatar đúng cho từng loại tin nhắn
                   let avatarUrl = "/placeholder.svg?height=32&width=32"
                   let userName = "User"
 
                   if (isCurrentUser) {
-                    // Tin nhắn từ người gửi - dùng currentUser avatar
                     if (currentUser?.avatar) {
                       avatarUrl =
                         currentUser.avatar.startsWith("http") || currentUser.avatar.startsWith("/")
@@ -569,7 +539,6 @@ export default function EnhancedChatTools() {
                     }
                     userName = currentUser?.name || "You"
                   } else {
-                    // Tin nhắn từ người nhận - dùng receiver avatar
                     if (receiver?.avatar) {
                       avatarUrl =
                         receiver.avatar.startsWith("http") || receiver.avatar.startsWith("/")

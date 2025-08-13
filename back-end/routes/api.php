@@ -272,4 +272,68 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shop/comments/{id}', [ProductController::class, 'restoreComment']);
 
 
+Route::post('/broadcasting/auth', function (Request $request) {
+    // Get token from Bearer header or cookie
+    $token = $request->bearerToken() ?: $request->cookie('authToken');
+
+    Log::info('Pusher auth attempt', [
+        'headers' => $request->headers->all(),
+        'cookie_authToken' => $request->cookie('authToken'),
+        'bearer_present' => (bool) $request->bearerToken(),
+        'token_value_truncated' => $token ? substr($token, 0, 10) . '...' : null,
+        'channel_name_raw' => $request->input('channel_name'),
+        'socket_id' => $request->input('socket_id'),
+    ]);
+
+    if (!$token) {
+        return response()->json(['error' => 'Unauthorized - no token provided'], 401);
+    }
+
+    $pat = PersonalAccessToken::findToken($token);
+    if (!$pat) {
+        Log::warning('Pusher auth - PAT not found', ['token_sample' => substr($token, 0, 10)]);
+        return response()->json(['error' => 'Unauthorized - invalid token'], 401);
+    }
+
+    $user = $pat->tokenable;
+    Log::info('Pusher auth - tokenable', [
+        'user_id' => $user->id ?? null,
+        'user_obj' => $user ? $user->only(['id', 'email']) : null
+    ]);
+
+    $socketId = $request->input('socket_id');
+    $channelName = trim((string)$request->input('channel_name', ''));
+
+    if (str_starts_with($channelName, 'private-chat.')) {
+        $userIdFromChannel = (int) str_replace('private-chat.', '', $channelName);
+        if ((int)$user->id !== $userIdFromChannel) {
+            Log::warning('Pusher auth - user id mismatch', [
+                'authenticated_user_id' => $user->id,
+                'channel_user_id' => $userIdFromChannel,
+                'channelName' => $channelName,
+            ]);
+
+            return response()->json([
+                'error' => 'Forbidden',
+                'reason' => 'user_id_mismatch',
+                'authenticated_user_id' => $user->id,
+                'channel_user_id' => $userIdFromChannel,
+            ], 403);
+        }
+    }
+
+    $pusher = new Pusher(
+        env('PUSHER_APP_KEY'),
+        env('PUSHER_APP_SECRET'),
+        env('PUSHER_APP_ID'),
+        [
+            'cluster' => env('PUSHER_APP_CLUSTER'),
+            'useTLS' => true,
+        ]
+    );
+
+    $auth = $pusher->authorizeChannel($channelName, $socketId);
+
+    return response()->json(json_decode($auth, true));
+});
 });
