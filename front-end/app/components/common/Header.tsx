@@ -304,15 +304,27 @@ const Header = () => {
   };
 
   // 🚪 Xử lý đăng xuất
-  const handleLogout = () => {
-    Cookies.remove("authToken");
-    setUser(null);
-    setDropdownOpen(false);
-    setUnreadNotificationCount(0);
-    setCartItems([]);
-    router.replace("/");
-    window.dispatchEvent(new Event("wishlistUpdated"));
-  };
+const handleLogout = () => {
+  // Xóa cookie ở production
+  Cookies.remove("authToken", {
+    domain: ".marketo.info.vn",
+    secure: true,
+    sameSite: "None",
+  });
+
+  // Xóa cookie ở local
+  Cookies.remove("authToken");
+
+  setUser(null);
+
+  const baseUrl =
+    window.location.hostname === "localhost"
+      ? "http://localhost:3000"
+      : "https://marketo.info.vn";
+
+  window.location.href = `${baseUrl}/`;
+};
+
 
   // 📨 Xử lý khi click vào thông báo
   const handleNotificationClick = async (id: number, link: string) => {
@@ -542,32 +554,23 @@ const Header = () => {
                         </Link>
                       )}
 
-
-
                       {(user?.role === "admin" || user?.role === "seller") && (
                         <Link
                           href={
-                            user.role === "admin"
-                              ? "http://localhost:3001/admin/dashboard"
-                              : "http://localhost:3001/shop-admin/dashboard"
+                            typeof window !== "undefined" && window.location.hostname === "localhost"
+                              ? user.role === "admin"
+                                ? "http://localhost:3001/admin/dashboard"
+                                : "http://localhost:3001/shop-admin/dashboard"
+                              : user.role === "admin"
+                                ? "https://admin.marketo.info.vn/admin/dashboard"
+                                : "https://admin.marketo.info.vn/shop-admin/dashboard"
                           }
-                          //   href={
-                          //   user.role === "admin"
-                          //     ? "https://admin.marketo.info.vn/admin/dashboard"
-                          //     : "https://admin.marketo.info.vn/shop-admin/dashboard"
-                          // }
-                          
                           className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"
                         >
                           <FiSettings className="w-5 h-5" />
                           {user.role === "admin" ? "Trang Quản Trị Tổng" : "Trang Quản Trị Shop"}
                         </Link>
                       )}
-
-
-
-
-
 
 
                       <li

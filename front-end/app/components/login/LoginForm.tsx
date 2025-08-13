@@ -60,7 +60,13 @@ export default function LoginForm() {
     });
 
     const { token } = res.data;
-    Cookies.set("authToken", token, { expires: 7 });
+    Cookies.set("authToken", token, { 
+  expires: 1,
+  domain: process.env.NODE_ENV === "production" ? ".marketo.info.vn" : undefined,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax"
+});
+
     setShowPopup(true);
     window.location.href = "/";
   } catch (err: any) {
@@ -96,7 +102,7 @@ export default function LoginForm() {
         <input
           type="text"
           name="email"
-          placeholder="Email"
+          placeholder="Email, số điện thoại hoặc tên đăng nhập"
           onChange={handleChange}
           className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2 w-full focus:outline-none text-sm text-black placeholder-gray-400"
           disabled={isLoading}

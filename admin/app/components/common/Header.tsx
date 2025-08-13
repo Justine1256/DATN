@@ -65,17 +65,27 @@ const handleGoHome = () => {
 
   window.location.href = `${baseUrl}`;
 };
-  const handleLogout = () => {
+const handleLogout = () => {
+  // Xóa cookie ở production
+  Cookies.remove("authToken", {
+    domain: ".marketo.info.vn",
+    secure: true,
+    sameSite: "None",
+  });
+
+  // Xóa cookie ở local
   Cookies.remove("authToken");
+
   setUser(null);
 
   const baseUrl =
-    typeof window !== 'undefined' && window.location.hostname === 'localhost'
-      ? 'http://localhost:3000'
-      : 'https://marketo.info.vn';
+    window.location.hostname === "localhost"
+      ? "http://localhost:3000"
+      : "https://marketo.info.vn";
 
-  window.location.href = `${baseUrl}/login`;
+  window.location.href = `${baseUrl}/`;
 };
+
 
 
   const clearSearch = () => setSearchValue("");

@@ -142,16 +142,22 @@ function GoogleCallbackContent() {
         })
 
         if (authData.token) {
-          Cookies.set("authToken", authData.token, { expires: 7 })
+          Cookies.set("authToken", authData.token, { 
+            expires: 1,
+            domain: process.env.NODE_ENV === "production" ? ".marketo.info.vn" : undefined,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax"
+          });
+
         } else {
           console.error("No token found in response:", authData)
         }
 
         if (isLogin) {
-          router.push("/")
+            window.location.href = "/"
         } else {
           // For signup, redirect to login page
-          router.push("/login")
+          window.location.href = "/"
         }
       } catch (error: any) {
         console.error("OAuth callback error:", error)
