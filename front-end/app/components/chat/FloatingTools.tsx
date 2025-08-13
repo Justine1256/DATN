@@ -174,7 +174,7 @@ export default function EnhancedChatTools() {
       })
       setRecentContacts(res.data)
     } catch (err) {
-      console.error("Lỗi khi lấy danh sách đã nhắn:", err)
+      console.error("Lỗi khi lấy danh sách đã nhắn: ", err)
     }
   }
 
