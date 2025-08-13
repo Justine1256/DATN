@@ -305,9 +305,9 @@ export default function EnhancedChatTools() {
   const formatTime = (dateStr: string) =>
     mounted
       ? new Date(dateStr).toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+          hour: "2-digit",
+          minute: "2-digit",
+        })
       : ""
 
   const handleNotificationClick = (notification: NotificationMessage) => {
@@ -401,8 +401,9 @@ export default function EnhancedChatTools() {
                   setReceiver(user)
                   setActiveChat(true)
                 }}
-                className={`flex items-center gap-3 px-3 py-3 hover:bg-white cursor-pointer border-b transition-colors ${receiver?.id === user.id ? "bg-white border-l-4 border-l-[#db4444]" : ""
-                  }`}
+                className={`flex items-center gap-3 px-3 py-3 hover:bg-white cursor-pointer border-b transition-colors ${
+                  receiver?.id === user.id ? "bg-white border-l-4 border-l-[#db4444]" : ""
+                }`}
               >
                 <div className="relative">
                   <Image
@@ -486,12 +487,13 @@ export default function EnhancedChatTools() {
             {/* Connection Status Display */}
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 px-4 py-2">
               <div
-                className={`w-2 h-2 rounded-full ${connectionStatus === "connected"
+                className={`w-2 h-2 rounded-full ${
+                  connectionStatus === "connected"
                     ? "bg-green-500"
                     : connectionStatus === "connecting"
                       ? "bg-yellow-500 animate-pulse"
                       : "bg-red-500"
-                  }`}
+                }`}
               />
               <span>
                 {connectionStatus === "connected"
@@ -557,10 +559,11 @@ export default function EnhancedChatTools() {
                       )}
                       <div className={`max-w-[70%] ${isCurrentUser ? "order-first" : ""}`}>
                         <div
-                          className={`p-3 rounded-lg ${isCurrentUser
+                          className={`p-3 rounded-lg ${
+                            isCurrentUser
                               ? "bg-blue-500 text-white rounded-br-sm"
                               : "bg-gray-100 text-gray-900 rounded-bl-sm"
-                            }`}
+                          }`}
                         >
                           {msg.message && <p className="text-sm break-words">{msg.message}</p>}
                           {msg.image && (
@@ -670,10 +673,11 @@ export default function EnhancedChatTools() {
                 <button
                   onClick={sendMessage}
                   disabled={(!input.trim() && images.length === 0) || loading || !receiver?.id}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${(!input.trim() && images.length === 0) || loading || !receiver?.id
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                    (!input.trim() && images.length === 0) || loading || !receiver?.id
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105"
-                    }`}
+                  }`}
                 >
                   {loading ? (
                     <div className="animate-spin w-4 h-4 border-b-2 border-white rounded-full" />
