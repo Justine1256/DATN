@@ -65,7 +65,6 @@ function GoogleCallbackContent() {
 
         let tokenData
         const tokenText = await tokenResponse.text()
-        console.log("Token response:", tokenText)
 
         try {
           tokenData = JSON.parse(tokenText)
@@ -133,7 +132,6 @@ function GoogleCallbackContent() {
           throw new Error(authData.message || `${isLogin ? "Login" : "Signup"} failed`)
         }
 
-        console.log("Auth response data:", authData)
 
         notification.success({
           message: isLogin ? "Đăng nhập thành công!" : "Đăng ký thành công!",
@@ -145,7 +143,6 @@ function GoogleCallbackContent() {
 
         if (authData.token) {
           Cookies.set("authToken", authData.token, { expires: 7 })
-          console.log("Cookie set with token:", authData.token)
         } else {
           console.error("No token found in response:", authData)
         }

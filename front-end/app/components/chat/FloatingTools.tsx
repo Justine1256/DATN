@@ -125,19 +125,15 @@ export default function EnhancedChatTools() {
   }, [handleScroll])
 
   useEffect(() => {
-    console.log("🔍 Checking authentication...")
     const token = localStorage.getItem("token") || Cookies.get("authToken")
-    console.log("🔑 Token found:", token ? "Yes" : "No")
 
     if (token) {
       setToken(token)
-      console.log("📡 Fetching user data...")
       axios
         .get(`${API_BASE_URL}/user`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => {
-          console.log("✅ User data loaded:", res.data)
           setCurrentUser(res.data)
         })
         .catch((err) => {
@@ -148,7 +144,6 @@ export default function EnhancedChatTools() {
           }
         })
     } else {
-      console.log("⚠️ No token found - user needs to login")
     }
   }, [])
 
@@ -168,17 +163,9 @@ export default function EnhancedChatTools() {
 
   const handleSocketData = useCallback(
     (data: ChatSocketData) => {
-      console.log("📨 Socket data received:", data)
 
       if (data.type === "message" && data.message) {
         const message = data.message
-        console.log("💬 New message:", message)
-        console.log("🔍 Debug info:")
-        console.log("  - Current user ID:", currentUser?.id)
-        console.log("  - Receiver ID:", receiver?.id)
-        console.log("  - Message sender ID:", message.sender_id)
-        console.log("  - Message receiver ID:", message.receiver_id)
-        console.log("  - Active chat:", activeChat)
 
         const isCurrentConversation =
           receiver?.id &&
@@ -188,10 +175,8 @@ export default function EnhancedChatTools() {
             (Number(message.sender_id) === Number(currentUser?.id) &&
               Number(message.receiver_id) === Number(receiver.id)))
 
-        console.log("🎯 Is current conversation:", isCurrentConversation)
 
         if (isCurrentConversation) {
-          console.log("📝 Adding message to current conversation")
           setMessages((prev) => {
             const messageExists = prev.some((msg) => {
               // Kiểm tra ID thật (không phải temp ID)
@@ -200,13 +185,11 @@ export default function EnhancedChatTools() {
             })
 
             if (messageExists) {
-              console.log("📝 Message already exists, skipping...")
               return prev
             }
 
             // Vì tin nhắn từ current user đã được thêm qua optimistic update
             if (Number(message.sender_id) === Number(currentUser?.id)) {
-              console.log("📝 Message from current user, updating optimistic message...")
               // Cập nhật optimistic message với data thật
               return prev.map((msg) => {
                 if (
@@ -223,7 +206,6 @@ export default function EnhancedChatTools() {
               })
             }
 
-            console.log("✅ Message added to conversation")
             const newMessages = [
               ...prev,
               {
@@ -239,7 +221,6 @@ export default function EnhancedChatTools() {
           Number(message.sender_id) === Number(currentUser?.id) ||
           Number(message.receiver_id) === Number(currentUser?.id)
         ) {
-          console.log("🔄 Message involves current user, refreshing recent contacts...")
           setTimeout(() => {
             fetchRecentContacts()
           }, 200)
@@ -249,10 +230,8 @@ export default function EnhancedChatTools() {
           Number(message.receiver_id) === Number(currentUser?.id) &&
           Number(message.sender_id) !== Number(currentUser?.id)
         ) {
-          console.log("🔔 Processing notification for received message")
 
           if (!isCurrentConversation || !activeChat) {
-            console.log("🔔 Creating notification for received message")
             setNotifications((prev) => {
               const notificationExists = prev.some((n) => String(n.id) === String(message.id))
               if (notificationExists) return prev
@@ -271,7 +250,6 @@ export default function EnhancedChatTools() {
           }
         }
       } else if (data.type === "typing") {
-        console.log("⌨️ Typing event received:", data, "Current user:", currentUser?.id)
         if (data.user_id && Number(data.user_id) !== Number(currentUser?.id)) {
           const isTyping = data.is_typing ?? false
           setIsReceiverTyping(isTyping)
@@ -285,7 +263,6 @@ export default function EnhancedChatTools() {
   )
 
   const handleConnectionStatus = useCallback((status: ConnectionStatus) => {
-    console.log("🔌 Connection status changed:", status)
     setConnectionStatus(status)
   }, [])
 
@@ -320,7 +297,6 @@ export default function EnhancedChatTools() {
         headers: { Authorization: `Bearer ${token}` },
       })
 
-      console.log("📨 Raw response data:", res.data)
 
       let messagesData = res.data
 
@@ -363,12 +339,7 @@ export default function EnhancedChatTools() {
 
       setHasMoreMessages(messagesData.length === 15)
 
-      console.log(
-        "✅ Messages loaded:",
-        sortedMessages.length,
-        "Total:",
-        reset ? sortedMessages.length : messages.length + sortedMessages.length,
-      )
+
     } catch (error) {
       console.error("❌ Lỗi khi lấy tin nhắn:", error)
       if (axios.isAxiosError(error)) {
@@ -388,32 +359,22 @@ export default function EnhancedChatTools() {
   const loadMoreMessages = useCallback(async () => {
     if (!receiver?.id || loadingMore || !hasMoreMessages) return
 
-    console.log("📚 Loading more messages...")
     await fetchMessages(false)
   }, [receiver?.id, loadingMore, hasMoreMessages, currentOffset])
 
   const sendMessage = async () => {
-    console.log("🚀 sendMessage called")
-    console.log("📝 Input:", input)
-    console.log("👤 Receiver:", receiver)
-    console.log("🖼️ Images:", images.length)
+
 
     if (!receiver?.id || (!input.trim() && images.length === 0)) {
-      console.log("❌ Validation failed:")
-      console.log("  - Receiver ID:", receiver?.id)
-      console.log("  - Input trim:", input.trim())
-      console.log("  - Images length:", images.length)
+
       return
     }
 
     const token = localStorage.getItem("token") || Cookies.get("authToken")
-    console.log("🔑 Token:", token ? "Found" : "Not found")
     if (!token) {
-      console.log("❌ No authentication token found")
       return
     }
 
-    console.log("📤 Sending message to API...")
 
     const formData = new FormData()
     formData.append("receiver_id", receiver.id.toString())
@@ -429,11 +390,6 @@ export default function EnhancedChatTools() {
     // Xử lý ảnh với validation tốt hơn
     if (images.length > 0) {
       const imageFile = images[0]
-      console.log("🖼️ Image file details:", {
-        name: imageFile.name,
-        size: imageFile.size,
-        type: imageFile.type,
-      })
 
       // Kiểm tra kích thước file (max 5MB)
       if (imageFile.size > 5 * 1024 * 1024) {
@@ -452,15 +408,7 @@ export default function EnhancedChatTools() {
       formData.append("image", imageFile)
     }
 
-    // Log FormData contents
-    console.log("📋 FormData contents:")
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`)
-      } else {
-        console.log(`  ${key}: ${value}`)
-      }
-    }
+
 
     const optimisticId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const optimisticMessage: Message = {
@@ -483,7 +431,6 @@ export default function EnhancedChatTools() {
     setImages([])
     setImagePreviews([])
 
-    console.log("🌐 API URL:", `${API_BASE_URL}/messages`)
 
     try {
       const res = await axios.post(`${API_BASE_URL}/messages`, formData, {
@@ -494,7 +441,6 @@ export default function EnhancedChatTools() {
         timeout: 30000, // Tăng timeout cho upload ảnh
       })
 
-      console.log("✅ Message sent successfully:", res.data)
 
       // Chỉ refresh recent contacts
       setTimeout(() => {
@@ -593,11 +539,9 @@ export default function EnhancedChatTools() {
   }
 
   const handleContactClick = (user: User) => {
-    console.log("👤 Contact clicked:", user.name, "ID:", user.id)
     setReceiver(user)
     setActiveChat(true)
     setIsInitialLoad(true)
-    console.log("✅ Active chat set to true for user:", user.id)
   }
 
   return (
@@ -938,14 +882,12 @@ export default function EnhancedChatTools() {
                       }
 
                       if (sendTypingEvent) {
-                        console.log("⌨️ Sending typing start event")
                         sendTypingEvent(true, receiver?.id)
                       }
 
                       typingTimeoutRef.current = setTimeout(() => {
                         setIsUserTyping(false)
                         if (sendTypingEvent) {
-                          console.log("⌨️ Sending typing stop event")
                           sendTypingEvent(false, receiver?.id)
                         }
                       }, 1000)
