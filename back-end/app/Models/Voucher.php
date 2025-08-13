@@ -46,4 +46,8 @@ class Voucher extends Model
     {
         return $this->belongsToMany(Category::class, 'voucher_categories');
     }
+    public function shop()
+    {
+        return $this->belongsTo(Shop::class, 'shop_id');
+    }
 }
