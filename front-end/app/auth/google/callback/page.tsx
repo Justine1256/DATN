@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { notification } from "antd"
 import { CheckCircleOutlined, ExclamationCircleOutlined } from "@ant-design/icons"
 import Cookies from "js-cookie"
 
-export default function GoogleCallback() {
+function GoogleCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState("Đang xử lý...")
@@ -182,5 +182,13 @@ export default function GoogleCallback() {
         <p className="text-gray-400 text-sm mt-2">Vui lòng đợi...</p>
       </div>
     </div>
-  )
+  );
+}
+
+export default function GoogleCallback() {
+  return (
+    <Suspense fallback={<div>Loading Google callback...</div>}>
+      <GoogleCallbackContent />
+    </Suspense>
+  );
 }
