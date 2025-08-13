@@ -8,6 +8,7 @@ use App\Models\VoucherUser;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Cart;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class VoucherController extends Controller
 {
@@ -17,7 +18,104 @@ class VoucherController extends Controller
         $vouchers = Voucher::all();
         return response()->json($vouchers);
     }
+        public function listvoucheradmin(Request $request)
+    {
+        $q = Voucher::query()
+            ->whereNull('shop_id'); // voucher dùng chung
 
+        // Tìm theo mã
+        if ($search = $request->query('search')) {
+            $q->where('code', 'like', "%{$search}%");
+        }
+
+        // Lọc theo trạng thái thời gian
+        if ($status = $request->query('status')) {
+            $now = Carbon::now();
+            if ($status === 'active') {
+                $q->whereDate('start_date', '<=', $now)->whereDate('end_date', '>=', $now);
+            } elseif ($status === 'upcoming') {
+                $q->whereDate('start_date', '>', $now);
+            } elseif ($status === 'expired') {
+                $q->whereDate('end_date', '<', $now);
+            }
+        }
+
+        // Lọc theo khoảng ngày tạo voucher (optional)
+        if ($from = $request->query('date_from')) {
+            $q->whereDate('start_date', '>=', $from);
+        }
+        if ($to = $request->query('date_to')) {
+            $q->whereDate('end_date', '<=', $to);
+        }
+
+        // Sắp xếp
+        $sort = $request->query('sort', '-created_at'); // mặc định mới nhất
+        // ví dụ: sort=code hoặc sort=-end_date
+        if (str_starts_with($sort, '-')) {
+            $q->orderBy(ltrim($sort, '-'), 'desc');
+        } else {
+            $q->orderBy($sort, 'asc');
+        }
+
+        $perPage = (int) $request->query('per_page', 15);
+        $vouchers = $q->paginate($perPage);
+
+        return response()->json([
+            'message' => 'Danh sách voucher dùng chung',
+            'data' => $vouchers
+        ]);
+    }
+        public function listvouchershop(Request $request)
+    {
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+
+        if (!$user || $user->role !== 'seller') {
+            return response()->json(['message' => 'Bạn không có quyền xem voucher shop'], 403);
+        }
+        if (!$user->shop) {
+            return response()->json(['message' => 'Bạn chưa có shop'], 400);
+        }
+
+        $q = Voucher::query()->where('shop_id', $user->shop->id);
+
+        if ($search = $request->query('search')) {
+            $q->where('code', 'like', "%{$search}%");
+        }
+
+        if ($status = $request->query('status')) {
+            $now = Carbon::now();
+            if ($status === 'active') {
+                $q->whereDate('start_date', '<=', $now)->whereDate('end_date', '>=', $now);
+            } elseif ($status === 'upcoming') {
+                $q->whereDate('start_date', '>', $now);
+            } elseif ($status === 'expired') {
+                $q->whereDate('end_date', '<', $now);
+            }
+        }
+
+        if ($from = $request->query('date_from')) {
+            $q->whereDate('start_date', '>=', $from);
+        }
+        if ($to = $request->query('date_to')) {
+            $q->whereDate('end_date', '<=', $to);
+        }
+
+        $sort = $request->query('sort', '-created_at');
+        if (str_starts_with($sort, '-')) {
+            $q->orderBy(ltrim($sort, '-'), 'desc');
+        } else {
+            $q->orderBy($sort, 'asc');
+        }
+
+        $perPage = (int) $request->query('per_page', 15);
+        $vouchers = $q->paginate($perPage);
+
+        return response()->json([
+            'message' => 'Danh sách voucher của shop',
+            'data' => $vouchers
+        ]);
+    }
     // 2. Tạo mới voucher
     public function store(Request $request)
     {
