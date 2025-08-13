@@ -102,7 +102,7 @@ export default function LoginForm() {
         <input
           type="text"
           name="email"
-          placeholder="Email"
+          placeholder="Email, số điện thoại hoặc tên đăng nhập"
           onChange={handleChange}
           className="custom-input border-0 border-b-2 border-gray-300 rounded-none px-0 py-2 w-full focus:outline-none text-sm text-black placeholder-gray-400"
           disabled={isLoading}
