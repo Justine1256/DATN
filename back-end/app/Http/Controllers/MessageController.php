@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\MessageSent;
+use App\Events\UserTyping;
 use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -110,4 +111,23 @@ public function store(Request $request)
 
 
     // (Có thể có thêm hàm xóa hoặc đánh dấu đã đọc nếu cần)
+    public function typing(Request $request)
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'receiver_id' => 'required|integer|exists:users,id',
+            'is_typing' => 'required|boolean'
+        ]);
+
+        // Broadcast typing event to the receiver's channel
+        event(new UserTyping(
+            $user->id,
+            $validated['receiver_id'],
+            $validated['is_typing'],
+            $user->name
+        ));
+
+        return response()->json(['success' => true]);
+    }
 }

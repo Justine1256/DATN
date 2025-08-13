@@ -2,7 +2,6 @@
 
 namespace App\Events;
 
-use App\Models\Message;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -11,15 +10,19 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageSent implements ShouldBroadcast
+class UserTyping implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $message;
+    public $userId;
+    public $receiverId;
+    public $isTyping;
 
-    public function __construct(Message $message)
+    public function __construct($userId, $receiverId, $isTyping)
     {
-        $this->message = $message->load(['sender', 'receiver']);
+        $this->userId = $userId;
+        $this->receiverId = $receiverId;
+        $this->isTyping = $isTyping;
     }
 
     /**
@@ -27,10 +30,9 @@ class MessageSent implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        // Broadcast to both sender and receiver channels
+        // Only broadcast to the receiver's channel
         return [
-            new PrivateChannel('private-chat.' . $this->message->sender_id),
-            new PrivateChannel('private-chat.' . $this->message->receiver_id),
+            new PrivateChannel('private-chat.' . $this->receiverId),
         ];
     }
 
@@ -39,7 +41,7 @@ class MessageSent implements ShouldBroadcast
      */
     public function broadcastAs(): string
     {
-        return 'MessageSent';
+        return 'UserTyping';
     }
 
     /**
@@ -48,7 +50,8 @@ class MessageSent implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'message' => $this->message->toArray(),
+            'user_id' => $this->userId,
+            'is_typing' => $this->isTyping,
         ];
     }
 }
