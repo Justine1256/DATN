@@ -25,11 +25,9 @@ export function useChatSocket(
   // Initialize Pusher connection
   useEffect(() => {
     if (!currentUserId || !token) {
-      console.log("❌ Missing currentUserId or token for Pusher connection")
       return
     }
 
-    console.log("🚀 Initializing Pusher connection...")
     onConnectionStatus("connecting")
 
     try {
@@ -45,12 +43,10 @@ export function useChatSocket(
 
       // Connection event handlers
       pusherRef.current.connection.bind("connected", () => {
-        console.log("✅ Pusher connected successfully")
         onConnectionStatus("connected")
       })
 
       pusherRef.current.connection.bind("disconnected", () => {
-        console.log("⚠️ Pusher disconnected")
         onConnectionStatus("disconnected")
       })
 
@@ -63,7 +59,6 @@ export function useChatSocket(
       const userChannel = pusherRef.current.subscribe(`private-user.${currentUserId}`)
 
       userChannel.bind("message", (data: any) => {
-        console.log("📨 Received message via Pusher:", data)
         onSocketData({
           type: "message",
           message: data,
@@ -71,7 +66,6 @@ export function useChatSocket(
       })
 
       userChannel.bind("typing", (data: any) => {
-        console.log("⌨️ Received typing event via Pusher:", data)
         onSocketData({
           type: "typing",
           user_id: data.user_id,
@@ -100,7 +94,6 @@ export function useChatSocket(
   const sendTypingEvent = useCallback(
     (isTyping: boolean) => {
       if (!receiverId || !currentUserId || !pusherRef.current) {
-        console.log("❌ Cannot send typing event - missing data")
         return
       }
 
@@ -111,7 +104,6 @@ export function useChatSocket(
           is_typing: isTyping,
         })
 
-        console.log(`⌨️ Sent typing event: ${isTyping ? "start" : "stop"}`)
       } catch (error) {
         console.error("❌ Failed to send typing event:", error)
       }
