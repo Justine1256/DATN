@@ -119,9 +119,13 @@ public function toSearchableArray()
         'sold' => $this->sold,
         'status' => $this->status,  // thêm trường status
         'stock' => $this->stock,    // thêm trường stock
-        
+
     ];
 }
-
+public function getEffectivePriceAttribute() {
+    return (!is_null($this->sale_price) && (float)$this->sale_price > 0)
+        ? (float)$this->sale_price
+        : (float)$this->price;
+}
 
 }
