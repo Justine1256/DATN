@@ -51,7 +51,6 @@ export function useChatSocket(
       })
 
       pusherRef.current.connection.bind("error", (error: any) => {
-        console.error("❌ Pusher connection error:", error)
         onConnectionStatus("error")
       })
 
@@ -75,7 +74,6 @@ export function useChatSocket(
 
       channelRef.current = userChannel
     } catch (error) {
-      console.error("❌ Failed to initialize Pusher:", error)
       onConnectionStatus("error")
     }
 
@@ -105,7 +103,6 @@ export function useChatSocket(
         })
 
       } catch (error) {
-        console.error("❌ Failed to send typing event:", error)
       }
     },
     [receiverId, currentUserId],
