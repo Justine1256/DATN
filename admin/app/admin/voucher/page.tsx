@@ -110,7 +110,7 @@ export default function AdminVoucherList() {
             const token =
                 Cookies.get('authToken'); // lấy từ cookie nếu có
 
-            const res = await axios.get(`${API_BASE_URL}/vouchers/list/shop`, {
+            const res = await axios.get(`${API_BASE_URL}/vouchers/list/admin`, {
                 params: { page: p, per_page: pp },
                 headers: {
                     'Content-Type': 'application/json',
