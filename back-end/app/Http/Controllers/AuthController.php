@@ -126,7 +126,7 @@ public function googleSignup(Request $request)
                 'name' => $name,
                 'username' => $username,
                 'email' => $email,
-                'phone' => '', // Empty phone for Google signup
+                'phone' => null,
                 'avatar' => $avatar,
                 'password' => Hash::make(Str::random(32)), // Random password for Google users
                 'email_verified_at' => now(), // Google emails are pre-verified
@@ -163,7 +163,7 @@ public function googleSignup(Request $request)
             'email' => 'required|email',
             'name' => 'required|string|max:100',
             'username' => 'required|string|max:50',
-            'phone' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
             'avatar' => 'nullable|string|max:255',
         ]);
 
@@ -220,7 +220,7 @@ public function googleSignup(Request $request)
                     'name' => $user->name,
                     'username' => $user->username,
                     'email' => $user->email,
-                    'phone' => $user->phone,
+                    'phone' => null,
                     'avatar' => $user->avatar,
                     'role' => $user->role,
                     'rank' => $user->rank,
