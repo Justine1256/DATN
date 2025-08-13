@@ -1,74 +1,118 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import VoucherShipCard, { VoucherShip } from './VoucherCard';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Cookies from 'js-cookie';
-import { API_BASE_URL } from "@/utils/api";
 import axios from 'axios';
+import { API_BASE_URL } from '@/utils/api';
+import {
+    Card,
+    Row,
+    Col,
+    Tag,
+    Typography,
+    Button,
+    Space,
+    Spin,
+    Empty,
+    Pagination,
+} from 'antd';
+import { GiftTwoTone } from '@ant-design/icons';
+
+const { Text } = Typography;
+
+export interface VoucherShip {
+    id: number;
+    code: string;
+    discount_value: number;
+    discount_type: 'percent' | 'amount';
+    discountText: string;
+    condition: string;
+    expiry?: string;
+    imageUrl?: string;
+    isSaved?: boolean;
+}
+
+const BRAND = '#DB4444';
+const SAVED = '#52c41a';
 
 export default function VoucherList() {
     const [vouchers, setVouchers] = useState<VoucherShip[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showPopup, setShowPopup] = useState(false);
-    const [popupMessage, setPopupMessage] = useState('');
-    const [popupType, setPopupType] = useState<'success' | 'error'>('success');
 
-    const token = Cookies.get('authToken');
+    // Popup trượt từ phải
+    const [showPopup, setShowPopup] = useState(false);
+    const [popupMessage, setPopupMessage] = useState<string>('');
+    const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // paginate
+    const [page, setPage] = useState(1);
+    const pageSize = 6;
+    const total = vouchers.length;
+    const paged = useMemo(
+        () => vouchers.slice((page - 1) * pageSize, page * pageSize),
+        [vouchers, page]
+    );
+
+    const token = useMemo(() => Cookies.get('authToken') || '', []);
 
     useEffect(() => {
         if (!token) {
             setLoading(false);
             return;
         }
-
-        fetchVouchers();
+        void fetchVouchers();
     }, [token]);
 
-    const fetchVouchers = async () => {
+    async function fetchVouchers() {
         try {
-            const response = await axios.get(`${API_BASE_URL}/vouchers`, {
+            const { data } = await axios.get(`${API_BASE_URL}/vouchers`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     Accept: 'application/json',
                 },
             });
 
-            const formatted: VoucherShip[] = response.data.map((v: any) => ({
+            const formatted: VoucherShip[] = (data || []).map((v: any) => ({
                 id: v.id,
                 code: v.code,
-                discount_value: v.discount_value,
-                discount_type: v.discount_type,
+                discount_value: Number(v.discount_value),
+                discount_type: (v.discount_type || 'amount') as 'percent' | 'amount',
                 discountText:
                     v.discount_type === 'percent'
                         ? `Giảm ${v.discount_value}%`
                         : `Giảm ${Number(v.discount_value).toLocaleString('vi-VN')}đ`,
-                condition: `Đơn từ ${Number(v.min_order_value).toLocaleString('vi-VN')}đ`,
+                condition: `Đơn từ ${Number(v.min_order_value || 0).toLocaleString('vi-VN')}đ`,
                 expiry: v.end_date?.split('T')[0],
                 imageUrl: '/ship.jpg',
-                isSaved: v.is_saved || false,
+                isSaved: !!v.is_saved,
             }));
 
             setVouchers(formatted);
-        } catch (err) {
-            console.error('❌ Lỗi khi lấy voucher:', err);
+            setPage(1);
+        } catch {
+            showToast('Không tải được voucher');
         } finally {
             setLoading(false);
         }
-    };
+    }
 
-    const handleSave = async (voucherId: number) => {
-        const existingVoucher = vouchers.find(v => v.id === voucherId);
-        if (existingVoucher?.isSaved) {
-            setPopupMessage("Voucher này đã có trong giỏ hàng!");
-            setPopupType('error');
-            setShowPopup(true);
-            setTimeout(() => setShowPopup(false), 3000);
+    /** Popup nhỏ + trượt từ phải qua (kiểu bạn yêu cầu) */
+    function showToast(message: string, duration = 2500) {
+        setPopupMessage(message);
+        setShowPopup(true);
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = setTimeout(() => setShowPopup(false), duration);
+    }
+
+    async function handleSave(voucherId: number) {
+        const existing = vouchers.find((v) => v.id === voucherId);
+        if (existing?.isSaved) {
+            showToast('Voucher đã tồn tại trong giỏ');
             return;
         }
 
         try {
-            const token = Cookies.get('authToken');
-            const response = await axios.post(
+            const res = await axios.post(
                 `${API_BASE_URL}/voucherseve`,
                 { voucher_id: voucherId },
                 {
@@ -79,83 +123,129 @@ export default function VoucherList() {
                 }
             );
 
-            if (response.data.success) {
-                setVouchers(prev => prev.map(v =>
-                    v.id === voucherId ? { ...v, isSaved: true } : v
-                ));
+            const msg: string | undefined = res?.data?.message;
 
-                setPopupMessage("Voucher đã được lưu vào giỏ hàng!");
-                setPopupType('success');
-                setShowPopup(true);
-                setTimeout(() => setShowPopup(false), 3000);
+            setVouchers((prev) =>
+                prev.map((v) => (v.id === voucherId ? { ...v, isSaved: true } : v))
+            );
 
-                // fetchVouchers(); // không cần thiết nếu đã cập nhật local state
+            if (msg && msg.toLowerCase().includes('trước đó')) {
+                showToast('Voucher đã tồn tại trong giỏ');
             } else {
-                setPopupMessage("Lỗi khi lưu voucher, vui lòng thử lại.");
-                setPopupType('error');
-                setShowPopup(true);
-                setTimeout(() => setShowPopup(false), 3000);
+                showToast('Lưu voucher thành công');
             }
         } catch (error: any) {
-            console.error('❌ Lỗi khi lưu voucher:', error);
-            if (error.response?.status === 409) {
-                setPopupMessage("Voucher này đã có trong giỏ hàng!");
-                setPopupType('error');
-                setVouchers(prev => prev.map(v =>
-                    v.id === voucherId ? { ...v, isSaved: true } : v
-                ));
+            if (error?.response?.status === 409) {
+                setVouchers((prev) =>
+                    prev.map((v) => (v.id === voucherId ? { ...v, isSaved: true } : v))
+                );
+                showToast('Voucher đã tồn tại trong giỏ');
             } else {
-                setPopupMessage("Đã xảy ra lỗi khi lưu voucher.");
-                setPopupType('error');
+                showToast('Lưu voucher thất bại, vui lòng thử lại');
             }
-
-            setShowPopup(true);
-            setTimeout(() => setShowPopup(false), 3000);
         }
-    };
+    }
+
+    useEffect(() => {
+        return () => {
+            if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        };
+    }, []);
 
     return (
-        <div className="py-4 px-4 max-w-[1170px] mx-auto ">
-            {loading && (
-                <div className="flex justify-center items-center py-20">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#db4444]"></div>
-                    <p className="ml-4 text-gray-600">Đang tải mã giảm giá...</p>
+        <div className="px-4 py-4 max-w-[1170px] mx-auto">
+            {/* CSS animation cho popup trượt từ phải */}
+            <style jsx global>{`
+        @keyframes slideInFade {
+          from { transform: translateX(120%); opacity: 0; }
+          to   { transform: translateX(0); opacity: 1; }
+        }
+        .animate-slideInFade {
+          animation: slideInFade .35s ease-out both;
+        }
+      `}</style>
+
+            {/* Popup trượt từ góc phải — theo đúng block bạn gửi */}
+            {showPopup && (
+                <div className="fixed top-[140px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
+                    {popupMessage}
                 </div>
             )}
 
-            {!loading && vouchers.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {vouchers.map((voucher) => (
-                        <div key={voucher.id} className="animate-in fade-in slide-in-from-bottom duration-500">
-                            <VoucherShipCard
-                                voucher={vouchers.find(v => v.id === voucher.id)!}
-                                onSave={() => handleSave(voucher.id)}
-                            />
-                        </div>
-                    ))}
+            {loading ? (
+                <div className="flex justify-center items-center py-20">
+                    <Spin size="large" />
+                    <Text style={{ marginLeft: 12 }}>Đang tải mã giảm giá...</Text>
                 </div>
-            ) : !loading && vouchers.length === 0 ? (
-                <div className="text-center py-20">
-                    <div className="bg-gray-100 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                        </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-700 mb-2">Không có mã giảm giá</h3>
-                    <p className="text-gray-500">Hiện tại chưa có mã giảm giá nào khả dụng.</p>
+            ) : total === 0 ? (
+                <div className="py-16">
+                    <Empty description={<span>Hiện tại chưa có mã giảm giá nào khả dụng</span>} />
                 </div>
-            ) : null}
+            ) : (
+                <>
+                    <Row gutter={[16, 16]}>
+                        {paged.map((v) => (
+                            <Col xs={24} md={12} key={v.id}>
+                                <Card
+                                    styles={{
+                                        header: { borderBottom: 'none', background: '#fff', borderRadius: 8 },
+                                        body: { paddingTop: 12, paddingBottom: 16 },
+                                    }}
+                                    title={
+                                        <Space align="center" size="small">
+                                            <GiftTwoTone twoToneColor={BRAND} />
+                                            <Text strong>{v.code}</Text>
+                                            <Tag color="blue">
+                                                {v.discount_type === 'percent' ? 'Phần trăm' : 'Số tiền'}
+                                            </Tag>
+                                            <Tag>{v.discountText}</Tag>
+                                        </Space>
+                                    }
+                                    extra={
+                                        <Button
+                                            type={v.isSaved ? 'default' : 'primary'}
+                                            onClick={() =>
+                                                v.isSaved ? showToast('Voucher đã tồn tại trong giỏ') : handleSave(v.id)
+                                            }
+                                            style={{
+                                                backgroundColor: v.isSaved ? SAVED : BRAND,
+                                                borderColor: v.isSaved ? SAVED : BRAND,
+                                                color: '#fff',
+                                            }}
+                                        >
+                                            {v.isSaved ? 'Đã lưu' : 'Lưu vào giỏ'}
+                                        </Button>
+                                    }
+                                    variant="outlined"
+                                    style={{
+                                        borderRadius: 12,
+                                        borderColor: '#f0f0f0',
+                                        boxShadow: '0 2px 10px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.03)',
+                                    }}
+                                >
+                                    <Space size="small" direction="vertical" style={{ width: '100%' }}>
+                                        <Text type="secondary">{v.condition}</Text>
+                                        {v.expiry && (
+                                            <Text>
+                                                HSD: <Text strong>{new Date(v.expiry).toLocaleDateString('vi-VN')}</Text>
+                                            </Text>
+                                        )}
+                                    </Space>
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
 
-            {showPopup && (
-                <div className={`fixed top-20 right-5 z-[9999] bg-white text-green-600 text-sm px-4 py-3 rounded-lg shadow-lg border-l-4 border-green-600 animate-slideInFade
-                    ${popupType === 'success' ? 'text-green-600 border-green-600' : 'text-brand border-[#DB4444]'}`}>
-                    <div className="flex items-center">
-                        <svg className={`w-5 h-5 mr-2 ${popupType === 'success' ? 'text-green-600' : 'text-brand'}`} fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        {popupMessage}
+                    <div className="flex justify-center mt-6">
+                        <Pagination
+                            current={page}
+                            total={total}
+                            pageSize={pageSize}
+                            onChange={setPage}
+                            showSizeChanger={false}
+                        />
                     </div>
-                </div>
+                </>
             )}
         </div>
     );

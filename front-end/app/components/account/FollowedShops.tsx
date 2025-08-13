@@ -1,327 +1,292 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import axios from "axios";
-import Cookies from "js-cookie";
-import { useRouter } from "next/navigation";
-import FollowedShopLoading from "../loading/loading";
-import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
-import Image from "next/image";
-import Link from "next/link"; 
-// ✅ Interface cho đối tượng Shop
+import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import Cookies from 'js-cookie';
+import Link from 'next/link';
+import Image from 'next/image';
+import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
+
+import {
+    Row,
+    Col,
+    Card,
+    Tag,
+    Rate,
+    Button,
+    Pagination,
+    Empty,
+    Spin,
+    Typography,
+    Space,
+    Segmented,
+    Input,
+    Tooltip,
+    Popconfirm,
+} from 'antd';
+import {
+    SafetyCertificateTwoTone,
+    DeleteOutlined,
+    FireOutlined,
+    StarFilled,
+    ShopOutlined,
+    SearchOutlined,
+} from '@ant-design/icons';
+
+const { Title, Text, Paragraph } = Typography;
+
+type Status = 'activated' | 'pending' | 'suspended';
 interface Shop {
-    id: number;
-    name: string;
-    description: string;
-    logo?: string;
-    slug: string;
-    rating?: number;
-    is_verified?: boolean;
-    status: "activated" | "pending" | "suspended";
+    id: number; name: string; description: string;
+    logo?: string; slug: string; rating?: number;
+    is_verified?: boolean; status: Status;
 }
 
+const PAGE_SIZE = 6;
+const BRAND = '#DB4444';
+
 export default function FollowedShopsSection() {
+    // data
     const [shops, setShops] = useState<Shop[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // ui state
+    const [search, setSearch] = useState('');
+    const [sort, setSort] = useState<'new' | 'top'>('new');
     const [currentPage, setCurrentPage] = useState(1);
     const [unfollowing, setUnfollowing] = useState<number | null>(null);
-    const [popupText, setPopupText] = useState("");
+
+    // custom popup
     const [showPopup, setShowPopup] = useState(false);
-    const router = useRouter();
-    
-    const [popupType, setPopupType] = useState<"success" | "error">("success");
+    const [popupMessage, setPopupMessage] = useState('');
+    const [popupType, setPopupType] = useState<'success' | 'error'>('success');
 
-    const shopsPerPage = 6;
-    const totalPages = Math.ceil(shops.length / shopsPerPage);
-    const paginatedShops = shops.slice(
-        (currentPage - 1) * shopsPerPage,
-        currentPage * shopsPerPage
-    );
-
-    // ✅ Lấy danh sách shop đã theo dõi
     useEffect(() => {
         const fetchFollowedShops = async () => {
-            const token = Cookies.get("authToken");
-            if (!token) return;
-
+            const token = Cookies.get('authToken');
+            if (!token) { setLoading(false); return; }
             try {
                 const res = await axios.get(`${API_BASE_URL}/my/followed-shops`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                setShops(res.data.shops || []);
-            } catch (err) {
-                console.error("❌ Lỗi khi lấy danh sách shop:", err);
-            } finally {
-                setLoading(false);
-            }
+                setShops(res.data?.shops || []);
+            } catch {
+                setPopupType('error');
+                setPopupMessage('Không tải được danh sách shop đã theo dõi');
+                setShowPopup(true); setTimeout(() => setShowPopup(false), 2200);
+            } finally { setLoading(false); }
         };
-
         fetchFollowedShops();
     }, []);
 
-    // ✅ Hủy theo dõi
-    const handleUnfollow = async (shopId: number) => {
-        const token = Cookies.get("authToken");
-        if (!token) return;
+    // search + sort
+    const filtered = useMemo(() => {
+        let data = [...shops];
+        if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            data = data.filter(
+                s => s.name.toLowerCase().includes(q) || (s.description || '').toLowerCase().includes(q)
+            );
+        }
+        data.sort((a, b) => sort === 'top' ? (b.rating || 0) - (a.rating || 0) : b.id - a.id);
+        return data;
+    }, [shops, search, sort]);
 
+    const total = filtered.length;
+    const pageData = useMemo(
+        () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+        [filtered, currentPage]
+    );
+
+    const handleUnfollow = async (shopId: number) => {
+        const token = Cookies.get('authToken');
+        if (!token) return;
         setUnfollowing(shopId);
         try {
             const res = await fetch(`${API_BASE_URL}/shops/${shopId}/unfollow`, {
-                method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/json",
-                },
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
             });
-
-            if (res.ok) {
-                setShops((prev) => prev.filter((s) => s.id !== shopId));
-                setPopupText("Đã hủy theo dõi shop");
-                setPopupType("success");
-                setShowPopup(true);
-                setTimeout(() => setShowPopup(false), 3000);
-            } else {
-                setPopupText("Hủy theo dõi thất bại. Vui lòng thử lại!");
-                setPopupType("error");
-                setShowPopup(true);
-                setTimeout(() => setShowPopup(false), 3000);
-                console.error("❌ Hủy theo dõi thất bại");
-            }
-        } catch (err) {
-            setPopupText("Có lỗi xảy ra. Vui lòng thử lại!");
-            setPopupType("error");
-            setShowPopup(true);
-            setTimeout(() => setShowPopup(false), 3000);
-            console.error("❌ Lỗi gửi yêu cầu hủy theo dõi:", err);
-        } finally {
-            setUnfollowing(null);
-        }
+            if (!res.ok) throw new Error();
+            setShops(prev => prev.filter(s => s.id !== shopId));
+            setPopupType('success'); setPopupMessage('Đã hủy theo dõi shop');
+            setShowPopup(true); setTimeout(() => setShowPopup(false), 1600);
+            const remain = total - 1;
+            const lastPage = Math.max(1, Math.ceil(remain / PAGE_SIZE));
+            if (currentPage > lastPage) setCurrentPage(lastPage);
+        } catch {
+            setPopupType('error'); setPopupMessage('Hủy theo dõi thất bại. Vui lòng thử lại!');
+            setShowPopup(true); setTimeout(() => setShowPopup(false), 1800);
+        } finally { setUnfollowing(null); }
     };
 
+    const StatusTag = ({ v }: { v: Status }) => (
+        v === 'activated' ? <Tag color="green">Đang hoạt động</Tag>
+            : v === 'pending' ? <Tag color="gold">Chờ duyệt</Tag>
+                : <Tag>Tạm khóa</Tag>
+    );
+
+    const ShopLogo = ({ src, alt }: { src: string; alt: string }) => (
+        <div style={{
+            width: 64, height: 64, borderRadius: 16, overflow: 'hidden',
+            background: '#fff', border: '1px solid #eee'
+        }}>
+            <Image src={src} alt={alt} width={64} height={64} style={{ width: 64, height: 64, objectFit: 'cover' }} />
+        </div>
+    );
+
     return (
-        <div className="flex justify-center w-full">
-            <div className="w-full max-w-[1200px] px-2 mt-20">
-                {/* Header Section */}
-                <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-1 h-8 bg-gradient-to-b from-[#DB4444] to-[#ff6b6b] rounded-full"></div>
-                        <h2 className="text-2xl font-bold bg-gradient-to-r from-[#DB4444] to-[#ff6b6b] bg-clip-text text-transparent">
-                            Danh sách shop theo dõi
-                        </h2>
-                    </div>
-                    <p className="text-gray-600 ml-4">
-                        Quản lý và theo dõi các shop yêu thích của bạn
-                    </p>
-                </div>
-
-                <section className="p-8 bg-white rounded-2xl shadow-lg border border-gray-100 backdrop-blur-sm">
-                    {loading ? (
-                        <FollowedShopLoading />
-                    ) : shops.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16">
-                            <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-6">
-                                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                </svg>
-                            </div>
-                            <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                                Chưa có shop nào
-                            </h3>
-                            <p className="text-gray-500 text-center max-w-md">
-                                Bạn chưa theo dõi shop nào. Hãy khám phá và theo dõi những shop yêu thích để cập nhật sản phẩm mới nhất!
-                            </p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Shop Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-                                {paginatedShops.map((shop) => (
-                                    <div
-                                        key={shop.id}
-                                        className="relative bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 transform"
-                                    >
-                                        {/* Card Header */}
-                                        <Link href={`/shop/${shop.slug}`} className="block">
-                                        <div className="p-6 pb-4 flex items-start gap-4">
-                                            {/* Avatar with gradient border */}
-                                            <div className="relative">
-                                                <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100">
-                                                    <Image
-                                                        src={shop.logo ? `${STATIC_BASE_URL}/${shop.logo}` : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`}
-                                                        alt={shop.name}
-                                                        width={48}
-                                                        height={48}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                                {/* Verified Badge */}
-                                                {shop.is_verified && (
-                                                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#DB4444] rounded-full flex items-center justify-center">
-                                                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                        </svg>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="text-lg font-semibold text-gray-900 truncate mb-1 group-hover:text-brand transition-colors duration-200">
-                                                    {shop.name}
-                                                </h3>
-
-                                                {/* Status Badge */}
-                                                {/* Status Badge */}
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <span
-                                                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${shop.status === "activated"
-                                                            ? "bg-green-100 text-green-700 border border-green-200"
-                                                            : shop.status === "pending"
-                                                                ? "bg-yellow-100 text-yellow-700 border border-yellow-200"
-                                                                : "bg-gray-100 text-gray-600 border border-gray-200"
-                                                            }`}
-                                                        style={{
-                                                            maxWidth: "120px", // Ensure the badge doesn't stretch too wide
-                                                            overflow: "hidden",
-                                                            textOverflow: "ellipsis", // Prevent text overflow
-                                                            whiteSpace: "nowrap", // Ensure text stays on one line
-                                                        }}
-                                                    >
-                                                        <div
-                                                            className={`w-1.5 h-1.5 rounded-full mr-2 ${shop.status === "activated"
-                                                                ? "bg-green-500"
-                                                                : shop.status === "pending"
-                                                                    ? "bg-yellow-500"
-                                                                    : "bg-gray-400"
-                                                                }`}
-                                                        ></div>
-                                                        {shop.status === "activated"
-                                                            ? "Đang hoạt động"
-                                                            : shop.status === "pending"
-                                                                ? "Chờ duyệt"
-                                                                : "Tạm khóa"}
-                                                    </span>
-                                                </div>
-
-
-                                                {/* Rating */}
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex items-center gap-1">
-                                                        <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.286 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.175 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.286-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z" />
-                                                        </svg>
-                                                        <span className="text-sm font-semibold text-gray-700">
-                                                            {shop.rating !== null && shop.rating !== undefined ? Number(shop.rating).toFixed(1) : "N/A"}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-xs text-gray-500">Đánh giá</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                       </Link>
-                                        {/* Card Footer */}
-                                        <div className="px-6 pb-6">
-                                            <button
-                                                onClick={() => handleUnfollow(shop.id)}
-                                                disabled={unfollowing === shop.id}
-                                                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border-2 border-[#DB4444] text-brand font-medium transition-all duration-200 hover:bg-[#DB4444] hover:text-white hover:shadow-lg hover:shadow-[#DB4444]/25 disabled:opacity-50 disabled:cursor-not-allowed group"
-                                            >
-                                                {unfollowing === shop.id ? (
-                                                    <>
-                                                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                        <span>Đang hủy...</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                        <span>Hủy theo dõi</span>
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-
-                                        {/* Hover Effect Overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-r from-[#DB4444]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Pagination */}
-                            {totalPages > 1 && (
-                                <div className="flex justify-center items-center gap-2">
-                                    <button
-                                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                                        disabled={currentPage === 1}
-                                        className="p-2 rounded-xl border border-gray-300 text-gray-600 hover:border-[#DB4444] hover:text-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                    </button>
-
-                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                        <button
-                                            key={page}
-                                            onClick={() => setCurrentPage(page)}
-                                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${page === currentPage
-                                                ? "bg-[#DB4444] text-white shadow-lg shadow-[#DB4444]/25"
-                                                : "bg-white text-gray-700 border border-gray-300 hover:border-[#DB4444] hover:text-brand"}`
-                                            }
-                                        >
-                                            {page}
-                                        </button>
-                                    ))}
-
-                                    <button
-                                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                                        disabled={currentPage === totalPages}
-                                        className="p-2 rounded-xl border border-gray-300 text-gray-600 hover:border-[#DB4444] hover:text-brand disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            )}
-                        </>
-                    )}
-
-                 
-                </section>
-            </div>
-            {/* Success Popup */}
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            {/* POPUP góc phải (kiểu bạn đưa) */}
             {showPopup && (
                 <div
-                    className={`fixed top-[140px] right-5 z-[9999] flex items-center gap-2 text-sm px-4 py-3 rounded shadow-lg border-b-4 animate-slideInFade
-      ${popupType === "success"
-                            ? "bg-green-100 text-green-800 border-green-500"
-                            : "bg-red-100 text-red-800 border-red-500"
-                        }`}
-                    role="status"
-                    aria-live="polite"
+                    className="fixed top-[140px] right-5 z-[9999] text-sm px-4 py-2 rounded shadow-lg border-b-4 animate-slideInFade"
+                    style={{
+                        backgroundColor: popupType === 'success' ? '#dcfce7' : '#fee2e2',
+                        color: popupType === 'success' ? '#166534' : '#991b1b',
+                        borderBottomColor: popupType === 'success' ? '#22c55e' : '#ef4444',
+                    }}
                 >
-                    {popupType === "success" ? (
-                        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 
-        01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 
-        0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                    ) : (
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M11 7h2v6h-2zm0 8h2v2h-2z" /><path d="M12 2C6.48 2 2 6.48 2 12s4.48 
-        10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-                        </svg>
-                    )}
-                    <span className="font-medium">{popupText}</span>
+                    {popupMessage}
                 </div>
             )}
 
+            <div style={{ width: '100%', maxWidth: 1200, padding: '0 8px', marginTop: 72 }}>
+                {/* TOOLBAR – bỏ bộ lọc chữ, chỉ search + sort */}
+                <Card
+                    style={{ borderRadius: 16, marginBottom: 16, boxShadow: '0 6px 20px rgba(0,0,0,0.04)' }}
+                    styles={{ body: { padding: 16 } }}
+                >
+                    <Row align="middle" gutter={[12, 12]}>
+                        <Col flex="auto">
+                            <Space size="middle" align="center" wrap>
+                                <div style={{ width: 6, height: 28, borderRadius: 999, background: `linear-gradient(180deg, ${BRAND}, #ff6b6b)` }} />
+                                <Title level={3} style={{ margin: 0 }}>Danh sách shop theo dõi</Title>
+                                <Tag color={BRAND} style={{ borderRadius: 999 }}>{shops.length} shop</Tag>
+                            </Space>
+                            <Text type="secondary">Quản lý & theo dõi các shop yêu thích</Text>
+                        </Col>
+
+                        <Col xs={24} md={10} lg={10}>
+                            <Input
+                                size="large"
+                                allowClear
+                                placeholder="Tìm theo tên hoặc mô tả…"
+                                prefix={<SearchOutlined />}
+                                value={search}
+                                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                            />
+                        </Col>
+
+                        <Col xs={24} md={8} lg={8}>
+                            <Segmented
+                                block
+                                size="large"
+                                value={sort}
+                                onChange={(v) => { setSort(v as any); setCurrentPage(1); }}
+                                options={[
+                                    { label: (<Space><FireOutlined />Mới nhất</Space>), value: 'new' },
+                                    { label: (<Space><StarFilled style={{ color: '#faad14' }} />Điểm cao</Space>), value: 'top' },
+                                ]}
+                            />
+                        </Col>
+                    </Row>
+                </Card>
+
+                {/* LIST */}
+                <Card bordered style={{ borderRadius: 16, boxShadow: '0 8px 24px rgba(0,0,0,0.04)' }} styles={{ body: { padding: 16 } }}>
+                    {loading ? (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+                            <Spin size="large" />
+                        </div>
+                    ) : !total ? (
+                        <div style={{ padding: '48px 0' }}>
+                            <Empty description={<><Text strong>Chưa có shop nào</Text><Text type="secondary" style={{ fontSize: 12 }}>Theo dõi thêm shop để cập nhật sản phẩm mới nhé!</Text></>} />
+                        </div>
+                    ) : (
+                        <>
+                            <Row gutter={[16, 16]}>
+                                {pageData.map((shop) => {
+                                    const logo = shop.logo ? `${STATIC_BASE_URL}/${shop.logo}` : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
+                                    return (
+                                        <Col xs={24} md={12} xl={8} key={shop.id}>
+                                            {/* Card cao bằng nhau: dùng flex column, phần giữa “grow” */}
+                                            <Card hoverable style={{ borderRadius: 16, height: '100%' }} bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+                                                {/* header */}
+                                                <div style={{ padding: 16, display: 'flex', gap: 14, alignItems: 'center', borderBottom: '1px solid #f0f0f0', background: 'linear-gradient(135deg,#fff 0%,#fafafa 100%)' }}>
+                                                    <ShopLogo src={logo} alt={shop.name} />
+                                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                                        <Space size={6} wrap>
+                                                            <Link href={`/shop/${shop.slug}`} style={{ color: 'inherit' }}>
+                                                                <Title level={5} style={{ margin: 0 }} ellipsis>{shop.name}</Title>
+                                                            </Link>
+                                                            {shop.is_verified && (
+                                                                <Tooltip title="Shop đã xác minh">
+                                                                    <SafetyCertificateTwoTone twoToneColor={BRAND} />
+                                                                </Tooltip>
+                                                            )}
+                                                        </Space>
+                                                        <div style={{ marginTop: 6 }}><StatusTag v={shop.status} /></div>
+                                                    </div>
+                                                    <Link href={`/shop/${shop.slug}`}><Button type="text">Xem shop</Button></Link>
+                                                </div>
+
+                                                {/* content grow */}
+                                                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+                                                    <Space size="small" align="center" wrap>
+                                                        <Rate allowHalf disabled value={shop.rating != null ? Number(shop.rating) : 0} />
+                                                        <Text strong>{shop.rating != null ? Number(shop.rating).toFixed(1) : 'N/A'}</Text>
+                                                        <Text type="secondary">điểm</Text>
+                                                    </Space>
+
+                                                    {/* giữ chiều cao mô tả để các thẻ bằng nhau */}
+                                                    <div style={{ minHeight: 44 }}>
+                                                        <Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ margin: 0 }}>
+                                                            {shop.description || 'Shop chưa có mô tả.'}
+                                                        </Paragraph>
+                                                    </div>
+
+                                                    {/* footer cố định dưới cùng */}
+                                                    <div style={{ marginTop: 'auto', display: 'flex', gap: 12 }}>
+                                                        <Link href={`/shop/${shop.slug}`} style={{ flex: 1 }}>
+                                                            <Button block icon={<ShopOutlined />}>Xem shop</Button>
+                                                        </Link>
+                                                        <Popconfirm title="Hủy theo dõi shop?" okText="Xác nhận" cancelText="Hủy" onConfirm={() => handleUnfollow(shop.id)}>
+                                                            <Button
+                                                                block danger ghost icon={<DeleteOutlined />}
+                                                                loading={unfollowing === shop.id}
+                                                                style={{ borderColor: BRAND, color: BRAND, flex: 1 }}
+                                                            >
+                                                                {unfollowing === shop.id ? 'Đang hủy…' : 'Hủy theo dõi'}
+                                                            </Button>
+                                                        </Popconfirm>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        </Col>
+                                    );
+                                })}
+                            </Row>
+
+                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+                                <Pagination
+                                    current={currentPage}
+                                    total={total}
+                                    pageSize={PAGE_SIZE}
+                                    onChange={(p) => setCurrentPage(p)}
+                                    showSizeChanger={false}
+                                />
+                            </div>
+                        </>
+                    )}
+                </Card>
+            </div>
+
+            {/* animation cho popup */}
+            <style jsx global>{`
+        @keyframes slideInFade { 0% { transform: translateY(-8px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        .animate-slideInFade { animation: slideInFade 280ms ease-out; }
+      `}</style>
         </div>
-        
     );
-    
 }

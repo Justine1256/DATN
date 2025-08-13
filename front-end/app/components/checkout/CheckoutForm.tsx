@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '@/utils/api';
@@ -30,16 +30,24 @@ interface District {
   name: string;
 }
 
+interface ManualAddress {
+  full_name: string;
+  address: string;
+  city: string;
+  phone: string;
+  email: string;
+}
+
 interface Props {
   onAddressSelect: (id: number | null) => void;
-  onAddressChange: (manualData: any | null) => void;
+  onAddressChange: (manualData: ManualAddress | null) => void;
 }
 
 export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props) {
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(''); // đang dùng địa chỉ đã lưu nếu có giá trị
   const [disableForm, setDisableForm] = useState(false);
-  const [hasUserInput, setHasUserInput] = useState(false);
+
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -52,27 +60,27 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
 
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
+  const [wards, setWards] = useState<Ward[]>([]);
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
-  const [wards, setWards] = useState<Ward[]>([]);
   const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
 
-  function mapProvinceList(data: any): Province[] {
+  // --- Helpers map API ---
+  const mapProvinceList = (data: any): Province[] => {
     const list = Array.isArray(data) ? data : data?.data || [];
     return list.map((p: any) => ({
       code: Number(p.code ?? p.province_code ?? p.id),
       name: String(p.name ?? p.province_name ?? p.full_name).trim(),
     }));
-  }
-
-  function mapDistrictList(data: any): District[] {
+  };
+  const mapDistrictList = (data: any): District[] => {
     const list = Array.isArray(data) ? data : data?.data || data?.districts || [];
     return list.map((d: any) => ({
       code: Number(d.code ?? d.district_code ?? d.id),
       name: String(d.name ?? d.district_name ?? d.full_name).trim(),
     }));
-  }
-  function mapWardList(data: any): Ward[] {
+  };
+  const mapWardList = (data: any): Ward[] => {
     const list = Array.isArray(data) ? data : data?.data || data?.wards || [];
     return list.map((w: any) => ({
       code: Number(w.code ?? w.ward_code ?? w.id),
@@ -80,8 +88,9 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
       districtCode: w.district_code ? Number(w.district_code) : undefined,
       districtName: w.district_name ? String(w.district_name).trim() : undefined,
     }));
-  }
+  };
 
+  // --- Load Provinces ---
   useEffect(() => {
     axios
       .get('https://tinhthanhpho.com/api/v1/new-provinces')
@@ -89,139 +98,130 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
       .catch(console.error);
   }, []);
 
-
+  // --- Load user's addresses + pick default once ---
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) return;
 
-    axios.get(`${API_BASE_URL}/user`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    }).then((res) => {
-      const userId = res.data.id;
-      axios.get(`${API_BASE_URL}/addressesUser/${userId}`, {
+    axios
+      .get(`${API_BASE_URL}/user`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      }).then((res) => {
-        const sorted = (res.data as Address[]).sort((a, b) => Number(b.is_default) - Number(a.is_default));
+      })
+      .then((res) => {
+        const userId = res.data.id;
+        return axios.get(`${API_BASE_URL}/addressesUser/${userId}`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        });
+      })
+      .then((res) => {
+        const sorted = (res.data as Address[]).sort(
+          (a, b) => Number(b.is_default) - Number(a.is_default)
+        );
         setAddresses(sorted);
 
-        const defaultAddress = sorted.find((a) => a.is_default);
-        if (defaultAddress && !hasUserInput) {
-          const idStr = defaultAddress.id.toString();
+        const defaultAddress = sorted.find((a) => !!a.is_default);
+        if (defaultAddress) {
+          const idStr = String(defaultAddress.id);
           setSelectedAddressId(idStr);
           setDisableForm(true);
           onAddressSelect(Number(defaultAddress.id));
-          onAddressChange(null);
+          onAddressChange(null); // đang dùng địa chỉ đã lưu => tắt manual
         }
-      });
-    });
-  }, [onAddressSelect, onAddressChange, hasUserInput]);
+      })
+      .catch(console.error);
+  }, [onAddressSelect, onAddressChange]);
 
+  // --- Load districts + wards when province changes (gộp 2 effect thành 1) ---
   useEffect(() => {
     if (!selectedProvince) {
       setDistricts([]);
       setSelectedDistrict(null);
+      setWards([]);
+      setSelectedWard(null);
       return;
     }
 
-    axios
-      .get(`https://tinhthanhpho.com/api/v1/provinces/${selectedProvince.code}/districts`)
-      .then((res) => setDistricts(mapDistrictList(res.data)))
-      .catch(console.error);
+    const fetchAll = async () => {
+      try {
+        const [dRes, wRes] = await Promise.all([
+          axios.get(`https://tinhthanhpho.com/api/v1/provinces/${selectedProvince.code}/districts`),
+          axios.get(`https://tinhthanhpho.com/api/v1/new-provinces/${selectedProvince.code}/wards`),
+        ]);
+        setDistricts(mapDistrictList(dRes.data));
+        setWards(mapWardList(wRes.data));
+        setSelectedWard(null); // reset xã
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    fetchAll();
   }, [selectedProvince]);
 
-useEffect(() => {
-  // Khi đổi Tỉnh: reset Huyện, Xã
-  if (!selectedProvince) {
-    setDistricts([]);
-    setSelectedDistrict(null);
-    setWards([]);
-    setSelectedWard(null);
-    return;
-  }
+  // --- Derived: có đang nhập tay không? ---
+  const hasManualInput = useMemo(() => {
+    const anyForm = Object.values(formData).some((v) => v.trim() !== '');
+    return !!(anyForm || selectedProvince || selectedDistrict);
+  }, [formData, selectedProvince, selectedDistrict]);
 
-  // Fetch quận/huyện (đang có)
-  axios
-    .get(`https://tinhthanhpho.com/api/v1/provinces/${selectedProvince.code}/districts`)
-    .then((res) => setDistricts(mapDistrictList(res.data)))
-    .catch(console.error);
+  // --- Khi đổi option địa chỉ đã lưu ---
+  const handleAddressChange = useCallback(
+    (value: string) => {
+      setSelectedAddressId(value);
+      const usingSaved = value !== '';
+      setDisableForm(usingSaved);
 
-  // Fetch toàn bộ xã của Tỉnh để lọc theo Huyện
-  axios
-    .get(`https://tinhthanhpho.com/api/v1/new-provinces/${selectedProvince.code}/wards`)
-    .then((res) => setWards(mapWardList(res.data)))
-    .catch(console.error);
+      // reset form khi chuyển mode
+      setFormData({ firstName: '', streetAddress: '', apartment: '', phone: '', email: '' });
+      setSelectedProvince(null);
+      setSelectedDistrict(null);
+      setSelectedWard(null);
+      setPhoneError(null);
+      setEmailError(null);
 
-  // reset ward
-  setSelectedWard(null);
-}, [selectedProvince]);
-
-  const handleAddressChange = (value: string) => {
-    setSelectedAddressId(value);
-    setDisableForm(value !== '');
-    setFormData({ firstName: '', streetAddress: '', apartment: '', phone: '', email: '' });
-    setSelectedProvince(null);
-    setSelectedDistrict(null);
-    setHasUserInput(false);
-    setPhoneError(null);
-
-    if (value !== '') {
-      const numericId = Number(value);
-      onAddressSelect(!isNaN(numericId) ? numericId : null);
-      onAddressChange(null);
-    }
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    const updated = { ...formData, [field]: value };
-
-    if (field === 'phone') {
-      const phoneRegex = /^(0|\+84)[0-9]{9}$/;
-      if (value.trim() !== '' && !phoneRegex.test(value)) {
-        setPhoneError('Số điện thoại không hợp lệ');
+      if (usingSaved) {
+        const numericId = Number(value);
+        onAddressSelect(!isNaN(numericId) ? numericId : null);
+        onAddressChange(null); // dùng địa chỉ đã lưu => không gửi manual
       } else {
-        setPhoneError(null);
-      }
-    }
-    if (field === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (value.trim() !== '' && !emailRegex.test(value)) {
-        setEmailError('Email không hợp lệ');
-      } else {
-        setEmailError(null);
-      }
-    }
-    setFormData(updated);
-
-    const hasInput = Object.values(updated).some((val) => val.trim() !== '') || !!selectedProvince || !!selectedDistrict;
-    setHasUserInput(hasInput);
-
-    if (hasInput) {
-      if (selectedAddressId !== '') {
-        setSelectedAddressId('');
-        setDisableForm(false);
+        // bỏ chọn => cho phép nhập tay
         onAddressSelect(null);
-      }
-
-      if (!phoneError) {
-        onAddressChange({
-          full_name: updated.firstName,
-          address: `${updated.streetAddress}${updated.apartment ? ', ' + updated.apartment : ''}`,
-          city: `${selectedDistrict?.name || ''}, ${selectedProvince?.name || ''}`,
-          phone: updated.phone,
-          email: updated.email,
-        });
-      } else {
         onAddressChange(null);
       }
-    } else {
-      onAddressChange(null);
-    }
-  };
+    },
+    [onAddressChange, onAddressSelect]
+  );
 
+  // --- Nhập form tay ---
+  const handleInputChange = useCallback(
+    (field: string, value: string) => {
+      // 🔒 Nếu đang dùng địa chỉ đã lưu thì không cho nhập tay (form đã disable)
+      if (selectedAddressId) return;
+
+      const updated = { ...formData, [field]: value };
+
+      if (field === 'phone') {
+        const phoneRegex = /^(0|\+84)[0-9]{9}$/;
+        setPhoneError(value.trim() && !phoneRegex.test(value) ? 'Số điện thoại không hợp lệ' : null);
+      }
+      if (field === 'email') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        setEmailError(value.trim() && !emailRegex.test(value) ? 'Email không hợp lệ' : null);
+      }
+
+      setFormData(updated);
+    },
+    [formData, selectedAddressId]
+  );
+
+  // --- Phát dữ liệu manual RA NGOÀI (chỉ khi KHÔNG dùng địa chỉ đã lưu) ---
   useEffect(() => {
-    const hasInput = Object.values(formData).some((val) => val.trim() !== '') || selectedProvince || selectedDistrict;
+    if (selectedAddressId) {
+      // đang dùng địa chỉ đã lưu => không phát manual
+      return;
+    }
 
-    if (hasInput && !phoneError) {
+    if (hasManualInput && !phoneError) {
       onAddressChange({
         full_name: formData.firstName,
         address: `${formData.streetAddress}${formData.apartment ? ', ' + formData.apartment : ''}`,
@@ -232,7 +232,37 @@ useEffect(() => {
     } else {
       onAddressChange(null);
     }
-  }, [formData, selectedProvince, selectedDistrict, phoneError]);
+  }, [
+    selectedAddressId,
+    hasManualInput,
+    phoneError,
+    formData,
+    selectedProvince,
+    selectedDistrict,
+    onAddressChange,
+  ]);
+
+  // --- Handlers Select Province/District (không bật nhập tay nếu đang dùng địa chỉ đã lưu) ---
+  const handleProvinceChange = useCallback(
+    (option: { value: number; label: string } | null) => {
+      if (selectedAddressId) return; // 🔒
+      const found = option ? provinces.find((p) => p.code === option.value) || null : null;
+      setSelectedProvince(found);
+      setSelectedDistrict(null);
+      setSelectedWard(null);
+    },
+    [provinces, selectedAddressId]
+  );
+
+  const handleDistrictChange = useCallback(
+    (option: { value: number; label: string } | null) => {
+      if (selectedAddressId) return; // 🔒
+      const found = option ? districts.find((d) => d.code === option.value) || null : null;
+      setSelectedDistrict(found);
+      setSelectedWard(null);
+    },
+    [districts, selectedAddressId]
+  );
 
   return (
     <div className="text-sm">
@@ -243,7 +273,7 @@ useEffect(() => {
         className="w-full border rounded-md bg-gray-100 px-3 py-2 mb-4 outline-none"
         value={selectedAddressId}
         onChange={(e) => handleAddressChange(e.target.value)}
-        disabled={hasUserInput || addresses.length === 0}
+        disabled={addresses.length === 0}
       >
         {addresses.length === 0 ? (
           <option value="">Bạn chưa thêm địa chỉ nào</option>
@@ -262,64 +292,73 @@ useEffect(() => {
       <p className="text-sm text-gray-500 mb-4">Hoặc nhập địa chỉ giao hàng mới bên dưới</p>
 
       <div className="space-y-4">
-        <InputField label="Họ tên " field="firstName" required value={formData.firstName} onChange={handleInputChange} disabled={disableForm} />
-        <InputField label="Số nhà, tòa nhà, căn hộ... " field="streetAddress" required value={formData.streetAddress} onChange={handleInputChange} disabled={disableForm} />
-        <InputField label="Tên đường " required field="apartment" value={formData.apartment} onChange={handleInputChange} disabled={disableForm} />
+        <InputField
+          label="Họ tên "
+          field="firstName"
+          required
+          value={formData.firstName}
+          onChange={handleInputChange}
+          disabled={disableForm}
+        />
+        <InputField
+          label="Số nhà, tòa nhà, căn hộ... "
+          field="streetAddress"
+          required
+          value={formData.streetAddress}
+          onChange={handleInputChange}
+          disabled={disableForm}
+        />
+        <InputField
+          label="Tên đường "
+          required
+          field="apartment"
+          value={formData.apartment}
+          onChange={handleInputChange}
+          disabled={disableForm}
+        />
 
         <div>
-          <label className="block mb-1 text-gray-700">Tỉnh/Thành phố <span className="text-brand">*</span></label>
+          <label className="block mb-1 text-gray-700">
+            Tỉnh/Thành phố <span className="text-brand">*</span>
+          </label>
           <Select
+            // tránh hydration mismatch
+            instanceId="province-select"
             isDisabled={disableForm}
             isClearable
             options={provinces.map((p) => ({ value: p.code, label: p.name }))}
             value={selectedProvince ? { value: selectedProvince.code, label: selectedProvince.name } : null}
-            onChange={(option) => {
-              const found = provinces.find((p) => p.code === option?.value) || null;
-              setSelectedProvince(found);
-              setSelectedDistrict(null);
-              const hasInput = Object.values(formData).some((val) => val.trim() !== '') || !!found;
-              setHasUserInput(hasInput);
-              if (hasInput) {
-                setSelectedAddressId('');
-                setDisableForm(false);
-                if (!phoneError) {
-                  onAddressChange({
-                    full_name: formData.firstName,
-                    address: `${formData.streetAddress}${formData.apartment ? ', ' + formData.apartment : ''}`,
-                    city: `${selectedDistrict?.name || ''}, ${found?.name || ''}`,
-                    phone: formData.phone,
-                    email: formData.email,
-                  });
-                } else {
-                  onAddressChange(null);
-                }
-              } else {
-                onAddressChange(null);
-              }
-            }}
+            onChange={handleProvinceChange}
             placeholder="Chọn Tỉnh/Thành phố"
             isSearchable
           />
         </div>
 
         <div>
-          <label className="block mb-1 text-gray-700">Quận/Huyện <span className="text-brand">*</span></label>
+          <label className="block mb-1 text-gray-700">
+            Quận/Huyện <span className="text-brand">*</span>
+          </label>
           <Select
+            instanceId="district-select"
             isDisabled={disableForm || districts.length === 0}
             isClearable
             options={districts.map((d) => ({ value: d.code, label: d.name }))}
             value={selectedDistrict ? { value: selectedDistrict.code, label: selectedDistrict.name } : null}
-            onChange={(option) => {
-              const found = districts.find((d) => d.code === option?.value);
-              setSelectedDistrict(found || null);
-              setHasUserInput(true);
-            }}
+            onChange={handleDistrictChange}
             placeholder="Chọn Quận/Huyện"
             isSearchable
           />
         </div>
 
-        <InputField label="Số điện thoại" field="phone" required value={formData.phone} onChange={handleInputChange} disabled={disableForm} error={phoneError} />
+        <InputField
+          label="Số điện thoại"
+          field="phone"
+          required
+          value={formData.phone}
+          onChange={handleInputChange}
+          disabled={disableForm}
+          error={phoneError}
+        />
         <InputField
           label="Email"
           field="email"
@@ -329,7 +368,6 @@ useEffect(() => {
           disabled={disableForm}
           error={emailError}
         />
-
       </div>
     </div>
   );
@@ -364,7 +402,8 @@ function InputField({
         value={value}
         onChange={(e) => onChange(field, e.target.value)}
         disabled={disabled}
-        className={`w-full border rounded-md bg-gray-100 px-3 py-2 outline-none disabled:opacity-50 ${error ? 'border-red-500' : ''}`}
+        className={`w-full border rounded-md bg-gray-100 px-3 py-2 outline-none disabled:opacity-50 ${error ? 'border-red-500' : ''
+          }`}
       />
       {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>

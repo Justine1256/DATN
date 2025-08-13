@@ -61,6 +61,9 @@ interface Props {
   // 👉 truyền hẳn object voucher (ưu tiên dùng), còn voucherCode là fallback
   appliedVoucher?: Voucher | null;
   voucherCode?: string | null;
+  // ✅ kết quả từ /vouchers/apply của BE (nếu có)
+  serverDiscount?: number | null;     // discount_amount
+  serverFreeShipping?: boolean;       // is_free_shipping
 
   manualAddressData?: {
     full_name: string;
@@ -81,7 +84,12 @@ export default function OrderSummary({
   appliedVoucher = null,
   manualAddressData,
   setCartItems,
-}: Props) {
+
+  // ✅ thêm hai dòng này
+  serverDiscount = null,
+  serverFreeShipping = false,
+}: Props) 
+{
   // ✅ Trạng thái UI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -114,28 +122,30 @@ export default function OrderSummary({
   };
 
   // ✅ giảm từ voucher (percent/amount – chỉ khi đủ điều kiện)
-  const voucherDiscount = (() => {
-    if (!appliedVoucher || !meetsMinOrder(appliedVoucher)) return 0;
-    const type = (appliedVoucher.type || 'amount').toLowerCase();
-    const val = Number(appliedVoucher.value || 0);
+    // ✅ voucherDiscount: nếu có serverDiscount → dùng, không thì dùng logic cũ
+    const voucherDiscount = (() => {
+      if (typeof serverDiscount === 'number') {
+        return Math.max(0, Math.floor(serverDiscount));
+      }
+      if (!appliedVoucher || !meetsMinOrder(appliedVoucher)) return 0;
+      const type = (appliedVoucher.type || 'amount').toLowerCase();
+      const val = Number(appliedVoucher.value || 0);
+      if (type === 'percent') return Math.max(0, Math.floor((discountedSubtotal * val) / 100));
+      if (type === 'amount') return Math.min(discountedSubtotal, Math.max(0, Math.floor(val)));
+      return 0; // shipping: không trừ vào hàng
+    })();
 
-    if (type === 'percent') {
-      return Math.max(0, Math.floor((discountedSubtotal * val) / 100));
-    }
-    if (type === 'amount') {
-      return Math.min(discountedSubtotal, Math.max(0, Math.floor(val)));
-    }
-    // shipping: không giảm vào hàng
-    return 0;
-  })();
+    // ✅ shipping: nếu serverFreeShipping === true → 0, còn lại như cũ
+    const shipping = (() => {
+      if (serverFreeShipping) return 0;
+      if (!appliedVoucher || !meetsMinOrder(appliedVoucher)) return shippingBase;
+      const type = (appliedVoucher.type || '').toLowerCase();
+      if (type === 'shipping') return 0;
+      return shippingBase;
+    })();
 
-  // ✅ phí ship sau voucher (shipping = free nếu hợp lệ)
-  const shipping = (() => {
-    if (!appliedVoucher || !meetsMinOrder(appliedVoucher)) return shippingBase;
-    const type = (appliedVoucher.type || '').toLowerCase();
-    if (type === 'shipping') return 0;
-    return shippingBase;
-  })();
+
+
 
   const finalTotal = Math.max(0, discountedSubtotal - voucherDiscount + shipping);
 

@@ -426,4 +426,19 @@ a {
          .animate-fade-in-up {
            animation: fade-in-up 0.3s ease-out;
          }
-         
+                 /* Slide-in cho antd notification ở góc phải */
+                 .slide-in-right .ant-notification-notice {
+                   animation: slideInRight 0.45s ease-out both;
+                 }
+        
+                 @keyframes slideInRight {
+                   from {
+                     transform: translateX(120%);
+                     opacity: 0;
+                   }
+        
+                   to {
+                     transform: translateX(0%);
+                     opacity: 1;
+                   }
+                 }
