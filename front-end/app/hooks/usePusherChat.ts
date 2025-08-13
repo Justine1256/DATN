@@ -86,14 +86,24 @@ export function usePusherChat(
 
     channel.bind("MessageSent", (payload: any) => {
       console.log("📨 MessageSent event received:", payload)
-      // Đảm bảo payload có đủ thông tin cần thiết
-      const message = payload.message || payload
-      onData?.({
-        type: "message",
-        message: message,
-        // Thêm thông tin để component biết cần refresh recent contacts
-        shouldRefreshContacts: true,
-      })
+      const messageData = {
+        id: payload.id,
+        sender_id: payload.sender_id,
+        receiver_id: payload.receiver_id,
+        message: payload.message,
+        image: payload.image,
+        created_at: payload.created_at,
+        sender: payload.sender,
+      }
+
+      // Thêm delay nhỏ để tránh xung đột với API response
+      setTimeout(() => {
+        onData?.({
+          type: "message",
+          message: messageData, // Truyền object đầy đủ thay vì chỉ string
+          shouldRefreshContacts: true,
+        })
+      }, 100)
     })
 
     channel.bind("UserTyping", (payload: any) => {
