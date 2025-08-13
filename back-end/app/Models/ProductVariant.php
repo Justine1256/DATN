@@ -31,5 +31,9 @@ class ProductVariant extends Model
         return $this->belongsTo(Product::class);
     }
 
-
+public function getEffectivePriceAttribute() {
+    return (!is_null($this->sale_price) && (float)$this->sale_price > 0)
+        ? (float)$this->sale_price
+        : (float)$this->price;
+}
 }
