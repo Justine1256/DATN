@@ -29,6 +29,7 @@ use App\Http\Controllers\ReviewController;
 use App\Models\Banner;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Broadcast;
+use Laravel\Sanctum\PersonalAccessToken;
 use Pusher\Pusher;
 // test api
 // Route::get('/userall', [UserController::class, 'index']);
@@ -37,38 +38,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 // routes/api.php
 
-Route::post('/pusher/auth', function (Request $request) {
-    $user = Auth::user(); // Hoặc cách xác thực user của bạn
 
-    if (!$user) {
-        return response()->json(['error' => 'Unauthorized'], 401);
-    }
-
-    $pusher = new Pusher(
-        env('PUSHER_APP_KEY'),
-        env('PUSHER_APP_SECRET'),
-        env('PUSHER_APP_ID'),
-        [
-            'cluster' => env('PUSHER_APP_CLUSTER'),
-            'useTLS' => true,
-        ]
-    );
-
-    $socketId = $request->socket_id;
-    $channelName = $request->channel_name;
-
-    // Kiểm tra quyền truy cập channel
-    if (str_starts_with($channelName, 'private-user.')) {
-        $userId = str_replace('private-user.', '', $channelName);
-        if ($user->id != $userId) {
-            return response()->json(['error' => 'Forbidden'], 403);
-        }
-    }
-    // Cách mới thay cho socket_auth
-    $auth = $pusher->authorizeChannel($channelName, $socketId);
-
-    return response($auth);
-});
 
 Route::get('/banner', [BannerController::class, 'index']);
 Route::post('/banner', [BannerController::class, 'store']);
@@ -298,4 +268,54 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/shop/comments', [ProductController::class, 'getShopComments']);
     Route::delete('/shop/comments/{id}', [ProductController::class, 'deleteComment']);
     Route::post('/shop/comments/{id}', [ProductController::class, 'restoreComment']);
+
+    Route::post('/pusher/auth', function (Request $request) {
+    // 1) lấy token: ưu tiên Bearer header, nếu không có -> cookie 'authToken'
+    $token = $request->bearerToken();
+    if (!$token) {
+        $token = $request->cookie('authToken'); // lấy token từ cookie nếu có
+    }
+
+    if (! $token) {
+        return response()->json(['error' => 'Unauthorized - no token provided'], 401);
+    }
+
+    // 2) tìm PersonalAccessToken (Sanctum)
+    $pat = PersonalAccessToken::findToken($token);
+    if (! $pat) {
+        return response()->json(['error' => 'Unauthorized - invalid token'], 401);
+    }
+
+    $user = $pat->tokenable;
+    if (! $user) {
+        return response()->json(['error' => 'Unauthorized - user not found'], 401);
+    }
+
+    // 3) kiểm tra quyền truy cập channel nếu cần
+    $socketId = $request->input('socket_id');
+    $channelName = $request->input('channel_name');
+
+    if (str_starts_with($channelName, 'private-user.')) {
+        $userId = (int) str_replace('private-user.', '', $channelName);
+        if ($user->id !== $userId) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+    }
+
+    // 4) authorize with Pusher
+    $pusher = new Pusher(
+        env('PUSHER_APP_KEY'),
+        env('PUSHER_APP_SECRET'),
+        env('PUSHER_APP_ID'),
+        [
+            'cluster' => env('PUSHER_APP_CLUSTER'),
+            'useTLS' => true,
+        ]
+    );
+
+    $auth = $pusher->authorizeChannel($channelName, $socketId);
+
+    // Pusher trả chuỗi JSON; trả về JSON object cho client
+    return response()->json(json_decode($auth, true));
+});
 });
