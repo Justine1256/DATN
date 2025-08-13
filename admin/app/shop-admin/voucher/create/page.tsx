@@ -135,16 +135,19 @@ export default function VoucherCreateForm() {
             )}
 
             <Card
-                title={<div className="flex items-center gap-2">Tạo voucher cho shop</div>}
+                title={<div className="flex items-center gap-2">Tạo voucher (Admin)</div>}
                 className="shadow-md"
-                headStyle={{ padding: "16px 20px", fontWeight: 600 }}
-                bodyStyle={{ padding: 24 }}
+                styles={{
+                    header: { padding: "16px 20px", fontWeight: 600 },
+                    body: { padding: 24 },
+                }}
                 style={{
                     borderRadius: token.borderRadiusLG,
                     background: token.colorBgContainer,
                     boxShadow: token.boxShadowTertiary,
                 }}
             >
+
                 <Form<FormValues>
                     form={form}
                     layout="vertical"
