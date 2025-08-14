@@ -1,6 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import {
+  Modal,
+  Form as AntForm,
+  Input,
+  InputNumber,
+  Upload,
+  Button,
+  Space,
+  Image,
+} from "antd";
+import { UploadOutlined } from "@ant-design/icons";
 
 interface Variant {
   value1: string;
@@ -26,186 +37,234 @@ export default function VariantModal({
   disableValue1,
   disableValue2,
 }: VariantModalProps) {
-  const [value1, setValue1] = useState("");
-  const [value2, setValue2] = useState("");
-  const [price, setPrice] = useState<number>(0);
-  const [salePrice, setSalePrice] = useState<number>(0);
-  const [stock, setStock] = useState<number>(1);
-  const [images, setImages] = useState<string[]>([]);
+  const [form] = AntForm.useForm<Variant>();
+  const [images, setImages] = useState<string[]>(initialData?.image || []);
 
+  // Popup trượt ngang + tự căn dưới header
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
+  const [popupType, setPopupType] = useState<"success" | "error">("success");
+  const [headerOffset, setHeaderOffset] = useState<number>(64);
   useEffect(() => {
-    if (initialData) {
-      setValue1(initialData.value1 || "");
-      setValue2(initialData.value2 || "");
-      setPrice(initialData.price || 0);
-      setSalePrice(initialData.sale_price || 0);
-      setStock(initialData.stock || 1);
-      setImages(initialData.image || []);
-    }
+    const readHeader = () => {
+      const el = document.querySelector<HTMLElement>("header, .ant-layout-header");
+      if (el) setHeaderOffset(el.offsetHeight);
+    };
+    readHeader();
+    window.addEventListener("resize", readHeader);
+    return () => window.removeEventListener("resize", readHeader);
+  }, []);
+
+  // nạp dữ liệu mặc định khi edit
+  useEffect(() => {
+    form.setFieldsValue({
+      value1: initialData?.value1 || "",
+      value2: initialData?.value2 || "",
+      price: initialData?.price ?? 0,
+      sale_price: initialData?.sale_price ?? 0,
+      stock: initialData?.stock ?? 1,
+    } as any);
+    setImages(initialData?.image || []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const showSlidePopup = (msg: string, type: "success" | "error") => {
+    setPopupMessage(msg);
+    setPopupType(type);
+    setShowPopup(true);
+    setTimeout(() => setShowPopup(false), 2000);
+  };
 
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+
+      // thêm lớp validate theo disableValue1/2 để khớp logic cũ
+      if ((!values.value1 && !disableValue1) || (!values.value2 && !disableValue2)) {
+        showSlidePopup("Vui lòng nhập đầy đủ và hợp lệ.", "error");
+        return;
+      }
+      if ((values.price ?? 0) < 0 || (values.stock ?? 0) < 0) {
+        showSlidePopup("Giá/Tồn kho không được âm.", "error");
+        return;
+      }
+
+      const variant: Variant = {
+        value1: values.value1 || "",
+        value2: values.value2 || "",
+        price: Number(values.price) || 0,
+        sale_price: Number(values.sale_price) || 0,
+        stock: Number(values.stock) || 0,
+        image: images,
+      };
+
+      onSave(variant);
+      showSlidePopup("Biến thể đã được lưu thành công!", "success");
+      onClose();
+    } catch {
+      // Form của Antd sẽ highlight lỗi; popup chỉ mang tính thông báo nhanh
+      showSlidePopup("Vui lòng nhập đầy đủ và hợp lệ.", "error");
+    }
+  };
+
+  // chặn upload tự động để giữ logic base64 như cũ
+  const beforeUpload = () => false;
+  const onUploadChange: any = (info: any) => {
+    const raw: File = (info.file.originFileObj || info.file) as File;
+    if (!raw) return;
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setImages([reader.result]);
-      }
+      if (typeof reader.result === "string") setImages([reader.result]);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(raw);
   };
-
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = () => {
-    if ((!value1 && !disableValue1) || (!value2 && !disableValue2) || price < 0 || stock < 0) {
-      alert("Vui lòng nhập đầy đủ và hợp lệ.");
-      return;
-    }
-
-    onSave({
-      value1,
-      value2,
-      price,
-      sale_price: salePrice,
-      stock,
-      image: images,
-    });
-
-    onClose();
-  };
+  const removeImage = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx));
 
   const isEditing = Boolean(initialData);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-200">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-          {isEditing ? "Chỉnh sửa biến thể" : "Thêm biến thể"}
-        </h2>
-
-        <div className="space-y-6">
-          {/* Value 1 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Giá trị 1 <span className="text-[#db4444]">*</span>
-            </label>
-            <input
-              type="text"
-              value={value1}
-              onChange={(e) => setValue1(e.target.value)}
-              placeholder="VD: 256GB, Size M"
-              disabled={disableValue1}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] transition-all"
-            />
-          </div>
-
-          {/* Value 2 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Giá trị 2 <span className="text-[#db4444]">*</span>
-            </label>
-            <input
-              type="text"
-              value={value2}
-              onChange={(e) => setValue2(e.target.value)}
-              placeholder="VD: Màu đen, Titan xanh"
-              disabled={disableValue2}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] transition-all"
-            />
-          </div>
-
-          {/* Giá gốc */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Giá gốc (VNĐ) <span className="text-[#db4444]">*</span>
-            </label>
-            <input
-              type="number"
-              value={price === 0 ? "" : price}
-              onChange={(e) => setPrice(Math.max(0, Number(e.target.value)))}
-              placeholder="Nhập giá gốc"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] transition-all"
-            />
-          </div>
-
-          {/* Giá khuyến mãi */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Giá khuyến mãi
-            </label>
-            <input
-              type="number"
-              value={salePrice === 0 ? "" : salePrice}
-              onChange={(e) => setSalePrice(Math.max(0, Number(e.target.value)))}
-              placeholder="Nhập giá khuyến mãi"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] transition-all"
-            />
-          </div>
-
-          {/* Tồn kho */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Số lượng tồn kho <span className="text-[#db4444]">*</span>
-            </label>
-            <input
-              type="number"
-              value={stock === 0 ? "" : stock}
-              onChange={(e) => setStock(Math.max(0, Number(e.target.value)))}
-              placeholder="Số lượng tồn"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:border-[#db4444] focus:ring-1 focus:ring-[#db4444] transition-all"
-            />
-          </div>
-
-          {/* Hình ảnh */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Hình ảnh biến thể
-            </label>
-            <input type="file" accept="image/*" onChange={handleImageUpload} className="mb-4" />
-            <div className="flex gap-2 flex-wrap">
-              {images.map((img, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={img}
-                    className="w-10 h-20 object-cover rounded-lg border"
-                    alt={`variant-${index}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
+    <>
+      {/* Popup trượt ngang từ góc phải, nằm ngay dưới header */}
+      {showPopup && (
+        <div className="fixed right-6 z-[10000]" style={{ top: `${headerOffset}px` }}>
+          <div
+            className={`px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 slide-in ${popupType === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+              }`}
+          >
+            {popupType === "success" ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <span className="text-sm font-medium">{popupMessage}</span>
           </div>
         </div>
+      )}
+      <style jsx global>{`
+        @keyframes slideInRight {
+          from {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .slide-in {
+          animation: slideInRight 0.35s ease-out;
+        }
+      `}</style>
 
-        <div className="flex justify-end gap-4 mt-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-gray-600 px-4 py-2 hover:text-[#db4444] transition-all"
+      <Modal
+        open
+        title={isEditing ? "Chỉnh sửa biến thể" : "Thêm biến thể"}
+        onCancel={onClose}
+        onOk={handleOk}
+        okText={isEditing ? "Lưu thay đổi" : "Xác nhận"}
+        cancelText="Huỷ"
+        maskClosable={false}
+        destroyOnClose
+      >
+        <AntForm
+          form={form}
+          layout="vertical"
+          initialValues={{ stock: 1, price: 0, sale_price: 0 }}
+        >
+          <AntForm.Item
+            label={
+              <>
+                Giá trị 1 <span className="text-[#db4444]">*</span>
+              </>
+            }
+            name="value1"
+            rules={[{ required: !disableValue1, message: "Nhập giá trị 1" }]}
           >
-            Huỷ
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="bg-[#db4444] text-white px-4 py-3 rounded-lg hover:bg-[#c23333] transition-all"
+            <Input placeholder="VD: 256GB, Size M" disabled={disableValue1} />
+          </AntForm.Item>
+
+          <AntForm.Item
+            label={
+              <>
+                Giá trị 2 <span className="text-[#db4444]">*</span>
+              </>
+            }
+            name="value2"
+            rules={[{ required: !disableValue2, message: "Nhập giá trị 2" }]}
           >
-            {isEditing ? "Lưu thay đổi" : "Xác nhận"}
-          </button>
-        </div>
-      </div>
-    </div>
+            <Input placeholder="VD: Màu đen, Titan xanh" disabled={disableValue2} />
+          </AntForm.Item>
+
+          <AntForm.Item
+            label={
+              <>
+                Giá gốc (VNĐ) <span className="text-[#db4444]">*</span>
+              </>
+            }
+            name="price"
+            rules={[{ required: true, message: "Nhập giá gốc" }]}
+          >
+            <InputNumber className="w-full" min={0} placeholder="Nhập giá gốc" />
+          </AntForm.Item>
+
+          <AntForm.Item label="Giá khuyến mãi" name="sale_price">
+            <InputNumber className="w-full" min={0} placeholder="Nhập giá khuyến mãi" />
+          </AntForm.Item>
+
+          <AntForm.Item
+            label={
+              <>
+                Số lượng tồn kho <span className="text-[#db4444]">*</span>
+              </>
+            }
+            name="stock"
+            rules={[{ required: true, message: "Nhập số lượng tồn" }]}
+          >
+            <InputNumber className="w-full" min={0} placeholder="Số lượng tồn" />
+          </AntForm.Item>
+
+          <AntForm.Item label="Hình ảnh biến thể">
+            <Space direction="vertical" className="w-full">
+              <Upload
+                beforeUpload={beforeUpload as any}
+                onChange={onUploadChange}
+                maxCount={1}
+                accept="image/*"
+                showUploadList={false}
+              >
+                <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+              </Upload>
+
+              {images.length > 0 && (
+                <Space wrap>
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative">
+                      <Image
+                        src={img}
+                        width={72}
+                        height={72}
+                        alt={`variant-${idx}`}
+                        className="rounded-md border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </Space>
+              )}
+            </Space>
+          </AntForm.Item>
+        </AntForm>
+      </Modal>
+    </>
   );
-  
 }

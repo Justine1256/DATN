@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 
-import CateImageDrop from "@/app/components/shop-admin/category/create/ImageDrop";
+// import CateImageDrop from "@/app/components/shop-admin/category/create/ImageDrop";
 import CategoryInfoForm from "@/app/components/shop-admin/category/create/Form";
 import ActionButtons from "@/app/components/shop-admin/category/create/ActionButtons";
 import { API_BASE_URL } from "@/utils/api";
@@ -178,10 +178,10 @@ export default function CreateCategoryPage() {
             >
                 <div className="w-full max-w-4xl">
                     <div className="space-y-6 mt-8">
-                        <CateImageDrop
+                        {/* <CateImageDrop
                             image={formData.image}
                             setImage={(url) => handleSetData("image", url)}
-                        />
+                        /> */}
 
                         <CategoryInfoForm
                             data={formData}
