@@ -1,23 +1,33 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import Cookies from "js-cookie";
-import { CategoryRowSkeleton } from "../../components/shop-admin/loading/loading";
 import { API_BASE_URL } from "@/utils/api";
 import CategoryListHeader from "@/app/components/shop-admin/category/list/Header";
-import Pagination from "@/app/components/shop-admin/category/list/Pagination";
-import CategoryRow from "@/app/components/shop-admin/category/list/Row";
+import {
+    Table,
+    Tag,
+    Card,
+    Typography,
+    Space,
+    Tooltip,
+    Button,
+    Empty,
+} from "antd";
+import { EyeInvisibleOutlined, EyeOutlined, EditOutlined } from "@ant-design/icons";
 
 type LocalCategory = {
     id: string;
     name: string;
-    image: string | null;
+    image?: string;
     priceRange?: string;
     slug?: string;
     description?: string;
     status?: string;
-    parent_id?: string | null;
-    parent?: { name: string } | null;
+    parent_id?: string;
+    parent?: { name: string };
+    [key: string]: any;
 };
 
 type Product = {
@@ -32,31 +42,34 @@ export default function CategoryListPage() {
     const [categories, setCategories] = useState<LocalCategory[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
+
+    // Pagination ngay trong Table (gộp luôn)
     const [currentPage, setCurrentPage] = useState(1);
-    const categoriesPerPage = 10;
+    const [pageSize] = useState(10);
 
     useEffect(() => {
-        const token = Cookies.get("authToken");
-        setToken(token || null);
+        const t = Cookies.get("authToken");
+        setToken(t || null);
     }, []);
 
     useEffect(() => {
         if (!token) return;
-        const fetchShopId = async () => {
+        (async () => {
             try {
                 const res = await fetch(`${API_BASE_URL}/user`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 if (!res.ok) throw new Error("Không lấy được user");
                 const data = await res.json();
-                const sid = data.shop?.id;
-                setShopId(sid);
+                setShopId(data.shop?.id ?? null);
             } catch (err) {
                 console.error("❌ Lỗi lấy shop id:", err);
             }
-        };
-        fetchShopId();
+        })();
     }, [token]);
+
+    const stripHtml = (s?: string) =>
+        s ? s.replace(/<\/?[^>]+(>|$)/g, "") : "";
 
     const fetchCategories = useCallback(async () => {
         if (!token || !shopId) return;
@@ -67,7 +80,25 @@ export default function CategoryListPage() {
             });
             if (!res.ok) throw new Error("Lỗi khi lấy danh mục");
             const data = await res.json();
-            setCategories(Array.isArray(data.categories) ? data.categories : []);
+            console.log("📌 API categories response:", data);
+
+            // ✅ Loại các field có giá trị null ra khỏi object trước khi set state
+            const cleaned: LocalCategory[] = (Array.isArray(data.categories) ? data.categories : []).map(
+                (cat: any) => {
+                    const withoutNulls = Object.fromEntries(
+                        Object.entries(cat).filter(([, v]) => v !== null)
+                    ) as LocalCategory;
+
+                    // Chuẩn hoá một số field tuỳ biến (nếu còn null không mong muốn)
+                    if (!withoutNulls.description) delete withoutNulls.description;
+                    if (!withoutNulls.parent) delete withoutNulls.parent;
+                    if (!withoutNulls.image) delete withoutNulls.image;
+
+                    return withoutNulls;
+                }
+            );
+
+            setCategories(cleaned);
         } catch (error) {
             console.error("Lỗi khi tải danh mục:", error);
         } finally {
@@ -75,59 +106,142 @@ export default function CategoryListPage() {
         }
     }, [token, shopId]);
 
-
-    const getProductCountForCategory = (categoryId: string) => {
-        return products.filter((p) => p.category_id === categoryId).length;
-    };
-
-    const totalPages = Math.ceil(categories.length / categoriesPerPage);
-    const startIndex = (currentPage - 1) * categoriesPerPage;
-    const paginatedCategories = categories.slice(startIndex, startIndex + categoriesPerPage);
-
     useEffect(() => {
         if (!shopId) return;
         fetchCategories();
     }, [shopId, fetchCategories]);
 
-    return (
-        <div className="flex flex-col relative">
-            <CategoryListHeader />
-            <div className="flex-1 flex flex-col gap-8">
-                <div className="h-[600px] border border-gray-200 rounded-md overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="sticky top-0 bg-white z-10">
-                            <tr className="border-b border-gray-200 text-gray-500 bg-gray-50">
-                                <th className="py-2 px-3 w-1/5">Danh mục</th>
-                                <th className="py-2 px-3 w-1/5">Mô tả</th>
-                                <th className="py-2 px-3 w-1/5 text-center">Số SP</th>
-                                <th className="py-2 px-3 w-1/5 text-center">Trạng thái</th>
-                                <th className="py-2 px-3 w-1/5">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading
-                                ? Array.from({ length: categoriesPerPage }).map((_, i) => (
-                                    <CategoryRowSkeleton key={i} />
-                                ))
-                                : paginatedCategories.map((category) => (
-                                    <CategoryRow
-                                        key={category.id}
-                                        category={category}
-                                        productCount={getProductCountForCategory(category.id)}
-                                    />
-                                ))}
-                        </tbody>
-                    </table>
-                </div>
+    const getProductCountForCategory = (categoryId: string) =>
+        products.filter((p) => p.category_id === categoryId).length;
 
-                <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    setCurrentPage={setCurrentPage}
+    const handleToggleStatus = async (cat: LocalCategory) => {
+        try {
+            const t = Cookies.get("authToken");
+            const newStatus = cat.status === "activated" ? "deleted" : "activated";
+            await fetch(`${API_BASE_URL}/shop/categories/${cat.id}/status`, {
+                method: "PATCH",
+                headers: {
+                    Authorization: `Bearer ${t}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ status: newStatus }),
+            });
+            setCategories((prev) =>
+                prev.map((c) => (c.id === cat.id ? { ...c, status: newStatus } : c))
+            );
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const columns = [
+        {
+            title: "Danh mục",
+            dataIndex: "name",
+            key: "name",
+            width: 320,
+            render: (_: any, cat: LocalCategory) => (
+                <Space direction="vertical" size={0} className="min-w-0">
+                    <Typography.Text strong ellipsis={{ tooltip: cat.name }}>
+                        {cat.name}
+                    </Typography.Text>
+                    {/* chỉ hiển thị parent nếu có */}
+                    {cat.parent?.name && (
+                        <Typography.Text
+                            type="secondary"
+                            className="!text-xs"
+                            ellipsis={{ tooltip: cat.parent.name }}
+                        >
+                            Thuộc: {cat.parent.name}
+                        </Typography.Text>
+                    )}
+                </Space>
+            ),
+        },
+        {
+            title: "Mô tả",
+            dataIndex: "description",
+            key: "description",
+            width: 420,
+            render: (desc?: string) => {
+                const plain = stripHtml(desc);
+                // Không hiển thị gì nếu rỗng/ null
+                return plain ? (
+                    <Typography.Paragraph className="!mb-0" ellipsis={{ rows: 2, tooltip: plain }}>
+                        {plain}
+                    </Typography.Paragraph>
+                ) : (
+                    <Typography.Text type="secondary"></Typography.Text>
+                );
+            },
+        },
+        // {
+        //     title: "Số SP",
+        //     key: "count",
+        //     align: "center" as const,
+        //     width: 100,
+        //     render: (_: any, cat: LocalCategory) => getProductCountForCategory(cat.id),
+        // },
+        {
+            title: "Trạng thái",
+            dataIndex: "status",
+            key: "status",
+            align: "center" as const,
+            width: 140,
+            render: (status?: string) =>
+                status ? (
+                    <Tag color={status === "activated" ? "green" : status === "deleted" ? "red" : "default"}>
+                        {status === "activated" ? "Hoạt động" : status === "deleted" ? "Đã ẩn" : ""}
+                    </Tag>
+                ) : (
+                    <></>
+                ),
+        },
+        {
+            title: "Thao tác",
+            key: "actions",
+            width: 180,
+            render: (_: any, cat: LocalCategory) => (
+                <Space>
+                    <Tooltip title={cat.status === "activated" ? "Ẩn danh mục" : "Hiện danh mục"}>
+                        <Button
+                            shape="circle"
+                            onClick={() => handleToggleStatus(cat)}
+                            icon={cat.status === "activated" ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                        />
+                    </Tooltip>
+
+                    <Tooltip title="Chỉnh sửa">
+                        <Link href={`/shop-admin/category/${cat.id}/edit`}>
+                            <Button shape="circle" icon={<EditOutlined />} />
+                        </Link>
+                    </Tooltip>
+                </Space>
+            ),
+        },
+    ];
+
+    return (
+        <div className="flex flex-col gap-4">
+            <CategoryListHeader />
+
+            <Card bodyStyle={{ padding: 0 }} className="shadow-sm">
+                <Table
+                    rowKey="id"
+                    columns={columns as any}
+                    dataSource={categories}
+                    loading={loading}
+                    locale={{ emptyText: <Empty description="Không có danh mục" /> }}
+                    scroll={{ x: 980, y: 520 }}
+                    pagination={{
+                        current: currentPage,
+                        pageSize,
+                        total: categories.length,
+                        showSizeChanger: false,
+                        onChange: (p) => setCurrentPage(p),
+                    }}
                 />
-            </div>
+            </Card>
         </div>
     );
-      
-    
 }
