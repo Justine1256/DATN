@@ -281,7 +281,15 @@ class VoucherController extends Controller
                 return response()->json(['message' => 'Mã giảm giá không dành cho bạn'], 400);
             }
         }
+        $hasUsedBefore = \App\Models\Order::where('user_id', $userId)
+        ->where('voucher_id', $voucher->id)
+        ->whereNull('deleted_at')                // nếu có soft delete
+        ->whereNotIn('order_status', ['Canceled']) // không tính đơn đã hủy
+        ->exists();
 
+    if ($hasUsedBefore) {
+        return response()->json(['message' => 'Bạn đã sử dụng voucher này rồi'], 400);
+    }
         // Tính tổng tiền
         $subtotalAll = 0;
         foreach ($carts as $cart) {

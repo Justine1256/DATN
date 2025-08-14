@@ -123,6 +123,15 @@ class OrderController extends Controller
                     ->first();
 
                 if (!$voucher) return response()->json(['message' => 'Mã giảm giá không hợp lệ hoặc đã hết hạn'], 400);
+                $hasUsedBefore = Order::where('user_id', $userId)
+        ->where('voucher_id', $voucher->id)
+        ->whereNull('deleted_at')
+        ->whereNotIn('order_status', ['Canceled'])
+        ->exists();
+
+    if ($hasUsedBefore) {
+        return response()->json(['message' => 'Bạn đã sử dụng voucher này rồi'], 400);
+    }
                 if ($voucher->usage_limit && $voucher->usage_count >= $voucher->usage_limit) {
                     return response()->json(['message' => 'Mã giảm giá đã hết lượt sử dụng'], 400);
                 }
