@@ -92,6 +92,10 @@ export default function CheckoutPage() {
 
   /* ============== Nhận giỏ hàng từ CartAndPayment và chuẩn hoá sang CartItem local ============== */
   const handleCartChange = useCallback((items: any[]) => {
+    const n = (v: any) => {
+  const x = Number(v);
+  return Number.isFinite(x) ? x : undefined;
+};
     const normalized: CartItem[] = (items || []).map((it: any, idx: number) => {
       const p = it.product ?? {};
       const images: string[] = Array.isArray(p.image) ? p.image : [p.image].filter(Boolean);
@@ -109,11 +113,10 @@ export default function CheckoutPage() {
         variant: it.variant
           ? {
             id: Number(it.variant.id ?? 0),
-            price: typeof it.variant.price === 'number' ? it.variant.price : undefined,
-            sale_price:
-              typeof it.variant.sale_price === 'number'
-                ? it.variant.sale_price
-                : it.variant.sale_price ?? null,
+            price: n(it.variant.price),
+            sale_price: it.variant.sale_price != null  // ✅ ép số an toàn
+            ? Number(it.variant.sale_price)
+            : null,
           }
           : undefined,
       };

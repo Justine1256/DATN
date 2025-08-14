@@ -37,7 +37,7 @@
     "react-select": "^5.10.1",
     "react-slider": "^2.0.6",
     "sweetalert2": "^11.22.2",
-    "swr": "^2.3.4"
+    "swr": "^2.3.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
