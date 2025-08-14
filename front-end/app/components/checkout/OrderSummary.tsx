@@ -211,7 +211,7 @@ const finalTotal = Math.max(0, (subtotal - promotionDiscount) - voucherDiscount 
             email: manualAddressData?.email || '',
           },
           cart_items: cartPayload,
-          voucher_code: appliedVoucher?.code || voucherCode || null,
+          voucher_code: null,
         };
         await axios.post(`${API_BASE_URL}/nologin`, guestPayload);
       } else {
