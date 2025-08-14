@@ -5,7 +5,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import Swal from "sweetalert2";
 
-import CateImageDrop from "@/app/components/shop-admin/category/edit/ImageDrop";
+// import CateImageDrop from "@/app/components/shop-admin/category/edit/ImageDrop";
 import CategoryInfoForm from "@/app/components/shop-admin/category/edit/Form";
 import ActionButtons from "@/app/components/shop-admin/category/edit/ActionButtons";
 import { API_BASE_URL } from "@/utils/api";
@@ -195,10 +195,10 @@ export default function EditCategoryPage() {
         </h1>
 
         <div className="space-y-6 mt-8">
-          <CateImageDrop
+          {/* <CateImageDrop
             image={formData.image}
             setImage={(url) => handleSetData("image", url)}
-          />
+          /> */}
 
           <CategoryInfoForm
             data={formData}

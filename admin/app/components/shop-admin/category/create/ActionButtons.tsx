@@ -20,7 +20,7 @@ export default function ActionButtons({
         type="reset"
         className="px-4 py-2 rounded border border-[#db4444] text-[#db4444] font-medium hover:bg-[#ffeaea] transition-colors duration-200"
       >
-        Reset
+        Hủy
       </button>
 
       {/* Nút Save */}

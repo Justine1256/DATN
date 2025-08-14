@@ -3,6 +3,18 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import {
+  Card,
+  Button,
+  Typography,
+  Row,
+  Col,
+  Empty,
+  Spin,
+  Space,
+  Tooltip,
+} from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { API_BASE_URL } from "@/utils/api";
 import ImageDrop from "@/app/components/shop-admin/product/edit/ImageDrop";
 import Form from "@/app/components/shop-admin/product/edit/Form";
@@ -47,15 +59,26 @@ export default function EditProductPage() {
 
   const [popupMessage, setPopupMessage] = useState("");
   const [popupType, setPopupType] = useState<"success" | "error">("success");
+  const [headerOffset, setHeaderOffset] = useState<number>(64);
+
+  useEffect(() => {
+    const readHeader = () => {
+      const el = document.querySelector<HTMLElement>('header, .ant-layout-header');
+      if (el) setHeaderOffset(el.offsetHeight);
+    };
+    readHeader();
+    window.addEventListener('resize', readHeader);
+    return () => window.removeEventListener('resize', readHeader);
+  }, []);
 
   const handleShowPopup = (message: string, type: "success" | "error") => {
     setPopupMessage(message);
     setPopupType(type);
     setTimeout(() => setPopupMessage(""), 2000);
   };
+
   const handleDeleteVariant = async (variantId?: number) => {
     if (!variantId) return;
-
     const confirmed = window.confirm("Bạn có chắc muốn xoá biến thể này?");
     if (!confirmed) return;
 
@@ -63,14 +86,9 @@ export default function EditProductPage() {
       const token = Cookies.get("authToken");
       const res = await fetch(`${API_BASE_URL}/shop/product-variants/${variantId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!res.ok) throw new Error("Xoá thất bại");
-
-      // Xoá trên frontend sau khi xoá trên DB thành công
       setVariants((prev) => prev.filter((item) => item.id !== variantId));
       handleShowPopup("Đã xoá biến thể", "success");
     } catch (err) {
@@ -87,12 +105,10 @@ export default function EditProductPage() {
         const res = await fetch(`${API_BASE_URL}/shop/products/${id}/get`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         if (!res.ok) throw new Error("Không tìm thấy sản phẩm hoặc không có quyền");
 
         const data = await res.json();
         const p = data.product;
-
         setProduct(p);
         setCategory(p.category_id?.toString() || "");
         setSelectedImages(
@@ -107,7 +123,6 @@ export default function EditProductPage() {
           option2: p.option2 || "",
           value2: p.value2 || "",
         });
-
         const loadedVariants: Variant[] = Array.isArray(p.variants)
           ? p.variants.map((v: any) => ({
             id: v.id,
@@ -119,9 +134,7 @@ export default function EditProductPage() {
             image: Array.isArray(v.image) ? v.image : [],
           }))
           : [];
-
         setVariants(loadedVariants);
-
         const v = loadedVariants[0];
         setFormValues({
           name: p.name,
@@ -136,123 +149,156 @@ export default function EditProductPage() {
         setLoading(false);
       }
     };
-
     if (id) fetchProduct();
   }, [id]);
 
-  if (loading) return <div className="p-6">Đang tải sản phẩm...</div>;
+  if (loading)
+    return (
+      <div className="p-10 flex justify-center">
+        <Spin />
+      </div>
+    );
   if (!product) return <div className="p-6 text-red-500">Không tìm thấy sản phẩm.</div>;
 
   return (
-    <form className="space-y-9 flex justify-center relative">
-      <div className="w-full max-w-4xl">
-        <h1 className="text-xl font-bold text-[#db4444] mb-4">
-          Chỉnh sửa sản phẩm (ID: {id})
-        </h1>
-
-        <div className="space-y-6">
-          <ImageDrop images={selectedImages} setImages={setSelectedImages} />
-
-          <Form
-            images={selectedImages}
-            defaultValues={product}
-            category={category}
-            setCategory={setCategory}
-            onOptionsChange={setOptionValues}
-            onFormChange={setFormValues}
-          />
-
-          {/* Biến thể */}
-          <div className="space-y-4 mt-6">
-            <h3 className="text-base font-medium text-gray-700">Biến thể</h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              {variants.length === 0 && (
-                <div className="col-span-2 text-gray-500">Chưa có biến thể nào.</div>
-              )}
-              {variants.map((v, i) => (
-                <div key={v.id ?? i} className="border rounded p-3 relative">
-                  <div className="text-sm text-gray-700 mb-1">
-                    <strong>{v.value1}</strong> / {v.value2}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Giá: {v.price.toLocaleString()} | Tồn: {v.stock}
-                  </div>
-
-                  {/* Sửa */}
-                  <button
-                    type="button"
-                    className="absolute top-1 right-1 text-blue-500 text-xs underline"
-                    onClick={() => {
-                      setEditingVariant(v);
-                      setShowVariantModal(true);
-                    }}
-                  >
-                    Sửa
-                  </button>
-
-                  {/* Xoá */}
-                  <button
-                    type="button"
-                    className="absolute bottom-1 right-1 text-red-500 text-xs underline"
-                    onClick={() => handleDeleteVariant(v.id)}
-                  >
-                    Xoá
-                  </button>
-
-                </div>
-              ))}
-            </div>
-
-
-          </div>
-
-          <div className="flex justify-between w-full">
-            <button
-              type="button"
-              className="px-4 py-2 rounded border border-[#db4444] text-[#db4444] font-medium hover:bg-[#ffeaea] transition-colors duration-200"
-              onClick={() => {
-                setEditingVariant(null);
-                setShowVariantModal(true);
-              }}
-            >
-              + Thêm biến thể
-            </button>
-            <ActionButtons
-              productId={product.id}
-              images={selectedImages}
-              optionValues={optionValues}
-              categoryId={category}
-              formValues={formValues}
-              variants={variants}
-              onPopup={handleShowPopup}
-              
-            />
-          </div>
-
-        </div>
-      </div>
-
-      {/* Popup */}
+    <form className="relative">
       {popupMessage && (
-        <div
-          className={`fixed top-6 right-6 px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-slide-in
-          ${popupType === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
-        >
-          {popupType === "success" ? (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          )}
-          <span className="text-sm font-medium">{popupMessage}</span>
+        <div className="fixed right-6 z-50" style={{ top: `${headerOffset}px` }}>
+
+          <div
+            className={`px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 slide-in ${popupType === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+              }`}
+          >
+            {popupType === "success" ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <span className="text-sm font-medium">{popupMessage}</span>
+          </div>
         </div>
       )}
+      <style jsx global>{`
+        @keyframes slideInRight {
+          from { transform: translateX(120%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        .slide-in { animation: slideInRight .35s ease-out; }
+      `}</style>
 
-      {/* Modal */}
+      <Row justify="center">
+        <Col xs={24} lg={20} xl={16}>
+          <Space direction="vertical" size={16} className="w-full">
+            <Typography.Title level={4} className="!mb-0 !text-[#db4444]">
+              Chỉnh sửa sản phẩm (ID: {String(id)})
+            </Typography.Title>
+
+            <Card title="Hình ảnh">
+              <ImageDrop images={selectedImages} setImages={setSelectedImages} />
+            </Card>
+
+            <Card title="Thông tin cơ bản">
+              <Form
+                images={selectedImages}
+                defaultValues={product}
+                category={category}
+                setCategory={setCategory}
+                onOptionsChange={setOptionValues}
+                onFormChange={setFormValues}
+              />
+            </Card>
+
+            <Card
+              title="Biến thể"
+              extra={
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => {
+                    setEditingVariant(null);
+                    setShowVariantModal(true);
+                  }}
+                >
+                  Thêm biến thể
+                </Button>
+              }
+            >
+              {variants.length === 0 ? (
+                <Empty description="Chưa có biến thể nào" />)
+                : (
+                  <Row gutter={[12, 12]}>
+                    {variants.map((v, i) => (
+                      <Col xs={24} sm={12} key={v.id ?? i}>
+                        <Card size="small" className="relative">
+                          <Space direction="vertical" size={2} className="w-full">
+                            <Typography.Text className="text-gray-700">
+                              <strong>{v.value1}</strong> / {v.value2}
+                            </Typography.Text>
+                            <Typography.Text type="secondary">
+                              Giá: {v.price.toLocaleString()} | Tồn: {v.stock}
+                            </Typography.Text>
+                          </Space>
+                          <Space style={{ position: "absolute", top: 8, right: 8 }}>
+                            <Tooltip title="Sửa">
+                              <Button
+                                size="small"
+                                icon={<EditOutlined />}
+                                onClick={() => {
+                                  setEditingVariant(v);
+                                  setShowVariantModal(true);
+                                }}
+                              />
+                            </Tooltip>
+                            <Tooltip title="Xoá">
+                              <Button
+                                danger
+                                size="small"
+                                icon={<DeleteOutlined />}
+                                onClick={() => handleDeleteVariant(v.id)}
+                              />
+                            </Tooltip>
+                          </Space>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                )}
+            </Card>
+
+            <Card>
+              <Row justify="space-between" align="middle">
+                <Col>
+                  <Button
+                    onClick={() => {
+                      setEditingVariant(null);
+                      setShowVariantModal(true);
+                    }}
+                    icon={<PlusOutlined />}
+                  >
+                    Thêm biến thể
+                  </Button>
+                </Col>
+                <Col>
+                  <ActionButtons
+                    productId={product.id}
+                    images={selectedImages}
+                    optionValues={optionValues}
+                    categoryId={category}
+                    formValues={formValues}
+                    variants={variants}
+                    onPopup={handleShowPopup}
+                  />
+                </Col>
+              </Row>
+            </Card>
+          </Space>
+        </Col>
+      </Row>
+
       {showVariantModal && (
         <VariantModal
           onClose={() => {

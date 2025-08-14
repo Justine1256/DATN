@@ -189,3 +189,10 @@ body.swal2-shown {
 .animate-stripe {
   animation: stripe 1s linear infinite;
 }
+@media (prefers-reduced-motion: reduce) {
+
+  .animate,
+  .slide-in {
+    animation: none !important;
+  }
+}
