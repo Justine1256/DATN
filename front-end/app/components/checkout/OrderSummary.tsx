@@ -3,7 +3,6 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';        // 👈 thêm
 import { API_BASE_URL } from '@/utils/api';
 
 /* ============== Types ============== */
@@ -107,7 +106,6 @@ export default function OrderSummary({
   // ✅ Ưu tiên dùng totals truyền từ cha
   totals,
 }: Props) {
-  const router = useRouter();                           // 👈 thêm
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -153,6 +151,8 @@ export default function OrderSummary({
     return { subtotal, promotionDiscount, voucherDiscount, shipping };
   }, [cartItems, serverDiscount, serverFreeShipping]);
 
+
+  /** ======= Chọn giá trị hiển thị: ưu tiên totals từ cha ======= */
   /** ======= Chọn giá trị hiển thị ======= */
   // Luôn dùng local cho 2 số này để không lệch Cart
   const subtotal = /* totals?.subtotal ?? */ localSubtotal;
@@ -164,17 +164,6 @@ export default function OrderSummary({
 
   const finalTotal = Math.max(0, (subtotal - promotionDiscount) - voucherDiscount + shipping);
 
-  /* ========= Helper: trích xuất orderId từ response linh hoạt ========= */
-  const extractOrderId = (data: any): string | number | undefined => {
-    if (!data) return undefined;
-    // Các khả năng thường gặp
-    if (data.order?.id) return data.order.id;
-    if (data.order_id) return data.order_id;
-    if (data.order?.order_id) return data.order.order_id;
-    if (data.id) return data.id;
-    if (typeof data === 'string' || typeof data === 'number') return data;
-    return undefined;
-  };
 
   /* ============== Đặt hàng ============== */
   const handlePlaceOrder = async () => {
@@ -210,9 +199,6 @@ export default function OrderSummary({
         }));
       }
 
-      // Sẽ dùng để điều hướng sang trang thành công (nếu không redirect VNPAY)
-      let createdOrderId: string | number | undefined;
-
       if (isGuest) {
         const guestPayload = {
           payment_method: paymentMethod,
@@ -227,8 +213,7 @@ export default function OrderSummary({
           cart_items: cartPayload,
           voucher_code: null,
         };
-        const guestRes = await axios.post(`${API_BASE_URL}/nologin`, guestPayload);
-        createdOrderId = extractOrderId(guestRes?.data); // 👈 cố gắng lấy orderId từ BE
+        await axios.post(`${API_BASE_URL}/nologin`, guestPayload);
       } else {
         const requestBody: OrderRequestBody = {
           payment_method: paymentMethod,
@@ -255,7 +240,6 @@ export default function OrderSummary({
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // Nếu BE trả URL thanh toán → giữ nguyên hành vi
         if (response.data?.redirect_url) {
           localStorage.removeItem('cart');
           setCartItems([]);
@@ -263,11 +247,8 @@ export default function OrderSummary({
           window.location.href = response.data.redirect_url;
           return;
         }
-
-        createdOrderId = extractOrderId(response?.data);
       }
 
-      // Đến đây là KHÔNG có redirect_url → coi như đặt thành công (COD hoặc paid ngay)
       setSuccessMessage('Đặt hàng thành công!');
       setPopupType('success');
       setShowPopup(true);
@@ -276,15 +257,9 @@ export default function OrderSummary({
       setCartItems([]);
       window.dispatchEvent(new Event('cartUpdated'));
 
-      // 👉 Điều hướng sang trang thành công, truyền đủ tham số
-      const qs = new URLSearchParams({
-        orderId: String(createdOrderId ?? ''),                         // có thể rỗng nếu BE không trả
-        total: String(Math.max(0, Math.floor(finalTotal))),            // tổng thanh toán
-        payment: String(paymentMethod || 'cod'),                       // phương thức
-      }).toString();
-
-      router.push(`/checkout/success?${qs}`);
-      // Không còn setTimeout về trang chủ nữa
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2500);
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Lỗi đặt hàng';
       setError(msg);
@@ -355,7 +330,7 @@ export default function OrderSummary({
         </div>
       </div>
 
-      {/* {showPopup && (
+      {showPopup && (
         <div className="fixed inset-0 z-[9999] flex justify-center items-center pointer-events-none">
           <div
             ref={popupRef}
@@ -384,7 +359,7 @@ export default function OrderSummary({
             </p>
           </div>
         </div>
-      )} */}
+      )}
     </div>
   );
 }
