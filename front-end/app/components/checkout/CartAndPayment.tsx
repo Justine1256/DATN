@@ -39,6 +39,7 @@ export interface Voucher {
   expires_at?: string;
   is_active?: boolean;
   shop_id?: number | null; // null: toàn sàn; number: voucher theo shop
+  used?: boolean;
 }
 
 export interface CartItem {
@@ -371,8 +372,7 @@ const globalVoucherCode = applied.global?.code ?? null;
       setVoucherModalShopId(shopId);
       setSelectedVoucherId((shopId == null ? applied.global?.id : applied.byShop[shopId]?.id) ?? null);
       setVoucherModalOpen(true);
-
-      if (vouchers.length === 0) {
+        
         setVoucherLoading(true);
         setVoucherErr(null);
         axios
@@ -400,6 +400,7 @@ const globalVoucherCode = applied.global?.code ?? null;
                 expires_at: src.end_date ?? src.expires_at ?? src.expired_at ?? src.end_at ?? undefined,
                 is_active: src.is_active ?? src.active ?? true,
                 shop_id: src.shop_id ?? null, // ✅ không lấy row.shop_id
+                used: Boolean(src.is_used ?? src.used ?? src.used_at ?? false),
               };
             });
             const dedup = Array.from(
@@ -409,7 +410,6 @@ const globalVoucherCode = applied.global?.code ?? null;
           })
           .catch(() => setVoucherErr('Không tải được danh sách voucher.'))
           .finally(() => setVoucherLoading(false));
-      }
     },
     [token, vouchers.length, applied.global?.id, applied.byShop]
   );
@@ -419,6 +419,7 @@ const globalVoucherCode = applied.global?.code ?? null;
     setVoucherSearch('');
   }, []);
 
+  const current = vouchers.find(x => String(x.id) === String(selectedVoucherId));
   const clearVoucher = useCallback(
     (shopId: number | null) => {
       setApplied((prev) =>
@@ -523,10 +524,18 @@ const globalVoucherCode = applied.global?.code ?? null;
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(() => setShowPopup(false), 2000);
     } catch (e: any) {
-      message.error(e?.response?.data?.message ?? 'Áp dụng voucher thất bại.');
-    } finally {
-      setApplyLoading(false);
-    }
+  const code = e?.response?.data?.code;
+  const msg = e?.response?.data?.message ?? 'Áp dụng voucher thất bại.';
+  message.error(msg);
+
+  if (code === 'VOUCHER_ALREADY_USED') {
+    setVouchers(prev =>
+      prev.map(x => String(x.id) === String(selectedVoucherId) ? { ...x, used: true } : x)
+    );
+  }
+} finally {
+  setApplyLoading(false);
+}
   }, [selectedVoucherId, vouchers, voucherModalShopId, items, token, unitPrice, onVoucherApplied]);
 
   useEffect(() => {
@@ -550,6 +559,7 @@ const globalVoucherCode = applied.global?.code ?? null;
 
     const score = (v: Voucher) => {
       const activeScore = v.is_active !== false && !isExpired(v) ? 1000000 : 0; // ưu tiên hoạt động
+      const usedPenalty = v.used ? -2_000_000 : 0;
       const freeShipScore = v.type === 'shipping' ? 500000 : 0;
       const percentScore = v.type === 'percent' ? Math.min(100, v.value) * 1000 : 0;
       const amountScore = v.type === 'amount' ? Math.min(10_000_000, v.value) : 0;
@@ -908,7 +918,7 @@ const globalVoucherCode = applied.global?.code ?? null;
             <Button
               type="primary"
               style={{ background: BRAND, borderColor: BRAND }}
-              disabled={selectedVoucherId == null}
+              disabled={selectedVoucherId == null || current?.used}
               loading={applyLoading}
               onClick={applyVoucher}
             >
@@ -946,6 +956,7 @@ const globalVoucherCode = applied.global?.code ?? null;
                     const selected = String(selectedVoucherId ?? '') === String(v.id);
                     const expired = isExpired(v);
                     const disabled = !!expired || v.is_active === false;
+                    const used = !!v.used;
 
                     return (
                       <List.Item
@@ -973,6 +984,7 @@ const globalVoucherCode = applied.global?.code ?? null;
                                 {v.shop_id == null ? 'Toàn sàn' : `Shop #${v.shop_id}`}
                               </Tag>
                               <Tag bordered={false}>{badge(v)}</Tag>
+                              {used && <Tag color="default">Đã dùng</Tag>}
                               {expired && <Tag color="red">Hết hạn</Tag>}
                             </Space>
                             {v.title && (
