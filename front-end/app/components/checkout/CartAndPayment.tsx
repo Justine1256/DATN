@@ -75,6 +75,9 @@ export interface PaymentInfoChangePayload {
   globalVoucherDiscount: number;
   globalFreeShipping: boolean;
   summary: { subTotal: number; discount: number; shipping: number; total: number };
+    shopVouchers: Array<{ shop_id: number; code: string }>;
+  globalVoucherCode: string | null;
+
 }
 
 interface Props {
@@ -279,7 +282,13 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     const total = Math.max(0, subAll - globalVoucherDiscount) - shopDiscounts + shippingAll;
     return { subTotal: subAll, discount: discountAll, shipping: shippingAll, total };
   }, [perShopComputed, globalVoucherDiscount]);
-
+  const shopVouchers = useMemo(
+  () => Object.entries(applied.byShop || {})
+    .filter(([, v]) => v?.code)
+    .map(([sid, v]) => ({ shop_id: Number(sid), code: String(v!.code) })),
+  [applied.byShop]
+);
+const globalVoucherCode = applied.global?.code ?? null;
   useEffect(() => {
     onPaymentInfoChange?.({
       paymentMethod,
@@ -287,6 +296,8 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
       globalVoucherDiscount,
       globalFreeShipping,
       summary,
+        shopVouchers,          // ✅ thêm
+  globalVoucherCode,
     });
   }, [paymentMethod, perShopComputed, globalVoucherDiscount, globalFreeShipping, summary, onPaymentInfoChange]);
 

@@ -18,7 +18,7 @@ class VoucherController extends Controller
         $vouchers = Voucher::all();
         return response()->json($vouchers);
     }
-        public function listvoucheradmin(Request $request)
+    public function listvoucheradmin(Request $request)
     {
         $q = Voucher::query()
             ->whereNull('shop_id'); // voucher dùng chung
@@ -65,7 +65,7 @@ class VoucherController extends Controller
             'data' => $vouchers
         ]);
     }
-        public function listvouchershop(Request $request)
+    public function listvouchershop(Request $request)
     {
         /** @var \App\Models\User|null $user */
         $user = Auth::user();
@@ -139,7 +139,7 @@ class VoucherController extends Controller
         $voucher = Voucher::create($request->all());
         return response()->json(['message' => 'Tạo voucher thành công', 'data' => $voucher], 201);
     }
-        public function storeShopVoucher(Request $request)
+    public function storeShopVoucher(Request $request)
     {
         /** @var \App\Models\User|null $user */
         $user = Auth::user();
@@ -294,6 +294,22 @@ class VoucherController extends Controller
             ->where('voucher_id', $voucher->id)
             ->pluck('category_id')
             ->toArray();
+
+        $eligibleCarts = $carts->filter(function ($cart) use ($voucher, $applicableCategoryIds) {
+            if (!is_null($voucher->shop_id) && $cart->product->shop_id != $voucher->shop_id) return false;
+            if (!empty($applicableCategoryIds) && !in_array($cart->product->category_id, $applicableCategoryIds)) return false;
+            return true;
+        });
+        $subtotalApplicable = $eligibleCarts->reduce(function ($s, $cart) {
+            return $s + $cart->quantity * $cart->product->price;
+        }, 0);
+
+        if ($subtotalApplicable <= 0) {
+            return response()->json(['message' => 'Không có sản phẩm phù hợp để áp dụng mã'], 400);
+        }
+        if ($subtotalApplicable < $voucher->min_order_value) {
+            return response()->json(['message' => 'Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã'], 400);
+        }
 
         if (count($applicableCategoryIds) > 0) {
             $subtotalApplicable = 0;
