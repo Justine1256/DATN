@@ -113,74 +113,57 @@ export default function OrderSummary({
   const [popupType, setPopupType] = useState<'success' | 'error' | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
 
-  /** ======= Fallback tính toán nội bộ (chỉ chạy khi không có totals) ======= */
-  const {
-    subtotal: localSubtotal,
-    promotionDiscount: localPromo,
-    voucherDiscount: localVoucherDiscount,
-    shipping: localShipping,
-  } = useMemo(() => {
-    // base
-    const subtotal = cartItems.reduce((sum, item) => {
-      const originalPrice = item.variant?.price ?? item.product.price;
-      return sum + originalPrice * item.quantity;
-    }, 0);
+/** ======= TÍNH TIỀN GIỐNG CART (độc lập voucher) ======= */
+const num = (v: any) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+const getPriceToUse = (item: CartItem) =>
+  num(item.variant?.sale_price ?? item.variant?.price ?? item.product.sale_price ?? item.product.price);
 
-    const promotionDiscount = cartItems.reduce((sum, item) => {
-      const originalPrice = item.variant?.price ?? item.product.price;
-      const discountedPrice = item.variant
-        ? item.variant.sale_price ?? item.variant.price ?? 0
-        : item.product.sale_price ?? item.product.price ?? 0;
-      return sum + (originalPrice - discountedPrice) * item.quantity;
-    }, 0);
+const getOriginalPrice = (item: CartItem) =>
+  num(item.variant?.price ?? item.product.price);
 
-    const discountedSubtotal = Math.max(0, subtotal - promotionDiscount);
-    const shippingBase = cartItems.length > 0 ? 20000 : 0;
+const {
+  subtotal: localSubtotal,
+  promotionDiscount: localPromo,
+  voucherDiscount: localVoucherDiscount,
+  shipping: localShipping,
+} = useMemo(() => {
+  // Tổng theo giá gốc
+  const subtotal = cartItems.reduce((s, it) => s + getOriginalPrice(it) * it.quantity, 0);
 
-    const meetsMinOrder = (v: Voucher | null) =>
-      v?.min_order ? discountedSubtotal >= v.min_order : true;
+  // Tổng theo giá đang áp dụng (đã giảm)
+  const discountedSubtotal = cartItems.reduce((s, it) => s + getPriceToUse(it) * it.quantity, 0);
 
-    // voucher discount (fallback)
-    const voucherDiscount = (() => {
-      if (typeof serverDiscount === 'number') {
-        return Math.max(0, Math.floor(serverDiscount));
-      }
-      if (!appliedVoucher || !meetsMinOrder(appliedVoucher)) return 0;
-      const type = (appliedVoucher.type || 'amount').toLowerCase();
-      const val = Number(appliedVoucher.value || 0);
-      if (type === 'percent') return Math.max(0, Math.floor((discountedSubtotal * val) / 100));
-      if (type === 'amount') return Math.min(discountedSubtotal, Math.max(0, Math.floor(val)));
-      return 0;
-    })();
+  // Khuyến mãi (giảm theo SP)
+  const promotionDiscount = Math.max(0, subtotal - discountedSubtotal);
 
-    // shipping (fallback)
-    const shipping =
-      serverFreeShipping
-        ? 0
-        : (() => {
-          if (!appliedVoucher || !meetsMinOrder(appliedVoucher)) return shippingBase;
-          const type = (appliedVoucher.type || '').toLowerCase();
-          if (type === 'shipping') return 0;
-          return shippingBase;
-        })();
+  // Ship: nếu chưa cần theo shop thì để 20k cố định như bạn đang dùng
+  const shippingBase = cartItems.length > 0 ? 20000 : 0;
 
-    return {
-      subtotal,
-      promotionDiscount,
-      voucherDiscount,
-      shipping,
-    };
-  }, [cartItems, appliedVoucher, serverDiscount, serverFreeShipping]);
+  // Voucher (fallback từ serverDiscount nếu có)
+  const voucherDiscount =
+    typeof serverDiscount === 'number' ? Math.max(0, Math.floor(serverDiscount)) : 0;
+
+  const shipping = serverFreeShipping ? 0 : shippingBase;
+
+  return { subtotal, promotionDiscount, voucherDiscount, shipping };
+}, [cartItems, serverDiscount, serverFreeShipping]);
+
 
   /** ======= Chọn giá trị hiển thị: ưu tiên totals từ cha ======= */
-  const subtotal = totals?.subtotal ?? localSubtotal;
-  const promotionDiscount = totals?.promotionDiscount ?? localPromo;
-  const voucherDiscount = totals?.voucherDiscount ?? localVoucherDiscount;
-  const shipping = totals?.shipping ?? localShipping;
+/** ======= Chọn giá trị hiển thị ======= */
+// Luôn dùng local cho 2 số này để không lệch Cart
+const subtotal = /* totals?.subtotal ?? */ localSubtotal;
+const promotionDiscount = /* totals?.promotionDiscount ?? */ localPromo;
 
-  const finalTotal =
-    totals?.finalTotal ??
-    Math.max(0, (subtotal - promotionDiscount) - voucherDiscount + shipping);
+// 2 số dưới vẫn cho phép nhận từ cha (nếu có), không thì dùng local
+const voucherDiscount = totals?.voucherDiscount ?? localVoucherDiscount;
+const shipping = totals?.shipping ?? localShipping;
+
+const finalTotal = Math.max(0, (subtotal - promotionDiscount) - voucherDiscount + shipping);
+
 
   /* ============== Đặt hàng ============== */
   const handlePlaceOrder = async () => {

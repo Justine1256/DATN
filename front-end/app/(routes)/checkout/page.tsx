@@ -51,6 +51,8 @@ type PaymentInfoFromChild = {
     shipping: number; // tổng phí ship còn lại
     total: number;    // tổng thanh toán cuối
   };
+    shopVouchers?: Array<{ shop_id: number; code: string }>;
+  globalVoucherCode?: string | null;
 };
 
 export default function CheckoutPage() {
@@ -66,6 +68,13 @@ export default function CheckoutPage() {
   const [serverDiscount, setServerDiscount] = useState<number | null>(null);
   const [serverFreeShipping, setServerFreeShipping] = useState<boolean>(false);
 
+  const voucherCodeForSubmit = useMemo(() => {
+  const globalCode = paymentInfo?.globalVoucherCode ?? null;
+  if (globalCode) return globalCode;
+
+  const sv = paymentInfo?.shopVouchers ?? [];
+  return sv.length === 1 ? sv[0].code : null;
+}, [paymentInfo]);
   /* ============== Address handlers ============== */
   const handleAddressSelect = useCallback((selectedId: number | null) => {
     setAddressId(selectedId);
@@ -193,7 +202,7 @@ export default function CheckoutPage() {
             paymentMethod={paymentMethod}
             addressId={addressId}
             appliedVoucher={appliedVoucher}
-            voucherCode={voucherCode}
+            voucherCode={voucherCodeForSubmit}
             serverDiscount={serverDiscount ?? null}
             serverFreeShipping={serverFreeShipping}
             manualAddressData={manualAddressData}

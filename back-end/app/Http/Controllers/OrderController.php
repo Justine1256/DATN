@@ -61,247 +61,281 @@ class OrderController extends Controller
         ]);
     }
 
-public function checkout(Request $request)
-{
-    $userId = Auth::id();
+    public function checkout(Request $request)
+    {
+        $userId = Auth::id();
 
-    $validated = $request->validate([
-        'payment_method' => 'required|in:cod,vnpay',
-        'voucher_code' => 'nullable|string',
-        'address_id' => 'nullable|exists:addresses,id',
-        'address_manual' => 'nullable|array',
-        'address_manual.full_name' => 'required_with:address_manual|string',
-        'address_manual.address' => 'required_with:address_manual|string',
-        'address_manual.city' => 'required_with:address_manual|string',
-        'address_manual.phone' => 'required_with:address_manual|string',
-        'address_manual.email' => 'required_with:address_manual|email',
-    ]);
+        $validated = $request->validate([
+            'payment_method' => 'required|in:cod,vnpay',
+            'voucher_code' => 'nullable|string',
+            'address_id' => 'nullable|exists:addresses,id',
+            'address_manual' => 'nullable|array',
+            'address_manual.full_name' => 'required_with:address_manual|string',
+            'address_manual.address' => 'required_with:address_manual|string',
+            'address_manual.city' => 'required_with:address_manual|string',
+            'address_manual.phone' => 'required_with:address_manual|string',
+            'address_manual.email' => 'required_with:address_manual|email',
+        ]);
 
-    if (empty($validated['address_id']) && empty($validated['address_manual'])) {
-        return response()->json(['message' => 'Phải chọn địa chỉ có sẵn hoặc nhập địa chỉ mới'], 422);
-    }
-
-    $carts = Cart::query()
-        ->select(['id', 'product_id', 'variant_id', 'product_option', 'product_value', 'quantity'])
-        ->with('product')
-        ->where('user_id', $userId)
-        ->where('is_active', true)
-        ->get();
-
-    if ($carts->isEmpty()) {
-        return response()->json(['message' => 'Giỏ hàng trống'], 400);
-    }
-
-    DB::beginTransaction();
-    try {
-        // ==== 1. Lấy địa chỉ giao hàng ====
-        $fullAddress = '';
-        if (!empty($validated['address_id'])) {
-            $address = Address::where('user_id', $userId)->findOrFail($validated['address_id']);
-            $fullAddress = "{$address->address}, {$address->ward}, {$address->district}, {$address->city}";
-        } elseif (!empty($validated['address_manual'])) {
-            $manual = $validated['address_manual'];
-            $fullAddress = "{$manual['address']}, {$manual['city']} ({$manual['full_name']} - {$manual['phone']})";
+        if (empty($validated['address_id']) && empty($validated['address_manual'])) {
+            return response()->json(['message' => 'Phải chọn địa chỉ có sẵn hoặc nhập địa chỉ mới'], 422);
         }
 
-        // ==== 2. Tính tổng đơn hàng ban đầu ====
-        $subtotalAll = 0;
-        foreach ($carts as $cart) {
-            $subtotalAll += $cart->quantity * $cart->product->price;
+        $carts = Cart::query()
+            ->select(['id', 'product_id', 'variant_id', 'product_option', 'product_value', 'quantity'])
+            ->with('product')
+            ->where('user_id', $userId)
+            ->where('is_active', true)
+            ->get();
+
+        if ($carts->isEmpty()) {
+            return response()->json(['message' => 'Giỏ hàng trống'], 400);
         }
 
-        // ==== 3. Kiểm tra & tính voucher ====
-        $discountAmount = 0;
-        $voucher = null;
-        $subtotalApplicable = $subtotalAll;
-        $applicableCategoryIds = [];
-
-        if (!empty($validated['voucher_code'])) {
-            $voucher = Voucher::where('code', $validated['voucher_code'])
-                ->where('start_date', '<=', now())
-                ->where('end_date', '>=', now())
-                ->first();
-
-            if (!$voucher) return response()->json(['message' => 'Mã giảm giá không hợp lệ hoặc đã hết hạn'], 400);
-            if ($voucher->usage_limit && $voucher->usage_count >= $voucher->usage_limit) {
-                return response()->json(['message' => 'Mã giảm giá đã hết lượt sử dụng'], 400);
+        DB::beginTransaction();
+        try {
+            // ==== 1. Lấy địa chỉ giao hàng ====
+            $fullAddress = '';
+            if (!empty($validated['address_id'])) {
+                $address = Address::where('user_id', $userId)->findOrFail($validated['address_id']);
+                $fullAddress = "{$address->address}, {$address->ward}, {$address->district}, {$address->city}";
+            } elseif (!empty($validated['address_manual'])) {
+                $manual = $validated['address_manual'];
+                $fullAddress = "{$manual['address']}, {$manual['city']} ({$manual['full_name']} - {$manual['phone']})";
             }
 
-            // Kiểm tra user có được dùng voucher không
-            $userVoucherCount = DB::table('voucher_users')->where('voucher_id', $voucher->id)->count();
-            if ($userVoucherCount > 0) {
-                $userVoucherExists = DB::table('voucher_users')
+            // ==== 2. Tính tổng đơn hàng ban đầu ====
+            $subtotalAll = 0;
+            foreach ($carts as $cart) {
+                $subtotalAll += $cart->quantity * $cart->product->price;
+            }
+
+            // ==== 3. Kiểm tra & tính voucher ====
+            $discountAmount = 0;
+            $voucher = null;
+            $subtotalApplicable = $subtotalAll;
+            $applicableCategoryIds = [];
+
+            if (!empty($validated['voucher_code'])) {
+                $voucher = Voucher::where('code', $validated['voucher_code'])
+                    ->where('start_date', '<=', now())
+                    ->where('end_date', '>=', now())
+                    ->first();
+
+                if (!$voucher) return response()->json(['message' => 'Mã giảm giá không hợp lệ hoặc đã hết hạn'], 400);
+                if ($voucher->usage_limit && $voucher->usage_count >= $voucher->usage_limit) {
+                    return response()->json(['message' => 'Mã giảm giá đã hết lượt sử dụng'], 400);
+                }
+
+                // Kiểm tra user có được dùng voucher không
+                $userVoucherCount = DB::table('voucher_users')->where('voucher_id', $voucher->id)->count();
+                if ($userVoucherCount > 0) {
+                    $userVoucherExists = DB::table('voucher_users')
+                        ->where('voucher_id', $voucher->id)
+                        ->where('user_id', $userId)->exists();
+
+                    if (!$userVoucherExists) return response()->json(['message' => 'Mã giảm giá không dành cho bạn'], 400);
+                }
+
+                // Kiểm tra category áp dụng
+                $applicableCategoryIds = DB::table('voucher_categories')
                     ->where('voucher_id', $voucher->id)
-                    ->where('user_id', $userId)->exists();
+                    ->pluck('category_id')->toArray();
+                $eligibleCarts = $carts->filter(function ($cart) use ($voucher, $applicableCategoryIds) {
+                    if (!is_null($voucher->shop_id) && $cart->product->shop_id != $voucher->shop_id) return false;
+                    if (!empty($applicableCategoryIds) && !in_array($cart->product->category_id, $applicableCategoryIds)) return false;
+                    return true;
+                });
 
-                if (!$userVoucherExists) return response()->json(['message' => 'Mã giảm giá không dành cho bạn'], 400);
-            }
+                $subtotalApplicable = $eligibleCarts->reduce(function ($s, $cart) {
+                    return $s + $cart->quantity * $cart->product->price;
+                }, 0);
 
-            // Kiểm tra category áp dụng
-            $applicableCategoryIds = DB::table('voucher_categories')
-                ->where('voucher_id', $voucher->id)
-                ->pluck('category_id')->toArray();
-
-            if (count($applicableCategoryIds) > 0) {
-                $subtotalApplicable = 0;
-                foreach ($carts as $cart) {
-                    if (in_array($cart->product->category_id, $applicableCategoryIds)) {
-                        $subtotalApplicable += $cart->quantity * $cart->product->price;
-                    }
+                if ($subtotalApplicable <= 0) {
+                    return response()->json(['message' => 'Voucher không áp dụng cho sản phẩm nào trong giỏ'], 400);
                 }
                 if ($subtotalApplicable < $voucher->min_order_value) {
                     return response()->json(['message' => 'Đơn hàng chưa đạt giá trị tối thiểu'], 400);
                 }
-            } else {
-                if ($subtotalApplicable < $voucher->min_order_value) {
-                    return response()->json(['message' => 'Đơn hàng chưa đạt giá trị tối thiểu'], 400);
-                }
-            }
 
-            // Tính số tiền giảm
-            if ($voucher->discount_type === 'percent') {
-                $discountAmount = min(
-                    $voucher->discount_value / 100 * $subtotalApplicable,
-                    $voucher->max_discount_value ?? $subtotalApplicable
-                );
-            } else {
-                $discountAmount = min($voucher->discount_value, $subtotalApplicable);
-            }
-        }
-
-        // ==== 4. Tạo order theo từng shop ====
-        $cartsByShop = $carts->groupBy(fn($cart) => $cart->product->shop_id);
-        $orders = [];
-        $totalFinalAmount = 0;
-
-        foreach ($cartsByShop as $shopId => $shopCarts) {
-            $shopTotalAmount = 0;
-
-            foreach ($shopCarts as $cart) {
-                $product = $cart->product;
-                $variant = $cart->variant_id ? ProductVariant::find($cart->variant_id) : null;
-                $priceAtTime = $variant
-                    ? ($variant->sale_price ?? $variant->price)
-                    : ($product->sale_price ?? $product->price);
-
-                // Kiểm tra tồn kho
-                if ($variant) {
-                    if ($cart->quantity > $variant->stock) {
-                        throw new \Exception("Biến thể {$variant->value1} - {$variant->value2} không đủ kho");
-                    }
-                    $variant->decrement('stock', $cart->quantity);
-                } else {
-                    if ($cart->quantity > $product->stock) {
-                        throw new \Exception("Sản phẩm {$product->name} không đủ kho");
-                    }
-                    $product->decrement('stock', $cart->quantity);
-                }
-
-                $shopTotalAmount += $cart->quantity * $priceAtTime;
-            }
-
-            // Phân bổ giảm giá cho shop
-            $shopDiscount = 0;
-            if ($voucher) {
-                if (empty($applicableCategoryIds) || $subtotalApplicable == $subtotalAll) {
-                    $shopDiscount = ($shopTotalAmount / $subtotalAll) * $discountAmount;
-                } else {
-                    $shopApplicableSubtotal = 0;
-                    foreach ($shopCarts as $cart) {
+                if (count($applicableCategoryIds) > 0) {
+                    $subtotalApplicable = 0;
+                    foreach ($carts as $cart) {
                         if (in_array($cart->product->category_id, $applicableCategoryIds)) {
-                            $shopApplicableSubtotal += $cart->quantity * $cart->product->price;
+                            $subtotalApplicable += $cart->quantity * $cart->product->price;
                         }
                     }
-                    if ($shopApplicableSubtotal > 0) {
-                        $shopDiscount = ($shopApplicableSubtotal / $subtotalApplicable) * $discountAmount;
+                    if ($subtotalApplicable < $voucher->min_order_value) {
+                        return response()->json(['message' => 'Đơn hàng chưa đạt giá trị tối thiểu'], 400);
                     }
+                } else {
+                    if ($subtotalApplicable < $voucher->min_order_value) {
+                        return response()->json(['message' => 'Đơn hàng chưa đạt giá trị tối thiểu'], 400);
+                    }
+                }
+
+                // Tính số tiền giảm
+                if ($voucher->discount_type === 'percent') {
+                    $discountAmount = min(
+                        $voucher->discount_value / 100 * $subtotalApplicable,
+                        $voucher->max_discount_value ?? $subtotalApplicable
+                    );
+                } else {
+                    $discountAmount = min($voucher->discount_value, $subtotalApplicable);
                 }
             }
 
-            $finalAmount = max($shopTotalAmount - round($shopDiscount), 0);
-            $totalFinalAmount += $finalAmount;
+            // ==== 4. Tạo order theo từng shop ====
+            $cartsByShop = $carts->groupBy(fn($cart) => $cart->product->shop_id);
+            $orders = [];
+            $totalFinalAmount = 0;
 
-            $order = Order::create([
-                'user_id' => $userId,
-                'shop_id' => $shopId,
-                'voucher_id' => $voucher?->id,
-                'discount_amount' => round($shopDiscount),
-                'total_amount' => $shopTotalAmount,
-                'final_amount' => $finalAmount,
-                'payment_method' => $validated['payment_method'],
-                'payment_status' => 'Pending',
-                'order_status' => 'Pending',
-                'shipping_status' => 'Pending',
-                'shipping_address' => $fullAddress,
-            ]);
+            foreach ($cartsByShop as $shopId => $shopCarts) {
+                $shopTotalAmount = 0;
 
-            // Tạo order detail
-            foreach ($shopCarts as $cart) {
-                $product = $cart->product;
-                $variant = $cart->variant_id ? ProductVariant::find($cart->variant_id) : null;
-                $priceAtTime = $variant
-                    ? ($variant->sale_price ?? $variant->price)
-                    : ($product->sale_price ?? $product->price);
+                foreach ($shopCarts as $cart) {
+                    $product = $cart->product;
+                    $variant = $cart->variant_id ? ProductVariant::find($cart->variant_id) : null;
+                    $priceAtTime = $variant
+                        ? ($variant->sale_price ?? $variant->price)
+                        : ($product->sale_price ?? $product->price);
 
-                OrderDetail::create([
-                    'order_id'        => $order->id,
-                    'product_id'      => $product->id,
-                    'variant_id'      => $cart->variant_id ?? $variant->id ?? null,
-                    'product_option'  => $cart->product_option ?? ($variant ? "{$variant->option1} - {$variant->option2}" : null),
-                    'product_value'   => $cart->product_value ?? ($variant ? "{$variant->value1} - {$variant->value2}" : null),
-                    'price_at_time'   => $priceAtTime,
-                    'quantity'        => $cart->quantity,
-                    'subtotal'        => $cart->quantity * $priceAtTime,
+                    // Kiểm tra tồn kho
+                    if ($variant) {
+                        if ($cart->quantity > $variant->stock) {
+                            throw new \Exception("Biến thể {$variant->value1} - {$variant->value2} không đủ kho");
+                        }
+                        $variant->decrement('stock', $cart->quantity);
+                    } else {
+                        if ($cart->quantity > $product->stock) {
+                            throw new \Exception("Sản phẩm {$product->name} không đủ kho");
+                        }
+                        $product->decrement('stock', $cart->quantity);
+                    }
+
+                    $shopTotalAmount += $cart->quantity * $priceAtTime;
+                }
+
+                // Phân bổ giảm giá cho shop
+                $shopDiscount = 0;
+                if ($voucher) {
+                    if (!is_null($voucher->shop_id)) {
+                        // Voucher theo SHOP
+                        if ($shopId == $voucher->shop_id) {
+                            // Phần subtotal hợp lệ ngay TRONG shop này (xét thêm category nếu có)
+                            $shopApplicableSubtotal = 0;
+                            foreach ($shopCarts as $cart) {
+                                if (empty($applicableCategoryIds) || in_array($cart->product->category_id, $applicableCategoryIds)) {
+                                    $shopApplicableSubtotal += $cart->quantity * $cart->product->price;
+                                }
+                            }
+                            if ($shopApplicableSubtotal > 0) {
+                                // Toàn bộ $discountAmount đang tính trên $subtotalApplicable (của shop này nếu là shop-voucher)
+                                $shopDiscount = ($shopApplicableSubtotal / $subtotalApplicable) * $discountAmount;
+                            }
+                        } // else: shop khác => 0
+                    } else {
+                        // Voucher TOÀN SÀN
+                        if (empty($applicableCategoryIds)) {
+                            $shopDiscount = ($shopTotalAmount / $subtotalAll) * $discountAmount;
+                        } else {
+                            $shopApplicableSubtotal = 0;
+                            foreach ($shopCarts as $cart) {
+                                if (in_array($cart->product->category_id, $applicableCategoryIds)) {
+                                    $shopApplicableSubtotal += $cart->quantity * $cart->product->price;
+                                }
+                            }
+                            if ($shopApplicableSubtotal > 0) {
+                                $shopDiscount = ($shopApplicableSubtotal / $subtotalApplicable) * $discountAmount;
+                            }
+                        }
+                    }
+                }
+
+                $finalAmount = max($shopTotalAmount - round($shopDiscount), 0);
+                $totalFinalAmount += $finalAmount;
+
+                $order = Order::create([
+                    'user_id' => $userId,
+                    'shop_id' => $shopId,
+                    'voucher_id' => $voucher?->id,
+                    'discount_amount' => round($shopDiscount),
+                    'total_amount' => $shopTotalAmount,
+                    'final_amount' => $finalAmount,
+                    'payment_method' => $validated['payment_method'],
+                    'payment_status' => 'Pending',
+                    'order_status' => 'Pending',
+                    'shipping_status' => 'Pending',
+                    'shipping_address' => $fullAddress,
                 ]);
 
-                $product->increment('sold', $cart->quantity);
+                // Tạo order detail
+                foreach ($shopCarts as $cart) {
+                    $product = $cart->product;
+                    $variant = $cart->variant_id ? ProductVariant::find($cart->variant_id) : null;
+                    $priceAtTime = $variant
+                        ? ($variant->sale_price ?? $variant->price)
+                        : ($product->sale_price ?? $product->price);
+
+                    OrderDetail::create([
+                        'order_id'        => $order->id,
+                        'product_id'      => $product->id,
+                        'variant_id'      => $cart->variant_id ?? $variant->id ?? null,
+                        'product_option'  => $cart->product_option ?? ($variant ? "{$variant->option1} - {$variant->option2}" : null),
+                        'product_value'   => $cart->product_value ?? ($variant ? "{$variant->value1} - {$variant->value2}" : null),
+                        'price_at_time'   => $priceAtTime,
+                        'quantity'        => $cart->quantity,
+                        'subtotal'        => $cart->quantity * $priceAtTime,
+                    ]);
+
+                    $product->increment('sold', $cart->quantity);
+                }
+
+                $orders[] = $order;
             }
 
-            $orders[] = $order;
-        }
+            // Xóa giỏ hàng
+            Cart::where('user_id', $userId)->delete();
 
-        // Xóa giỏ hàng
-        Cart::where('user_id', $userId)->delete();
+            // Cập nhật usage voucher
+            if ($voucher) {
+                $voucher->increment('usage_count');
+                DB::table('voucher_users')->insert([
+                    'user_id' => $userId,
+                    'voucher_id' => $voucher->id,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
 
-        // Cập nhật usage voucher
-        if ($voucher) {
-            $voucher->increment('usage_count');
-            DB::table('voucher_users')->insert([
-                'user_id' => $userId,
-                'voucher_id' => $voucher->id,
-                'created_at' => now(),
-                'updated_at' => now()
+            DB::commit();
+
+            // Tạo link thanh toán VNPAY nếu có
+            $redirectUrl = null;
+            if ($validated['payment_method'] === 'vnpay') {
+                $redirectUrl = ServicesVnpayService::createPaymentUrl([
+                    'user_id' => $userId,
+                    'order_ids' => collect($orders)->pluck('id')->toArray(),
+                    'amount' => $totalFinalAmount,
+                    'return_url' => route('vnpay.return')
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Tạo đơn hàng thành công',
+                'order_ids' => collect($orders)->pluck('id'),
+                'payment_method' => $validated['payment_method'],
+                'redirect_url' => $redirectUrl
             ]);
-        }
-
-        DB::commit();
-
-        // Tạo link thanh toán VNPAY nếu có
-        $redirectUrl = null;
-        if ($validated['payment_method'] === 'vnpay') {
-            $redirectUrl = ServicesVnpayService::createPaymentUrl([
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Checkout Error: ' . $e->getMessage(), [
                 'user_id' => $userId,
-                'order_ids' => collect($orders)->pluck('id')->toArray(),
-                'amount' => $totalFinalAmount,
-                'return_url' => route('vnpay.return')
+                'request' => $request->all()
             ]);
+            return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
         }
-
-        return response()->json([
-            'message' => 'Tạo đơn hàng thành công',
-            'order_ids' => collect($orders)->pluck('id'),
-            'payment_method' => $validated['payment_method'],
-            'redirect_url' => $redirectUrl
-        ]);
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        Log::error('Checkout Error: ' . $e->getMessage(), [
-            'user_id' => $userId,
-            'request' => $request->all()
-        ]);
-        return response()->json(['message' => 'Lỗi khi đặt hàng: ' . $e->getMessage()], 500);
     }
-}
 
     public function show($id)
     {
@@ -311,20 +345,20 @@ public function checkout(Request $request)
             return response()->json(['message' => 'Đơn hàng không tồn tại'], 404);
         }
 
-    $orderDetails = OrderDetail::where('order_id', $id)->get()->map(function ($detail) {
-        $product = Product::find($detail->product_id);
+        $orderDetails = OrderDetail::where('order_id', $id)->get()->map(function ($detail) {
+            $product = Product::find($detail->product_id);
 
-        $detail->product_name = $product ? $product->name : null;
+            $detail->product_name = $product ? $product->name : null;
 
-        // Nếu cột image là JSON (chứa nhiều ảnh), lấy ảnh đầu tiên
-        if ($product && is_array($product->image)) {
-            $detail->product_image = $product->image[0] ?? null;
-        } else {
-            $detail->product_image = $product->image ?? null;
-        }
+            // Nếu cột image là JSON (chứa nhiều ảnh), lấy ảnh đầu tiên
+            if ($product && is_array($product->image)) {
+                $detail->product_image = $product->image[0] ?? null;
+            } else {
+                $detail->product_image = $product->image ?? null;
+            }
 
-        return $detail->makeHidden(['product']);
-    });
+            return $detail->makeHidden(['product']);
+        });
 
         return response()->json([
             'order' => $order,
@@ -365,9 +399,9 @@ public function checkout(Request $request)
                 'canceled_by' => 'Customer',
             ]);
             if (!$order->canceled_at) {
-            $order->canceled_at = now();
-            $order->save();
-        }
+                $order->canceled_at = now();
+                $order->save();
+            }
 
             return response()->json(['message' => 'Yêu cầu huỷ đơn đã được gửi đến shop. Vui lòng chờ phản hồi']);
         }
@@ -554,7 +588,7 @@ public function checkout(Request $request)
                 'shipping_started_at' => $order->shipping_started_at,
                 'canceled_at' => $order->canceled_at,
                 'return_confirmed_at' => $order->return_confirmed_at,
-                'reconciled_at' => $order->	reconciled_at,
+                'reconciled_at' => $order->reconciled_at,
                 'total_products' => $order->orderDetails->sum('quantity'),
             ];
 
@@ -1232,200 +1266,200 @@ public function checkout(Request $request)
         return response()->json(['message' => 'Đã duyệt hoàn đơn thành công']);
     }
     public function viewRefundReportDetail($orderId)
-{
-    $order = \App\Models\Order::with(['user', 'orderDetails.product'])->find($orderId);
-    $report = \App\Models\Report::with('user')->where('order_id', $orderId)->first();
+    {
+        $order = \App\Models\Order::with(['user', 'orderDetails.product'])->find($orderId);
+        $report = \App\Models\Report::with('user')->where('order_id', $orderId)->first();
 
-    if (!$order || !$report) {
-        return response()->json(['message' => 'Không tìm thấy đơn hàng hoặc tố cáo'], 404);
-    }
+        if (!$order || !$report) {
+            return response()->json(['message' => 'Không tìm thấy đơn hàng hoặc tố cáo'], 404);
+        }
 
-    // Ảnh người mua gửi khi yêu cầu hoàn đơn
-    $photos = \App\Models\OrderReturnPhoto::where('order_id', $orderId)->pluck('image_path');
+        // Ảnh người mua gửi khi yêu cầu hoàn đơn
+        $photos = \App\Models\OrderReturnPhoto::where('order_id', $orderId)->pluck('image_path');
 
-    // Ảnh sản phẩm gốc trong đơn hàng
-    $productImages = $order->orderDetails->map(function ($detail) {
-        return [
-            'product_id' => $detail->product->id,
-            'product_name' => $detail->product->name,
-            'image' => $detail->product->image, // Giả sử có cột image trong bảng products
-        ];
-    });
-
-     return response()->json([
-        'report_id' => $report->id,
-        'order_id' => $order->id,
-        'user' => [
-            'id' => $order->user->id,
-            'name' => $order->user->name,
-            'email'  => $order->user->email,
-            'phone'  => $order->user->phone,
-            'avatar' => $order->user->avatar,
-        ],
-        'shop' => [
-            'id'   => $order->shop->id ?? null,
-            'name' => $order->shop->name ?? '(Không tìm thấy shop)',
-            'email' => $order->shop->email ?? null,
-            'logo'  => $order->shop->logo ?? null,
-        ],
-        'report_reason' => $report->reason,
-        'photos' => $photos,
-        'product_images' => $productImages, // Thêm phần này
-        'created_at' => $report->created_at,
-        'status' => $report->status,
-    ]);
-}
-
-//Duyệt tố cáo (admin đứng về phía người mua)
-
-public function approveRefundReport($orderId)
-{
-    $order = \App\Models\Order::find($orderId);
-    $report = \App\Models\Report::where('order_id', $orderId)->first();
-
-    if (!$order || !$report || $report->status !== 'Pending') {
-        return response()->json(['message' => 'Không thể duyệt tố cáo'], 400);
-    }
-
-    $order->order_admin_status = 'Return Approved';
-    $order->order_status = 'Returning';
-    $order->return_status = 'Approved';
-    $order->save();
-
-    $report->status = 'Resolved';
-    $report->save();
-
-    $shop = $order->shop;
-    $shop->increment('report_warnings');
-    $shop->last_reported_at = now();
-
-    // Xử lý rating và khóa shop theo mốc vi phạm
-    switch ($shop->report_warnings) {
-        case 3:
-            $shop->rating = max(0, ($shop->rating ?? 5) - 1.0);
-            break;
-        case 6:
-            $shop->rating = max(0, ($shop->rating ?? 5) - 2.0);
-            break;
-        case 9:
-            $shop->rating = max(0, ($shop->rating ?? 5) - 3.0);
-            break;
-        case 15:
-            $shop->status = 'hidden';
-            $shop->locked_until = now()->addDays(7); // tạm ẩn shop
-            break;
-    }
-
-    $shop->save();
-
-    \App\Models\Notification::create([
-        'user_id' => $order->user_id,
-        'title' => "Tố cáo đơn #{$order->id} được duyệt",
-        'content' => "Sàn đã xử lý và đồng ý hoàn đơn cho bạn.",
-        // 'image_url' => '/refund-approved.png',
-        'link' => "/account?section=orders&order_id={$order->id}",
-        'is_read' => 0,
-    ]);
-
-    return response()->json(['message' => 'Đã duyệt tố cáo hoàn đơn thành công']);
-}
-//Từ chối tố cáo (admin đứng về phía shop)
-public function rejectRefundReport(Request $request, $orderId)
-{
-    $validated = $request->validate([
-        'rejection_reason' => 'required|string|max:255',
-    ]);
-
-    $order = \App\Models\Order::find($orderId);
-    $report = \App\Models\Report::where('order_id', $orderId)->first();
-
-    if (!$order || !$report || $report->status !== 'Pending') {
-        return response()->json(['message' => 'Không thể từ chối tố cáo'], 400);
-    }
-
-    $order->order_admin_status = 'Return Requested';
-    $order->order_status = 'Return Requested';
-    $order->rejection_reason = $validated['rejection_reason'];
-    $order->return_status = 'Rejected';
-    $order->save();
-
-    $report->status = 'Resolved';
-    $report->save();
-
-    \App\Models\Notification::create([
-        'user_id' => $order->user_id,
-        'title' => "Tố cáo đơn #{$order->id} bị từ chối",
-        'content' => "Sàn không chấp nhận tố cáo của bạn: {$validated['rejection_reason']}",
-        // 'image_url' => '/refund-rejected.png',
-        'link' => "/account?section=orders&order_id={$order->id}",
-        'is_read' => 0,
-    ]);
-    $user = $order->user;
-    $user->report_violations += 1;
-
-    // Gửi cảnh báo nếu là lần 1 hoặc 2
-    if (in_array($user->report_violations, [1, 2])) {
-        \App\Models\Notification::create([
-            'user_id' => $user->id,
-            'title' => 'Cảnh báo: Tố cáo sai',
-            'content' => "Tố cáo của bạn đã bị từ chối. Nếu tiếp tục gửi sai, bạn có thể bị cấm gửi tố cáo.",
-            // 'image_url' => '/warning.png',
-            'link' => '/account',
-            'is_read' => 0,
-        ]);
-    }
-
-    // Khóa quyền gửi tố cáo nếu vi phạm >= 3
-    if ($user->report_violations >= 3) {
-        $user->is_report_blocked = true;
-
-        \App\Models\Notification::create([
-            'user_id' => $user->id,
-            'title' => 'Bạn đã bị chặn gửi tố cáo',
-            'content' => 'Bạn đã gửi nhiều tố cáo sai và đã bị khóa quyền gửi tố cáo mới.',
-            'image_url' => '/report-blocked.png',
-            'link' => '/account',
-            'is_read' => 0,
-        ]);
-    }
-
-    $user->save();
-    return response()->json(['message' => 'Từ chối tố cáo thành công']);
-}
-//Danh sách tất cả đơn bị tố cáo hoàn đơn
-public function listAllRefundReports()
-{
-    $reports = \App\Models\Report::with([
-        'user',
-        'shop',
-        'order.orderDetails.product' // Load quan hệ để lấy ảnh sản phẩm
-    ])
-    ->whereNotNull('order_id')
-    ->orderByDesc('created_at')
-    ->get();
-
-    return response()->json([
-        'data' => $reports->map(function ($report) {
-            // Lấy ảnh của sản phẩm đầu tiên trong đơn hàng (nếu có)
-            $firstProductImage = optional($report->order->orderDetails->first()->product)->image;
-
+        // Ảnh sản phẩm gốc trong đơn hàng
+        $productImages = $order->orderDetails->map(function ($detail) {
             return [
-                'report_id' => $report->id,
-                'order_id' => $report->order_id,
-                'user' => [
-                    'id' => $report->user->id,
-                    'name' => $report->user->name,
-                ],
-                'shop' => [
-                    'id' => $report->shop->id,
-                    'name' => $report->shop->name,
-                ],
-                'reason' => $report->reason,
-                'status' => $report->status,
-                'created_at' => $report->created_at ? $report->created_at->format('Y-m-d H:i') : null,
-                'product_image' => $firstProductImage, // ✅ Thêm dòng này
+                'product_id' => $detail->product->id,
+                'product_name' => $detail->product->name,
+                'image' => $detail->product->image, // Giả sử có cột image trong bảng products
             ];
-        }),
-    ]);
-}
+        });
+
+        return response()->json([
+            'report_id' => $report->id,
+            'order_id' => $order->id,
+            'user' => [
+                'id' => $order->user->id,
+                'name' => $order->user->name,
+                'email'  => $order->user->email,
+                'phone'  => $order->user->phone,
+                'avatar' => $order->user->avatar,
+            ],
+            'shop' => [
+                'id'   => $order->shop->id ?? null,
+                'name' => $order->shop->name ?? '(Không tìm thấy shop)',
+                'email' => $order->shop->email ?? null,
+                'logo'  => $order->shop->logo ?? null,
+            ],
+            'report_reason' => $report->reason,
+            'photos' => $photos,
+            'product_images' => $productImages, // Thêm phần này
+            'created_at' => $report->created_at,
+            'status' => $report->status,
+        ]);
+    }
+
+    //Duyệt tố cáo (admin đứng về phía người mua)
+
+    public function approveRefundReport($orderId)
+    {
+        $order = \App\Models\Order::find($orderId);
+        $report = \App\Models\Report::where('order_id', $orderId)->first();
+
+        if (!$order || !$report || $report->status !== 'Pending') {
+            return response()->json(['message' => 'Không thể duyệt tố cáo'], 400);
+        }
+
+        $order->order_admin_status = 'Return Approved';
+        $order->order_status = 'Returning';
+        $order->return_status = 'Approved';
+        $order->save();
+
+        $report->status = 'Resolved';
+        $report->save();
+
+        $shop = $order->shop;
+        $shop->increment('report_warnings');
+        $shop->last_reported_at = now();
+
+        // Xử lý rating và khóa shop theo mốc vi phạm
+        switch ($shop->report_warnings) {
+            case 3:
+                $shop->rating = max(0, ($shop->rating ?? 5) - 1.0);
+                break;
+            case 6:
+                $shop->rating = max(0, ($shop->rating ?? 5) - 2.0);
+                break;
+            case 9:
+                $shop->rating = max(0, ($shop->rating ?? 5) - 3.0);
+                break;
+            case 15:
+                $shop->status = 'hidden';
+                $shop->locked_until = now()->addDays(7); // tạm ẩn shop
+                break;
+        }
+
+        $shop->save();
+
+        \App\Models\Notification::create([
+            'user_id' => $order->user_id,
+            'title' => "Tố cáo đơn #{$order->id} được duyệt",
+            'content' => "Sàn đã xử lý và đồng ý hoàn đơn cho bạn.",
+            // 'image_url' => '/refund-approved.png',
+            'link' => "/account?section=orders&order_id={$order->id}",
+            'is_read' => 0,
+        ]);
+
+        return response()->json(['message' => 'Đã duyệt tố cáo hoàn đơn thành công']);
+    }
+    //Từ chối tố cáo (admin đứng về phía shop)
+    public function rejectRefundReport(Request $request, $orderId)
+    {
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:255',
+        ]);
+
+        $order = \App\Models\Order::find($orderId);
+        $report = \App\Models\Report::where('order_id', $orderId)->first();
+
+        if (!$order || !$report || $report->status !== 'Pending') {
+            return response()->json(['message' => 'Không thể từ chối tố cáo'], 400);
+        }
+
+        $order->order_admin_status = 'Return Requested';
+        $order->order_status = 'Return Requested';
+        $order->rejection_reason = $validated['rejection_reason'];
+        $order->return_status = 'Rejected';
+        $order->save();
+
+        $report->status = 'Resolved';
+        $report->save();
+
+        \App\Models\Notification::create([
+            'user_id' => $order->user_id,
+            'title' => "Tố cáo đơn #{$order->id} bị từ chối",
+            'content' => "Sàn không chấp nhận tố cáo của bạn: {$validated['rejection_reason']}",
+            // 'image_url' => '/refund-rejected.png',
+            'link' => "/account?section=orders&order_id={$order->id}",
+            'is_read' => 0,
+        ]);
+        $user = $order->user;
+        $user->report_violations += 1;
+
+        // Gửi cảnh báo nếu là lần 1 hoặc 2
+        if (in_array($user->report_violations, [1, 2])) {
+            \App\Models\Notification::create([
+                'user_id' => $user->id,
+                'title' => 'Cảnh báo: Tố cáo sai',
+                'content' => "Tố cáo của bạn đã bị từ chối. Nếu tiếp tục gửi sai, bạn có thể bị cấm gửi tố cáo.",
+                // 'image_url' => '/warning.png',
+                'link' => '/account',
+                'is_read' => 0,
+            ]);
+        }
+
+        // Khóa quyền gửi tố cáo nếu vi phạm >= 3
+        if ($user->report_violations >= 3) {
+            $user->is_report_blocked = true;
+
+            \App\Models\Notification::create([
+                'user_id' => $user->id,
+                'title' => 'Bạn đã bị chặn gửi tố cáo',
+                'content' => 'Bạn đã gửi nhiều tố cáo sai và đã bị khóa quyền gửi tố cáo mới.',
+                'image_url' => '/report-blocked.png',
+                'link' => '/account',
+                'is_read' => 0,
+            ]);
+        }
+
+        $user->save();
+        return response()->json(['message' => 'Từ chối tố cáo thành công']);
+    }
+    //Danh sách tất cả đơn bị tố cáo hoàn đơn
+    public function listAllRefundReports()
+    {
+        $reports = \App\Models\Report::with([
+            'user',
+            'shop',
+            'order.orderDetails.product' // Load quan hệ để lấy ảnh sản phẩm
+        ])
+            ->whereNotNull('order_id')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'data' => $reports->map(function ($report) {
+                // Lấy ảnh của sản phẩm đầu tiên trong đơn hàng (nếu có)
+                $firstProductImage = optional($report->order->orderDetails->first()->product)->image;
+
+                return [
+                    'report_id' => $report->id,
+                    'order_id' => $report->order_id,
+                    'user' => [
+                        'id' => $report->user->id,
+                        'name' => $report->user->name,
+                    ],
+                    'shop' => [
+                        'id' => $report->shop->id,
+                        'name' => $report->shop->name,
+                    ],
+                    'reason' => $report->reason,
+                    'status' => $report->status,
+                    'created_at' => $report->created_at ? $report->created_at->format('Y-m-d H:i') : null,
+                    'product_image' => $firstProductImage, // ✅ Thêm dòng này
+                ];
+            }),
+        ]);
+    }
 }
