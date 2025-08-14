@@ -442,3 +442,17 @@ a {
                      opacity: 1;
                    }
                  }
+                                 .custom-card .ant-card-head {
+                                   background: linear-gradient(135deg, #DB4444, #c43c3c);
+                                   color: #fff;
+                                   text-align: center;
+                                   border-top-left-radius: 16px;
+                                   border-top-right-radius: 16px;
+                                   border-bottom: none;
+                                 }
+                
+                                 .custom-card .ant-card-head-title {
+                                   color: #fff;
+                                   font-weight: 600;
+                                   font-size: 18px;
+                                 }

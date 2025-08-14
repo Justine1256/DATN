@@ -364,14 +364,15 @@ export default function FollowedShopsSection() {
                                                                     {shop.name}
                                                                 </Title>
                                                             </Link>
+                                                           
+                                                        </Space>
+                                                        <div style={{ marginTop: 6 }}>
+                                                            <StatusTag v={shop.status} />
                                                             {shop.is_verified && (
                                                                 <Tooltip title="Shop đã xác minh">
                                                                     <SafetyCertificateTwoTone twoToneColor={BRAND} />
                                                                 </Tooltip>
                                                             )}
-                                                        </Space>
-                                                        <div style={{ marginTop: 6 }}>
-                                                            <StatusTag v={shop.status} />
                                                         </div>
                                                     </div>
                                                     {/* ĐÃ BỎ nút “Xem shop” theo yêu cầu */}
