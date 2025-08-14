@@ -90,9 +90,9 @@ export default function OrderSuccessPage() {
                         labelStyle={{ width: 180 }}
                         contentStyle={{ background: '#fff' }}
                     >
-                        <Descriptions.Item label="Mã đơn hàng">
+                        {/* <Descriptions.Item label="Mã đơn hàng">
                             {orderId ? <Text code>{orderId}</Text> : <Text type="secondary">Không có</Text>}
-                        </Descriptions.Item>
+                        </Descriptions.Item> */}
                         <Descriptions.Item label="Tổng thanh toán">
                             <Text strong style={{ color: BRAND }}>{formatVND(total)}</Text>
                         </Descriptions.Item>
