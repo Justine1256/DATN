@@ -3,17 +3,38 @@
 import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
-import { API_BASE_URL } from '@/utils/api';   
-// ✅ Component đổi mật khẩu người dùng
+import { API_BASE_URL } from "@/utils/api";
+
+// Ant Design
+import {
+  ConfigProvider,
+  Card,
+  Typography,
+  Input,
+  Button,
+  Space,
+} from "antd";
+import {
+  LockOutlined,
+  CheckCircleTwoTone,
+  CloseOutlined,
+  SaveOutlined,
+} from "@ant-design/icons";
+
+const { Title, Text } = Typography;
+
+// ✅ Types
+type PopupType = "success" | "error";
 
 export default function ChangePassword() {
+  // --- giữ nguyên logic/state ---
   const [formData, setFormData] = useState({
     oldPassword: "",
     newPassword: "",
     confirmNewPassword: "",
   });
 
-  const [popup, setPopup] = useState({ message: "", type: "success" });
+  const [popup, setPopup] = useState({ message: "", type: "success" as PopupType });
   const [showPopup, setShowPopup] = useState(false);
   const [errorField, setErrorField] = useState("");
 
@@ -30,7 +51,7 @@ export default function ChangePassword() {
     setErrorField("");
   };
 
-  const showAlert = (msg: string, type: "success" | "error") => {
+  const showAlert = (msg: string, type: PopupType) => {
     setPopup({ message: msg, type });
     setShowPopup(true);
   };
@@ -74,7 +95,6 @@ export default function ChangePassword() {
     } catch (err: any) {
       const msg = err?.response?.data?.error || "Đổi mật khẩu thất bại.";
       showAlert(msg, "error");
-
       if (msg.toLowerCase().includes("mật khẩu hiện tại")) {
         setErrorField("oldPassword");
       }
@@ -82,94 +102,193 @@ export default function ChangePassword() {
   };
 
   return (
-    <div className="w-full flex justify-center">
-      <div className="container mx-auto px-4 mt-8">
-        <div className="w-full max-w-[400px] mx-auto pt-10 text-black">
-          <form className="rounded-lg shadow-md overflow-hidden bg-white" onSubmit={handleSubmit}>
-            {/* 🔴 Header đỏ chữ trắng căn giữa */}
-            <div className="bg-[#DB4444] text-white text-center py-3 px-4">
-              <h2 className="text-xl font-semibold">Thay đổi mật khẩu</h2>
-            </div>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#DB4444",
+          borderRadius: 12,
+        },
+        components: {
+          Button: { controlHeight: 40 },
+        },
+      }}
+    >
+      <div className="w-full flex justify-center">
+        <div className="container mx-auto px-4 mt-8">
+          <div className="w-full max-w-[440px] mx-auto pt-6 text-black">
+            <form onSubmit={handleSubmit}>
+              <Card
+                className="shadow-md"
+                bordered={false}
+                style={{ borderRadius: 12, overflow: "hidden" }}
+                styles={{ body: { padding: 0 } }}
+                headStyle={{ padding: 0, borderBottom: "none", background: "#fff" }}
+                // ▼▼ Header kiểu mới: icon tròn + tiêu đề + mô tả + hairline
+                title={
+                  <div style={{ position: "relative", padding: "14px 16px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: "50%",
+                          background: "#fff1f0",
+                          color: "#DB4444",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "inset 0 0 0 1px #ffd6d6",
+                        }}
+                      >
+                        <LockOutlined />
+                      </div>
+                      <div style={{ textAlign: "left" }}>
+                        <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.2 }}>
+                          Thay đổi mật khẩu
+                        </div>
+                        <div style={{ color: "#8c8c8c", fontSize: 12, marginTop: 2 }}>
+                          Cập nhật mật khẩu để bảo vệ tài khoản
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: 1,
+                        background: "#f0f0f0",
+                      }}
+                    />
+                  </div>
+                }
+              >
+                <div style={{ padding: 24 }}>
+                  <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                    {/* Mật khẩu hiện tại */}
+                    <div>
+                      <Text style={{ fontWeight: 500 }}>Mật khẩu hiện tại</Text>
+                      <Input.Password
+                        name="oldPassword"
+                        value={formData.oldPassword}
+                        onChange={handleChange}
+                        placeholder="Nhập mật khẩu hiện tại"
+                        size="large"
+                        status={errorField === "oldPassword" ? "error" : ""}
+                        prefix={<LockOutlined />}
+                        style={{ background: "#f5f5f5" }}
+                      />
+                    </div>
 
-            {/* 🔐 Nội dung form */}
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="text-sm font-medium block mb-1">Mật khẩu hiện tại</label>
-                <input
-                  type="password"
-                  name="oldPassword"
-                  value={formData.oldPassword}
-                  onChange={handleChange}
-                  placeholder="Nhập mật khẩu hiện tại"
-                  className={`w-full bg-gray-100 p-3 rounded-md focus:outline-none ${errorField === "oldPassword" ? "border border-red-500" : ""}`}
-                />
+                    {/* Mật khẩu mới */}
+                    <div>
+                      <Text style={{ fontWeight: 500 }}>Mật khẩu mới</Text>
+                      <Input.Password
+                        name="newPassword"
+                        value={formData.newPassword}
+                        onChange={handleChange}
+                        placeholder="Nhập mật khẩu mới"
+                        size="large"
+                        prefix={<LockOutlined />}
+                        style={{ background: "#f5f5f5" }}
+                      />
+                    </div>
+
+                    {/* Xác nhận mật khẩu mới */}
+                    <div>
+                      <Text style={{ fontWeight: 500 }}>Nhập lại mật khẩu mới</Text>
+                      <Input.Password
+                        name="confirmNewPassword"
+                        value={formData.confirmNewPassword}
+                        onChange={handleChange}
+                        placeholder="Xác nhận mật khẩu mới"
+                        size="large"
+                        prefix={<LockOutlined />}
+                        style={{ background: "#f5f5f5" }}
+                      />
+                    </div>
+
+                    {/* Hành động */}
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 8 }}>
+                      <Button
+                        htmlType="button"
+                        icon={<CloseOutlined />}
+                        onClick={() => {
+                          setFormData({
+                            oldPassword: "",
+                            newPassword: "",
+                            confirmNewPassword: "",
+                          });
+                          setErrorField("");
+                        }}
+                      >
+                        Hủy bỏ
+                      </Button>
+
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        icon={<SaveOutlined />}
+                        style={{ backgroundColor: "#DB4444", borderColor: "#DB4444" }}
+                      >
+                        Lưu mật khẩu
+                      </Button>
+                    </div>
+                  </Space>
+                </div>
+              </Card>
+            </form>
+
+            {/* ✅ Thông báo (giữ nguyên cơ chế popup cũ) */}
+            {showPopup && (
+              <div
+                className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade ${popup.type === "success"
+                    ? "bg-white text-black border-green-500"
+                    : "bg-white text-red-600 border-red-500"
+                  }`}
+              >
+                <Space>
+                  {popup.type === "success" ? (
+                    <CheckCircleTwoTone twoToneColor="#52c41a" />
+                  ) : (
+                    <LockOutlined />
+                  )}
+                  <span dangerouslySetInnerHTML={{ __html: popup.message }} />
+                </Space>
               </div>
-
-              <div>
-                <label className="text-sm font-medium block mb-1">Mật khẩu mới</label>
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  placeholder="Nhập mật khẩu mới"
-                  className="w-full bg-gray-100 p-3 rounded-md focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium block mb-1">Nhập lại mật khẩu mới</label>
-                <input
-                  type="password"
-                  name="confirmNewPassword"
-                  value={formData.confirmNewPassword}
-                  onChange={handleChange}
-                  placeholder="Xác nhận mật khẩu mới"
-                  className="w-full bg-gray-100 p-3 rounded-md focus:outline-none"
-                />
-              </div>
-
-              {/* ✅ Hành động */}
-              <div className="flex justify-end gap-4 mt-4">
-                <button
-                  type="reset"
-                  onClick={() => {
-                    setFormData({
-                      oldPassword: "",
-                      newPassword: "",
-                      confirmNewPassword: "",
-                    });
-                    setErrorField("");
-                  }}
-                  className="text-sm text-gray-700 px-5 py-2.5 rounded-md hover:bg-gray-100"
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  className="text-sm bg-[#DB4444] text-white px-6 py-2.5 rounded-md hover:opacity-80"
-                >
-                  Lưu mật khẩu
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {/* ✅ Thông báo */}
-          {showPopup && (
-            <div
-              className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade ${popup.type === "success"
-                  ? "bg-white text-black border-green-500"
-                  : "bg-white text-red-600 border-red-500"
-                }`}
-            >
-              {popup.message}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-  
-}
 
+      {/* animation cho popup (giữ nguyên) */}
+      <style jsx global>{`
+        @keyframes slideInFade {
+          0% {
+            opacity: 0;
+            transform: translateX(50%);
+          }
+          50% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        .animate-slideInFade {
+          animation: slideInFade 0.4s ease forwards;
+        }
+      `}</style>
+    </ConfigProvider>
+  );
+}

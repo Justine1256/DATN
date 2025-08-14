@@ -280,7 +280,7 @@ const avatarUrl = user?.avatar
                   <Eye className="w-4 h-4" />
                   <span>Hồ Sơ Của Tôi</span>
                 </button>
-                <button
+                {/* <button
                   type="button"
                   onClick={() => onChangeSection('profile')}
                   className={clsx(
@@ -290,7 +290,7 @@ const avatarUrl = user?.avatar
                 >
                   <Settings className="w-4 h-4" />
                   <span>Quản Lý Hồ Sơ</span>
-                </button>
+                </button> */}
                 <button
                   type="button"
                   onClick={() => onChangeSection('changepassword')}
