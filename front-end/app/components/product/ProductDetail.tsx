@@ -323,7 +323,7 @@ const hasCombination = (a: string, b: string) => {
     setShowSelectionWarning(false);
 
     if ((hasVariants || hasOption1 || hasOption2) && !matchedVariant && !isFromProductValues) {
-      commonPopup("❌ Xin quý khách, hiện tại biến thể này đã hết hàng");
+      commonPopup("❌ Xin lỗi quý khách, hiện tại biến thể này đã hết hàng");
       setIsAddingToCart(false);
       return;
     }
