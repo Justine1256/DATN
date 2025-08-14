@@ -129,9 +129,9 @@ class OrderController extends Controller
         ->whereNotIn('order_status', ['Canceled'])
         ->exists();
 
-    if ($hasUsedBefore) {
-        return response()->json(['message' => 'Bạn đã sử dụng voucher này rồi'], 400);
-    }
+                if ($hasUsedBefore) {
+                    return response()->json(['message' => 'Bạn đã sử dụng voucher này rồi'], 400);
+                }
                 if ($voucher->usage_limit && $voucher->usage_count >= $voucher->usage_limit) {
                     return response()->json(['message' => 'Mã giảm giá đã hết lượt sử dụng'], 400);
                 }
@@ -193,7 +193,36 @@ class OrderController extends Controller
                     $discountAmount = min($voucher->discount_value, $subtotalApplicable);
                 }
             }
+            $FREE_SHIP_GLOBAL = false;
+$FREE_SHIP_BY_SHOP = [];   // [shop_id => true] nếu shop đó được free ship
+$SHIPPING_FEE_PER_SHOP = 20000;
 
+// Xác định free-ship từ voucher
+if ($voucher && (
+        ($voucher->discount_type ?? null) === 'shipping'
+        || (bool)($voucher->is_free_shipping ?? false)
+    )) {
+
+    // đủ điều kiện tổng phụ hợp lệ (đã tính sẵn ở trên)
+    $meetsMin = $subtotalApplicable >= ($voucher->min_order_value ?? 0);
+
+    if (is_null($voucher->shop_id)) {
+        // Voucher shipping TOÀN SÀN
+        if ($meetsMin) $FREE_SHIP_GLOBAL = true;
+    } else {
+        // Voucher shipping THEO SHOP
+        // tính lại subtotal hợp lệ chỉ trong SHOP đó (xét thêm category nếu có)
+        $shopApplicable = 0;
+        foreach ($carts as $cart) {
+            if ($cart->product->shop_id != $voucher->shop_id) continue;
+            if (!empty($applicableCategoryIds) && !in_array($cart->product->category_id, $applicableCategoryIds)) continue;
+            $shopApplicable += $cart->quantity * $cart->product->price;
+        }
+        if ($shopApplicable >= ($voucher->min_order_value ?? 0)) {
+            $FREE_SHIP_BY_SHOP[$voucher->shop_id] = true;
+        }
+    }
+}
             // ==== 4. Tạo order theo từng shop ====
             $cartsByShop = $carts->groupBy(fn($cart) => $cart->product->shop_id);
             $orders = [];
@@ -227,6 +256,14 @@ class OrderController extends Controller
 
                 // Phân bổ giảm giá cho shop
                 $shopDiscount = 0;
+                    $shopShippingFee = $SHIPPING_FEE_PER_SHOP;
+    if ($FREE_SHIP_GLOBAL || !empty($FREE_SHIP_BY_SHOP[$shopId])) {
+        $shopShippingFee = 0;
+    }
+
+    // ---- NEW: finalAmount cộng phí ship ----
+    $finalAmount = max($shopTotalAmount - round($shopDiscount), 0) + $shopShippingFee;
+    $totalFinalAmount += $finalAmount;
                 if ($voucher) {
                     if (!is_null($voucher->shop_id)) {
                         // Voucher theo SHOP
