@@ -101,29 +101,64 @@ class VoucherUserController extends Controller
 
         return response()->json(['saved' => $exists]);
     }
-    public function showMySavedVouchers(Request $request)
+public function showMySavedVouchers(Request $request)
 {
     $user = Auth::user();
     if (!$user) {
         return response()->json(['message' => 'Bạn cần đăng nhập'], 401);
     }
 
-    $shopId      = $request->query('shop_id');            // ví dụ: /my-vouchers?shop_id=1
-    $onlyActive  = filter_var($request->query('only_active'), FILTER_VALIDATE_BOOLEAN); // ?only_active=1
-    $now         = now();
+    $shopId     = $request->query('shop_id');
+    $onlyActive = filter_var($request->query('only_active'), FILTER_VALIDATE_BOOLEAN);
+    $now        = now();
 
     $vouchers = Voucher::query()
-        ->select('vouchers.*')
         ->join('voucher_users as vu', 'vu.voucher_id', '=', 'vouchers.id')
         ->where('vu.user_id', $user->id)
+        ->select('vouchers.*')
+
+        // 👇 ĐÃ DÙNG (đặt luôn CASE để ra 0/1)
+        ->selectRaw("
+            CASE WHEN EXISTS (
+                SELECT 1 FROM orders o
+                WHERE o.user_id = ?
+                  AND o.voucher_id = vouchers.id
+                  AND o.deleted_at IS NULL
+                  AND o.order_status <> 'Canceled'
+            ) THEN 1 ELSE 0 END AS is_used
+        ", [$user->id])
+
+        // 👇 HẾT LƯỢT
+        ->selectRaw("
+            CASE WHEN vouchers.usage_limit IS NOT NULL
+                  AND vouchers.usage_count >= vouchers.usage_limit
+            THEN 1 ELSE 0 END AS is_exhausted
+        ")
+
+        // 👇 HOẠT ĐỘNG NGAY BÂY GIỜ (đặt alias là is_active cho FE)
+        ->selectRaw("
+            CASE WHEN vouchers.start_date <= ? AND vouchers.end_date >= ?
+            THEN 1 ELSE 0 END AS is_active
+        ", [$now, $now])
+
         ->when($shopId !== null, fn($q) => $q->where('vouchers.shop_id', $shopId))
-        ->when($onlyActive, fn($q) => $q->whereDate('vouchers.start_date', '<=', $now)
-                                        ->whereDate('vouchers.end_date', '>=', $now))
-        ->distinct() // <- Mỗi voucher 1 dòng
+
+        // ⚠️ Nên so sánh full datetime, không dùng whereDate để khỏi mất giờ
+        ->when($onlyActive, fn($q) => $q->where('vouchers.start_date', '<=', $now)
+                                       ->where('vouchers.end_date', '>=', $now))
+        ->distinct()
         ->orderByDesc('vouchers.created_at')
-        ->get();
+        ->get()
+        // ép kiểu rõ ràng để JSON không thành chuỗi "0"/"1"
+        ->map(function ($v) {
+            $v->is_used      = (int) $v->is_used;
+            $v->is_exhausted = (int) $v->is_exhausted;
+            $v->is_active    = (int) $v->is_active;
+            return $v;
+        });
 
     return response()->json(['data' => $vouchers]);
 }
+
 
 }
