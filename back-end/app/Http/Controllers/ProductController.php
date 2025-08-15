@@ -400,7 +400,7 @@ public function getCategoryAndProductsBySlug($slug, Request $request)
         ]);
 
         $text = $request->name . ' ' . $request->description;
-        $embedding = $this->openAI->embedding($text);
+        $embedding = app(OpenAIService::class)->embedding($text);
         $product->embedding = json_encode($embedding);
         $product->save();
 
