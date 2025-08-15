@@ -19,7 +19,7 @@ interface User {
   last_message?: string
   last_time?: string
   isBot?: boolean // Added isBot flag to identify chatbot
-  email?: string // Added email field for guest user
+  email?: string // Added email field for guest userC
 }
 
 interface ChatbotResponse {
@@ -30,6 +30,14 @@ interface ChatbotResponse {
     name: string
     price: string
     similarity: number
+    slug: string
+    image: string[]
+    shop: {
+      id: number
+      name: string
+      slug: string
+      logo: string
+    }
   }>
 }
 
@@ -49,6 +57,12 @@ interface Message {
     slug: string
     image: string[]
     similarity: number
+    shop: {
+      id: number
+      name: string
+      slug: string
+      logo: string
+    }
   }>
 }
 
@@ -112,7 +126,37 @@ export default function EnhancedChatTools() {
     id: 0,
     name: "Khách",
     email: "guest@example.com",
-    avatar: `${STATIC_BASE_URL}/avatars/default-avatar.jpg`,
+    avatar: null,
+  }
+
+  const getStorageKey = (user1Id: number, user2Id: number) => {
+    // Create consistent key regardless of order
+    const sortedIds = [user1Id, user2Id].sort()
+    return `chat_messages_${sortedIds[0]}_${sortedIds[1]}`
+  }
+
+  const getChatbotStorageKey = (userId: number | null) => {
+    return `chatbot_messages_${userId || "guest"}`
+  }
+
+  const saveMessagesToStorage = (messages: Message[], storageKey: string) => {
+    try {
+      // Only save last 100 messages to prevent storage overflow
+      const messagesToSave = messages.slice(-100)
+      localStorage.setItem(storageKey, JSON.stringify(messagesToSave))
+    } catch (error) {
+      console.error("Failed to save messages to localStorage:", error)
+    }
+  }
+
+  const loadMessagesFromStorage = (storageKey: string): Message[] => {
+    try {
+      const saved = localStorage.getItem(storageKey)
+      return saved ? JSON.parse(saved) : []
+    } catch (error) {
+      console.error("Failed to load messages from localStorage:", error)
+      return []
+    }
   }
 
   useEffect(() => setMounted(true), [])
@@ -120,6 +164,33 @@ export default function EnhancedChatTools() {
   useEffect(() => {
     if (showList) fetchRecentContacts()
   }, [showList])
+
+  useEffect(() => {
+    if (!receiver) return
+
+    let storageKey: string
+    let savedMessages: Message[] = []
+
+    if (receiver.id === -1) {
+      // Chatbot conversation
+      storageKey = getChatbotStorageKey(currentUser?.id || null)
+      savedMessages = loadMessagesFromStorage(storageKey)
+    } else if (currentUser) {
+      // Regular user conversation
+      storageKey = getStorageKey(currentUser.id, receiver.id)
+      savedMessages = loadMessagesFromStorage(storageKey)
+    }
+
+    if (savedMessages.length > 0) {
+      setMessages(savedMessages)
+    } else {
+      setMessages([])
+      // Only fetch from server if no local messages
+      if (receiver.id !== -1 && currentUser) {
+        fetchMessages(true)
+      }
+    }
+  }, [receiver, currentUser])
 
   useEffect(() => {
     if (activeChat && mounted && receiver?.id) {
@@ -144,6 +215,24 @@ export default function EnhancedChatTools() {
       setLastMessageCount(messages.length)
     }
   }, [messages, isInitialLoad, lastMessageCount])
+
+  useEffect(() => {
+    if (!receiver || messages.length === 0) return
+
+    let storageKey: string
+
+    if (receiver.id === -1) {
+      // Chatbot conversation
+      storageKey = getChatbotStorageKey(currentUser?.id || null)
+    } else if (currentUser) {
+      // Regular user conversation
+      storageKey = getStorageKey(currentUser.id, receiver.id)
+    } else {
+      return
+    }
+
+    saveMessagesToStorage(messages, storageKey)
+  }, [messages, receiver, currentUser])
 
   const handleScroll = useCallback(() => {
     const container = messagesContainerRef.current
@@ -408,79 +497,81 @@ export default function EnhancedChatTools() {
   const sendChatbotMessage = async () => {
     if (!input.trim()) return
 
-    const token = localStorage.getItem("token") || Cookies.get("authToken")
-    const user = currentUser || guestUser // Use guest user if not authenticated
-
-    // Add user message to chat
     const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      sender_id: user.id,
+      id: `temp-${Date.now()}`,
+      sender_id: currentUser?.id || -999,
       receiver_id: -1,
       message: input.trim(),
       created_at: new Date().toISOString(),
-      sender: user,
+      sender: currentUser || {
+        id: -999,
+        name: "Khách",
+        email: "guest@example.com",
+        avatar: null,
+        phone: null,
+        address: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
       receiver: chatbotUser,
     }
 
     setMessages((prev) => [...prev, userMessage])
-    const userInput = input
+    const originalInput = input
     setInput("")
-
-    // Show typing indicator
-    setIsReceiverTyping(true)
+    setLoading(true)
 
     try {
-      const headers: any = {
-        "Content-Type": "application/json",
-      }
+      const response = await axios.post(`${API_BASE_URL}/chatbot`, {
+        message: originalInput,
+      })
 
-      // Only add authorization header if user is authenticated
-      if (token) {
-        headers.Authorization = `Bearer ${token}`
-      }
-
-      const response = await axios.post(
-        `${API_BASE_URL}/chatbot`,
-        {
-          message: userInput,
-        },
-        {
-          headers,
-        },
-      )
-
-      const chatbotData: ChatbotResponse = response.data
-
-      // Add bot response to chat with products if available
-      const botMessage: Message = {
+      const botResponse: Message = {
         id: `bot-${Date.now()}`,
         sender_id: -1,
-        receiver_id: user.id,
-        message: chatbotData.reply || "Xin lỗi, tôi không hiểu câu hỏi của bạn.",
+        receiver_id: currentUser?.id || -999,
+        message: response.data.reply || response.data.message || "Xin lỗi, tôi không hiểu câu hỏi của bạn.",
         created_at: new Date().toISOString(),
         sender: chatbotUser,
-        receiver: user,
-        products: chatbotData.products || undefined,
+        receiver: currentUser || {
+          id: -999,
+          name: "Khách",
+          email: "guest@example.com",
+          avatar: null,
+          phone: null,
+          address: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        products: response.data.products || [],
       }
 
-      setMessages((prev) => [...prev, botMessage])
+      setMessages((prev) => [...prev, botResponse])
     } catch (error) {
-      console.error("❌ Lỗi khi gửi tin nhắn tới chatbot:", error)
+      console.error("❌ Lỗi khi gửi tin nhắn chatbot:", error)
 
-      // Add error message
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         sender_id: -1,
-        receiver_id: currentUser?.id || 0,
-        message: "Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại sau.",
+        receiver_id: currentUser?.id || -999,
+        message: "Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.",
         created_at: new Date().toISOString(),
         sender: chatbotUser,
-        receiver: currentUser!,
+        receiver: currentUser || {
+          id: -999,
+          name: "Khách",
+          email: "guest@example.com",
+          avatar: null,
+          phone: null,
+          address: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
       }
 
       setMessages((prev) => [...prev, errorMessage])
     } finally {
-      setIsReceiverTyping(false)
+      setLoading(false)
     }
   }
 
@@ -535,7 +626,6 @@ export default function EnhancedChatTools() {
       sender_id: currentUser?.id || 0,
       receiver_id: receiver.id,
       message: input.trim() || "",
-      image: images.length > 0 ? URL.createObjectURL(images[0]) : null,
       created_at: new Date().toISOString(),
       sender: currentUser!,
       receiver: receiver,
@@ -678,14 +768,18 @@ export default function EnhancedChatTools() {
       <div className="fixed right-4 bottom-4 z-[9999]">
         <button
           onClick={() => {
-            setShowList(!showList)
             if (!showList) {
+              // Opening chat - always set chatbot as default
               setReceiver(chatbotUser)
               setActiveChat(true)
+              setShowList(true)
             } else {
+              // Closing chat
+              setShowList(false)
               setActiveChat(false)
             }
-            if (showList) {
+            // Reset unread count when opening
+            if (!showList) {
               setUnreadCount(0)
             }
           }}
@@ -964,16 +1058,18 @@ export default function EnhancedChatTools() {
                                   {msg.products.map((product, index) => (
                                     <div
                                       key={product.id}
-                                      onClick={() => window.open(`/products/${product.slug}`, "_blank")}
-                                      className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
+                                      className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group"
                                     >
-                                      <div className="flex gap-3">
+                                      <div
+                                        onClick={() => window.open(`/products/${product.slug}`, "_blank")}
+                                        className="flex gap-3 cursor-pointer"
+                                      >
                                         {/* Product Image */}
                                         <div className="flex-shrink-0">
                                           <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
                                             {product.image && product.image.length > 0 ? (
                                               <img
-                                                src={`${process.env.NEXT_PUBLIC_STATIC_URL || "http://localhost:8000"}/${product.image[0]}`}
+                                                src={`${STATIC_BASE_URL || "http://localhost:8000"}/${product.image[0]}`}
                                                 alt={product.name}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                                                 onError={(e) => {
@@ -1034,6 +1130,96 @@ export default function EnhancedChatTools() {
                                           </div>
                                         </div>
                                       </div>
+
+                                      {product.shop && (
+                                        <div className="mt-3 pt-3 border-t border-gray-100">
+                                          <div
+                                            onClick={() => window.open(`/shops/${product.shop.slug}`, "_blank")}
+                                            className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors group/shop"
+                                          >
+                                            {/* Shop Logo */}
+                                            <div className="flex-shrink-0">
+                                              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
+                                                {(() => {
+                                                  let logoUrl: string | null = null
+
+                                                  try {
+                                                    // Trường hợp logo là JSON string (mảng)
+                                                    const parsed = JSON.parse(product.shop.logo)
+                                                    if (Array.isArray(parsed) && parsed.length > 0) {
+                                                      logoUrl = parsed[0]
+                                                    }
+                                                  } catch {
+                                                    // Trường hợp logo chỉ là string
+                                                    logoUrl = product.shop.logo
+                                                      ? `${STATIC_BASE_URL}/${product.shop.logo}`
+                                                      : null
+                                                  }
+
+                                                  if (!logoUrl) {
+                                                    return (
+                                                      <img
+                                                        src="/placeholder.svg"
+                                                        alt="No logo"
+                                                        className="w-full h-full object-cover"
+                                                      />
+                                                    )
+                                                  }
+
+                                                  return (
+                                                    <img
+                                                      src={logoUrl || "/placeholder.svg"}
+                                                      alt={product.shop.name}
+                                                      className="w-full h-full object-cover"
+                                                      onError={(e) => {
+                                                        const target = e.target as HTMLImageElement
+                                                        target.src = "/placeholder.svg"
+                                                      }}
+                                                    />
+                                                  )
+                                                })()}
+                                                <div className="w-full h-full flex items-center justify-center hidden">
+                                                  <svg
+                                                    className="w-4 h-4 text-gray-400"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                  >
+                                                    <path
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                      strokeWidth={2}
+                                                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                                    />
+                                                  </svg>
+                                                </div>
+                                              </div>
+                                            </div>
+
+                                            {/* Shop Name */}
+                                            <div className="flex-1 min-w-0">
+                                              <span className="text-xs text-gray-600 group-hover/shop:text-blue-600 transition-colors font-medium">
+                                                {product.shop.name}
+                                              </span>
+                                            </div>
+
+                                            {/* Shop link indicator */}
+                                            <svg
+                                              className="w-3 h-3 text-gray-400 group-hover/shop:text-blue-500 transition-colors"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M9 5l7 7-7 7"
+                                              />
+                                            </svg>
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
