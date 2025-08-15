@@ -424,14 +424,14 @@ const handleLogout = () => {
               Giới Thiệu
               <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
             </Link>
-<Link
+{/* <Link
               href="/dieu-khoan"
               className="relative group text-black hover:opacity-90"
               onMouseEnter={() => router.prefetch("/about")}
             >
               Điều Khoản
               <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
-            </Link>
+            </Link> */}
             <a
               onClick={(e) => {
                 e.preventDefault();
