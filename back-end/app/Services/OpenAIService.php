@@ -7,10 +7,10 @@ use OpenAI;
 class OpenAIService
 {
     protected $client;
-
     public function __construct()
     {
-        $this->client = OpenAI::client(env('OPENAI_API_KEY'));
+        $apiKey = config('services.openai.key'); // ✅ lấy key từ config
+        $this->client = OpenAI::client($apiKey);
     }
 
     // Chat bot
