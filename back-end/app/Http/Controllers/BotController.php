@@ -60,6 +60,8 @@ class BotController extends Controller
                 'id' => $item['product']->id,
                 'name' => $item['product']->name,
                 'price' => $item['product']->price,
+                'slug'  => $item['product']->slug,
+                'image' => $item['product']->image,
                 'similarity' => $item['similarity']
             ], $topProducts),
         ]);
