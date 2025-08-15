@@ -27,6 +27,7 @@ interface ShopInfoProps {
   shop: Shop | undefined
   followed: boolean
   onFollowToggle: () => void
+  isCheckingFollow: boolean
 }
 
 const formatImageUrl = (img: unknown): string => {
@@ -38,50 +39,18 @@ const formatImageUrl = (img: unknown): string => {
   return img.startsWith("/") ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`
 }
 
-export default function ShopInfo({ shop, onFollowToggle }: ShopInfoProps) {
+export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFollow}: ShopInfoProps) {
   const [popupText, setPopupText] = useState("")
   const [showPopup, setShowPopup] = useState(false)
-  const [isCheckingFollow, setIsCheckingFollow] = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
   const router = useRouter()
-const [followed, setFollowed] = useState(false)
-  useEffect(() => {
-  const checkFollowStatus = async () => {
+
+
+const handleToggleFollow = useCallback(async () => {
     if (!shop?.id) return
-
-    setIsCheckingFollow(true)
-    const token = Cookies.get("authToken")
-    try {
-      const response = await fetch(`${API_BASE_URL}/shops/${shop.id}/is-following`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-        credentials: "include",
-      })
-
-      const data = await response.json()
-        setFollowed(data.followed)
-    } catch (error) {
-      console.error("Lỗi khi check follow:", error)
-    } finally {
-      setIsCheckingFollow(false)
-    }
-  }
-
-  checkFollowStatus()
-}, [shop?.id])
-
-
-  const handleToggleFollow = useCallback(async () => {
-    if (!shop?.id) return
-
     setFollowLoading(true)
     try {
-      // Call the parent's toggle function
-      onFollowToggle()
+      await onFollowToggle()
       setPopupText(!followed ? "Đã theo dõi shop" : "Đã bỏ theo dõi shop")
       setShowPopup(true)
     } catch (err) {
@@ -179,34 +148,35 @@ const [followed, setFollowed] = useState(false)
             <div className="flex flex-wrap gap-2 mt-2">
               {/* Follow Button */}
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleToggleFollow()
-                }}
-                disabled={followLoading || isCheckingFollow}
-                className={`flex items-center justify-center gap-2 px-3 py-1 rounded-lg border text-sm transition-colors w-full sm:w-auto
-                            ${
-                              followed
-                                ? "bg-[#db4444] text-white border-[#db4444] hover:opacity-90"
-                                : "bg-white text-[#db4444] border-[#db4444] hover:bg-[#db4444] hover:text-white"
-                            }
-                            disabled:opacity-60 disabled:cursor-not-allowed`}
-              >
-                {followLoading || isCheckingFollow ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <User size={18} />
-                )}
-                <span>
-                  {isCheckingFollow
-                    ? "Kiểm tra..."
-                    : followLoading
-                      ? "Đang tải..."
-                      : followed
-                        ? "Đã theo dõi"
-                        : "Theo Dõi"}
-                </span>
-              </button>
+  onClick={(e) => {
+    e.stopPropagation()
+    handleToggleFollow()
+  }}
+  disabled={followLoading || isCheckingFollow}
+  className={`flex items-center justify-center gap-2 px-3 py-1 rounded border text-sm transition w-full sm:w-auto
+    ${
+      followed
+        ? "bg-[#db4444] text-white border-[#db4444] hover:opacity-90"
+        : "bg-white text-[#db4444] border-[#db4444] hover:bg-[#db4444] hover:text-white"
+    }
+    disabled:opacity-60 disabled:cursor-not-allowed`}
+>
+  {followLoading || isCheckingFollow ? (
+    <Loader2 size={16} className="animate-spin" />
+  ) : (
+    <User size={16} />
+  )}
+  <span>
+    {isCheckingFollow
+      ? "Kiểm tra..."
+      : followLoading
+        ? "Đang tải..."
+        : followed
+          ? "Đã theo dõi"
+          : "Theo Dõi"}
+  </span>
+</button>
+
 
               {/* Chat Button */}
               <button
