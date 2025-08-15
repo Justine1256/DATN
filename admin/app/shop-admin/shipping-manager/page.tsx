@@ -34,7 +34,7 @@ export default function ShippingAccountsPage() {
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
-
+    const token = process.env.NEXT_PUBLIC_GHN_API_TOKEN;
   const api = axios.create({
     baseURL: `${API_BASE_URL}`,
     headers: { Authorization: `Bearer ${Cookies.get("authToken")}` },
@@ -44,7 +44,7 @@ export default function ShippingAccountsPage() {
   const fetchAccounts = async () => {
     setLoading(true);
     try {
-      const res = await api.get<ShopShippingAccount[]>("/shop-shipping-accounts");
+      const res = await api.get<ShopShippingAccount[]>("/shipping-accounts");
       setAccounts(res.data);
     } catch {
       message.error("Không thể tải dữ liệu");
@@ -54,7 +54,11 @@ export default function ShippingAccountsPage() {
 
   const fetchProvinces = async () => {
     try {
-      const res = await api.get("/ghn/provinces");
+      const res = await axios.get("https://online-gateway.ghn.vn/shiip/public-api/master-data/province", {
+  headers: { Token: token }
+});
+      console.log("res",res);
+      
       setProvinces(res.data.data);
     } catch {
       message.error("Không thể tải danh sách tỉnh/thành");
@@ -94,7 +98,7 @@ export default function ShippingAccountsPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await api.delete(`/shop-shipping-accounts/${id}`);
+      await api.delete(`/shipping-accounts/${id}`);
       message.success("Xóa thành công");
       fetchAccounts();
     } catch {
@@ -106,10 +110,10 @@ export default function ShippingAccountsPage() {
     try {
       const values = await form.validateFields();
       if (editingAccount) {
-        await api.put(`/shop-shipping-accounts/${editingAccount.id}`, values);
+        await api.put(`/shipping-accounts/${editingAccount.id}`, values);
         message.success("Cập nhật thành công");
       } else {
-        await api.post("/shop-shipping-accounts", values);
+        await api.post("/shipping-accounts", values);
         message.success("Thêm mới thành công");
       }
       setIsModalVisible(false);

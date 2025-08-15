@@ -36,6 +36,8 @@ return [
     ],
     'openai' => [
     'key' => env('OPENAI_API_KEY'),
+    'api_token' => env('GHN_API_TOKEN'),
+    'api_url'   => 'https://online-gateway.ghn.vn/shiip/public-api',
 ],
 
 

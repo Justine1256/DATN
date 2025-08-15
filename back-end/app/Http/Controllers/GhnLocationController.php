@@ -7,15 +7,16 @@ use Illuminate\Support\Facades\Http;
 
 class GhnLocationController extends Controller
 {
-    private $apiUrl = 'https://online-gateway.ghn.vn/shiip/public-api';
+    private $apiUrl;
     private $token;
 
     public function __construct()
     {
-        $this->token = env('GHN_API_TOKEN'); // Lấy từ .env
+        $this->apiUrl = config('services.ghn.api_url');
+        $this->token  = config('services.ghn.api_token');
     }
 
-    public function provinces()
+        public function provinces()
     {
         $response = Http::withHeaders([
             'Token' => $this->token
