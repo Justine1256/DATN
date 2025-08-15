@@ -522,6 +522,7 @@ public function bestSellingProducts(Request $request)
             $product->shop_logo = $product->shop->logo ?? null;
             $product->shop_name = $product->shop->name ?? null;
             unset($product->shop);
+            return $product;
         });
 
         return $products;
