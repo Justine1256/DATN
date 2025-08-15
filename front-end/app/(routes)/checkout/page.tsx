@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import Breadcrumb from '@/app/components/cart/CartBreadcrumb';
 import CartAndPayment, { Voucher, PaymentInfoChangePayload } from '@/app/components/checkout/CartAndPayment';
-import CheckoutForm from '@/app/components/checkout/CheckoutForm';
+import CheckoutForm, { ManualAddress } from '@/app/components/checkout/CheckoutForm'; // ✅ lấy type
 import OrderSummary from '@/app/components/checkout/OrderSummary';
 
 export interface CartItem {
@@ -24,7 +24,6 @@ export interface CartItem {
   };
 }
 
-/** Totals khớp với OrderSummary.totals */
 type Totals = {
   subtotal: number;
   promotionDiscount: number;
@@ -38,20 +37,20 @@ type PaymentInfoFromChild = {
   perShop: Array<{
     shop_id: number;
     shop_name?: string;
-    subTotal: number;        // đã là tổng theo giá sau sale cho shop
-    voucherDiscount: number; // giảm voucher của shop đó
-    shipping: number;        // phí ship (đã trừ freeship nếu có global shipping)
+    subTotal: number;
+    voucherDiscount: number;
+    shipping: number;
     lineTotal: number;
   }>;
-  globalVoucherDiscount: number; // giảm voucher toàn sàn
+  globalVoucherDiscount: number;
   globalFreeShipping: boolean;
   summary: {
-    subTotal: number; // tổng các shop: đã là "discountedSubtotal" (sau sale)
-    discount: number; // tổng giảm từ voucher (shop + global)
-    shipping: number; // tổng phí ship còn lại
-    total: number;    // tổng thanh toán cuối
+    subTotal: number;
+    discount: number;
+    shipping: number;
+    total: number;
   };
-    shopVouchers?: Array<{ shop_id: number; code: string }>;
+  shopVouchers?: Array<{ shop_id: number; code: string }>;
   globalVoucherCode?: string | null;
 };
 
@@ -59,47 +58,52 @@ export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay' | string>('cod');
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfoFromChild | null>(null);
-  const [manualAddressData, setManualAddressData] = useState<any>(null);
-  const [addressId, setAddressId] = useState<number | null>(null);
 
-  // Voucher state (nếu muốn show mã ở OrderSummary)
+  const [manualAddressData, setManualAddressData] = useState<ManualAddress | null>(null); // ✅ có type
+  const [addressId, setAddressId] = useState<number | null>(null);
+  const [saveAddress, setSaveAddress] = useState<boolean>(false); // ✅ nhận từ form
+
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
   const [voucherCode, setVoucherCode] = useState<string | null>(null);
   const [serverDiscount, setServerDiscount] = useState<number | null>(null);
   const [serverFreeShipping, setServerFreeShipping] = useState<boolean>(false);
 
   const voucherCodeForSubmit = useMemo(() => {
-  const globalCode = paymentInfo?.globalVoucherCode ?? null;
-  if (globalCode) return globalCode;
+    const globalCode = paymentInfo?.globalVoucherCode ?? null;
+    if (globalCode) return globalCode;
+    const sv = paymentInfo?.shopVouchers ?? [];
+    return sv.length === 1 ? sv[0].code : null;
+  }, [paymentInfo]);
 
-  const sv = paymentInfo?.shopVouchers ?? [];
-  return sv.length === 1 ? sv[0].code : null;
-}, [paymentInfo]);
-  /* ============== Address handlers ============== */
+  // ===== Address handlers =====
   const handleAddressSelect = useCallback((selectedId: number | null) => {
     setAddressId(selectedId);
   }, []);
 
-  const handleAddressChange = useCallback((manualData: any | null) => {
+  const handleAddressChange = useCallback((manualData: ManualAddress | null) => {
     setManualAddressData(manualData);
   }, []);
 
-  /* ============== Nhận payment info đầy đủ từ CartAndPayment ============== */
+  // ✅ nhận trạng thái tick “Lưu địa chỉ này cho lần sau”
+  const handleSaveToggle = useCallback((save: boolean) => {
+    setSaveAddress(save);
+  }, []);
+
+  // ===== Payment info from CartAndPayment =====
   const handlePaymentInfoChange = useCallback((info: PaymentInfoFromChild) => {
     setPaymentMethod(info.paymentMethod);
     setPaymentInfo(info);
   }, []);
 
-  /* ============== Nhận giỏ hàng từ CartAndPayment và chuẩn hoá sang CartItem local ============== */
+  // ===== Cart normalize =====
   const handleCartChange = useCallback((items: any[]) => {
     const n = (v: any) => {
-  const x = Number(v);
-  return Number.isFinite(x) ? x : undefined;
-};
+      const x = Number(v);
+      return Number.isFinite(x) ? x : undefined;
+    };
     const normalized: CartItem[] = (items || []).map((it: any, idx: number) => {
       const p = it.product ?? {};
       const images: string[] = Array.isArray(p.image) ? p.image : [p.image].filter(Boolean);
-
       return {
         id: it.id ?? `guest-${idx}`,
         quantity: Number(it.quantity ?? 1),
@@ -114,18 +118,15 @@ export default function CheckoutPage() {
           ? {
             id: Number(it.variant.id ?? 0),
             price: n(it.variant.price),
-            sale_price: it.variant.sale_price != null  // ✅ ép số an toàn
-            ? Number(it.variant.sale_price)
-            : null,
+            sale_price: it.variant.sale_price != null ? Number(it.variant.sale_price) : null,
           }
           : undefined,
       };
     });
-
     setCartItems(normalized);
   }, []);
 
-  /* ============== Voucher applied từ CartAndPayment ============== */
+  // ===== Voucher applied =====
   const handleVoucherApplied = useCallback((res: {
     voucher: Voucher | null;
     serverDiscount: number | null;
@@ -137,11 +138,10 @@ export default function CheckoutPage() {
     setVoucherCode(res.voucher?.code ?? null);
   }, []);
 
-  /* ============== Tính totals chuẩn để truyền cho OrderSummary ============== */
+  // ===== Totals for OrderSummary =====
   const totals: Totals | null = useMemo(() => {
     if (!paymentInfo) return null;
 
-    // 1) subtotal (giá gốc) & promotionDiscount (giảm do sale/variant)
     const subtotal = cartItems.reduce((sum, item) => {
       const originalPrice = item.variant?.price ?? item.product.price;
       return sum + originalPrice * item.quantity;
@@ -155,19 +155,11 @@ export default function CheckoutPage() {
     }, 0);
 
     const promotionDiscount = Math.max(0, subtotal - discountedSubtotal);
-
-    // 2) voucherDiscount & shipping & finalTotal lấy từ child summary
     const voucherDiscount = Math.max(0, paymentInfo.summary.discount || 0);
     const shipping = Math.max(0, paymentInfo.summary.shipping || 0);
     const finalTotal = Math.max(0, paymentInfo.summary.total || 0);
 
-    return {
-      subtotal,
-      promotionDiscount,
-      voucherDiscount,
-      shipping,
-      finalTotal,
-    };
+    return { subtotal, promotionDiscount, voucherDiscount, shipping, finalTotal };
   }, [paymentInfo, cartItems]);
 
   return (
@@ -188,13 +180,14 @@ export default function CheckoutPage() {
           <CheckoutForm
             onAddressSelect={handleAddressSelect}
             onAddressChange={handleAddressChange}
+            onSaveAddressToggle={handleSaveToggle}   // ✅ nhận tick “lưu địa chỉ”
           />
         </div>
 
         {/* Cột phải: Giỏ + Tổng tiền */}
         <div className="space-y-8 pl-6">
           <CartAndPayment
-            onPaymentInfoChange={handlePaymentInfoChange}        // ✅ nhận object đầy đủ
+            onPaymentInfoChange={handlePaymentInfoChange}
             onCartChange={handleCartChange as (items: any[]) => void}
             onVoucherApplied={handleVoucherApplied}
           />
@@ -208,11 +201,9 @@ export default function CheckoutPage() {
             voucherCode={voucherCodeForSubmit}
             serverDiscount={serverDiscount ?? null}
             serverFreeShipping={serverFreeShipping}
-            manualAddressData={manualAddressData}
-            /* ✅ Truyền tổng tiền đã chuẩn hoá; OrderSummary sẽ ưu tiên dùng */
-            totals={
-              totals || undefined // nếu chưa có paymentInfo thì OrderSummary dùng fallback tự tính
-            }
+            manualAddressData={manualAddressData ?? undefined}
+            saveAddress={saveAddress}                
+            totals={totals || undefined}
           />
         </div>
       </div>

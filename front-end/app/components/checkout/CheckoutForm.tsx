@@ -6,11 +6,12 @@ import Cookies from 'js-cookie';
 import { API_BASE_URL } from '@/utils/api';
 import Select from 'react-select';
 
+/** ===== Types ===== */
 interface Address {
   id: string;
   address: string;
   ward: string;
-  district: string; // vẫn giữ để hiển thị địa chỉ đã lưu
+  district: string;
   city: string;
   is_default: number | boolean;
 }
@@ -22,25 +23,29 @@ interface Province {
 interface Ward {
   code: number;
   name: string;
+  district?: string; // ✅ cần để phát city "Ward, District, Province"
 }
 
-interface ManualAddress {
+export interface ManualAddress {
   full_name: string;
-  address: string;
-  city: string;
+  address: string;  // street + apartment (nếu có)
+  city: string;     // "Ward, District, Province"
   phone: string;
   email: string;
 }
 
 interface Props {
-  onAddressSelect: (id: number | null) => void;
-  onAddressChange: (manualData: ManualAddress | null) => void;
+  onAddressSelect: (id: number | null) => void;                 // phát id địa chỉ đã lưu (nếu dùng)
+  onAddressChange: (manualData: ManualAddress | null) => void;  // phát dữ liệu nhập tay (nếu dùng)
+  onSaveAddressToggle?: (save: boolean) => void;                // phát trạng thái checkbox “lưu địa chỉ”
 }
 
-export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props) {
+export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveAddressToggle }: Props) {
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [selectedAddressId, setSelectedAddressId] = useState<string>(''); // đang dùng địa chỉ đã lưu nếu có giá trị
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(''); // có giá trị -> đang dùng địa chỉ đã lưu
   const [disableForm, setDisableForm] = useState(false);
+
+  const [saveAddress, setSaveAddress] = useState<boolean>(false); // ✅ checkbox “Lưu địa chỉ này”
 
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -57,7 +62,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
   const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
 
-  // --- Helpers map API mới ---
+  // --- Helpers map API ---
   const mapProvinceList = (data: any): Province[] => {
     const list = Array.isArray(data) ? data : data?.data || [];
     return list.map((p: any) => ({
@@ -70,10 +75,16 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
     return list.map((w: any) => ({
       code: Number(w.code ?? w.ward_code ?? w.id),
       name: String(w.name ?? w.ward_name ?? w.full_name).trim(),
+      district: String(
+        w.district_name ??
+        w.district?.name ??
+        w.district ??
+        ''
+      ).trim(),
     }));
   };
 
-  // --- Load Provinces (API mới) ---
+  // Load provinces
   useEffect(() => {
     axios
       .get('https://tinhthanhpho.com/api/v1/new-provinces')
@@ -81,7 +92,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
       .catch(console.error);
   }, []);
 
-  // --- Load user's addresses + pick default once ---
+  // Load user's addresses & chọn mặc định
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) return;
@@ -102,42 +113,43 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
         );
         setAddresses(sorted);
 
-        const defaultAddress = sorted.find((a) => !!a.is_default);
-        if (defaultAddress) {
-          const idStr = String(defaultAddress.id);
+        const def = sorted.find((a) => !!a.is_default);
+        if (def) {
+          const idStr = String(def.id);
           setSelectedAddressId(idStr);
           setDisableForm(true);
-          onAddressSelect(Number(defaultAddress.id));
-          onAddressChange(null); // đang dùng địa chỉ đã lưu => tắt manual
+          setSaveAddress(false);
+          onAddressSelect(Number(def.id));
+          onAddressChange(null);
+          onSaveAddressToggle?.(false);
         }
       })
       .catch(console.error);
-  }, [onAddressSelect, onAddressChange]);
+  }, [onAddressSelect, onAddressChange, onSaveAddressToggle]);
 
-  // --- Load wards khi chọn tỉnh (API mới) ---
+  // Load wards khi chọn tỉnh
   useEffect(() => {
     if (!selectedProvince) {
       setWards([]);
       setSelectedWard(null);
       return;
     }
-
     axios
       .get(`https://tinhthanhpho.com/api/v1/new-provinces/${selectedProvince.code}/wards`)
       .then((res) => {
         setWards(mapWardList(res.data));
-        setSelectedWard(null); // reset xã
+        setSelectedWard(null);
       })
       .catch(console.error);
   }, [selectedProvince]);
 
-  // --- Derived: có đang nhập tay không? ---
+  // có nhập tay không?
   const hasManualInput = useMemo(() => {
     const anyForm = Object.values(formData).some((v) => v.trim() !== '');
     return !!(anyForm || selectedProvince || selectedWard);
   }, [formData, selectedProvince, selectedWard]);
 
-  // --- Khi đổi option địa chỉ đã lưu ---
+  // Chọn/bỏ chọn địa chỉ đã lưu
   const handleAddressChange = useCallback(
     (value: string) => {
       setSelectedAddressId(value);
@@ -152,22 +164,24 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
       setEmailError(null);
 
       if (usingSaved) {
-        const numericId = Number(value);
-        onAddressSelect(!isNaN(numericId) ? numericId : null);
-        onAddressChange(null); // dùng địa chỉ đã lưu => không gửi manual
+        onAddressSelect(Number(value));
+        onAddressChange(null);
+        setSaveAddress(false);
+        onSaveAddressToggle?.(false);
       } else {
-        // bỏ chọn => cho phép nhập tay
         onAddressSelect(null);
         onAddressChange(null);
+        setSaveAddress(false);
+        onSaveAddressToggle?.(false);
       }
     },
-    [onAddressChange, onAddressSelect]
+    [onAddressChange, onAddressSelect, onSaveAddressToggle]
   );
 
-  // --- Nhập form tay ---
+  // Nhập form tay
   const handleInputChange = useCallback(
     (field: string, value: string) => {
-      if (selectedAddressId) return; // 🔒 đang dùng địa chỉ đã lưu
+      if (selectedAddressId) return; // đang dùng địa chỉ đã lưu
 
       const updated = { ...formData, [field]: value };
 
@@ -185,15 +199,14 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
     [formData, selectedAddressId]
   );
 
-  // --- Phát dữ liệu manual RA NGOÀI (chỉ khi KHÔNG dùng địa chỉ đã lưu) ---
+  // Phát dữ liệu nhập tay ra ngoài – city: "Ward, District, Province"
   useEffect(() => {
     if (selectedAddressId) return; // đang dùng địa chỉ đã lưu
-
     if (hasManualInput && !phoneError) {
       onAddressChange({
         full_name: formData.firstName,
         address: `${formData.streetAddress}${formData.apartment ? ', ' + formData.apartment : ''}`,
-        city: `${selectedWard?.name || ''}, ${selectedProvince?.name || ''}`, // KHÔNG còn district
+        city: `${selectedWard?.name || ''}, ${selectedWard?.district || ''}, ${selectedProvince?.name || ''}`,
         phone: formData.phone,
         email: formData.email,
       });
@@ -210,25 +223,42 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
     onAddressChange,
   ]);
 
-  // --- Handlers Select Province/Ward ---
+  // Province/Ward change
   const handleProvinceChange = useCallback(
     (option: { value: number; label: string } | null) => {
-      if (selectedAddressId) return; // 🔒
+      if (selectedAddressId) return;
       const found = option ? provinces.find((p) => p.code === option.value) || null : null;
       setSelectedProvince(found);
       setSelectedWard(null);
     },
     [provinces, selectedAddressId]
   );
-
   const handleWardChange = useCallback(
     (option: { value: number; label: string } | null) => {
-      if (selectedAddressId) return; // 🔒
+      if (selectedAddressId) return;
       const found = option ? wards.find((w) => w.code === option.value) || null : null;
       setSelectedWard(found);
     },
     [wards, selectedAddressId]
   );
+
+  // Tick “lưu địa chỉ”
+  const handleToggleSave = (checked: boolean) => {
+    if (selectedAddressId) {
+      setSaveAddress(false);
+      onSaveAddressToggle?.(false);
+      return;
+    }
+    setSaveAddress(checked);
+    onSaveAddressToggle?.(checked);
+  };
+
+  // rút gọn text địa chỉ trong select saved
+  const formatSavedAddress = (a: Address) => {
+    const base = `${a.address}, ${a.ward}${a.district ? ', ' + a.district : ''}, ${a.city}`;
+    const max = 70;
+    return base.length > max ? base.slice(0, max - 1) + '…' : base;
+  };
 
   return (
     <div className="text-sm">
@@ -236,7 +266,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
 
       <label className="block mb-1 font-medium">Địa chỉ nhận hàng</label>
       <select
-        className="w-full border rounded-md bg-gray-100 px-3 py-2 mb-4 outline-none"
+        className="w-full border rounded-md bg-white px-3 py-2 mb-4 outline-none text-gray-800"
         value={selectedAddressId}
         onChange={(e) => handleAddressChange(e.target.value)}
         disabled={addresses.length === 0}
@@ -248,7 +278,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
             <option value="">-- Chọn địa chỉ giao hàng --</option>
             {addresses.map((addr) => (
               <option key={addr.id} value={addr.id}>
-                {`${addr.address}, ${addr.ward}${addr.district ? ', ' + addr.district : ''}, ${addr.city}`} {addr.is_default ? '(Mặc định)' : ''}
+                {formatSavedAddress(addr)} {addr.is_default ? '(Mặc định)' : ''}
               </option>
             ))}
           </>
@@ -313,6 +343,10 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
             placeholder="Chọn Phường/Xã"
             isSearchable
           />
+          {/* Gợi ý: Quận/Huyện sẽ được tự động lấy từ Phường/Xã */}
+          {!!selectedWard?.district && (
+            <p className="text-xs text-gray-500 mt-1">Quận/Huyện: {selectedWard.district}</p>
+          )}
         </div>
 
         <InputField
@@ -333,12 +367,23 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
           disabled={disableForm}
           error={emailError}
         />
+
+        {/* ✅ Checkbox lưu địa chỉ – chỉ dùng khi nhập tay */}
+        <label className="inline-flex items-center gap-2 mt-2">
+          <input
+            type="checkbox"
+            className="h-4 w-4"
+            checked={!!saveAddress}
+            onChange={(e) => handleToggleSave(e.target.checked)}
+            disabled={!!selectedAddressId} // đang dùng địa chỉ đã lưu -> không cho tick
+          />
+          <span>Lưu địa chỉ này cho lần sau</span>
+        </label>
       </div>
     </div>
   );
 }
 
-// Reusable InputField component
 function InputField({
   label,
   field,
