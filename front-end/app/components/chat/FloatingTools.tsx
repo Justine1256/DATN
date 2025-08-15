@@ -46,6 +46,8 @@ interface Message {
   sender_id: number
   receiver_id: number
   message: string
+  typing?: boolean;   // chỉ dùng client-side cho bot
+  display?: string;
   image?: string|null
   created_at: string
   sender: User
@@ -201,8 +203,9 @@ export default function EnhancedChatTools() {
   useEffect(() => setMounted(true), [])
 
   useEffect(() => {
-    if (showList) fetchRecentContacts()
-  }, [showList])
+    if (showList) setUnreadCount(0); // mở cửa sổ là tắt nháy + xóa số
+  }, [showList]);
+
 
   useEffect(() => {
     if (!receiver) return
@@ -254,6 +257,9 @@ export default function EnhancedChatTools() {
       setLastMessageCount(messages.length)
     }
   }, [messages, isInitialLoad, lastMessageCount])
+  useEffect(() => {
+    if (showList) setUnreadCount(0);
+  }, [showList]);
 
   useEffect(() => {
     if (!receiver || messages.length === 0) return
@@ -803,7 +809,7 @@ export default function EnhancedChatTools() {
               setReceiver(chatbotUser)
               setActiveChat(true)
               setShowList(true)
-              setUnreadCount(0)
+            
             } else {
               setShowList(false)
               setActiveChat(false)
@@ -822,12 +828,26 @@ export default function EnhancedChatTools() {
           <MessageCircle size={22} />
           {unreadCount > 0 && (
             <>
-              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] leading-none rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-md">
-                {unreadCount > 9 ? '9+' : unreadCount}
+              <span
+                className={[
+                  "absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] leading-none",
+                  "rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-md",
+                  !showList ? "animate-pulse" : "" // nháy khi chưa mở cửa sổ
+                ].join(" ")}
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
               </span>
-              <span className="absolute -top-1.5 -right-1.5 inline-flex h-5 w-5 rounded-full bg-red-500/60 animate-ping" />
+
+              {!showList && (
+                <>
+                  <span className="absolute -top-1.5 -right-1.5 inline-flex h-5 w-5 rounded-full bg-red-500/60 animate-ping" />
+                  <span className="absolute -top-2 -right-2 inline-flex h-7 w-7 rounded-full bg-red-500/40 animate-ping [animation-delay:.2s]" />
+                </>
+              )}
             </>
           )}
+
+
         </button>
       </div>
 
