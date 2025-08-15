@@ -42,39 +42,20 @@ export default function OrderSection() {
     setShowReportModal(false)
   }
   const fetchOrders = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
       const res = await axios.get(`${API_BASE_URL}/orderall`, {
         headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // Log toàn bộ dữ liệu trả về từ API
-      console.log("📦 API response:", res.data);
-
-      const data = Array.isArray(res.data.orders) ? res.data.orders : [];
-
-      // Log mảng đơn hàng sau khi đã kiểm tra
-      console.log("📋 Orders array:", data);
-
-      // Log shopSlug & productSlug của từng sản phẩm trong đơn
-      data.forEach((order) => {
-        order.order_details.forEach((detail) => {
-          console.log(`🛒 Order #${order.id} → shopSlug:`,
-            detail.shop_slug || detail.product?.shop_slug || detail.product?.shop?.slug || order.shop_slug
-          );
-          console.log(`🛒 Order #${order.id} → productSlug:`, detail.product?.slug);
-        });
-      });
-
-      setOrders(data);
-      filterOrders(activeTab, data);
+      })
+      const data = Array.isArray(res.data.orders) ? res.data.orders : []
+      setOrders(data)
+      filterOrders(activeTab, data)
     } catch (err) {
-      console.error("❌ Lỗi khi lấy danh sách đơn hàng:", err);
+      console.error("❌ Lỗi khi lấy danh sách đơn hàng:", err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
+  }
 
   useEffect(() => {
     fetchOrders()
