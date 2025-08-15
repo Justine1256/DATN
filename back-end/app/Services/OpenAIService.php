@@ -37,7 +37,7 @@ public function embedding($text)
             'input' => $text,
         ]);
 
-        return $result['data'][0]['embedding'];
+        return $result->embeddings[0]->embedding;
 
     }
 
