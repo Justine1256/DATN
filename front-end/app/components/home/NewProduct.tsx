@@ -8,12 +8,14 @@ import { API_BASE_URL } from '@/utils/api';
 export default function NewProducts() {
   const [products, setProducts] = useState<Product[]>([]);  // ✅ Danh sách sản phẩm
   const [loading, setLoading] = useState(true);              // ✅ Trạng thái loading
-const router = useRouter();
+  const router = useRouter();
+
   // 🔄 Gọi API lấy sản phẩm mới
   useEffect(() => {
     fetch(`${API_BASE_URL}/newproducts`)
       .then((res) => res.json())
       .then((data) => {
+        console.log("📦 Dữ liệu sản phẩm mới:", data); // <-- log toàn bộ dữ liệu
         setProducts(Array.isArray(data.products) ? data.products : []);
       })
       .catch((err) => {
@@ -21,6 +23,7 @@ const router = useRouter();
       })
       .finally(() => setLoading(false));
   }, []);
+
 
 
   return (
