@@ -508,7 +508,8 @@ public function bestSellingProducts(Request $request)
     $cacheKey = "best_selling_products_limit_$limit";
 
     $products = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($limit) {
-        $products = Product::with(['shop:id,slug'])
+        $products = Product::with(['shop:id,slug,name,logo'])
+
             ->withCount(['approvedReviews as review_count'])
             ->withAvg(['approvedReviews as rating_avg'], 'rating')
             ->where('status', 'activated')
