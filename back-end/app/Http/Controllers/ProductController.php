@@ -585,6 +585,7 @@ public function newProducts(Request $request)
 
         $products->transform(function ($product) {
             $product->shop_slug = $product->shop->slug ?? null;
+            $product->shop_logo = $product->shop->logo ?? null;
             $product->shop_name = $product->shop->name ?? null;
             unset($product->shop);
             return $product;
