@@ -61,7 +61,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [isLiking, setIsLiking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showSelectionWarning, setShowSelectionWarning] = useState(false);
-
+const [isCheckingFollow, setIsCheckingFollow] = useState(true);
   // Context giỏ hàng & yêu thích
   const { reloadCart } = useCart();
   const { reloadWishlist, wishlistItems } = useWishlist();
@@ -136,6 +136,30 @@ useEffect(() => {
 
   setIsOwner(Boolean(owner));
 }, [product, currentUser]);
+useEffect(() => {
+  const token = Cookies.get("authToken");
+  if (!product?.shop?.id || !token) {
+    setIsCheckingFollow(false);
+    return;
+  }
+
+  const checkFollow = async () => {
+    try {
+      setIsCheckingFollow(true); // bắt đầu check
+      const res = await fetch(`${API_BASE_URL}/shops/${product.shop.id}/is-following`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setFollowed(data.followed);
+    } catch (err) {
+      console.error("Lỗi fetch follow status:", err);
+    } finally {
+      setIsCheckingFollow(false); // xong thì set false
+    }
+  };
+
+  checkFollow();
+}, [product?.shop?.id]);
 
   // Fetch chi tiết sản phẩm và ghi nhận lịch sử xem
   useEffect(() => {
@@ -951,7 +975,7 @@ const hasCombination = (a: string, b: string) => {
 
       {/* Shop Info & Description */}
       <div className="max-w-screen-xl mx-auto px-4 mt-16 space-y-16">
-        <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} />
+        <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} isCheckingFollow={isCheckingFollow}/>
         <ProductDescription html={product.description} />
         <ProductReviews productId={product.id} />
         <ShopProductSlider shopSlug={product.shop.slug} />
