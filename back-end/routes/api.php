@@ -15,6 +15,7 @@ use App\Http\Controllers\BotController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\FollowController;
+use App\Http\Controllers\GhnLocationController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
@@ -289,6 +290,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shipping-accounts', [ShopShippingAccountController::class, 'store']);
     Route::put('/shipping-accounts/{id}', [ShopShippingAccountController::class, 'update']);
     Route::delete('/shipping-accounts/{id}', [ShopShippingAccountController::class, 'destroy']);
+    Route::get('/ghn/provinces', [GhnLocationController::class, 'provinces']);
+    Route::get('/ghn/districts', [GhnLocationController::class, 'districts']);
+    Route::get('/ghn/wards', [GhnLocationController::class, 'wards']);
 Route::post('/broadcasting/auth', function (Request $request) {
     // Get token from Bearer header or cookie
     $token = $request->bearerToken() ?: $request->cookie('authToken');

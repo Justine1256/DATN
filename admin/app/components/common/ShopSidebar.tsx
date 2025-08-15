@@ -61,6 +61,7 @@ export const menu = [
       { label: "Thông tin shop", href: "/shop-admin/shop/info" },
       { label: "Chỉnh sửa shop", href: "/shop-admin/shop/update" },
       { label: "Quản lý thanh toán", href: "/shop-admin/payment" },
+      { label: "Quản lý vận chuyển", href: "/shop-admin/shipping-manager" },
     ],
   },
 ]
