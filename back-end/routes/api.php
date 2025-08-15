@@ -29,6 +29,7 @@ use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ShopShippingAccountController;
 use App\Models\Banner;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Broadcast;
@@ -283,6 +284,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/payment-accounts/{id}', [PaymentAccountController::class, 'destroy']);
     Route::post('/payment/connect/{provider}', [PaymentConnectController::class, 'connect']);
 
+    // quản lý đơn vị vẫn chuyển
+    Route::get('/shipping-accounts', [ShopShippingAccountController::class, 'index']);
+    Route::post('/shipping-accounts', [ShopShippingAccountController::class, 'store']);
+    Route::put('/shipping-accounts/{id}', [ShopShippingAccountController::class, 'update']);
+    Route::delete('/shipping-accounts/{id}', [ShopShippingAccountController::class, 'destroy']);
 Route::post('/broadcasting/auth', function (Request $request) {
     // Get token from Bearer header or cookie
     $token = $request->bearerToken() ?: $request->cookie('authToken');
