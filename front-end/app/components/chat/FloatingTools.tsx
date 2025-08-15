@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useCallback, useEffect, useState, useRef } from "react"
-import { MessageCircle, X, Plus, Send, Phone, Video, MoreVertical } from "lucide-react"
+import { MessageCircle, X, Plus, Send, MoreVertical, Bot } from "lucide-react"
 import Image from "next/image"
 import axios from "axios"
 import Cookies from "js-cookie"
@@ -18,17 +18,38 @@ interface User {
   online?: boolean
   last_message?: string
   last_time?: string
+  isBot?: boolean // Added isBot flag to identify chatbot
+  email?: string // Added email field for guest user
+}
+
+interface ChatbotResponse {
+  message: string
+  reply: string
+  products?: Array<{
+    id: number
+    name: string
+    price: string
+    similarity: number
+  }>
 }
 
 interface Message {
-  id: number | string
+  id: string | number
   sender_id: number
   receiver_id: number
   message: string
-  image?: string | null
+  image?: string
   created_at: string
   sender: User
   receiver: User
+  products?: Array<{
+    id: number
+    name: string
+    price: string
+    slug: string
+    image: string[]
+    similarity: number
+  }>
 }
 
 interface NotificationMessage {
@@ -75,6 +96,24 @@ export default function EnhancedChatTools() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+
+  const chatbotUser: User = {
+    id: -1, // Special ID for chatbot
+    name: "Chat Bot",
+    avatar: "/bot-avatar.png", // You can add a bot avatar image
+    role: "assistant",
+    online: true,
+    last_message: "Xin chào! Tôi có thể giúp gì cho bạn?",
+    last_time: new Date().toISOString(),
+    isBot: true,
+  }
+
+  const guestUser: User = {
+    id: 0,
+    name: "Khách",
+    email: "guest@example.com",
+    avatar: `${STATIC_BASE_URL}/avatars/default-avatar.jpg`,
+  }
 
   useEffect(() => setMounted(true), [])
 
@@ -155,15 +194,15 @@ export default function EnhancedChatTools() {
       const res = await axios.get(`${API_BASE_URL}/recent-contacts`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      setRecentContacts(res.data)
+      setRecentContacts([chatbotUser, ...res.data])
     } catch (err) {
       console.error("Lỗi khi lấy danh sách đã nhắn:", err)
+      setRecentContacts([chatbotUser])
     }
   }, [])
 
   const handleSocketData = useCallback(
     (data: ChatSocketData) => {
-
       if (data.type === "message" && data.message) {
         const message = data.message
 
@@ -174,7 +213,6 @@ export default function EnhancedChatTools() {
             Number(message.receiver_id) === Number(currentUser.id)) ||
             (Number(message.sender_id) === Number(currentUser?.id) &&
               Number(message.receiver_id) === Number(receiver.id)))
-
 
         if (isCurrentConversation) {
           setMessages((prev) => {
@@ -230,7 +268,6 @@ export default function EnhancedChatTools() {
           Number(message.receiver_id) === Number(currentUser?.id) &&
           Number(message.sender_id) !== Number(currentUser?.id)
         ) {
-
           if (!isCurrentConversation || !activeChat) {
             setNotifications((prev) => {
               const notificationExists = prev.some((n) => String(n.id) === String(message.id))
@@ -276,6 +313,15 @@ export default function EnhancedChatTools() {
 
   const fetchMessages = async (reset = false) => {
     if (!receiver?.id) return
+
+    if (receiver.isBot) {
+      if (reset) {
+        setMessages([])
+        setLoading(false)
+      }
+      return
+    }
+
     const token = localStorage.getItem("token") || Cookies.get("authToken")
     if (!token) return
 
@@ -296,7 +342,6 @@ export default function EnhancedChatTools() {
         },
         headers: { Authorization: `Bearer ${token}` },
       })
-
 
       let messagesData = res.data
 
@@ -338,8 +383,6 @@ export default function EnhancedChatTools() {
       }
 
       setHasMoreMessages(messagesData.length === 15)
-
-
     } catch (error) {
       console.error("❌ Lỗi khi lấy tin nhắn:", error)
       if (axios.isAxiosError(error)) {
@@ -362,43 +405,121 @@ export default function EnhancedChatTools() {
     await fetchMessages(false)
   }, [receiver?.id, loadingMore, hasMoreMessages, currentOffset])
 
+  const sendChatbotMessage = async () => {
+    if (!input.trim()) return
+
+    const token = localStorage.getItem("token") || Cookies.get("authToken")
+    const user = currentUser || guestUser // Use guest user if not authenticated
+
+    // Add user message to chat
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      sender_id: user.id,
+      receiver_id: -1,
+      message: input.trim(),
+      created_at: new Date().toISOString(),
+      sender: user,
+      receiver: chatbotUser,
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+    const userInput = input
+    setInput("")
+
+    // Show typing indicator
+    setIsReceiverTyping(true)
+
+    try {
+      const headers: any = {
+        "Content-Type": "application/json",
+      }
+
+      // Only add authorization header if user is authenticated
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+
+      const response = await axios.post(
+        `${API_BASE_URL}/chatbot`,
+        {
+          message: userInput,
+        },
+        {
+          headers,
+        },
+      )
+
+      const chatbotData: ChatbotResponse = response.data
+
+      // Add bot response to chat with products if available
+      const botMessage: Message = {
+        id: `bot-${Date.now()}`,
+        sender_id: -1,
+        receiver_id: user.id,
+        message: chatbotData.reply || "Xin lỗi, tôi không hiểu câu hỏi của bạn.",
+        created_at: new Date().toISOString(),
+        sender: chatbotUser,
+        receiver: user,
+        products: chatbotData.products || undefined,
+      }
+
+      setMessages((prev) => [...prev, botMessage])
+    } catch (error) {
+      console.error("❌ Lỗi khi gửi tin nhắn tới chatbot:", error)
+
+      // Add error message
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        sender_id: -1,
+        receiver_id: currentUser?.id || 0,
+        message: "Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại sau.",
+        created_at: new Date().toISOString(),
+        sender: chatbotUser,
+        receiver: currentUser!,
+      }
+
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      setIsReceiverTyping(false)
+    }
+  }
+
   const sendMessage = async () => {
-
-
-    if (!receiver?.id || (!input.trim() && images.length === 0)) {
-
-      return
+    // Handle chatbot messages (no auth required)
+    if (receiver?.id === -1) {
+      return sendChatbotMessage()
     }
 
     const token = localStorage.getItem("token") || Cookies.get("authToken")
     if (!token) {
+      alert("Vui lòng đăng nhập để nhắn tin với người dùng khác.")
       return
     }
 
+    if (!receiver?.id || (!input.trim() && images.length === 0)) {
+      return
+    }
 
     const formData = new FormData()
     formData.append("receiver_id", receiver.id.toString())
 
     let messageText = input.trim()
     if (!messageText && images.length > 0) {
-      messageText = "[Image]" // Gửi placeholder text khi chỉ gửi ảnh
+      messageText = "[Image]"
     } else if (!messageText) {
-      messageText = " " // Fallback để tránh empty string
+      messageText = " "
     }
     formData.append("message", messageText)
 
-    // Xử lý ảnh với validation tốt hơn
     if (images.length > 0) {
       const imageFile = images[0]
 
-      // Kiểm tra kích thước file (max 5MB)
       if (imageFile.size > 5 * 1024 * 1024) {
         console.error("❌ File quá lớn (>5MB)")
         alert("File ảnh quá lớn. Vui lòng chọn file nhỏ hơn 5MB.")
         return
       }
 
-      // Kiểm tra định dạng file
       if (!imageFile.type.startsWith("image/")) {
         console.error("❌ File không phải ảnh")
         alert("Vui lòng chọn file ảnh hợp lệ.")
@@ -408,14 +529,12 @@ export default function EnhancedChatTools() {
       formData.append("image", imageFile)
     }
 
-
-
     const optimisticId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const optimisticMessage: Message = {
       id: optimisticId as any,
       sender_id: currentUser?.id || 0,
       receiver_id: receiver.id,
-      message: input.trim() || "", // Hiển thị text gốc trong UI, không hiển thị "[Image]"
+      message: input.trim() || "",
       image: images.length > 0 ? URL.createObjectURL(images[0]) : null,
       created_at: new Date().toISOString(),
       sender: currentUser!,
@@ -431,18 +550,15 @@ export default function EnhancedChatTools() {
     setImages([])
     setImagePreviews([])
 
-
     try {
       const res = await axios.post(`${API_BASE_URL}/messages`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
-        timeout: 30000, // Tăng timeout cho upload ảnh
+        timeout: 30000,
       })
 
-
-      // Chỉ refresh recent contacts
       setTimeout(() => {
         fetchRecentContacts()
       }, 500)
@@ -563,7 +679,12 @@ export default function EnhancedChatTools() {
         <button
           onClick={() => {
             setShowList(!showList)
-            setActiveChat(false)
+            if (!showList) {
+              setReceiver(chatbotUser)
+              setActiveChat(true)
+            } else {
+              setActiveChat(false)
+            }
             if (showList) {
               setUnreadCount(0)
             }
@@ -597,25 +718,34 @@ export default function EnhancedChatTools() {
                 }`}
               >
                 <div className="relative">
-                  <Image
-                    src={
-                      user.avatar?.startsWith("http") || user.avatar?.startsWith("/")
-                        ? user.avatar
-                        : user.avatar
-                          ? `${STATIC_BASE_URL}/${user.avatar}`
-                          : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
-                    }
-                    alt={user.name}
-                    width={40}
-                    height={40}
-                    className="rounded-full object-cover w-10 h-10"
-                  />
+                  {user.isBot ? (
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <Bot size={20} className="text-white" />
+                    </div>
+                  ) : (
+                    <Image
+                      src={
+                        user.avatar?.startsWith("http") || user.avatar?.startsWith("/")
+                          ? user.avatar
+                          : user.avatar
+                            ? `${STATIC_BASE_URL}/${user.avatar}`
+                            : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+                      }
+                      alt={user.name}
+                      width={40}
+                      height={40}
+                      className="rounded-full object-cover w-10 h-10"
+                    />
+                  )}
                   {user.online && (
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user.name}</p>
+                  <p className="text-sm font-medium truncate flex items-center gap-1">
+                    {user.name}
+                    {user.isBot && <Bot size={12} className="text-blue-500" />}
+                  </p>
                   <p className="text-xs text-gray-500 truncate">{user.last_message || "Chưa có tin nhắn"}</p>
                   {user.last_time && <p className="text-xs text-gray-400">{formatTime(user.last_time)}</p>}
                 </div>
@@ -629,45 +759,68 @@ export default function EnhancedChatTools() {
             <div className="flex items-center justify-between px-4 py-3 border-b bg-[#db4444] text-white">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <Image
-                    src={
-                      receiver?.avatar
-                        ? receiver.avatar.startsWith("http") || receiver.avatar.startsWith("/")
-                          ? receiver.avatar
-                          : `${STATIC_BASE_URL}/${receiver.avatar}`
-                        : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
-                    }
-                    alt="avatar"
-                    width={32}
-                    height={32}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
+                  {receiver?.isBot ? (
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <Bot size={16} className="text-white" />
+                    </div>
+                  ) : (
+                    <Image
+                      src={
+                        receiver?.avatar
+                          ? receiver.avatar.startsWith("http") || receiver.avatar.startsWith("/")
+                            ? receiver.avatar
+                            : `${STATIC_BASE_URL}/${receiver.avatar}`
+                          : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+                      }
+                      alt="avatar"
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  )}
                   {receiver?.online && (
                     <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 border border-white rounded-full"></div>
                   )}
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">{receiver?.name || "Chưa chọn người"}</p>
+                  <p className="font-semibold text-sm flex items-center gap-1">
+                    {receiver?.name || "Chưa chọn người"}
+                    {receiver?.isBot && <Bot size={12} className="text-blue-200" />}
+                  </p>
                   <p className="text-xs opacity-90">
-                    {connectionStatus === "connected"
-                      ? isReceiverTyping
-                        ? `${receiver?.name} đang nhập...`
-                        : "Đang hoạt động"
-                      : connectionStatus === "connecting"
-                        ? "Đang kết nối WebSocket..."
-                        : connectionStatus === "error"
-                          ? "Lỗi WebSocket - chỉ dùng API"
-                          : "WebSocket mất kết nối"}
+                    {receiver?.isBot
+                      ? "AI Assistant - Luôn sẵn sàng hỗ trợ"
+                      : connectionStatus === "connected"
+                        ? isReceiverTyping
+                          ? `${receiver?.name} đang nhập...`
+                          : "Đang hoạt động"
+                        : connectionStatus === "connecting"
+                          ? "Đang kết nối WebSocket..."
+                          : connectionStatus === "error"
+                            ? "Lỗi WebSocket - chỉ dùng API"
+                            : "WebSocket mất kết nối"}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-1.5 hover:bg-white/10 rounded">
-                  <Phone size={16} />
-                </button>
-                <button className="p-1.5 hover:bg-white/10 rounded">
-                  <Video size={16} />
-                </button>
+                {!receiver?.isBot && (
+                  <>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                    >
+                      <Plus size={18} />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                  </>
+                )}
                 <button className="p-1.5 hover:bg-white/10 rounded">
                   <MoreVertical size={16} />
                 </button>
@@ -677,27 +830,28 @@ export default function EnhancedChatTools() {
               </div>
             </div>
 
-            {/* Connection Status Display */}
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 px-4 py-2">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  connectionStatus === "connected"
-                    ? "bg-green-500"
+            {!receiver?.isBot && (
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 px-4 py-2">
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    connectionStatus === "connected"
+                      ? "bg-green-500"
+                      : connectionStatus === "connecting"
+                        ? "bg-yellow-500 animate-pulse"
+                        : "bg-red-500"
+                  }`}
+                />
+                <span>
+                  {connectionStatus === "connected"
+                    ? "WebSocket đã kết nối"
                     : connectionStatus === "connecting"
-                      ? "bg-yellow-500 animate-pulse"
-                      : "bg-red-500"
-                }`}
-              />
-              <span>
-                {connectionStatus === "connected"
-                  ? "WebSocket đã kết nối"
-                  : connectionStatus === "connecting"
-                    ? "Đang kết nối WebSocket..."
-                    : connectionStatus === "error"
-                      ? "Lỗi WebSocket - chỉ dùng API"
-                      : "WebSocket mất kết nối"}
-              </span>
-            </div>
+                      ? "Đang kết nối WebSocket..."
+                      : connectionStatus === "error"
+                        ? "Lỗi WebSocket - chỉ dùng API"
+                        : "WebSocket mất kết nối"}
+                </span>
+              </div>
+            )}
 
             {/* Messages Area */}
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
@@ -712,14 +866,14 @@ export default function EnhancedChatTools() {
                 </div>
               ) : (
                 <>
-                  {loadingMore && (
+                  {!receiver?.isBot && loadingMore && (
                     <div className="flex items-center justify-center py-4">
                       <div className="animate-spin w-6 h-6 border-b-2 border-[#db4444] rounded-full"></div>
                       <span className="ml-2 text-sm text-gray-500">Đang tải thêm tin nhắn...</span>
                     </div>
                   )}
 
-                  {!hasMoreMessages && messages.length > 15 && (
+                  {!receiver?.isBot && !hasMoreMessages && messages.length > 15 && (
                     <div className="flex items-center justify-center py-2">
                       <span className="text-xs text-gray-400 bg-gray-200 px-3 py-1 rounded-full">
                         Đã hiển thị tất cả tin nhắn
@@ -729,13 +883,24 @@ export default function EnhancedChatTools() {
 
                   {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                      <MessageCircle size={48} className="mb-4 opacity-50" />
-                      <p className="text-center">Chưa có tin nhắn nào</p>
-                      <p className="text-xs text-center mt-2">Hãy gửi tin nhắn đầu tiên!</p>
+                      {receiver?.isBot ? (
+                        <>
+                          <Bot size={48} className="mb-4 opacity-50" />
+                          <p className="text-center">Xin chào! Tôi là Chat Bot</p>
+                          <p className="text-xs text-center mt-2">Hãy hỏi tôi bất cứ điều gì bạn muốn biết!</p>
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle size={48} className="mb-4 opacity-50" />
+                          <p className="text-center">Chưa có tin nhắn nào</p>
+                          <p className="text-xs text-center mt-2">Hãy gửi tin nhắn đầu tiên!</p>
+                        </>
+                      )}
                     </div>
                   ) : (
                     messages.map((msg) => {
                       const isCurrentUser = msg.sender_id === currentUser?.id
+                      const isBotMessage = msg.sender_id === -1
 
                       let avatarUrl = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
                       let userName = "User"
@@ -748,6 +913,9 @@ export default function EnhancedChatTools() {
                               : `${STATIC_BASE_URL}/${currentUser.avatar}`
                         }
                         userName = currentUser?.name || "You"
+                      } else if (isBotMessage) {
+                        avatarUrl = "" // Will use Bot icon instead
+                        userName = "Chat Bot"
                       } else {
                         if (receiver?.avatar) {
                           avatarUrl =
@@ -764,21 +932,113 @@ export default function EnhancedChatTools() {
                           className={`flex gap-2 ${isCurrentUser ? "justify-end" : "justify-start"}`}
                         >
                           {!isCurrentUser && (
-                            <img
-                              src={avatarUrl || "/placeholder.svg"}
-                              alt={userName}
-                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                            />
+                            <>
+                              {isBotMessage ? (
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <Bot size={16} className="text-white" />
+                                </div>
+                              ) : (
+                                <img
+                                  src={avatarUrl || "/placeholder.svg"}
+                                  alt={userName}
+                                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                />
+                              )}
+                            </>
                           )}
                           <div className={`max-w-[70%] ${isCurrentUser ? "order-first" : ""}`}>
                             <div
                               className={`p-3 rounded-lg ${
                                 isCurrentUser
                                   ? "bg-blue-500 text-white rounded-br-sm"
-                                  : "bg-gray-100 text-gray-900 rounded-bl-sm"
+                                  : isBotMessage
+                                    ? "bg-gradient-to-r from-blue-100 to-purple-100 text-gray-900 rounded-bl-sm border border-blue-200"
+                                    : "bg-gray-100 text-gray-900 rounded-bl-sm"
                               }`}
                             >
                               {msg.message && <p className="text-sm break-words">{msg.message}</p>}
+
+                              {msg.products && msg.products.length > 0 && (
+                                <div className="mt-3 space-y-2">
+                                  <div className="text-xs font-medium text-gray-600 mb-2">Sản phẩm gợi ý:</div>
+                                  {msg.products.map((product, index) => (
+                                    <div
+                                      key={product.id}
+                                      onClick={() => window.open(`/products/${product.slug}`, "_blank")}
+                                      className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
+                                    >
+                                      <div className="flex gap-3">
+                                        {/* Product Image */}
+                                        <div className="flex-shrink-0">
+                                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                                            {product.image && product.image.length > 0 ? (
+                                              <img
+                                                src={`${process.env.NEXT_PUBLIC_STATIC_URL || "http://localhost:8000"}/${product.image[0]}`}
+                                                alt={product.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                onError={(e) => {
+                                                  const target = e.target as HTMLImageElement
+                                                  target.src = "/modern-tech-product.png"
+                                                }}
+                                              />
+                                            ) : (
+                                              <div className="w-full h-full flex items-center justify-center">
+                                                <svg
+                                                  className="w-6 h-6 text-gray-400"
+                                                  fill="none"
+                                                  stroke="currentColor"
+                                                  viewBox="0 0 24 24"
+                                                >
+                                                  <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2v10a2 2 0 002-2H6a2 2 0 00-2-2v12a2 2 0 002 2z"
+                                                  />
+                                                </svg>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Product Info */}
+                                        <div className="flex-1 min-w-0">
+                                          <h4 className="font-medium text-sm text-gray-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                            {product.name}
+                                          </h4>
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-blue-600 font-semibold text-sm">
+                                              {Number.parseInt(product.price).toLocaleString("vi-VN")} VND
+                                            </span>
+                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded group-hover:bg-blue-50 transition-colors">
+                                              {Math.round(product.similarity * 100)}% phù hợp
+                                            </span>
+                                          </div>
+
+                                          {/* Click indicator */}
+                                          <div className="flex items-center mt-1 text-xs text-gray-400 group-hover:text-blue-500 transition-colors">
+                                            <svg
+                                              className="w-3 h-3 mr-1"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                              />
+                                            </svg>
+                                            Nhấn để xem chi tiết
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
                               {msg.image && (
                                 <img
                                   src={`${STATIC_BASE_URL}/${msg.image}`}
@@ -828,8 +1088,7 @@ export default function EnhancedChatTools() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Image Preview */}
-            {imagePreviews.length > 0 && (
+            {!receiver?.isBot && imagePreviews.length > 0 && (
               <div className="px-4 py-2 bg-gray-100 border-t">
                 <div className="flex gap-2 overflow-x-auto">
                   {imagePreviews.map((src, i) => (
@@ -856,43 +1115,49 @@ export default function EnhancedChatTools() {
             {/* Input Area */}
             <div className="p-4 border-t bg-white">
               <div className="flex items-end gap-3">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
-                >
-                  <Plus size={18} />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleImageChange}
-                />
+                {!receiver?.isBot && (
+                  <>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                    >
+                      <Plus size={18} />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                  </>
+                )}
                 <div className="flex-1">
                   <textarea
                     value={input}
                     onChange={(e) => {
                       setInput(e.target.value)
 
-                      setIsUserTyping(true)
-                      if (typingTimeoutRef.current) {
-                        clearTimeout(typingTimeoutRef.current)
-                      }
-
-                      if (sendTypingEvent) {
-                        sendTypingEvent(true, receiver?.id)
-                      }
-
-                      typingTimeoutRef.current = setTimeout(() => {
-                        setIsUserTyping(false)
-                        if (sendTypingEvent) {
-                          sendTypingEvent(false, receiver?.id)
+                      if (!receiver?.isBot) {
+                        setIsUserTyping(true)
+                        if (typingTimeoutRef.current) {
+                          clearTimeout(typingTimeoutRef.current)
                         }
-                      }, 1000)
+
+                        if (sendTypingEvent) {
+                          sendTypingEvent(true, receiver?.id)
+                        }
+
+                        typingTimeoutRef.current = setTimeout(() => {
+                          setIsUserTyping(false)
+                          if (sendTypingEvent) {
+                            sendTypingEvent(false, receiver?.id)
+                          }
+                        }, 1000)
+                      }
                     }}
-                    placeholder="Nhập tin nhắn..."
+                    placeholder={receiver?.isBot ? "Hỏi chatbot..." : "Nhập tin nhắn..."}
                     rows={1}
                     className="w-full px-4 py-3 text-sm border border-gray-300 rounded-2xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#db4444] focus:border-transparent resize-none"
                     onKeyPress={(e) => {
@@ -905,9 +1170,9 @@ export default function EnhancedChatTools() {
                 </div>
                 <button
                   onClick={sendMessage}
-                  disabled={(!input.trim() && images.length === 0) || !receiver?.id}
+                  disabled={!input.trim() || !receiver?.id}
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    (!input.trim() && images.length === 0) || !receiver?.id
+                    !input.trim() || !receiver?.id
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105"
                   }`}

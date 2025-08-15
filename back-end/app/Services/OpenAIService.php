@@ -7,10 +7,10 @@ use OpenAI;
 class OpenAIService
 {
     protected $client;
-
     public function __construct()
     {
-        $this->client = OpenAI::client(env('OPENAI_API_KEY'));
+        $apiKey = config('services.openai.key'); // ✅ lấy key từ config
+        $this->client = OpenAI::client($apiKey);
     }
 
     // Chat bot
@@ -31,13 +31,14 @@ class OpenAIService
 
     // Tạo embeddings cho tìm kiếm sản phẩm
 public function embedding($text)
-{
-    $result = $this->client->embeddings()->create([
-        'model' => 'text-embedding-3-small',
-        'input' => $text,
-    ]);
+    {
+        $result = $this->client->embeddings()->create([
+            'model' => 'text-embedding-3-small',
+            'input' => $text,
+        ]);
 
-    return $result->embeddings[0]->embedding;
-}
+        return $result->embeddings[0]->embedding;
+
+    }
 
 }

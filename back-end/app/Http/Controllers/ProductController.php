@@ -19,15 +19,17 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Laravel\Sanctum\PersonalAccessToken;
+use OpenAI;
 
 class ProductController extends Controller
 {
-    protected $openAI;
-    // Danh sách sản phẩm
-public function __construct(OpenAIService $openAI)
-{
-    $this->openAI = $openAI;
-}
+protected $client;
+
+    public function __construct()
+    {
+        $this->client = OpenAI::client(config('services.openai.key'));
+    }
+
 public function index(Request $request)
 {
     $perPage   = (int) $request->query('per_page', 15);
@@ -398,7 +400,7 @@ public function getCategoryAndProductsBySlug($slug, Request $request)
         ]);
 
         $text = $request->name . ' ' . $request->description;
-        $embedding = $this->openAI->embedding($text);
+        $embedding = app(OpenAIService::class)->embedding($text);
         $product->embedding = json_encode($embedding);
         $product->save();
 
