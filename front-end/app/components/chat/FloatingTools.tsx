@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useCallback, useEffect, useState, useRef } from "react"
-import { MessageCircle, X, Plus, Send, Phone, Video, MoreVertical, Bot } from "lucide-react"
+import { MessageCircle, X, Plus, Send, MoreVertical, Bot } from "lucide-react"
 import Image from "next/image"
 import axios from "axios"
 import Cookies from "js-cookie"
@@ -19,6 +19,7 @@ interface User {
   last_message?: string
   last_time?: string
   isBot?: boolean // Added isBot flag to identify chatbot
+  email?: string // Added email field for guest user
 }
 
 interface ChatbotResponse {
@@ -45,6 +46,8 @@ interface Message {
     id: number
     name: string
     price: string
+    slug: string
+    image: string[]
     similarity: number
   }>
 }
@@ -103,6 +106,13 @@ export default function EnhancedChatTools() {
     last_message: "Xin chào! Tôi có thể giúp gì cho bạn?",
     last_time: new Date().toISOString(),
     isBot: true,
+  }
+
+  const guestUser: User = {
+    id: 0,
+    name: "Khách",
+    email: "guest@example.com",
+    avatar: `${STATIC_BASE_URL}/avatars/default-avatar.jpg`,
   }
 
   useEffect(() => setMounted(true), [])
@@ -399,16 +409,16 @@ export default function EnhancedChatTools() {
     if (!input.trim()) return
 
     const token = localStorage.getItem("token") || Cookies.get("authToken")
-    if (!token) return
+    const user = currentUser || guestUser // Use guest user if not authenticated
 
     // Add user message to chat
     const userMessage: Message = {
       id: `user-${Date.now()}`,
-      sender_id: currentUser?.id || 0,
+      sender_id: user.id,
       receiver_id: -1,
       message: input.trim(),
       created_at: new Date().toISOString(),
-      sender: currentUser!,
+      sender: user,
       receiver: chatbotUser,
     }
 
@@ -420,16 +430,22 @@ export default function EnhancedChatTools() {
     setIsReceiverTyping(true)
 
     try {
+      const headers: any = {
+        "Content-Type": "application/json",
+      }
+
+      // Only add authorization header if user is authenticated
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+
       const response = await axios.post(
         `${API_BASE_URL}/chatbot`,
         {
           message: userInput,
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers,
         },
       )
 
@@ -439,11 +455,11 @@ export default function EnhancedChatTools() {
       const botMessage: Message = {
         id: `bot-${Date.now()}`,
         sender_id: -1,
-        receiver_id: currentUser?.id || 0,
+        receiver_id: user.id,
         message: chatbotData.reply || "Xin lỗi, tôi không hiểu câu hỏi của bạn.",
         created_at: new Date().toISOString(),
         sender: chatbotUser,
-        receiver: currentUser!,
+        receiver: user,
         products: chatbotData.products || undefined,
       }
 
@@ -469,17 +485,18 @@ export default function EnhancedChatTools() {
   }
 
   const sendMessage = async () => {
-    if (receiver?.isBot) {
+    // Handle chatbot messages (no auth required)
+    if (receiver?.id === -1) {
       return sendChatbotMessage()
-    }
-
-    // ... existing sendMessage code for regular users ...
-    if (!receiver?.id || (!input.trim() && images.length === 0)) {
-      return
     }
 
     const token = localStorage.getItem("token") || Cookies.get("authToken")
     if (!token) {
+      alert("Vui lòng đăng nhập để nhắn tin với người dùng khác.")
+      return
+    }
+
+    if (!receiver?.id || (!input.trim() && images.length === 0)) {
       return
     }
 
@@ -788,12 +805,20 @@ export default function EnhancedChatTools() {
               <div className="flex items-center gap-2">
                 {!receiver?.isBot && (
                   <>
-                    <button className="p-1.5 hover:bg-white/10 rounded">
-                      <Phone size={16} />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                    >
+                      <Plus size={18} />
                     </button>
-                    <button className="p-1.5 hover:bg-white/10 rounded">
-                      <Video size={16} />
-                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
                   </>
                 )}
                 <button className="p-1.5 hover:bg-white/10 rounded">
@@ -939,18 +964,73 @@ export default function EnhancedChatTools() {
                                   {msg.products.map((product, index) => (
                                     <div
                                       key={product.id}
-                                      className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 transition-colors cursor-pointer"
+                                      onClick={() => window.open(`/products/${product.slug}`, "_blank")}
+                                      className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
                                     >
-                                      <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                          <h4 className="font-medium text-sm text-gray-900 mb-1">{product.name}</h4>
+                                      <div className="flex gap-3">
+                                        {/* Product Image */}
+                                        <div className="flex-shrink-0">
+                                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                                            {product.image && product.image.length > 0 ? (
+                                              <img
+                                                src={`${process.env.NEXT_PUBLIC_STATIC_URL || "http://localhost:8000"}/${product.image[0]}`}
+                                                alt={product.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                onError={(e) => {
+                                                  const target = e.target as HTMLImageElement
+                                                  target.src = "/modern-tech-product.png"
+                                                }}
+                                              />
+                                            ) : (
+                                              <div className="w-full h-full flex items-center justify-center">
+                                                <svg
+                                                  className="w-6 h-6 text-gray-400"
+                                                  fill="none"
+                                                  stroke="currentColor"
+                                                  viewBox="0 0 24 24"
+                                                >
+                                                  <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2v10a2 2 0 002-2H6a2 2 0 00-2-2v12a2 2 0 002 2z"
+                                                  />
+                                                </svg>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Product Info */}
+                                        <div className="flex-1 min-w-0">
+                                          <h4 className="font-medium text-sm text-gray-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                            {product.name}
+                                          </h4>
                                           <div className="flex items-center justify-between">
                                             <span className="text-blue-600 font-semibold text-sm">
                                               {Number.parseInt(product.price).toLocaleString("vi-VN")} VND
                                             </span>
-                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded group-hover:bg-blue-50 transition-colors">
                                               {Math.round(product.similarity * 100)}% phù hợp
                                             </span>
+                                          </div>
+
+                                          {/* Click indicator */}
+                                          <div className="flex items-center mt-1 text-xs text-gray-400 group-hover:text-blue-500 transition-colors">
+                                            <svg
+                                              className="w-3 h-3 mr-1"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                              />
+                                            </svg>
+                                            Nhấn để xem chi tiết
                                           </div>
                                         </div>
                                       </div>
