@@ -5,7 +5,6 @@ import Cookies from 'js-cookie';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { API_BASE_URL } from '@/utils/api';
 
-/* ============== Types ============== */
 export interface CartItem {
   id: number | string;
   quantity: number;
@@ -44,52 +43,46 @@ interface OrderRequestBody {
   address_manual?: {
     full_name: string;
     address: string;
-    city: string;
+    city: string;   // "Ward, District, Province"
     phone: string;
     email: string;
   };
 }
 
-/** ✅ Tổng tiền có thể truyền sẵn từ component cha */
 interface Totals {
-  subtotal: number;            // tổng theo giá gốc
-  promotionDiscount: number;   // giảm giá từ sale/sale_price
-  voucherDiscount: number;     // tổng giảm từ các voucher
-  shipping: number;            // tổng phí vận chuyển (sau khi áp dụng free ship nếu có)
-  finalTotal: number;          // tổng thanh toán cuối cùng
+  subtotal: number;
+  promotionDiscount: number;
+  voucherDiscount: number;
+  shipping: number;
+  finalTotal: number;
 }
 
-/* ============== Props ============== */
 interface Props {
   cartItems: CartItem[];
   paymentMethod: string;
   addressId: number | null;
 
-  /** Voucher (nếu muốn hiển thị mã) */
   appliedVoucher?: Voucher | null;
   voucherCode?: string | null;
 
-  /** Kết quả apply voucher từ BE (fallback khi không truyền totals) */
-  serverDiscount?: number | null;      // discount_amount
-  serverFreeShipping?: boolean;        // is_free_shipping
+  serverDiscount?: number | null;
+  serverFreeShipping?: boolean;
 
-  /** Nếu người dùng nhập tay địa chỉ */
   manualAddressData?: {
     full_name: string;
     address: string;
     apartment?: string;
-    city: string;
+    city: string;   // "Ward, District, Province"
     phone: string;
     email: string;
   };
 
-  /** Nhận tổng tiền từ component khác (ưu tiên dùng) */
   totals?: Totals;
 
   setCartItems: (items: CartItem[]) => void;
+  saveAddress?: boolean; // ✅ tick “Lưu địa chỉ”
 }
 
-/* ============== Component ============== */
 export default function OrderSummary({
   cartItems,
   paymentMethod,
@@ -98,13 +91,10 @@ export default function OrderSummary({
   voucherCode = null,
   manualAddressData,
   setCartItems,
-
-  // Fallback khi không truyền totals
   serverDiscount = null,
   serverFreeShipping = false,
-
-  // ✅ Ưu tiên dùng totals truyền từ cha
   totals,
+  saveAddress = false,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -113,14 +103,12 @@ export default function OrderSummary({
   const [popupType, setPopupType] = useState<'success' | 'error' | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
 
-  /** ======= TÍNH TIỀN GIỐNG CART (độc lập voucher) ======= */
-  const num = (v: any) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  };
+  // 🔒 Chống lưu 2 lần
+  const saveOnceRef = useRef(false);
+
+  const num = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
   const getPriceToUse = (item: CartItem) =>
     num(item.variant?.sale_price ?? item.variant?.price ?? item.product.sale_price ?? item.product.price);
-
   const getOriginalPrice = (item: CartItem) =>
     num(item.variant?.price ?? item.product.price);
 
@@ -130,40 +118,86 @@ export default function OrderSummary({
     voucherDiscount: localVoucherDiscount,
     shipping: localShipping,
   } = useMemo(() => {
-    // Tổng theo giá gốc
     const subtotal = cartItems.reduce((s, it) => s + getOriginalPrice(it) * it.quantity, 0);
-
-    // Tổng theo giá đang áp dụng (đã giảm)
     const discountedSubtotal = cartItems.reduce((s, it) => s + getPriceToUse(it) * it.quantity, 0);
-
-    // Khuyến mãi (giảm theo SP)
     const promotionDiscount = Math.max(0, subtotal - discountedSubtotal);
-
-    // Ship: nếu chưa cần theo shop thì để 20k cố định như bạn đang dùng
     const shippingBase = cartItems.length > 0 ? 20000 : 0;
-
-    // Voucher (fallback từ serverDiscount nếu có)
     const voucherDiscount =
       typeof serverDiscount === 'number' ? Math.max(0, Math.floor(serverDiscount)) : 0;
-
     const shipping = serverFreeShipping ? 0 : shippingBase;
-
     return { subtotal, promotionDiscount, voucherDiscount, shipping };
   }, [cartItems, serverDiscount, serverFreeShipping]);
 
-
-  /** ======= Chọn giá trị hiển thị: ưu tiên totals từ cha ======= */
-  /** ======= Chọn giá trị hiển thị ======= */
-  // Luôn dùng local cho 2 số này để không lệch Cart
-  const subtotal = /* totals?.subtotal ?? */ localSubtotal;
-  const promotionDiscount = /* totals?.promotionDiscount ?? */ localPromo;
-
-  // 2 số dưới vẫn cho phép nhận từ cha (nếu có), không thì dùng local
+  const subtotal = localSubtotal;
+  const promotionDiscount = localPromo;
   const voucherDiscount = totals?.voucherDiscount ?? localVoucherDiscount;
   const shipping = totals?.shipping ?? localShipping;
-
   const finalTotal = Math.max(0, (subtotal - promotionDiscount) - voucherDiscount + shipping);
 
+  /** ===== Lưu địa chỉ (đăng nhập + nhập tay + tick + không chọn addressId) ===== */
+  const trySaveManualAddress = async () => {
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    if (!token || !manualAddressData) return;
+
+    const parts = (manualAddressData.city || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const ward = parts[0] || '';
+    const district = parts[1] || '';
+    const province = parts[2] || parts[1] || '';
+    const city = province;
+
+    const ok =
+      manualAddressData.full_name &&
+      manualAddressData.phone &&
+      manualAddressData.address &&
+      ward && district && province;
+
+    if (!ok) return;
+
+    const me = await axios.get(`${API_BASE_URL}/user`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const user_id = me.data?.id;
+
+    const payload = {
+      full_name: manualAddressData.full_name,
+      phone: manualAddressData.phone,
+      address: manualAddressData.address,
+      ward,
+      district,          // ✅ gửi district
+      province,
+      city,
+      note: '',
+      is_default: false,
+      type: 'Nhà Riêng',
+      user_id,
+    };
+
+    await axios.post(`${API_BASE_URL}/addresses`, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+  };
+
+  // ✅ Chỉ cho phép lưu 1 lần / phiên đặt hàng
+  const maybeSaveManualAddress = async () => {
+    if (saveOnceRef.current) return;
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    const isGuest = !token;
+    if (isGuest) return;
+    if (!saveAddress) return;
+    if (!!addressId) return;            // đang dùng địa chỉ đã lưu
+    if (!manualAddressData) return;
+
+    await trySaveManualAddress();
+    saveOnceRef.current = true;
+  };
 
   /* ============== Đặt hàng ============== */
   const handlePlaceOrder = async () => {
@@ -184,7 +218,6 @@ export default function OrderSummary({
       const token = localStorage.getItem('token') || Cookies.get('authToken');
       const isGuest = !token;
 
-      // lấy cart
       let cartPayload: any[];
       if (isGuest) {
         cartPayload = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -204,8 +237,7 @@ export default function OrderSummary({
           payment_method: paymentMethod,
           address_manual: {
             full_name: manualAddressData?.full_name || '',
-            address: `${manualAddressData?.address ?? ''}${manualAddressData?.apartment ? ', ' + manualAddressData.apartment : ''
-              }`,
+            address: `${manualAddressData?.address ?? ''}${manualAddressData?.apartment ? ', ' + manualAddressData.apartment : ''}`,
             city: manualAddressData?.city || '',
             phone: manualAddressData?.phone || '',
             email: manualAddressData?.email || '',
@@ -226,8 +258,7 @@ export default function OrderSummary({
         ) {
           requestBody.address_manual = {
             full_name: manualAddressData.full_name,
-            address: `${manualAddressData.address}${manualAddressData.apartment ? ', ' + manualAddressData.apartment : ''
-              }`,
+            address: `${manualAddressData.address}${manualAddressData.apartment ? ', ' + manualAddressData.apartment : ''}`,
             city: manualAddressData.city,
             phone: manualAddressData.phone,
             email: manualAddressData.email,
@@ -239,6 +270,9 @@ export default function OrderSummary({
         const response = await axios.post(`${API_BASE_URL}/dathang`, requestBody, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        // ⛔️ GỌI LƯU ĐỊA CHỈ CHỈ 1 LẦN Ở ĐÂY
+        await maybeSaveManualAddress();
 
         if (response.data?.redirect_url) {
           localStorage.removeItem('cart');
@@ -270,18 +304,16 @@ export default function OrderSummary({
     }
   };
 
-  /* ============== Auto hide popup ============== */
   useEffect(() => {
     if (showPopup) {
-      const timer = setTimeout(() => {
+      const t = setTimeout(() => {
         setShowPopup(false);
         setPopupType(null);
       }, 4000);
-      return () => clearTimeout(timer);
+      return () => clearTimeout(t);
     }
   }, [showPopup]);
 
-  /* ============== UI ============== */
   return (
     <div className="space-y-6 text-sm relative">
       <div>
@@ -295,17 +327,12 @@ export default function OrderSummary({
 
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Khuyến mãi:</span>
-            <span className="text-green-700">
-              -{promotionDiscount.toLocaleString('vi-VN')}đ
-            </span>
+            <span className="text-green-700">-{promotionDiscount.toLocaleString('vi-VN')}đ</span>
           </div>
 
-          {/* Voucher – luôn hiển thị theo số đã truyền/tính */}
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Voucher:</span>
-            <span className="text-green-700">
-              -{(voucherDiscount || 0).toLocaleString('vi-VN')}đ
-            </span>
+            <span className="text-green-700">-{(voucherDiscount || 0).toLocaleString('vi-VN')}đ</span>
           </div>
 
           <div className="flex justify-between py-2 border-b border-gray-200">
@@ -350,8 +377,7 @@ export default function OrderSummary({
               className={`h-16 w-16 mb-4 ${popupType === 'success' ? 'text-green-600' : 'text-red-600'}`}
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
             >
-              <path strokeLinecap="round" strokeLinejoin="round"
-                d={popupType === 'success' ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'} />
+              <path strokeLinecap="round" strokeLinejoin="round" d={popupType === 'success' ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'} />
             </svg>
 
             <p className={`text-base font-semibold text-center ${popupType === 'success' ? 'text-green-700' : 'text-red-700'}`}>
