@@ -61,7 +61,12 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
   const [wards, setWards] = useState<Ward[]>([]);
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
   const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  useEffect(() => {
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    setIsLoggedIn(!!token);
+  }, []);
   // --- Helpers map API ---
   const mapProvinceList = (data: any): Province[] => {
     const list = Array.isArray(data) ? data : data?.data || [];
@@ -369,16 +374,18 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
         />
 
         {/* ✅ Checkbox lưu địa chỉ – chỉ dùng khi nhập tay */}
-        <label className="inline-flex items-center gap-2 mt-2">
-          <input
-            type="checkbox"
-            className="h-4 w-4"
-            checked={!!saveAddress}
-            onChange={(e) => handleToggleSave(e.target.checked)}
-            disabled={!!selectedAddressId} // đang dùng địa chỉ đã lưu -> không cho tick
-          />
-          <span>Lưu địa chỉ này cho lần sau</span>
-        </label>
+        {isLoggedIn && (
+          <label className="inline-flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={!!saveAddress}
+              onChange={(e) => handleToggleSave(e.target.checked)}
+            />
+            <span>Lưu địa chỉ này cho lần sau</span>
+          </label>
+        )}
+
       </div>
     </div>
   );
