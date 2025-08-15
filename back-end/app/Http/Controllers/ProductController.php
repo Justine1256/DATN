@@ -519,6 +519,8 @@ public function bestSellingProducts(Request $request)
         // Xử lý shop_slug
         $products->each(function ($product) {
             $product->shop_slug = $product->shop->slug ?? null;
+            $product->shop_logo = $product->shop->logo ?? null;
+            $product->shop_name = $product->shop->name ?? null;
             unset($product->shop);
         });
 
@@ -554,6 +556,8 @@ public function topDiscountedProducts(Request $request)
         // Thêm shop_slug
         $products->transform(function ($product) {
             $product->shop_slug = $product->shop->slug ?? null;
+            $product->shop_logo = $product->shop->logo ?? null;
+            $product->shop_name = $product->shop->name ?? null;
             unset($product->shop);
             return $product;
         });
