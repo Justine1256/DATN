@@ -4,9 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { FiHeart } from "react-icons/fi";
-import { AiFillHeart, AiFillStar } from "react-icons/ai";
-import { AiOutlineHeart } from "react-icons/ai";
+import { AiFillHeart, AiFillStar, AiOutlineHeart } from "react-icons/ai";
 import { LoadingSkeleton } from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 
@@ -29,6 +27,13 @@ export interface Product {
   createdAt?: number;
   updated_at?: string;
   sold?: number;
+  shop?: {
+    name?: string;
+    logo?: string;
+    slug?: string;
+  };
+  shop_name?: string;
+  shop_logo?: string;
 }
 
 // ✅ Rút gọn số (VD: 1000 => 1k)
@@ -58,7 +63,6 @@ export default function ProductCardCate({
 }) {
   const router = useRouter();
 
-  // ✅ Xác định trạng thái yêu thích ban đầu
   const isInWishlist = product ? wishlistProductIds.includes(product.id) : false;
   const [liked, setLiked] = useState(isInWishlist);
   const [showPopup, setShowPopup] = useState(false);
@@ -69,19 +73,9 @@ export default function ProductCardCate({
     setLiked(isInWishlist);
   }, [isInWishlist, product?.id]);
 
-  // ✅ Loading nếu chưa có product
   if (!product) return <LoadingSkeleton />;
 
-  // ✅ Tính giá trị hiển thị
   const ratingValue = Number(product.rating_avg ?? 0);
-  const reviewCount = product.review_count ?? 0;
-  const salePrice = product.sale_price ?? 0;
-  const hasDiscount = salePrice > 0;
-  const discountPercentage = hasDiscount
-    ? Math.round(((product.price - salePrice) / product.price) * 100)
-    : 0;
-
-
   const mainImage = formatImageUrl(product.image?.[0]);
 
   const getPrice = () => {
@@ -89,13 +83,18 @@ export default function ProductCardCate({
     return new Intl.NumberFormat("vi-VN").format(price);
   };
 
-  // ✅ Yêu thích sản phẩm
+  // 🔹 Lấy thông tin shop linh hoạt
+  const shopObj: any = product.shop ?? {};
+  const shopSlug = product.shop_slug || shopObj.slug;
+  const shopName = shopObj.name || product.shop_name || "Shop";
+  const shopLogo = formatImageUrl(shopObj.logo || product.shop_logo);
+
+  // ✅ Xử lý yêu thích
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isLiking) return; // ✅ Chặn spam
+    if (isLiking) return;
 
     const token = localStorage.getItem("token") || Cookies.get("authToken");
-
     if (!token) {
       setPopupMessage("Bạn cần đăng nhập để thêm vào yêu thích");
       setShowPopup(true);
@@ -103,8 +102,7 @@ export default function ProductCardCate({
       return;
     }
 
-    setIsLiking(true); // ✅ Khóa thao tác
-
+    setIsLiking(true);
     const newLiked = !liked;
     setLiked(newLiked);
 
@@ -136,73 +134,31 @@ export default function ProductCardCate({
             Accept: "application/json",
           },
         });
-
         if (!res.ok) throw new Error("Không thể xóa khỏi wishlist!");
         setPopupMessage("Đã xóa khỏi yêu thích");
       }
     } catch (err) {
       console.error("❌ Lỗi xử lý wishlist:", err);
       setPopupMessage("Lỗi khi xử lý yêu thích");
-      setLiked(!newLiked); // 🔁 Khôi phục nếu lỗi
+      setLiked(!newLiked);
     } finally {
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
-      setIsLiking(false); // ✅ Mở khóa
+      setIsLiking(false);
     }
   };
 
-
-  // ✅ Thêm vào giỏ hàng
-  // const handleAddToCart = async (e: React.MouseEvent) => {
-  //   e.stopPropagation();
-  //   const token = localStorage.getItem("token") || Cookies.get("authToken");
-
-  //   if (!token) {
-  //     setPopupMessage("Bạn cần đăng nhập để thêm vào giỏ hàng");
-  //     setShowPopup(true);
-  //     setTimeout(() => setShowPopup(false), 2000);
-  //     return;
-  //   }
-
-  //   try {
-  //     const res = await fetch(`${API_BASE_URL}/cart`, {
-  //       method: "POST",
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //         "Content-Type": "application/json",
-  //         Accept: "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         product_id: product.id,
-  //         quantity: 1,
-  //       }),
-  //     });
-
-  //     if (!res.ok) {
-  //       const errorData = await res.json();
-  //       throw new Error(errorData.message || "Thêm vào giỏ hàng thất bại");
-  //     }
-
-  //     setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
-  //     window.dispatchEvent(new Event("cartUpdated"));
-  //   } catch (err: any) {
-  //     console.error("❌ Lỗi khi thêm vào giỏ hàng:", err);
-  //     setPopupMessage(err.message || "Đã xảy ra lỗi khi thêm sản phẩm");
-  //   } finally {
-  //     setShowPopup(true);
-  //     setTimeout(() => setShowPopup(false), 2000);
-  //   }
-  // };
-
   // ✅ Chuyển đến trang chi tiết sản phẩm
   const handleViewDetail = () => {
-    const shopSlug = product.shop_slug || (product as any)?.shop?.slug;
     router.push(`/shop/${shopSlug}/product/${product.slug}`);
   };
 
-  // ⬇️ JSX hiển thị sản phẩm sẽ viết ở phần dưới
-
-
+  // ✅ Chuyển đến trang shop
+  const handleGoShop = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!shopSlug) return;
+    router.push(`/shop/${shopSlug}`);
+  };
 
   return (
     <div
@@ -216,7 +172,6 @@ export default function ProductCardCate({
         </div>
       )}
 
-
       {product.sale_price && (
         <div className="absolute top-2 left-2 bg-brand text-white text-[10px] px-2 py-0.5 rounded">
           -{Math.round(((product.price - product.sale_price) / product.price) * 100)}%
@@ -228,14 +183,8 @@ export default function ProductCardCate({
         disabled={isLiking}
         className={`absolute top-2 right-2 text-xl z-20 pointer-events-auto transition ${isLiking ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        {liked ? (
-          <AiFillHeart className="text-red-500 transition" />
-        ) : (
-          <AiOutlineHeart className="text-red-500 transition" />
-        )}
+        {liked ? <AiFillHeart className="text-red-500 transition" /> : <AiOutlineHeart className="text-red-500 transition" />}
       </button>
-
-
 
       <div className="w-full h-[150px] mt-4 flex items-center justify-center overflow-hidden">
         <Image
@@ -252,10 +201,19 @@ export default function ProductCardCate({
           {product.name}
         </h4>
 
-        <div className="flex gap-2 mt-1 items-center">
-          <span className="text-brand font-bold text-base">
-            {getPrice()}₫
+        {/* 🔥 NEW: Logo + tên shop */}
+        <button
+          onClick={handleGoShop}
+          className="mt-1 inline-flex items-center gap-2 text-xs text-gray-700 hover:text-brand transition pointer-events-auto"
+        >
+          <span className="relative w-5 h-5 overflow-hidden rounded-full border border-gray-200 bg-white shrink-0">
+            <Image src={shopLogo} alt={shopName} width={20} height={20} className="object-cover" />
           </span>
+          <span className="font-medium truncate max-w-[160px]">{shopName}</span>
+        </button>
+
+        <div className="flex gap-2 mt-2 items-center">
+          <span className="text-brand font-bold text-base">{getPrice()}₫</span>
           {product.sale_price && (
             <span className="text-gray-400 line-through text-xs">
               {new Intl.NumberFormat("vi-VN").format(product.price)}đ
@@ -268,29 +226,19 @@ export default function ProductCardCate({
             {Number(ratingValue) > 0 && (product.review_count ?? 0) > 0 ? (
               <>
                 <AiFillStar className="w-4 h-4 text-yellow-500" />
-                <span className="text-gray-600 text-xs">
-                  {Number(ratingValue).toFixed(1)}
-                </span>
+                <span className="text-gray-600 text-xs">{Number(ratingValue).toFixed(1)}</span>
                 <span className="text-gray-500 text-xs ml-1">
                   ({formatNumberShort(product.review_count ?? 0)} lượt đánh giá)
                 </span>
               </>
             ) : (
-              <span className="text-[#db4444] text-xs font-semibold">
-                Chưa đánh giá
-              </span>
+              <span className="text-[#db4444] text-xs font-semibold">Chưa đánh giá</span>
             )}
           </div>
-
-
-          {/* 🔢 Đã bán */}
           <span className="text-gray-600 text-xs">
             {product.sold ? `Đã bán: ${formatNumberShort(product.sold)}` : "Chưa bán"}
           </span>
         </div>
-
-
-
       </div>
     </div>
   );

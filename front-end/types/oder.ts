@@ -49,20 +49,7 @@ export enum PaymentMethod {
     ZaloPay = "zalopay", // ZaloPay
 }
 
-export interface OrderDetail {
-    id: number
-    order_id: number
-    product_id: number
-    price_at_time: string
-    quantity: number
-    subtotal: string
-    product: Product
-    reviewed?: boolean // Đã đánh giá hay chưa
-    product_value?: string
-    shop_id?: number
-    created_at?: string
-    updated_at?: string
-}
+
 
 export interface RefundRequest {
     id: number
@@ -187,10 +174,27 @@ export const translateReturnStatus = (status: string): string => {
     }
 }
 
+export interface OrderDetail {
+    id: number
+    order_id: number
+    product_id: number
+    price_at_time: string
+    quantity: number
+    subtotal: string
+    product: Product
+    reviewed?: boolean // Đã đánh giá hay chưa
+    product_value?: string
+    shop_id?: number
+    shop_slug?: string   // ✅ thêm slug shop cho chi tiết sản phẩm
+    created_at?: string
+    updated_at?: string
+}
+
 export interface Order {
     id: number
     user_id: number
     shop_id: number
+    shop_slug?: string   // ✅ thêm slug shop cho đơn hàng
     final_amount: string
     subtotal: string
     shipping_fee: string
@@ -225,6 +229,7 @@ export interface Order {
     payment_reference?: string
     shipping_address: string
 }
+
 
 // Helper functions for order management
 export const getOrderStatusColor = (status: OrderStatus): string => {

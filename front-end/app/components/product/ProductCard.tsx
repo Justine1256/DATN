@@ -4,10 +4,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import { FiHeart, FiShoppingCart, FiEye } from "react-icons/fi";
 import { AiOutlineHeart } from "react-icons/ai";
-
 import { AiFillHeart, AiFillStar } from "react-icons/ai";
+
 import { LoadingSkeleton } from "../loading/loading";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { useWishlist } from "@/app/context/WishlistContext";
@@ -29,6 +28,14 @@ export interface Product {
   sold?: number;
   review_count?: number;
   rating_avg?: number | string;
+  // Có thể API trả lồng hoặc phẳng:
+  shop?: {
+    name?: string;
+    logo?: string;
+    slug?: string;
+  };
+  shop_name?: string;
+  shop_logo?: string;
 }
 
 const formatImageUrl = (img: unknown): string => {
@@ -41,11 +48,15 @@ const formatImageUrl = (img: unknown): string => {
     ? `${STATIC_BASE_URL}${img}`
     : `${STATIC_BASE_URL}/${img}`;
 };
+
 const formatNumberShort = (num: number): string => {
   if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
   if (num >= 1_000) return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
   return num.toString();
 };
+
+// Dùng chung formatter, nếu không có logo sẽ rơi về ảnh mặc định
+const formatShopLogo = (img: unknown): string => formatImageUrl(img ?? "");
 
 export default function ProductCard({
   product,
@@ -58,13 +69,11 @@ export default function ProductCard({
   onLiked?: (product: Product) => void;
   wishlistProductIds?: number[];
 }) {
-
   const router = useRouter();
   const { addItem, removeItem } = useWishlist();
 
   const isInWishlist = product ? wishlistProductIds.includes(product.id) : false;
   const [isLiking, setIsLiking] = useState(false);
-
   const [liked, setLiked] = useState(isInWishlist);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
@@ -72,11 +81,9 @@ export default function ProductCard({
 
   useEffect(() => {
     setLiked(isInWishlist);
-    // ✅ Auto-select biến thể đầu tiên nếu có ít nhất 1 biến thể
     if (product && Array.isArray(product.variants) && product.variants.length > 0) {
       setSelectedVariant(product.variants[0]);
     }
-
   }, [isInWishlist, product?.id, product]);
 
   if (!product) return <LoadingSkeleton />;
@@ -90,14 +97,18 @@ export default function ProductCard({
 
   const mainImage = formatImageUrl(product.image?.[0]);
   const ratingValue = Number(product.rating_avg ?? 0);
-  const reviewCount = product.review_count ?? 0;
+
+  // 🔹 Gom thông tin shop, hỗ trợ cả cấu trúc lồng & phẳng
+  const shopObj: any = product.shop ?? {};
+  const shopSlug = product.shop_slug || shopObj.slug;
+  const shopName = shopObj.name || product.shop_name || "Shop";
+  const shopLogo = formatShopLogo(shopObj.logo || product.shop_logo);
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isLiking) return; // ⛔ tránh spam
+    if (isLiking) return;
 
     const token = localStorage.getItem("token") || Cookies.get("authToken");
-
     if (!token) {
       setPopupMessage("Bạn cần đăng nhập để thêm vào yêu thích");
       setShowPopup(true);
@@ -105,10 +116,9 @@ export default function ProductCard({
       return;
     }
 
-    setIsLiking(true); // ✅ bắt đầu khóa
-
+    setIsLiking(true);
     const newLiked = !liked;
-    setLiked(newLiked); // UI phản hồi ngay lập tức
+    setLiked(newLiked);
 
     try {
       if (newLiked) {
@@ -153,61 +163,19 @@ export default function ProductCard({
     } finally {
       setShowPopup(true);
       setTimeout(() => setShowPopup(false), 2000);
-      setIsLiking(false); // ✅ mở khóa sau khi xong
+      setIsLiking(false);
     }
   };
 
-  // const handleAddToCart = async (e: React.MouseEvent) => {
-  //   e.stopPropagation();
-  //   const token = localStorage.getItem("token") || Cookies.get("authToken");
-
-  //   if (!token) {
-  //     setPopupMessage("Bạn cần đăng nhập để thêm vào giỏ hàng");
-  //     setShowPopup(true);
-  //     setTimeout(() => setShowPopup(false), 2000);
-  //     return;
-  //   }
-
-  //   if (!selectedVariant?.id) {
-  //     setPopupMessage("Vui lòng chọn biến thể trước khi thêm vào giỏ hàng");
-  //     setShowPopup(true);
-  //     setTimeout(() => setShowPopup(false), 2000);
-  //     return;
-  //   }
-
-  //   try {
-  //     const res = await fetch(`${API_BASE_URL}/cart`, {
-  //       method: "POST",
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         product_id: product.id,
-  //         variant_id: selectedVariant.id,
-  //         quantity: 1,
-  //       }),
-  //     });
-
-  //     if (!res.ok) {
-  //       const errorData = await res.json();
-  //       throw new Error(errorData.message || "Thêm vào giỏ hàng thất bại");
-  //     }
-
-  //     setPopupMessage(`Đã thêm "${product.name}" vào giỏ hàng!`);
-  //     window.dispatchEvent(new Event("cartUpdated"));
-  //   } catch (err: any) {
-  //     console.error("❌ Lỗi khi thêm vào giỏ hàng:", err);
-  //     setPopupMessage(err.message || "Đã xảy ra lỗi khi thêm sản phẩm");
-  //   } finally {
-  //     setShowPopup(true);
-  //     setTimeout(() => setShowPopup(false), 2000);
-  //   }
-  // };
-
   const handleViewDetail = () => {
-    const shopSlug = product.shop_slug || (product as any)?.shop?.slug;
-    router.push(`/shop/${shopSlug}/product/${product.slug}`);
+    const slug = shopSlug || product.shop?.slug;
+    router.push(`/shop/${slug}/product/${product.slug}`);
+  };
+
+  const handleGoShop = (e: React.MouseEvent) => {
+    e.stopPropagation(); // tránh mở trang chi tiết sp
+    if (!shopSlug) return;
+    router.push(`/shop/${shopSlug}`);
   };
 
   return (
@@ -222,7 +190,6 @@ export default function ProductCard({
         </div>
       )}
 
-
       {product.sale_price && (
         <div className="absolute top-2 left-2 bg-brand text-white text-[10px] px-2 py-0.5 rounded">
           -{Math.round(((product.price - product.sale_price) / product.price) * 100)}%
@@ -233,6 +200,7 @@ export default function ProductCard({
         onClick={handleLike}
         disabled={isLiking}
         className={`absolute top-2 right-2 text-xl z-20 pointer-events-auto transition ${isLiking ? "opacity-50 cursor-not-allowed" : ""}`}
+        aria-label={liked ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
       >
         {liked ? (
           <AiFillHeart className="text-red-500" />
@@ -240,9 +208,6 @@ export default function ProductCard({
           <AiOutlineHeart className="text-red-500" />
         )}
       </button>
-
-
-
 
       <div className="w-full h-[150px] mt-8 flex items-center justify-center overflow-hidden">
         <Image
@@ -259,7 +224,25 @@ export default function ProductCard({
           {product.name}
         </h4>
 
-        <div className="flex gap-2 mt-1 items-center">
+        {/* 🔥 NEW: Logo + Tên shop ngay dưới tên sản phẩm */}
+        <button
+          onClick={handleGoShop}
+          className="mt-1 inline-flex items-center gap-2 text-xs text-gray-700 hover:text-brand transition pointer-events-auto"
+          aria-label={`Đi tới shop ${shopName}`}
+        >
+          <span className="relative w-5 h-5 overflow-hidden rounded-full border border-gray-200 bg-white shrink-0">
+            <Image
+              src={shopLogo}
+              alt={shopName}
+              width={20}
+              height={20}
+              className="object-cover"
+            />
+          </span>
+          <span className="font-medium truncate max-w-[160px]">{shopName}</span>
+        </button>
+
+        <div className="flex gap-2 mt-2 items-center">
           <span className="text-brand font-bold text-base">
             {getPrice()}₫
           </span>
@@ -271,7 +254,6 @@ export default function ProductCard({
         </div>
 
         <div className="flex items-center justify-between text-sm mt-2 flex-wrap gap-y-1">
-          {/* ⭐ Hiển thị 1 ngôi sao minh họa + số sao + lượt đánh giá */}
           <div className="flex items-center gap-1 flex-wrap">
             {Number(ratingValue) > 0 ? (
               <>
@@ -280,7 +262,6 @@ export default function ProductCard({
                 <span className="text-gray-500 text-xs ml-1">
                   ({formatNumberShort(product.review_count || 0)} lượt đánh giá)
                 </span>
-
               </>
             ) : (
               <span className="text-[#db4444] text-xs font-semibold">
@@ -289,17 +270,11 @@ export default function ProductCard({
             )}
           </div>
 
-          {/* 🔢 Đã bán */}
           <span className="text-gray-600 text-xs">
             {product.sold ? `Đã bán: ${formatNumberShort(product.sold)}` : "Chưa bán"}
           </span>
-
         </div>
-
-
       </div>
     </div>
   );
-
 }
-

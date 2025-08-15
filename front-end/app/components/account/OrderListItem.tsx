@@ -60,6 +60,25 @@ export default function OrderListItem({
     const [isReporting, setIsReporting] = useState(false);
 
     const router = useRouter()
+    const handleGoProduct = (detail: any) => {
+        const product = detail?.product;
+        if (!product) return;
+
+        const shopSlug =
+            detail.shop_slug || product.shop_slug || product.shop?.slug || order.shop_slug;
+        const productSlug = product.slug;
+
+        console.log("🔍 shopSlug:", shopSlug);
+        console.log("🔍 productSlug:", productSlug);
+
+        // Chỉ điều hướng khi có đủ slug
+        if (!shopSlug || !productSlug) return;
+
+        router.push(`/shop/${shopSlug}/product/${productSlug}`);
+    };
+
+
+
 
     const handleReportShop = async (data: { reason: string; images: File[] }) => {
         setIsReporting(true);
@@ -339,7 +358,16 @@ export default function OrderListItem({
                             {details.map((detail) => (
                                 <div
                                     key={detail.id}
-                                    className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+                                    onClick={() => handleGoProduct(detail)}
+                                    className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200 cursor-pointer"
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            handleGoProduct(detail);
+                                        }
+                                    }}
                                 >
                                     <div className="relative">
                                         <Image
@@ -352,7 +380,9 @@ export default function OrderListItem({
                                     </div>
 
                                     <div className="flex-1 min-w-0">
-                                        <h5 className="font-semibold text-base text-gray-900 mb-2 line-clamp-2">{detail.product.name}</h5>
+                                        <h5 className="font-semibold text-base text-gray-900 mb-2 line-clamp-2">
+                                            {detail.product.name}
+                                        </h5>
                                         <div className="flex items-center gap-3">
                                             <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
                                                 <Package className="w-3 h-3" />
@@ -371,6 +401,7 @@ export default function OrderListItem({
                                     </div>
                                 </div>
                             ))}
+
                         </div>
                     </div>
                 ))}
