@@ -752,8 +752,8 @@ export default function EnhancedChatTools() {
 
   return (
     <>
-      {/* Notifications */}
-      <div className="fixed top-4 right-4 z-[10000] space-y-2">
+      {/* ========== Notifications ========== */}
+      <div className="fixed top-4 right-4 z-[10000] space-y-3">
         {notifications.map((notification) => (
           <ChatNotification
             key={`notification-${notification.id}`}
@@ -764,607 +764,496 @@ export default function EnhancedChatTools() {
         ))}
       </div>
 
-      {/* Floating Chat Button */}
-      <div className="fixed right-4 bottom-4 z-[9999]">
+      {/* ========== Floating Chat Button ========== */}
+      <div className="fixed right-5 bottom-5 z-[9999]">
         <button
           onClick={() => {
             if (!showList) {
-              // Opening chat - always set chatbot as default
               setReceiver(chatbotUser)
               setActiveChat(true)
               setShowList(true)
+              setUnreadCount(0)
             } else {
-              // Closing chat
               setShowList(false)
               setActiveChat(false)
             }
-            // Reset unread count when opening
-            if (!showList) {
-              setUnreadCount(0)
-            }
           }}
-          className="relative w-12 h-12 bg-[#db4444] hover:bg-[#c93333] text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
+          className="
+          relative w-14 h-14 rounded-full
+          bg-gradient-to-br from-[#e14b4b] to-[#c93434]
+          text-white shadow-2xl shadow-red-200/40
+          ring-2 ring-white/50 hover:ring-white
+          transition-all duration-200 hover:scale-105 active:scale-95
+          flex items-center justify-center
+        "
+          aria-label="Open chat"
         >
-          <MessageCircle size={20} />
+          <MessageCircle size={22} />
           {unreadCount > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
+            <>
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] leading-none rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-md">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+              <span className="absolute -top-1.5 -right-1.5 inline-flex h-5 w-5 rounded-full bg-red-500/60 animate-ping" />
+            </>
           )}
         </button>
       </div>
 
-      {/* Chat Window */}
+      {/* ========== Chat Window ========== */}
       {showList && (
-        <div className="fixed bottom-4 right-20 z-[9998] bg-white border rounded-lg shadow-xl w-[700px] h-[600px] flex">
-          {/* Contact List */}
-          <div className="w-[280px] border-r overflow-y-auto bg-gray-50">
-            <div className="font-bold px-4 py-3 bg-[#db4444] text-white flex items-center justify-between">
-              <span>Liên hệ gần đây</span>
-              <span className="text-xs bg-white/20 px-2 py-1 rounded-full">{recentContacts.length}</span>
-            </div>
-            {recentContacts.map((user) => (
-              <div
-                key={`contact-${user.id}`}
-                onClick={() => handleContactClick(user)}
-                className={`flex items-center gap-3 px-3 py-3 hover:bg-white cursor-pointer border-b transition-colors ${
-                  receiver?.id === user.id ? "bg-white border-l-4 border-l-[#db4444]" : ""
-                }`}
-              >
-                <div className="relative">
-                  {user.isBot ? (
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <Bot size={20} className="text-white" />
-                    </div>
-                  ) : (
-                    <Image
-                      src={
-                        user.avatar?.startsWith("http") || user.avatar?.startsWith("/")
-                          ? user.avatar
-                          : user.avatar
-                            ? `${STATIC_BASE_URL}/${user.avatar}`
-                            : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
-                      }
-                      alt={user.name}
-                      width={40}
-                      height={40}
-                      className="rounded-full object-cover w-10 h-10"
-                    />
-                  )}
-                  {user.online && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                  )}
+        <div
+          className="
+          fixed bottom-5 right-24 z-[9998]
+          w-[760px] max-w-[95vw] h-[620px]
+          bg-white/95 backdrop-blur
+          rounded-2xl border border-gray-200/70
+          shadow-[0_10px_40px_-10px_rgba(219,68,68,0.35)]
+          overflow-hidden
+        "
+        >
+          <div className="flex h-full">
+            {/* ========== Contact List ========== */}
+            <div className="w-[290px] border-r bg-gray-50/70 flex flex-col">
+              {/* Header */}
+              <div className="px-4 py-3 bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">Liên hệ gần đây</span>
+                  <span className="text-[11px] bg-white/25 px-2 py-0.5 rounded-full">
+                    {recentContacts.length}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate flex items-center gap-1">
-                    {user.name}
-                    {user.isBot && <Bot size={12} className="text-blue-500" />}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">{user.last_message || "Chưa có tin nhắn"}</p>
-                  {user.last_time && <p className="text-xs text-gray-400">{formatTime(user.last_time)}</p>}
+                {/* Search (UI only) */}
+                <div className="mt-2">
+                  <div className="flex items-center gap-2 bg-white/15 rounded-lg px-2 py-1.5 text-xs">
+                    <svg width="14" height="14" viewBox="0 0 24 24" className="opacity-80">
+                      <path fill="currentColor" d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm8.707 1.293-3.761-3.76A10 10 0 1 0 12 22a9.95 9.95 0 0 0 5.533-1.647l3.761 3.76z" />
+                    </svg>
+                    <span className="opacity-90">Tìm nhanh…</span>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
-            {/* Chat Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b bg-[#db4444] text-white">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  {receiver?.isBot ? (
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <Bot size={16} className="text-white" />
-                    </div>
-                  ) : (
-                    <Image
-                      src={
-                        receiver?.avatar
-                          ? receiver.avatar.startsWith("http") || receiver.avatar.startsWith("/")
-                            ? receiver.avatar
-                            : `${STATIC_BASE_URL}/${receiver.avatar}`
-                          : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
-                      }
-                      alt="avatar"
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  )}
-                  {receiver?.online && (
-                    <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 border border-white rounded-full"></div>
-                  )}
-                </div>
-                <div>
-                  <p className="font-semibold text-sm flex items-center gap-1">
-                    {receiver?.name || "Chưa chọn người"}
-                    {receiver?.isBot && <Bot size={12} className="text-blue-200" />}
-                  </p>
-                  <p className="text-xs opacity-90">
-                    {receiver?.isBot
-                      ? "AI Assistant - Luôn sẵn sàng hỗ trợ"
-                      : connectionStatus === "connected"
-                        ? isReceiverTyping
-                          ? `${receiver?.name} đang nhập...`
-                          : "Đang hoạt động"
-                        : connectionStatus === "connecting"
-                          ? "Đang kết nối WebSocket..."
-                          : connectionStatus === "error"
-                            ? "Lỗi WebSocket - chỉ dùng API"
-                            : "WebSocket mất kết nối"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {!receiver?.isBot && (
-                  <>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
-                    >
-                      <Plus size={18} />
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleImageChange}
-                    />
-                  </>
-                )}
-                <button className="p-1.5 hover:bg-white/10 rounded">
-                  <MoreVertical size={16} />
-                </button>
-                <button onClick={() => setShowList(false)} className="p-1.5 hover:bg-white/10 rounded">
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-
-            {!receiver?.isBot && (
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 px-4 py-2">
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    connectionStatus === "connected"
-                      ? "bg-green-500"
-                      : connectionStatus === "connecting"
-                        ? "bg-yellow-500 animate-pulse"
-                        : "bg-red-500"
-                  }`}
-                />
-                <span>
-                  {connectionStatus === "connected"
-                    ? "WebSocket đã kết nối"
-                    : connectionStatus === "connecting"
-                      ? "Đang kết nối WebSocket..."
-                      : connectionStatus === "error"
-                        ? "Lỗi WebSocket - chỉ dùng API"
-                        : "WebSocket mất kết nối"}
-                </span>
-              </div>
-            )}
-
-            {/* Messages Area */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
-              {!receiver?.id ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                  <MessageCircle size={48} className="mb-4 opacity-50" />
-                  <p className="text-center">Chọn người để bắt đầu trò chuyện</p>
-                </div>
-              ) : loading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="animate-spin w-8 h-8 border-b-2 border-[#db4444] rounded-full"></div>
-                </div>
-              ) : (
-                <>
-                  {!receiver?.isBot && loadingMore && (
-                    <div className="flex items-center justify-center py-4">
-                      <div className="animate-spin w-6 h-6 border-b-2 border-[#db4444] rounded-full"></div>
-                      <span className="ml-2 text-sm text-gray-500">Đang tải thêm tin nhắn...</span>
-                    </div>
-                  )}
-
-                  {!receiver?.isBot && !hasMoreMessages && messages.length > 15 && (
-                    <div className="flex items-center justify-center py-2">
-                      <span className="text-xs text-gray-400 bg-gray-200 px-3 py-1 rounded-full">
-                        Đã hiển thị tất cả tin nhắn
-                      </span>
-                    </div>
-                  )}
-
-                  {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                      {receiver?.isBot ? (
-                        <>
-                          <Bot size={48} className="mb-4 opacity-50" />
-                          <p className="text-center">Xin chào! Tôi là Chat Bot</p>
-                          <p className="text-xs text-center mt-2">Hãy hỏi tôi bất cứ điều gì bạn muốn biết!</p>
-                        </>
+              {/* List */}
+              <div className="overflow-y-auto">
+                {recentContacts.map((user) => (
+                  <button
+                    type="button"
+                    key={`contact-${user.id}`}
+                    onClick={() => handleContactClick(user)}
+                    className={`
+                    w-full text-left flex items-center gap-3 px-3 py-3 border-b transition-colors
+                    hover:bg-white
+                    ${receiver?.id === user.id ? 'bg-white/90 border-l-4 border-l-[#db4444]' : ''}
+                  `}
+                  >
+                    <div className="relative">
+                      {user.isBot ? (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <Bot size={18} className="text-white" />
+                        </div>
                       ) : (
-                        <>
-                          <MessageCircle size={48} className="mb-4 opacity-50" />
-                          <p className="text-center">Chưa có tin nhắn nào</p>
-                          <p className="text-xs text-center mt-2">Hãy gửi tin nhắn đầu tiên!</p>
-                        </>
+                        <Image
+                          src={
+                            user.avatar?.startsWith('http') || user.avatar?.startsWith('/')
+                              ? user.avatar
+                              : user.avatar
+                                ? `${STATIC_BASE_URL}/${user.avatar}`
+                                : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+                          }
+                          alt={user.name}
+                          width={40}
+                          height={40}
+                          className="rounded-full object-cover w-10 h-10 ring-2 ring-white/70 shadow"
+                        />
+                      )}
+                      {user.online && (
+                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 ring-2 ring-white" />
                       )}
                     </div>
-                  ) : (
-                    messages.map((msg) => {
-                      const isCurrentUser = msg.sender_id === currentUser?.id
-                      const isBotMessage = msg.sender_id === -1
 
-                      let avatarUrl = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
-                      let userName = "User"
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm font-medium truncate">{user.name}</p>
+                        {user.isBot && <Bot size={12} className="text-blue-500" />}
+                      </div>
+                      <p className="text-[12px] text-gray-500 truncate">{user.last_message || 'Chưa có tin nhắn'}</p>
+                      {user.last_time && (
+                        <p className="text-[11px] text-gray-400">{formatTime(user.last_time)}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                      if (isCurrentUser) {
-                        if (currentUser?.avatar) {
-                          avatarUrl =
-                            currentUser.avatar.startsWith("http") || currentUser.avatar.startsWith("/")
-                              ? currentUser.avatar
-                              : `${STATIC_BASE_URL}/${currentUser.avatar}`
-                        }
-                        userName = currentUser?.name || "You"
-                      } else if (isBotMessage) {
-                        avatarUrl = "" // Will use Bot icon instead
-                        userName = "Chat Bot"
-                      } else {
-                        if (receiver?.avatar) {
-                          avatarUrl =
-                            receiver.avatar.startsWith("http") || receiver.avatar.startsWith("/")
+            {/* ========== Chat Area ========== */}
+            <div className="flex-1 flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    {receiver?.isBot ? (
+                      <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                        <Bot size={18} className="text-white" />
+                      </div>
+                    ) : (
+                      <Image
+                        src={
+                          receiver?.avatar
+                            ? receiver.avatar.startsWith('http') || receiver.avatar.startsWith('/')
                               ? receiver.avatar
                               : `${STATIC_BASE_URL}/${receiver.avatar}`
+                            : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
                         }
-                        userName = receiver?.name || "User"
-                      }
+                        alt="avatar"
+                        width={36}
+                        height={36}
+                        className="w-9 h-9 rounded-full object-cover ring-2 ring-white/60"
+                      />
+                    )}
+                    {receiver?.online && (
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 ring-2 ring-white" />
+                    )}
+                  </div>
+                  <div className="leading-tight">
+                    <p className="font-semibold text-sm flex items-center gap-1">
+                      {receiver?.name || 'Chưa chọn người'}
+                      {receiver?.isBot && <Bot size={12} className="text-blue-200" />}
+                    </p>
+                    <p className="text-[11px] opacity-90">
+                      {receiver?.isBot
+                        ? 'AI Assistant — Luôn sẵn sàng hỗ trợ'
+                        : connectionStatus === 'connected'
+                          ? isReceiverTyping
+                            ? `${receiver?.name} đang nhập…`
+                            : 'Đang hoạt động'
+                          : connectionStatus === 'connecting'
+                            ? 'Đang kết nối WebSocket…'
+                            : connectionStatus === 'error'
+                              ? 'Lỗi WebSocket — dùng API'
+                              : 'WebSocket mất kết nối'}
+                    </p>
+                  </div>
+                </div>
 
-                      return (
-                        <div
-                          key={`message-${msg.id}`}
-                          className={`flex gap-2 ${isCurrentUser ? "justify-end" : "justify-start"}`}
-                        >
-                          {!isCurrentUser && (
-                            <>
-                              {isBotMessage ? (
-                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <Bot size={16} className="text-white" />
-                                </div>
-                              ) : (
-                                <img
-                                  src={avatarUrl || "/placeholder.svg"}
-                                  alt={userName}
-                                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                />
-                              )}
-                            </>
-                          )}
-                          <div className={`max-w-[70%] ${isCurrentUser ? "order-first" : ""}`}>
-                            <div
-                              className={`p-3 rounded-lg ${
-                                isCurrentUser
-                                  ? "bg-blue-500 text-white rounded-br-sm"
-                                  : isBotMessage
-                                    ? "bg-gradient-to-r from-blue-100 to-purple-100 text-gray-900 rounded-bl-sm border border-blue-200"
-                                    : "bg-gray-100 text-gray-900 rounded-bl-sm"
-                              }`}
-                            >
-                              {msg.message && <p className="text-sm break-words">{msg.message}</p>}
+                <div className="flex items-center gap-1.5">
+                  {!receiver?.isBot && (
+                    <>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                        title="Gửi ảnh"
+                      >
+                        <Plus size={16} />
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleImageChange}
+                      />
+                    </>
+                  )}
+                  <button className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center">
+                    <MoreVertical size={16} />
+                  </button>
+                  <button onClick={() => setShowList(false)} className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center">
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
 
-                              {msg.products && msg.products.length > 0 && (
-                                <div className="mt-3 space-y-2">
-                                  <div className="text-xs font-medium text-gray-600 mb-2">Sản phẩm gợi ý:</div>
-                                  {msg.products.map((product, index) => (
-                                    <div
-                                      key={product.id}
-                                      className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group"
-                                    >
+              {/* WS status (only human) */}
+              {!receiver?.isBot && (
+                <div className="flex items-center gap-2 text-[12px] text-gray-500 px-4 py-2">
+                  <span
+                    className={`w-2 h-2 rounded-full ${connectionStatus === 'connected'
+                        ? 'bg-green-500'
+                        : connectionStatus === 'connecting'
+                          ? 'bg-yellow-500 animate-pulse'
+                          : 'bg-red-500'
+                      }`}
+                  />
+                  <span>
+                    {connectionStatus === 'connected'
+                      ? 'WebSocket đã kết nối'
+                      : connectionStatus === 'connecting'
+                        ? 'Đang kết nối WebSocket…'
+                        : connectionStatus === 'error'
+                          ? 'Lỗi WebSocket — chỉ dùng API'
+                          : 'WebSocket mất kết nối'}
+                  </span>
+                </div>
+              )}
+
+              {/* Messages */}
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
+                {!receiver?.id ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                    <MessageCircle size={48} className="mb-3 opacity-50" />
+                    <p>Chọn người để bắt đầu trò chuyện</p>
+                  </div>
+                ) : loading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="animate-spin w-8 h-8 border-b-2 border-[#db4444] rounded-full" />
+                  </div>
+                ) : (
+                  <>
+                    {!receiver?.isBot && loadingMore && (
+                      <div className="flex items-center justify-center py-3 text-sm text-gray-500">
+                        <div className="animate-spin w-5 h-5 border-b-2 border-[#db4444] rounded-full mr-2" />
+                        Đang tải thêm tin nhắn…
+                      </div>
+                    )}
+
+                    {!receiver?.isBot && !hasMoreMessages && messages.length > 15 && (
+                      <div className="flex items-center justify-center py-1">
+                        <span className="text-[11px] text-gray-400 bg-gray-200/60 px-3 py-1 rounded-full">
+                          Đã hiển thị tất cả tin nhắn
+                        </span>
+                      </div>
+                    )}
+
+                    {messages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                        {receiver?.isBot ? (
+                          <>
+                            <Bot size={48} className="mb-3 opacity-50" />
+                            <p>Xin chào! Tôi là Chat Bot</p>
+                            <p className="text-[12px] mt-1">Hãy hỏi tôi bất cứ điều gì!</p>
+                          </>
+                        ) : (
+                          <>
+                            <MessageCircle size={48} className="mb-3 opacity-50" />
+                            <p>Chưa có tin nhắn nào</p>
+                            <p className="text-[12px] mt-1">Hãy gửi tin nhắn đầu tiên!</p>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      messages.map((msg) => {
+                        const isCurrentUser = msg.sender_id === currentUser?.id
+                        const isBotMessage = msg.sender_id === -1
+
+                        let avatarUrl = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+                        let userName = 'User'
+                        if (isCurrentUser) {
+                          if (currentUser?.avatar) {
+                            avatarUrl =
+                              currentUser.avatar.startsWith('http') || currentUser.avatar.startsWith('/')
+                                ? currentUser.avatar
+                                : `${STATIC_BASE_URL}/${currentUser.avatar}`
+                          }
+                          userName = currentUser?.name || 'You'
+                        } else if (isBotMessage) {
+                          avatarUrl = ''
+                          userName = 'Chat Bot'
+                        } else {
+                          if (receiver?.avatar) {
+                            avatarUrl =
+                              receiver.avatar.startsWith('http') || receiver.avatar.startsWith('/')
+                                ? receiver.avatar
+                                : `${STATIC_BASE_URL}/${receiver.avatar}`
+                          }
+                          userName = receiver?.name || 'User'
+                        }
+
+                        return (
+                          <div key={`message-${msg.id}`} className={`flex gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                            {!isCurrentUser && (
+                              <>
+                                {isBotMessage ? (
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                    <Bot size={16} className="text-white" />
+                                  </div>
+                                ) : (
+                                  <img src={avatarUrl || '/placeholder.svg'} alt={userName} className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-white" />
+                                )}
+                              </>
+                            )}
+
+                            <div className={`max-w-[70%] ${isCurrentUser ? 'order-first' : ''}`}>
+                              <div
+                                className={[
+                                  'p-3 rounded-2xl shadow-sm',
+                                  isCurrentUser
+                                    ? 'bg-gradient-to-br from-red-500 to-rose-500 text-white rounded-br-md'
+                                    : isBotMessage
+                                      ? 'bg-gradient-to-r from-blue-50 to-purple-50 text-gray-900 rounded-bl-md border border-blue-200/60'
+                                      : 'bg-white text-gray-900 rounded-bl-md border border-gray-200/70',
+                                ].join(' ')}
+                              >
+                                {!!msg.message && <p className="text-sm leading-relaxed break-words">{msg.message}</p>}
+
+                                {!!msg.products?.length && (
+                                  <div className="mt-3 space-y-2">
+                                    <div className="text-[12px] font-medium text-gray-600 mb-1">Sản phẩm gợi ý</div>
+                                    {msg.products.map((product) => (
                                       <div
-                                        onClick={() => window.open(`/products/${product.slug}`, "_blank")}
-                                        className="flex gap-3 cursor-pointer"
+                                        key={product.id}
+                                        className="bg-white rounded-xl p-3 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group"
+                                        onClick={() => window.open(`/products/${product.slug}`, '_blank')}
                                       >
-                                        {/* Product Image */}
-                                        <div className="flex-shrink-0">
-                                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
-                                            {product.image && product.image.length > 0 ? (
+                                        <div className="flex gap-3 cursor-pointer">
+                                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                            {product.image?.length ? (
                                               <img
-                                                src={`${STATIC_BASE_URL || "http://localhost:8000"}/${product.image[0]}`}
+                                                src={`${STATIC_BASE_URL || 'http://localhost:8000'}/${product.image[0]}`}
                                                 alt={product.name}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                                onError={(e) => {
-                                                  const target = e.target as HTMLImageElement
-                                                  target.src = "/modern-tech-product.png"
-                                                }}
+                                                onError={(e) => ((e.target as HTMLImageElement).src = '/modern-tech-product.png')}
                                               />
                                             ) : (
-                                              <div className="w-full h-full flex items-center justify-center">
-                                                <svg
-                                                  className="w-6 h-6 text-gray-400"
-                                                  fill="none"
-                                                  stroke="currentColor"
-                                                  viewBox="0 0 24 24"
-                                                >
-                                                  <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2v10a2 2 0 002-2H6a2 2 0 00-2-2v12a2 2 0 002 2z"
-                                                  />
-                                                </svg>
-                                              </div>
+                                              <div className="w-full h-full grid place-items-center text-gray-400">—</div>
                                             )}
                                           </div>
-                                        </div>
-
-                                        {/* Product Info */}
-                                        <div className="flex-1 min-w-0">
-                                          <h4 className="font-medium text-sm text-gray-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-2">
-                                            {product.name}
-                                          </h4>
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-blue-600 font-semibold text-sm">
-                                              {Number.parseInt(product.price).toLocaleString("vi-VN")} VND
-                                            </span>
-                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded group-hover:bg-blue-50 transition-colors">
-                                              {Math.round(product.similarity * 100)}% phù hợp
-                                            </span>
-                                          </div>
-
-                                          {/* Click indicator */}
-                                          <div className="flex items-center mt-1 text-xs text-gray-400 group-hover:text-blue-500 transition-colors">
-                                            <svg
-                                              className="w-3 h-3 mr-1"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              viewBox="0 0 24 24"
-                                            >
-                                              <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                              />
-                                            </svg>
-                                            Nhấn để xem chi tiết
+                                          <div className="flex-1 min-w-0">
+                                            <h4 className="font-medium text-sm text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                                              {product.name}
+                                            </h4>
+                                            <div className="flex items-center justify-between mt-1">
+                                              <span className="text-blue-600 font-semibold text-sm">
+                                                {Number.parseInt(product.price).toLocaleString('vi-VN')} VND
+                                              </span>
+                                              {typeof product.similarity === 'number' && (
+                                                <span className="text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                                  {Math.round(product.similarity * 100)}% phù hợp
+                                                </span>
+                                              )}
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
+                                    ))}
+                                  </div>
+                                )}
 
-                                      {product.shop && (
-                                        <div className="mt-3 pt-3 border-t border-gray-100">
-                                          <div
-                                            onClick={() => window.open(`/shops/${product.shop.slug}`, "_blank")}
-                                            className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors group/shop"
-                                          >
-                                            {/* Shop Logo */}
-                                            <div className="flex-shrink-0">
-                                              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
-                                                {(() => {
-                                                  let logoUrl: string | null = null
-
-                                                  try {
-                                                    // Trường hợp logo là JSON string (mảng)
-                                                    const parsed = JSON.parse(product.shop.logo)
-                                                    if (Array.isArray(parsed) && parsed.length > 0) {
-                                                      logoUrl = parsed[0]
-                                                    }
-                                                  } catch {
-                                                    // Trường hợp logo chỉ là string
-                                                    logoUrl = product.shop.logo
-                                                      ? `${STATIC_BASE_URL}/${product.shop.logo}`
-                                                      : null
-                                                  }
-
-                                                  if (!logoUrl) {
-                                                    return (
-                                                      <img
-                                                        src="/placeholder.svg"
-                                                        alt="No logo"
-                                                        className="w-full h-full object-cover"
-                                                      />
-                                                    )
-                                                  }
-
-                                                  return (
-                                                    <img
-                                                      src={logoUrl || "/placeholder.svg"}
-                                                      alt={product.shop.name}
-                                                      className="w-full h-full object-cover"
-                                                      onError={(e) => {
-                                                        const target = e.target as HTMLImageElement
-                                                        target.src = "/placeholder.svg"
-                                                      }}
-                                                    />
-                                                  )
-                                                })()}
-                                                <div className="w-full h-full flex items-center justify-center hidden">
-                                                  <svg
-                                                    className="w-4 h-4 text-gray-400"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                  >
-                                                    <path
-                                                      strokeLinecap="round"
-                                                      strokeLinejoin="round"
-                                                      strokeWidth={2}
-                                                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                                                    />
-                                                  </svg>
-                                                </div>
-                                              </div>
-                                            </div>
-
-                                            {/* Shop Name */}
-                                            <div className="flex-1 min-w-0">
-                                              <span className="text-xs text-gray-600 group-hover/shop:text-blue-600 transition-colors font-medium">
-                                                {product.shop.name}
-                                              </span>
-                                            </div>
-
-                                            {/* Shop link indicator */}
-                                            <svg
-                                              className="w-3 h-3 text-gray-400 group-hover/shop:text-blue-500 transition-colors"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              viewBox="0 0 24 24"
-                                            >
-                                              <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M9 5l7 7-7 7"
-                                              />
-                                            </svg>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {msg.image && (
-                                <img
-                                  src={`${STATIC_BASE_URL}/${msg.image}`}
-                                  alt="Sent image"
-                                  className="mt-2 max-w-full rounded-lg cursor-pointer"
-                                  onClick={() => window.open(`${STATIC_BASE_URL}/${msg.image}`, "_blank")}
-                                />
-                              )}
+                                {!!msg.image && (
+                                  <img
+                                    src={`${STATIC_BASE_URL}/${msg.image}`}
+                                    alt="Sent image"
+                                    className="mt-2 max-w-full rounded-lg cursor-pointer"
+                                    onClick={() => window.open(`${STATIC_BASE_URL}/${msg.image}`, '_blank')}
+                                  />
+                                )}
+                              </div>
+                              <p className={`text-[11px] text-gray-500 mt-1 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
+                                {isCurrentUser ? 'Bạn' : userName} •{' '}
+                                {new Date(msg.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
                             </div>
-                            <p className={`text-xs text-gray-500 mt-1 ${isCurrentUser ? "text-right" : "text-left"}`}>
-                              {isCurrentUser ? "Bạn" : userName} •{" "}
-                              {new Date(msg.created_at).toLocaleTimeString("vi-VN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </p>
+
+                            {isCurrentUser && (
+                              <img
+                                src={avatarUrl || '/placeholder.svg'}
+                                alt={userName}
+                                className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-white"
+                              />
+                            )}
                           </div>
-                          {isCurrentUser && (
-                            <img
-                              src={avatarUrl || "/placeholder.svg"}
-                              alt={userName}
-                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                            />
-                          )}
+                        )
+                      })
+                    )}
+                    {isReceiverTyping && (
+                      <div className="flex items-center gap-2 text-gray-500 text-sm">
+                        <div className="flex gap-1">
+                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:.1s]" />
+                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:.2s]" />
                         </div>
-                      )
-                    })
-                  )}
-                </>
-              )}
-              {isReceiverTyping && (
-                <div className="flex items-center gap-2 text-gray-500 text-sm">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
-                    ></div>
-                  </div>
-                  <span>{receiver?.name} đang nhập...</span>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {!receiver?.isBot && imagePreviews.length > 0 && (
-              <div className="px-4 py-2 bg-gray-100 border-t">
-                <div className="flex gap-2 overflow-x-auto">
-                  {imagePreviews.map((src, i) => (
-                    <div key={i} className="relative w-16 h-16 flex-shrink-0">
-                      <Image
-                        src={src || "/placeholder.svg"}
-                        alt="preview"
-                        width={64}
-                        height={64}
-                        className="rounded-lg object-cover w-full h-full"
-                      />
-                      <button
-                        onClick={() => handleRemoveImage(i)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Input Area */}
-            <div className="p-4 border-t bg-white">
-              <div className="flex items-end gap-3">
-                {!receiver?.isBot && (
-                  <>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
-                    >
-                      <Plus size={18} />
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleImageChange}
-                    />
+                        <span>{receiver?.name} đang nhập…</span>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
                   </>
                 )}
-                <div className="flex-1">
-                  <textarea
-                    value={input}
-                    onChange={(e) => {
-                      setInput(e.target.value)
+              </div>
 
-                      if (!receiver?.isBot) {
-                        setIsUserTyping(true)
-                        if (typingTimeoutRef.current) {
-                          clearTimeout(typingTimeoutRef.current)
-                        }
-
-                        if (sendTypingEvent) {
-                          sendTypingEvent(true, receiver?.id)
-                        }
-
-                        typingTimeoutRef.current = setTimeout(() => {
-                          setIsUserTyping(false)
-                          if (sendTypingEvent) {
-                            sendTypingEvent(false, receiver?.id)
-                          }
-                        }, 1000)
-                      }
-                    }}
-                    placeholder={receiver?.isBot ? "Hỏi chatbot..." : "Nhập tin nhắn..."}
-                    rows={1}
-                    className="w-full px-4 py-3 text-sm border border-gray-300 rounded-2xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#db4444] focus:border-transparent resize-none"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault()
-                        sendMessage()
-                      }
-                    }}
-                  />
+              {/* Image previews */}
+              {!receiver?.isBot && imagePreviews.length > 0 && (
+                <div className="px-4 py-2 bg-gray-100 border-t">
+                  <div className="flex gap-2 overflow-x-auto">
+                    {imagePreviews.map((src, i) => (
+                      <div key={i} className="relative w-16 h-16 flex-shrink-0">
+                        <Image src={src || '/placeholder.svg'} alt="preview" width={64} height={64} className="rounded-lg object-cover w-full h-full" />
+                        <button
+                          onClick={() => handleRemoveImage(i)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] shadow"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <button
-                  onClick={sendMessage}
-                  disabled={!input.trim() || !receiver?.id}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    !input.trim() || !receiver?.id
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : "bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105"
-                  }`}
-                >
-                  <Send size={16} />
-                </button>
+              )}
+
+              {/* Input */}
+              <div className="p-4 border-t bg-white">
+                <div className="flex items-end gap-3">
+                  {!receiver?.isBot && (
+                    <>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                        title="Đính kèm ảnh"
+                      >
+                        <Plus size={18} />
+                      </button>
+                      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
+                    </>
+                  )}
+
+                  <div className="flex-1">
+                    <textarea
+                      value={input}
+                      onChange={(e) => {
+                        setInput(e.target.value)
+                        if (!receiver?.isBot) {
+                          setIsUserTyping(true)
+                          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+                          if (sendTypingEvent) sendTypingEvent(true, receiver?.id)
+                          typingTimeoutRef.current = setTimeout(() => {
+                            setIsUserTyping(false)
+                            if (sendTypingEvent) sendTypingEvent(false, receiver?.id)
+                          }, 1000)
+                        }
+                      }}
+                      placeholder={receiver?.isBot ? 'Hỏi chatbot…' : 'Nhập tin nhắn…'}
+                      rows={1}
+                      className="
+                      w-full px-4 py-3 text-sm
+                      rounded-2xl bg-gray-50
+                      border border-gray-300
+                      focus:outline-none focus:ring-2 focus:ring-[#db4444] focus:border-transparent
+                      resize-none
+                    "
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          sendMessage()
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    onClick={sendMessage}
+                    disabled={!input.trim() || !receiver?.id}
+                    className={`
+                    w-10 h-10 rounded-full flex items-center justify-center transition-all
+                    ${!input.trim() || !receiver?.id
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105'}
+                  `}
+                    title="Gửi"
+                  >
+                    <Send size={16} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1372,4 +1261,5 @@ export default function EnhancedChatTools() {
       )}
     </>
   )
+
 }
