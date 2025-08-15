@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useCallback, useEffect, useState, useRef,useMemo } from "react"
+import { useCallback, useEffect, useState, useLayoutEffect, useRef,useMemo } from "react"
 import { MessageCircle, X, Plus, Send, MoreVertical, Bot } from "lucide-react"
 import Image from "next/image"
 import axios from "axios"
@@ -46,7 +46,7 @@ interface Message {
   sender_id: number
   receiver_id: number
   message: string
-  image?: string
+  image?: string|null
   created_at: string
   sender: User
   receiver: User
@@ -112,7 +112,12 @@ export default function EnhancedChatTools() {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   // state tìm kiếm
   const [contactQuery, setContactQuery] = useState('');
+// cuộn tin nhắn
+  const stickToBottomRef = useRef(true)
 
+    const scrollToBottom = (smooth = false) => {
+         messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" })
+         }
   // bỏ dấu + lowercase để so khớp "không dấu"
   const normalize = (s: string | undefined) =>
     (s ?? '')
@@ -133,6 +138,17 @@ export default function EnhancedChatTools() {
       return tokens.every((t) => combined.includes(t));
     });
   }, [contactQuery, recentContacts]);
+  // ===== helper: resolve ảnh từ blob/data/url hay path server
+  const resolveImageUrl = (img?: string | null) => {
+    if (!img) return null;
+    if (
+      img.startsWith('blob:') ||
+      img.startsWith('data:') ||
+      img.startsWith('http') ||
+      img.startsWith('/')
+    ) return img;
+    return `${STATIC_BASE_URL}/${img}`;
+  };
 
   const chatbotUser: User = {
     id: -1, // Special ID for chatbot
@@ -599,114 +615,106 @@ export default function EnhancedChatTools() {
   }
 
   const sendMessage = async () => {
-    // Handle chatbot messages (no auth required)
+    // Chatbot giữ nguyên
     if (receiver?.id === -1) {
-      return sendChatbotMessage()
+      return sendChatbotMessage();
     }
 
-    const token = localStorage.getItem("token") || Cookies.get("authToken")
+    const token = localStorage.getItem("token") || Cookies.get("authToken");
     if (!token) {
-      alert("Vui lòng đăng nhập để nhắn tin với người dùng khác.")
-      return
+      alert("Vui lòng đăng nhập để nhắn tin với người dùng khác.");
+      return;
     }
 
+    // ⛔ chỉ chặn khi KHÔNG có text và KHÔNG có ảnh
     if (!receiver?.id || (!input.trim() && images.length === 0)) {
-      return
+      return;
     }
 
-    const formData = new FormData()
-    formData.append("receiver_id", receiver.id.toString())
+    const formData = new FormData();
+    formData.append("receiver_id", String(receiver.id));
 
-    let messageText = input.trim()
+    // ✅ chuẩn hoá messageText: nếu chỉ ảnh -> dùng "[Image]"
+    let messageText = input.trim();
     if (!messageText && images.length > 0) {
-      messageText = "[Image]"
+      messageText = "[Image]";
     } else if (!messageText) {
-      messageText = " "
+      messageText = " ";
     }
-    formData.append("message", messageText)
+    formData.append("message", messageText);
 
+    // Đính kèm 1 ảnh (như bạn đang dùng)
     if (images.length > 0) {
-      const imageFile = images[0]
-
-      if (imageFile.size > 5 * 1024 * 1024) {
-        console.error("❌ File quá lớn (>5MB)")
-        alert("File ảnh quá lớn. Vui lòng chọn file nhỏ hơn 5MB.")
-        return
+      const file = images[0];
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File ảnh quá lớn. Vui lòng chọn file nhỏ hơn 5MB.");
+        return;
       }
-
-      if (!imageFile.type.startsWith("image/")) {
-        console.error("❌ File không phải ảnh")
-        alert("Vui lòng chọn file ảnh hợp lệ.")
-        return
+      if (!file.type.startsWith("image/")) {
+        alert("Vui lòng chọn file ảnh hợp lệ.");
+        return;
       }
-
-      formData.append("image", imageFile)
+      formData.append("image", file);
     }
 
-    const optimisticId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    // ✅ tạo preview blob trước khi clear state
+    const previewUrl = imagePreviews[0] ?? (images[0] ? URL.createObjectURL(images[0]) : null);
+
+    const optimisticId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     const optimisticMessage: Message = {
       id: optimisticId as any,
       sender_id: currentUser?.id || 0,
       receiver_id: receiver.id,
-      message: input.trim() || "",
+      // ✅ dùng đúng messageText để khớp với server (tránh duplicate)
+      message: messageText,
       created_at: new Date().toISOString(),
       sender: currentUser!,
       receiver: receiver,
-    }
+      // ✅ hiển thị ảnh ngay lập tức
+      image: previewUrl ?? null,
+    };
 
-    setMessages((prev) => [...prev, optimisticMessage])
-    const originalInput = input
-    const originalImages = [...images]
-    const originalPreviews = [...imagePreviews]
+    setMessages((prev) => [...prev, optimisticMessage]);
 
-    setInput("")
-    setImages([])
-    setImagePreviews([])
+    const originalInput = input;
+    const originalImages = [...images];
+    const originalPreviews = [...imagePreviews];
+
+    // Clear UI tạm
+    setInput("");
+    setImages([]);
+    setImagePreviews([]);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/messages`, formData, {
+      await axios.post(`${API_BASE_URL}/messages`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
         timeout: 30000,
-      })
+      });
 
       setTimeout(() => {
-        fetchRecentContacts()
-      }, 500)
+        fetchRecentContacts();
+      }, 500);
     } catch (error) {
-      console.error("❌ Lỗi khi gửi tin nhắn:", error)
-
-      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
-      setInput(originalInput)
-      setImages(originalImages)
-      setImagePreviews(originalPreviews)
+      console.error("❌ Lỗi khi gửi tin nhắn:", error);
+      // rollback optimistic
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      setInput(originalInput);
+      setImages(originalImages);
+      setImagePreviews(originalPreviews);
 
       if (axios.isAxiosError(error)) {
-        console.error("📊 Response status:", error.response?.status)
-        console.error("📄 Response data:", error.response?.data)
-        console.error("🔗 Request URL:", error.config?.url)
-
-        if (error.response?.status === 500) {
-          const errorMessage = error.response?.data?.message || "Lỗi server"
-          if (errorMessage.includes("cannot be null")) {
-            alert("Lỗi dữ liệu: Vui lòng nhập tin nhắn hoặc chọn ảnh.")
-          } else {
-            alert("Lỗi server khi gửi tin nhắn. Vui lòng thử lại sau.")
-          }
-        } else if (error.response?.status === 413) {
-          alert("File ảnh quá lớn. Vui lòng chọn file nhỏ hơn.")
-        } else if (error.response?.status === 422) {
-          alert("Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.")
-        } else {
-          alert("Không thể gửi tin nhắn. Vui lòng thử lại.")
-        }
+        if (error.response?.status === 413) alert("File ảnh quá lớn. Vui lòng chọn file nhỏ hơn.");
+        else if (error.response?.status === 422) alert("Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.");
+        else alert("Không thể gửi tin nhắn. Vui lòng thử lại.");
       } else {
-        alert("Lỗi kết nối. Vui lòng kiểm tra internet và thử lại.")
+        alert("Lỗi kết nối. Vui lòng kiểm tra internet và thử lại.");
       }
     }
-  }
+  };
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -1291,17 +1299,16 @@ export default function EnhancedChatTools() {
 
                   <button
                     onClick={sendMessage}
-                    disabled={!input.trim() || !receiver?.id}
-                    className={`
-                    w-10 h-10 rounded-full flex items-center justify-center transition-all
-                    ${!input.trim() || !receiver?.id
+                    disabled={(!input.trim() && images.length === 0) || !receiver?.id} // ⬅️ cho phép chỉ ảnh
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all
+    ${(!input.trim() && images.length === 0) || !receiver?.id
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105'}
-                  `}
+                        : 'bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105'}`}
                     title="Gửi"
                   >
                     <Send size={16} />
                   </button>
+
                 </div>
               </div>
             </div>
