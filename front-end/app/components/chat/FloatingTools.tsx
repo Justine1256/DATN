@@ -840,26 +840,7 @@ export default function EnhancedChatTools() {
           )}
 
 
-          <style jsx global>{`
-  @keyframes badgePulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.06); opacity: .8; }
-  }
-  .badge-pulse {
-    animation: badgePulse 1.1s ease-in-out infinite both;
-    will-change: transform, opacity;
-  }
 
-  @keyframes badgePing {
-    0%   { transform: scale(1);   opacity: .7; }
-    80%  { transform: scale(2.0); opacity: 0;  }
-    100% { transform: scale(2.0); opacity: 0;  }
-  }
-  .badge-ping {
-    animation: badgePing 1.2s cubic-bezier(0,0,0.2,1) infinite both;
-    will-change: transform, opacity;
-  }
-`}</style>
 
 
         </button>
