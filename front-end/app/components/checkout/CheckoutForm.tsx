@@ -10,7 +10,7 @@ interface Address {
   id: string;
   address: string;
   ward: string;
-  district: string;
+  district: string; // vẫn giữ để hiển thị địa chỉ đã lưu
   city: string;
   is_default: number | boolean;
 }
@@ -20,12 +20,6 @@ interface Province {
   name: string;
 }
 interface Ward {
-  code: number;
-  name: string;
-  districtCode?: number;
-  districtName?: string;
-}
-interface District {
   code: number;
   name: string;
 }
@@ -59,13 +53,11 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
   });
 
   const [provinces, setProvinces] = useState<Province[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
-  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
 
-  // --- Helpers map API ---
+  // --- Helpers map API mới ---
   const mapProvinceList = (data: any): Province[] => {
     const list = Array.isArray(data) ? data : data?.data || [];
     return list.map((p: any) => ({
@@ -73,24 +65,15 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
       name: String(p.name ?? p.province_name ?? p.full_name).trim(),
     }));
   };
-  const mapDistrictList = (data: any): District[] => {
-    const list = Array.isArray(data) ? data : data?.data || data?.districts || [];
-    return list.map((d: any) => ({
-      code: Number(d.code ?? d.district_code ?? d.id),
-      name: String(d.name ?? d.district_name ?? d.full_name).trim(),
-    }));
-  };
   const mapWardList = (data: any): Ward[] => {
     const list = Array.isArray(data) ? data : data?.data || data?.wards || [];
     return list.map((w: any) => ({
       code: Number(w.code ?? w.ward_code ?? w.id),
       name: String(w.name ?? w.ward_name ?? w.full_name).trim(),
-      districtCode: w.district_code ? Number(w.district_code) : undefined,
-      districtName: w.district_name ? String(w.district_name).trim() : undefined,
     }));
   };
 
-  // --- Load Provinces ---
+  // --- Load Provinces (API mới) ---
   useEffect(() => {
     axios
       .get('https://tinhthanhpho.com/api/v1/new-provinces')
@@ -131,38 +114,28 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
       .catch(console.error);
   }, [onAddressSelect, onAddressChange]);
 
-  // --- Load districts + wards when province changes (gộp 2 effect thành 1) ---
+  // --- Load wards khi chọn tỉnh (API mới) ---
   useEffect(() => {
     if (!selectedProvince) {
-      setDistricts([]);
-      setSelectedDistrict(null);
       setWards([]);
       setSelectedWard(null);
       return;
     }
 
-    const fetchAll = async () => {
-      try {
-        const [dRes, wRes] = await Promise.all([
-          axios.get(`https://tinhthanhpho.com/api/v1/provinces/${selectedProvince.code}/districts`),
-          axios.get(`https://tinhthanhpho.com/api/v1/new-provinces/${selectedProvince.code}/wards`),
-        ]);
-        setDistricts(mapDistrictList(dRes.data));
-        setWards(mapWardList(wRes.data));
+    axios
+      .get(`https://tinhthanhpho.com/api/v1/new-provinces/${selectedProvince.code}/wards`)
+      .then((res) => {
+        setWards(mapWardList(res.data));
         setSelectedWard(null); // reset xã
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    fetchAll();
+      })
+      .catch(console.error);
   }, [selectedProvince]);
 
   // --- Derived: có đang nhập tay không? ---
   const hasManualInput = useMemo(() => {
     const anyForm = Object.values(formData).some((v) => v.trim() !== '');
-    return !!(anyForm || selectedProvince || selectedDistrict);
-  }, [formData, selectedProvince, selectedDistrict]);
+    return !!(anyForm || selectedProvince || selectedWard);
+  }, [formData, selectedProvince, selectedWard]);
 
   // --- Khi đổi option địa chỉ đã lưu ---
   const handleAddressChange = useCallback(
@@ -174,7 +147,6 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
       // reset form khi chuyển mode
       setFormData({ firstName: '', streetAddress: '', apartment: '', phone: '', email: '' });
       setSelectedProvince(null);
-      setSelectedDistrict(null);
       setSelectedWard(null);
       setPhoneError(null);
       setEmailError(null);
@@ -195,8 +167,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
   // --- Nhập form tay ---
   const handleInputChange = useCallback(
     (field: string, value: string) => {
-      // 🔒 Nếu đang dùng địa chỉ đã lưu thì không cho nhập tay (form đã disable)
-      if (selectedAddressId) return;
+      if (selectedAddressId) return; // 🔒 đang dùng địa chỉ đã lưu
 
       const updated = { ...formData, [field]: value };
 
@@ -216,16 +187,13 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
 
   // --- Phát dữ liệu manual RA NGOÀI (chỉ khi KHÔNG dùng địa chỉ đã lưu) ---
   useEffect(() => {
-    if (selectedAddressId) {
-      // đang dùng địa chỉ đã lưu => không phát manual
-      return;
-    }
+    if (selectedAddressId) return; // đang dùng địa chỉ đã lưu
 
     if (hasManualInput && !phoneError) {
       onAddressChange({
         full_name: formData.firstName,
         address: `${formData.streetAddress}${formData.apartment ? ', ' + formData.apartment : ''}`,
-        city: `${selectedDistrict?.name || ''}, ${selectedProvince?.name || ''}`,
+        city: `${selectedWard?.name || ''}, ${selectedProvince?.name || ''}`, // KHÔNG còn district
         phone: formData.phone,
         email: formData.email,
       });
@@ -238,30 +206,28 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
     phoneError,
     formData,
     selectedProvince,
-    selectedDistrict,
+    selectedWard,
     onAddressChange,
   ]);
 
-  // --- Handlers Select Province/District (không bật nhập tay nếu đang dùng địa chỉ đã lưu) ---
+  // --- Handlers Select Province/Ward ---
   const handleProvinceChange = useCallback(
     (option: { value: number; label: string } | null) => {
       if (selectedAddressId) return; // 🔒
       const found = option ? provinces.find((p) => p.code === option.value) || null : null;
       setSelectedProvince(found);
-      setSelectedDistrict(null);
       setSelectedWard(null);
     },
     [provinces, selectedAddressId]
   );
 
-  const handleDistrictChange = useCallback(
+  const handleWardChange = useCallback(
     (option: { value: number; label: string } | null) => {
       if (selectedAddressId) return; // 🔒
-      const found = option ? districts.find((d) => d.code === option.value) || null : null;
-      setSelectedDistrict(found);
-      setSelectedWard(null);
+      const found = option ? wards.find((w) => w.code === option.value) || null : null;
+      setSelectedWard(found);
     },
-    [districts, selectedAddressId]
+    [wards, selectedAddressId]
   );
 
   return (
@@ -282,7 +248,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
             <option value="">-- Chọn địa chỉ giao hàng --</option>
             {addresses.map((addr) => (
               <option key={addr.id} value={addr.id}>
-                {`${addr.address}, ${addr.ward}, ${addr.district}, ${addr.city}`} {addr.is_default ? '(Mặc định)' : ''}
+                {`${addr.address}, ${addr.ward}${addr.district ? ', ' + addr.district : ''}, ${addr.city}`} {addr.is_default ? '(Mặc định)' : ''}
               </option>
             ))}
           </>
@@ -322,7 +288,6 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
             Tỉnh/Thành phố <span className="text-brand">*</span>
           </label>
           <Select
-            // tránh hydration mismatch
             instanceId="province-select"
             isDisabled={disableForm}
             isClearable
@@ -336,16 +301,16 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange }: Props
 
         <div>
           <label className="block mb-1 text-gray-700">
-            Quận/Huyện <span className="text-brand">*</span>
+            Phường/Xã <span className="text-brand">*</span>
           </label>
           <Select
-            instanceId="district-select"
-            isDisabled={disableForm || districts.length === 0}
+            instanceId="ward-select"
+            isDisabled={disableForm || wards.length === 0}
             isClearable
-            options={districts.map((d) => ({ value: d.code, label: d.name }))}
-            value={selectedDistrict ? { value: selectedDistrict.code, label: selectedDistrict.name } : null}
-            onChange={handleDistrictChange}
-            placeholder="Chọn Quận/Huyện"
+            options={wards.map((w) => ({ value: w.code, label: w.name }))}
+            value={selectedWard ? { value: selectedWard.code, label: selectedWard.name } : null}
+            onChange={handleWardChange}
+            placeholder="Chọn Phường/Xã"
             isSearchable
           />
         </div>
@@ -402,8 +367,7 @@ function InputField({
         value={value}
         onChange={(e) => onChange(field, e.target.value)}
         disabled={disabled}
-        className={`w-full border rounded-md bg-gray-100 px-3 py-2 outline-none disabled:opacity-50 ${error ? 'border-red-500' : ''
-          }`}
+        className={`w-full border rounded-md bg-gray-100 px-3 py-2 outline-none disabled:opacity-50 ${error ? 'border-red-500' : ''}`}
       />
       {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>
