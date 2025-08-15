@@ -34,6 +34,8 @@ const formatImageUrl = (img: string | string[]): string => {
 
 export default function ProductDetail({ shopslug, productslug }: ProductDetailProps) {
   const router = useRouter();
+  const [isOwner, setIsOwner] = useState(false);      // đã có
+  const [currentUser, setCurrentUser] = useState<any>(null); // thêm (tuỳ chọn)
 
   // State sản phẩm
   const [product, setProduct] = useState<Product | null>(null);
@@ -93,6 +95,47 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     setTimeout(() => setIsQuantityUpdating(false), 100); // delay 200ms
   };
 
+useEffect(() => {
+  const token = Cookies.get("authToken");
+  if (!token) return; // ❗ Không đăng nhập -> không làm gì, isOwner vẫn false
+
+  (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/user`, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("USER_API_FAILED");
+      const userData = await res.json();
+      const userPayload = userData?.data ?? userData; // tuỳ backend
+      setCurrentUser(userPayload);
+
+      // Nếu product đã có, so khớp luôn
+      if (product?.shop) {
+        const owner =
+          (userPayload?.shop?.id ?? userPayload?.shop_id ?? userPayload?.shops?.[0]?.id) != null
+            ? String(userPayload?.shop?.id ?? userPayload?.shop_id ?? userPayload?.shops?.[0]?.id) === String(product.shop.id)
+            : (userPayload?.shop?.slug ?? userPayload?.shop_slug ?? userPayload?.shops?.[0]?.slug)
+              && String(userPayload?.shop?.slug ?? userPayload?.shop_slug ?? userPayload?.shops?.[0]?.slug) === String(product.shop.slug);
+
+        setIsOwner(Boolean(owner));
+      }
+    } catch {
+      setCurrentUser(null);
+      setIsOwner(false); // lỗi user -> coi như không phải chủ shop
+    }
+  })();
+}, []); // chỉ chạy 1 lần
+useEffect(() => {
+  if (!product?.shop || !currentUser) return;
+  const owner =
+    (currentUser?.shop?.id ?? currentUser?.shop_id ?? currentUser?.shops?.[0]?.id) != null
+      ? String(currentUser?.shop?.id ?? currentUser?.shop_id ?? currentUser?.shops?.[0]?.id) === String(product.shop.id)
+      : (currentUser?.shop?.slug ?? currentUser?.shop_slug ?? currentUser?.shops?.[0]?.slug)
+        && String(currentUser?.shop?.slug ?? currentUser?.shop_slug ?? currentUser?.shops?.[0]?.slug) === String(product.shop.slug);
+
+  setIsOwner(Boolean(owner));
+}, [product, currentUser]);
 
   // Fetch chi tiết sản phẩm và ghi nhận lịch sử xem
   useEffect(() => {
@@ -284,6 +327,10 @@ const hasCombination = (a: string, b: string) => {
 
   // Thêm vào giỏ hàng (token hoặc localStorage)
   const handleAddToCart = async () => {
+     if (isOwner) {
+    commonPopup('Bạn là chủ shop của sản phẩm này nên không thể đặt hàng.');
+    return;
+  }
     if (isAddingToCart) return;
     setIsAddingToCart(true);
 
@@ -487,6 +534,10 @@ const hasCombination = (a: string, b: string) => {
 
   // Mua ngay (thêm vào giỏ và chuyển trang)
   const handleBuyNow = async () => {
+    if (isOwner) {
+    commonPopup('Bạn là chủ shop của sản phẩm này nên không thể đặt hàng.');
+    return;
+  }
     if (isBuyingNow) return;
     setIsBuyingNow(true);
 
@@ -784,96 +835,87 @@ const hasCombination = (a: string, b: string) => {
             )}
 
             {/* Quantity & actions */}
-            <div className="flex items-center gap-3 mt-4">
-              <div className="flex flex-col items-start gap-1">
-                <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
-                  <button
-                    onClick={handleDecrease}
-                    disabled={isQuantityUpdating || quantity <= 1}
-                    className={`w-[55px] text-2xl font-extrabold transition ${quantity <= 1 || isQuantityUpdating
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-black hover:bg-brand hover:text-white'
-                      }`}
-                  >
-                    −
-                  </button>
+         
+            {/* Quantity & actions */}
+            {!isOwner && (
+              <div className="flex items-center gap-3 mt-4">
+                <div className="flex flex-col items-start gap-1">
+                  <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
+                    <button
+                      onClick={handleDecrease}
+                      disabled={isQuantityUpdating || quantity <= 1}
+                      className={`w-[55px] text-2xl font-extrabold transition ${quantity <= 1 || isQuantityUpdating
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-black hover:bg-brand hover:text-white'
+                        }`}
+                    >
+                      −
+                    </button>
 
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value);
-                      const stock = getStock();
-                      if (!isNaN(val)) {
-                        if (val < 1) {
-                          setQuantity(1);
-                        } else if (val > stock) {
-                          setQuantity(stock); // Giới hạn không vượt kho
-                        } else {
-                          setQuantity(val);
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        const stock = getStock();
+                        if (!isNaN(val)) {
+                          if (val < 1) setQuantity(1);
+                          else if (val > stock) setQuantity(stock);
+                          else setQuantity(val);
                         }
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const val = parseInt(e.target.value);
-                      if (!val || val < 1) setQuantity(1);
-                    }}
-                    className="w-[55px] text-center font-extrabold text-black focus:outline-none hide-arrows"
-                  />
+                      }}
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!val || val < 1) setQuantity(1);
+                      }}
+                      className="w-[55px] text-center font-extrabold text-black focus:outline-none hide-arrows"
+                    />
 
+                    <button
+                      onClick={handleIncrease}
+                      disabled={isQuantityUpdating || quantity >= getStock()}
+                      className={`w-[55px] text-2xl font-extrabold transition ${quantity >= getStock() || isQuantityUpdating
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-black hover:bg-brand hover:text-white'
+                        }`}
+                    >
+                      +
+                    </button>
+                  </div>
 
-                  <button
-                    onClick={handleIncrease}
-                    disabled={isQuantityUpdating || quantity >= getStock()}
-                    className={`w-[55px] text-2xl font-extrabold transition ${quantity >= getStock() || isQuantityUpdating
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-black hover:bg-brand hover:text-white'
-                      }`}
-                  >
-                    +
-                  </button>
+                  <style jsx>{`
+        input[type='number']::-webkit-inner-spin-button,
+        input[type='number']::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type='number'] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
                 </div>
 
+                <button
+                  onClick={handleBuyNow}
+                  disabled={isBuyingNow || isOutOfStock()}
+                  className={`w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded transition font-medium hover:bg-red-600 ${(isBuyingNow || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''
+                    }`}
+                >
+                  Mua Ngay
+                </button>
 
-
-
-                {/* CSS ẩn mũi tên tăng/giảm trong input number */}
-                <style jsx>{`
-    input[type='number']::-webkit-inner-spin-button,
-    input[type='number']::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    input[type='number'] {
-      -moz-appearance: textfield;
-    }
-  `}</style>
+                <button
+                  onClick={handleAddToCart}
+                  disabled={isAddingToCart || isOutOfStock()}
+                  className={`w-[165px] h-[44px] text-sm md:text-base rounded transition font-medium border text-brand border-brand hover:bg-brand hover:text-white ${(isAddingToCart || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''
+                    }`}
+                >
+                  Thêm Vào Giỏ Hàng
+                </button>
               </div>
+            )}
 
-
-
-              <button
-                onClick={handleBuyNow}
-                disabled={isBuyingNow || isOutOfStock()}
-                className={`w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded transition font-medium hover:bg-red-600 $${(isBuyingNow || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''}
-`}
-              >
-                Mua Ngay
-              </button>
-
-              <button
-                onClick={handleAddToCart}
-                disabled={isAddingToCart || isOutOfStock()}
-                className={`w-[165px] h-[44px] text-sm md:text-base rounded transition font-medium border text-brand border-brand hover:bg-brand hover:text-white ${(isAddingToCart || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''
-                  }`}
-              >
-                Thêm Vào Giỏ Hàng
-              </button>
-
-
-            </div>
-            {/* Chính sách vận chuyển */}
+            {/* Chính sách vận chuyển */}  {/* <- KHÔNG có </div> trước dòng này nữa */}
             <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
               <div className="flex items-center gap-3 p-4">
                 <div className="flex justify-center items-center h-[40px]">
@@ -899,6 +941,10 @@ const hasCombination = (a: string, b: string) => {
                 </div>
               </div>
             </div>
+
+
+           
+      
           </div>
         </div>
       </div>

@@ -24,12 +24,8 @@ import {
 
 const { Title, Text } = Typography;
 
-// ✅ Interface định nghĩa tỉnh/huyện/xã và địa chỉ người dùng
+/** ===== Types ===== */
 interface Province {
-  code: number;
-  name: string;
-}
-interface District {
   code: number;
   name: string;
 }
@@ -38,7 +34,7 @@ interface Ward {
   name: string;
 }
 interface AddressComponentProps {
-  userId: number; // prop do backend cung cấp
+  userId: number;
 }
 interface Address {
   id?: number;
@@ -46,9 +42,8 @@ interface Address {
   phone: string;
   address: string;
   ward: string;
-  district: string;
-  city: string;
-  province: string;
+  city: string;       // = province (tên)
+  province: string;   // tên tỉnh
   note?: string;
   is_default?: boolean;
   type: 'Nhà Riêng' | 'Văn Phòng';
@@ -56,18 +51,12 @@ interface Address {
 
 const PHONE_REGEX = /^(0|\+84)(3[2-9]|5[2689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$/;
 
+/** ===== Helpers map API ===== */
 function mapProvinceList(data: any): Province[] {
   const list = Array.isArray(data) ? data : data?.data || data?.results || [];
   return list.map((p: any) => ({
     code: Number(p.code ?? p.province_code ?? p.id),
     name: String(p.name ?? p.province_name ?? p.full_name).trim(),
-  }));
-}
-function mapDistrictList(data: any): District[] {
-  const list = Array.isArray(data) ? data : data?.data || data?.districts || [];
-  return list.map((d: any) => ({
-    code: Number(d.code ?? d.district_code ?? d.id),
-    name: String(d.name ?? d.district_name ?? d.full_name).trim(),
   }));
 }
 function mapWardList(data: any): Ward[] {
@@ -79,7 +68,7 @@ function mapWardList(data: any): Ward[] {
 }
 
 export default function AddressComponent({ userId }: AddressComponentProps) {
-  // ====== State ======
+  /** ===== State ===== */
   const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState<Address[]>([]);
 
@@ -87,16 +76,27 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const [provinces, setProvinces] = useState<Province[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
+  const [wardsLoading, setWardsLoading] = useState(false);
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  const [form] = Form.useForm<Address>();
+  const [form] = Form.useForm();
 
-  // ====== Helpers ======
+  /** ===== Token ===== */
   const token = useMemo(() => Cookies.get('authToken'), []);
 
+  /** ===== Memo options để tránh render nặng ===== */
+  const provinceOptions = useMemo(
+    () => provinces.map((p) => ({ label: p.name, value: p.code })),
+    [provinces]
+  );
+  const wardOptions = useMemo(
+    () => wards.map((w) => ({ label: w.name, value: w.name })),
+    [wards]
+  );
+
+  /** ===== UI helpers ===== */
   const openDrawerForCreate = () => {
     setEditingId(null);
     form.resetFields();
@@ -104,20 +104,42 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
       full_name: '',
       phone: '',
       address: '',
-      ward: '',
-      district: '',
-      city: '',
+      provinceCode: undefined,
       province: '',
+      ward: '',
       note: '',
       is_default: false,
       type: 'Nhà Riêng',
-    } as any);
+    });
+    setWards([]);
     setDrawerOpen(true);
   };
 
   const openDrawerForEdit = (addr: Address) => {
     setEditingId(addr.id!);
-    form.setFieldsValue({ ...addr });
+    form.setFieldsValue({
+      ...addr,
+      province: addr.province,
+      provinceCode: undefined,
+    });
+
+    const found = provinces.find((p) => p.name === addr.province);
+    if (found) {
+      form.setFieldValue('provinceCode', found.code);
+      setWardsLoading(true);
+      axios
+        .get(`https://tinhthanhpho.com/api/v1/new-provinces/${found.code}/wards`)
+        .then((res) => {
+          const ws = mapWardList(res.data);
+          setWards(ws);
+          form.setFieldValue('ward', addr.ward || '');
+        })
+        .catch((e) => console.error(e))
+        .finally(() => setWardsLoading(false));
+    } else {
+      setWards([]);
+    }
+
     setDrawerOpen(true);
   };
 
@@ -131,7 +153,7 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
     else message.error(msg);
   };
 
-  // ====== Fetch location data ======
+  /** ===== Load Provinces ===== */
   useEffect(() => {
     axios
       .get('https://tinhthanhpho.com/api/v1/new-provinces')
@@ -139,39 +161,27 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
       .catch((e) => console.error(e));
   }, []);
 
-  const provinceValue = Form.useWatch('province', form);
-  const districtValue = Form.useWatch('district', form);
+  /** ===== Watch provinceCode to load wards ===== */
+  const provinceCode = Form.useWatch('provinceCode', form);
 
-  // Khi chọn tỉnh => tải huyện
   useEffect(() => {
-    if (!provinceValue || provinces.length === 0) return;
-    const selectedProvince = provinces.find((p) => p.name === provinceValue);
-    if (!selectedProvince) return;
+    if (!provinceCode) {
+      setWards([]);
+      form.setFieldValue('ward', '');
+      return;
+    }
+    setWardsLoading(true);
     axios
-      .get(`https://tinhthanhpho.com/api/v1/provinces/${selectedProvince.code}/districts`)
-      .then((res) => {
-        setDistricts(mapDistrictList(res.data));
-        form.setFieldValue('district', '');
-        form.setFieldValue('ward', '');
-      })
-      .catch((e) => console.error(e));
-  }, [provinceValue, provinces, form]);
-
-  // Khi chọn huyện => tải xã (API này chỉ dựa theo tỉnh như code gốc)
-  useEffect(() => {
-    if (!provinceValue || provinces.length === 0) return;
-    const selectedProvince = provinces.find((p) => p.name === provinceValue);
-    if (!selectedProvince) return;
-    axios
-      .get(`https://tinhthanhpho.com/api/v1/new-provinces/${selectedProvince.code}/wards`)
+      .get(`https://tinhthanhpho.com/api/v1/new-provinces/${provinceCode}/wards`)
       .then((res) => {
         setWards(mapWardList(res.data));
         form.setFieldValue('ward', '');
       })
-      .catch((e) => console.error(e));
-  }, [districtValue, provinceValue, provinces, form]);
+      .catch((e) => console.error(e))
+      .finally(() => setWardsLoading(false));
+  }, [provinceCode, form]);
 
-  // ====== Fetch addresses ======
+  /** ===== Fetch addresses ===== */
   const fetchAddresses = async (id: string) => {
     if (!token) return;
     try {
@@ -180,7 +190,9 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
-      const sorted = [...res.data].sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+      const sorted = [...res.data].sort(
+        (a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0)
+      );
       setAddresses(sorted);
     } catch (err) {
       console.error('Address fetch failed', err);
@@ -193,27 +205,34 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
     if (userId) fetchAddresses(String(userId));
   }, [userId]);
 
-  // ====== Create / Update ======
+  /** ===== Create / Update ===== */
   const handleAddOrUpdateAddress = async () => {
     if (!token || !userId) return;
 
     try {
-      const values = (await form.validateFields()) as Address;
+      const raw = await form.validateFields();
 
-      if (!PHONE_REGEX.test(values.phone)) {
+      if (!PHONE_REGEX.test(raw.phone)) {
         triggerPopup('❗ Số điện thoại không hợp lệ!', 'error');
         return;
       }
 
-      const dataToSend = {
-        ...values,
-        city: values.city || values.province,
+      const dataToSend: Address & { user_id: number } = {
+        full_name: raw.full_name,
+        phone: raw.phone,
+        address: raw.address,
+        ward: raw.ward,
+        province: raw.province,   // tên tỉnh
+        city: raw.province,       // giữ tương thích với BE
+        note: raw.note || '',
+        is_default: !!raw.is_default,
+        type: (raw.type as Address['type']) || 'Nhà Riêng',
         user_id: userId,
-      } as const;
+      };
 
-      const requiredFields: (keyof Address)[] = ['full_name', 'phone', 'address', 'province', 'district', 'ward'];
-      const isMissing = requiredFields.some((f) => !dataToSend[f]);
-      if (isMissing) {
+      const required = ['full_name', 'phone', 'address', 'province', 'ward'] as const;
+      const missing = required.some((k) => !dataToSend[k]);
+      if (missing) {
         triggerPopup('❗ Vui lòng điền đầy đủ thông tin địa chỉ!', 'error');
         return;
       }
@@ -236,13 +255,13 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
       await fetchAddresses(String(userId));
       form.resetFields();
     } catch (err: any) {
-      if (err?.errorFields) return; // lỗi validate của Form => đã hiển thị dưới form
+      if (err?.errorFields) return; // lỗi validate Form
       console.error('❌ Lỗi lưu địa chỉ:', err?.response?.data || err);
       triggerPopup('Lưu địa chỉ thất bại!', 'error');
     }
   };
 
-  // ====== Delete ======
+  /** ===== Delete ===== */
   const handleDelete = async () => {
     if (!confirmDeleteId || !token || !userId) return;
     try {
@@ -253,7 +272,6 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
 
       const updated = addresses.filter((a) => a.id !== confirmDeleteId);
 
-      // Nếu chỉ còn 1 -> đặt mặc định nếu chưa
       if (updated.length === 1 && !updated[0].is_default) {
         const newDefaultId = updated[0].id;
         if (newDefaultId) {
@@ -274,18 +292,18 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
     }
   };
 
-  // ====== Render ======
+  /** ===== Render ===== */
   return (
     <div style={{ minHeight: '100vh', padding: 24 }}>
       <Card bordered style={{ marginBottom: 16 }}>
         <Row justify="space-between" align="middle" gutter={12}>
           <Col>
             <Row align="middle" gutter={12}>
+              <Col>📍</Col>
               <Col>
-                <span role="img" aria-label="pin">📍</span>
-              </Col>
-              <Col>
-                <Title level={3} style={{ margin: 0 }}>Quản lý địa chỉ</Title>
+                <Title level={3} style={{ margin: 0 }}>
+                  Quản lý địa chỉ
+                </Title>
                 <Text type="secondary">Quản lý danh sách địa chỉ giao hàng của bạn</Text>
               </Col>
             </Row>
@@ -298,7 +316,6 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
             >
               Thêm địa chỉ mới
             </Button>
-
           </Col>
         </Row>
       </Card>
@@ -323,8 +340,12 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
                     bordered
                     bodyStyle={{ padding: 16 }}
                     actions={[
-                      <Button key="edit" type="link" onClick={() => openDrawerForEdit(addr)}>Sửa</Button>,
-                      <Button key="delete" type="link" danger onClick={() => setConfirmDeleteId(addr.id!)}>Xoá</Button>,
+                      <Button key="edit" type="link" onClick={() => openDrawerForEdit(addr)}>
+                        Sửa
+                      </Button>,
+                      <Button key="delete" type="link" danger onClick={() => setConfirmDeleteId(addr.id!)}>
+                        Xoá
+                      </Button>,
                     ]}
                   >
                     <Row justify="space-between" align="top">
@@ -338,15 +359,13 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
                           </Col>
                         </Row>
                         <Row gutter={[8, 8]} style={{ marginTop: 8 }}>
-                          <Col>
-                            <span role="img" aria-label="pin">📍</span>
-                          </Col>
+                          <Col>📍</Col>
                           <Col flex="auto">
                             <div>
                               <Text>{addr.address}</Text>
                               <div>
                                 <Text>
-                                  {addr.ward}, {addr.district}, {addr.city}
+                                  {addr.ward}, {addr.city}
                                 </Text>
                               </div>
                             </div>
@@ -359,7 +378,6 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
                           {addr.is_default && (
                             <Col>
                               <Tag color="#db4444">Mặc định</Tag>
-
                             </Col>
                           )}
                         </Row>
@@ -393,12 +411,16 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
               >
                 Lưu
               </Button>
-
             </Col>
           </Row>
         }
       >
         <Form form={form} layout="vertical" requiredMark>
+          {/* hidden province name để submit */}
+          <Form.Item name="province" hidden>
+            <Input />
+          </Form.Item>
+
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item
@@ -433,9 +455,10 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
               </Form.Item>
             </Col>
 
-            <Col xs={24} md={8}>
+            {/* Tỉnh/TP - dùng provinceCode để gọi wards */}
+            <Col xs={24} md={12}>
               <Form.Item
-                name="province"
+                name="provinceCode"
                 label="Tỉnh/TP"
                 rules={[{ required: true, message: 'Chọn Tỉnh/TP' }]}
               >
@@ -443,28 +466,27 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
                   placeholder="Chọn Tỉnh/TP"
                   showSearch
                   optionFilterProp="label"
-                  options={provinces.map((p) => ({ label: p.name, value: p.name }))}
+                  options={provinceOptions}
+                  // tối ưu dropdown:
+                  virtual
+                  listHeight={256}
+                  listItemHeight={32}
+                  dropdownMatchSelectWidth={false}
+                  dropdownStyle={{ maxHeight: 320, overflow: 'auto' }}
+                  getPopupContainer={(trigger) => trigger.parentElement!}
+                  filterOption={(input, option) =>
+                    (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                  }
+                  onChange={(code) => {
+                    const found = provinces.find((p) => p.code === code);
+                    form.setFieldValue('province', found?.name || '');
+                  }}
                 />
               </Form.Item>
             </Col>
 
-            <Col xs={24} md={8}>
-              <Form.Item
-                name="district"
-                label="Quận/Huyện"
-                rules={[{ required: true, message: 'Chọn Quận/Huyện' }]}
-              >
-                <Select
-                  placeholder="Chọn Quận/Huyện"
-                  showSearch
-                  optionFilterProp="label"
-                  options={districts.map((d) => ({ label: d.name, value: d.name }))}
-                  disabled={!provinceValue}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} md={8}>
+            {/* Phường/Xã */}
+            <Col xs={24} md={12}>
               <Form.Item
                 name="ward"
                 label="Phường/Xã"
@@ -474,8 +496,19 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
                   placeholder="Chọn Phường/Xã"
                   showSearch
                   optionFilterProp="label"
-                  options={wards.map((w) => ({ label: w.name, value: w.name }))}
-                  disabled={!districtValue}
+                  options={wardOptions}
+                  disabled={!provinceCode}
+                  loading={wardsLoading}
+                  // tối ưu dropdown:
+                  virtual
+                  listHeight={256}
+                  listItemHeight={32}
+                  dropdownMatchSelectWidth={false}
+                  dropdownStyle={{ maxHeight: 320, overflow: 'auto' }}
+                  getPopupContainer={(trigger) => trigger.parentElement!}
+                  filterOption={(input, option) =>
+                    (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                  }
                 />
               </Form.Item>
             </Col>
@@ -510,9 +543,7 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
         cancelButtonProps={{ style: { borderColor: '#db4444', color: '#db4444' } }}
         cancelText="Huỷ"
         title={<Text strong>Xác nhận xoá địa chỉ</Text>}
-      >
-
-      </Modal>
+      />
     </div>
   );
 }
