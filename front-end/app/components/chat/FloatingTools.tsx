@@ -825,28 +825,41 @@ export default function EnhancedChatTools() {
           <MessageCircle size={22} />
           {unreadCount > 0 && !showList && (
             <>
-              {/* Badge số – nháy mãi cho tới khi mở cửa sổ */}
+              {/* Badge số – nháy mãi cho tới khi mở cửa sổ chat */}
               <span
                 className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] leading-none
-                 rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-md
-                 animate-pulse infinite"
-                style={{ animationIterationCount: 'infinite' }}
+                 rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-md badge-pulse"
               >
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
 
-              {/* Vòng ping – nháy mãi cho tới khi mở cửa sổ */}
-              <span
-                className="absolute -top-1.5 -right-1.5 inline-flex h-5 w-5 rounded-full bg-red-500/60 animate-ping"
-                style={{ animationIterationCount: 'infinite' }}
-              />
-              <span
-                className="absolute -top-2 -right-2 inline-flex h-7 w-7 rounded-full bg-red-500/40 animate-ping [animation-delay:.2s]"
-                style={{ animationIterationCount: 'infinite' }}
-              />
+              {/* Vòng ping – nháy mãi cho tới khi mở cửa sổ chat */}
+              <span className="absolute -top-1.5 -right-1.5 inline-flex h-5 w-5 rounded-full bg-red-500/60 badge-ping" />
+              <span className="absolute -top-2 -right-2 inline-flex h-7 w-7 rounded-full bg-red-500/40 badge-ping" />
             </>
           )}
 
+
+          <style jsx global>{`
+  @keyframes badgePulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.06); opacity: .8; }
+  }
+  .badge-pulse {
+    animation: badgePulse 1.1s ease-in-out infinite both;
+    will-change: transform, opacity;
+  }
+
+  @keyframes badgePing {
+    0%   { transform: scale(1);   opacity: .7; }
+    80%  { transform: scale(2.0); opacity: 0;  }
+    100% { transform: scale(2.0); opacity: 0;  }
+  }
+  .badge-ping {
+    animation: badgePing 1.2s cubic-bezier(0,0,0.2,1) infinite both;
+    will-change: transform, opacity;
+  }
+`}</style>
 
 
         </button>
