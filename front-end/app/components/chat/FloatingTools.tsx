@@ -825,19 +825,28 @@ export default function EnhancedChatTools() {
           <MessageCircle size={22} />
           {unreadCount > 0 && !showList && (
             <>
-              {/* Badge số – luôn nháy cho đến khi mở chat */}
+              {/* Badge số – nháy mãi cho tới khi mở cửa sổ */}
               <span
                 className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] leading-none
-                 rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-md animate-pulse"
+                 rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-md
+                 animate-pulse infinite"
+                style={{ animationIterationCount: 'infinite' }}
               >
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
 
-              {/* Vòng ping – luôn nháy cho đến khi mở chat */}
-              <span className="absolute -top-1.5 -right-1.5 inline-flex h-5 w-5 rounded-full bg-red-500/60 animate-ping" />
-              <span className="absolute -top-2 -right-2 inline-flex h-7 w-7 rounded-full bg-red-500/40 animate-ping [animation-delay:.2s]" />
+              {/* Vòng ping – nháy mãi cho tới khi mở cửa sổ */}
+              <span
+                className="absolute -top-1.5 -right-1.5 inline-flex h-5 w-5 rounded-full bg-red-500/60 animate-ping"
+                style={{ animationIterationCount: 'infinite' }}
+              />
+              <span
+                className="absolute -top-2 -right-2 inline-flex h-7 w-7 rounded-full bg-red-500/40 animate-ping [animation-delay:.2s]"
+                style={{ animationIterationCount: 'infinite' }}
+              />
             </>
           )}
+
 
 
         </button>
