@@ -321,36 +321,51 @@ export default function CartItemsSection({
       title: 'Sản phẩm',
       dataIndex: 'product',
       key: 'product',
-      render: (_: any, item) => (
-        <Space align="start">
-          <div className="relative w-16 h-16 rounded border overflow-hidden bg-white">
-            <Image
-              src={formatImageUrl(item.product.image)}
-              alt={item.product.name || 'Sản phẩm'}
-              fill
-              className="object-contain"
-            />
-          </div>
-          <div>
-            <div className="font-medium text-black">
-              {item.product.name?.length > 60
-                ? item.product.name.slice(0, 60) + '…'
-                : item.product.name}
-            </div>
-            {item.product.shop && (
-              <Link
-                href={`/shop/${item.product.shop.slug || item.product.shop.id}`}
-                className="text-xs"
-              >
-                <Tag color="processing" className="mt-1">
-                  🏪 {item.product.shop.name}
-                </Tag>
+      render: (_: any, item) => {
+        const shopSlug = item.product?.shop?.slug || item.product?.shop?.id;
+        const productSlug = item.product?.slug || item.product?.id;
+
+        return (
+          <Space align="start">
+            {/* Click ảnh → chi tiết sản phẩm */}
+            <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
+              <div className="relative w-16 h-16 rounded border overflow-hidden bg-white cursor-pointer">
+                <Image
+                  src={formatImageUrl(item.product.image)}
+                  alt={item.product.name || 'Sản phẩm'}
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </Link>
+
+            <div>
+              {/* Click tên → chi tiết sản phẩm */}
+              <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
+                <div className="font-medium text-black hover:text-red-500 transition-colors cursor-pointer">
+                  {item.product.name?.length > 60
+                    ? item.product.name.slice(0, 60) + '…'
+                    : item.product.name}
+                </div>
               </Link>
-            )}
-          </div>
-        </Space>
-      ),
+
+              {/* Tag shop */}
+              {item.product.shop && (
+                <Link
+                  href={`/shop/${shopSlug}`}
+                  className="text-xs"
+                >
+                  <Tag color="processing" className="mt-1">
+                    🏪 {item.product.shop.name}
+                  </Tag>
+                </Link>
+              )}
+            </div>
+          </Space>
+        );
+      },
     },
+
     {
       title: 'Biến thể',
       key: 'variant',
