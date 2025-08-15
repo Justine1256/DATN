@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Models\Review;
+use App\Services\OpenAIService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
@@ -21,8 +22,12 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class ProductController extends Controller
 {
+    protected $openAI;
     // Danh sách sản phẩm
-
+public function __construct(OpenAIService $openAI)
+{
+    $this->openAI = $openAI;
+}
 public function index(Request $request)
 {
     $perPage   = (int) $request->query('per_page', 15);
@@ -391,6 +396,11 @@ public function getCategoryAndProductsBySlug($slug, Request $request)
             'value2' => $request->value2,
             'status' => 'activated',
         ]);
+
+        $text = $request->name . ' ' . $request->description;
+        $embedding = $this->openAI->embedding($text);
+        $product->embedding = json_encode($embedding);
+        $product->save();
 
         // Nếu có biến thể thì lưu
         if (is_array($request->variants) && count($request->variants) > 0) {
@@ -769,6 +779,14 @@ public function getProductByIdShop($id)
         }
 
         $product->save();
+
+        if (isset($data['name']) || isset($data['description'])) {
+            $text = ($data['name'] ?? $product->name) . ' ' . ($data['description'] ?? $product->description);
+            $embedding = app(OpenAIService::class)->embedding($text);
+
+            $product->embedding = json_encode($embedding);
+            $product->save();
+}
 
         // ✅ Cập nhật biến thể nếu có
         if ($request->filled('variants')) {

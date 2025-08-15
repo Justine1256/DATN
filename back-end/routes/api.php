@@ -11,6 +11,7 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BannerController;
+use App\Http\Controllers\BotController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\FollowController;
@@ -41,7 +42,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 // routes/api.php
 
-
+Route::post('/chatbot', [BotController::class, 'ask']);
 
 Route::get('/banner', [BannerController::class, 'index']);
 Route::post('/banner', [BannerController::class, 'store']);
