@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useCallback, useEffect, useState, useRef } from "react"
+import { useCallback, useEffect, useState, useRef,useMemo } from "react"
 import { MessageCircle, X, Plus, Send, MoreVertical, Bot } from "lucide-react"
 import Image from "next/image"
 import axios from "axios"
@@ -110,6 +110,29 @@ export default function EnhancedChatTools() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  // state tìm kiếm
+  const [contactQuery, setContactQuery] = useState('');
+
+  // bỏ dấu + lowercase để so khớp "không dấu"
+  const normalize = (s: string | undefined) =>
+    (s ?? '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+
+  // danh sách sau khi lọc
+  const filteredContacts = useMemo(() => {
+    const q = normalize(contactQuery);
+    if (!q) return recentContacts;
+
+    const tokens = q.split(/\s+/).filter(Boolean);
+    return recentContacts.filter((u) => {
+      const combined = `${normalize(u?.name)} ${normalize(u?.last_message)}`;
+      // tất cả token đều phải khớp
+      return tokens.every((t) => combined.includes(t));
+    });
+  }, [contactQuery, recentContacts]);
 
   const chatbotUser: User = {
     id: -1, // Special ID for chatbot
@@ -820,23 +843,49 @@ export default function EnhancedChatTools() {
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">Liên hệ gần đây</span>
                   <span className="text-[11px] bg-white/25 px-2 py-0.5 rounded-full">
-                    {recentContacts.length}
+                    {contactQuery ? filteredContacts.length : recentContacts.length}
                   </span>
+
                 </div>
                 {/* Search (UI only) */}
-                <div className="mt-2">
-                  <div className="flex items-center gap-2 bg-white/15 rounded-lg px-2 py-1.5 text-xs">
-                    <svg width="14" height="14" viewBox="0 0 24 24" className="opacity-80">
-                      <path fill="currentColor" d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm8.707 1.293-3.761-3.76A10 10 0 1 0 12 22a9.95 9.95 0 0 0 5.533-1.647l3.761 3.76z" />
-                    </svg>
-                    <span className="opacity-90">Tìm nhanh…</span>
-                  </div>
+                {/* Search */}
+                <div className="mt-2 relative">
+                  <input
+                    type="text"
+                    value={contactQuery}
+                    onChange={(e) => setContactQuery(e.target.value)}
+                    placeholder="Tìm theo tên hoặc nội dung…"
+                    className="w-full h-9 pl-8 pr-7 text-xs rounded-lg bg-white/90
+             border border-white/50 text-black placeholder:text-gray-400
+             focus:outline-none focus:ring-2 focus:ring-[#db4444] focus:border-transparent"
+                  />
+
+                  <svg
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
+                    viewBox="0 0 24 24" fill="currentColor"
+                  >
+                    <path d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm8.707 1.293-3.761-3.76A10 10 0 1 0 12 22a9.95 9.95 0 0 0 5.533-1.647l3.761 3.76z" />
+                  </svg>
+
+                  {contactQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setContactQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full
+                 bg-gray-200 text-gray-600 text-[11px] flex items-center justify-center
+                 hover:bg-gray-300"
+                      aria-label="Xoá tìm kiếm"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
+
               </div>
 
               {/* List */}
               <div className="overflow-y-auto">
-                {recentContacts.map((user) => (
+                {filteredContacts.map((user) => (
                   <button
                     type="button"
                     key={`contact-${user.id}`}
@@ -1080,7 +1129,7 @@ export default function EnhancedChatTools() {
                                 className={[
                                   'p-3 rounded-2xl shadow-sm',
                                   isCurrentUser
-                                    ? 'bg-gradient-to-br from-red-500 to-rose-500 text-white rounded-br-md'
+                                    ?   'bg-rose-50 text-black border border-rose-200 rounded-br-md'
                                     : isBotMessage
                                       ? 'bg-gradient-to-r from-blue-50 to-purple-50 text-gray-900 rounded-bl-md border border-blue-200/60'
                                       : 'bg-white text-gray-900 rounded-bl-md border border-gray-200/70',
