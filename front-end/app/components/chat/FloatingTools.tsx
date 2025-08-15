@@ -116,6 +116,34 @@ export default function EnhancedChatTools() {
   const [contactQuery, setContactQuery] = useState('');
 // cuộn tin nhắn
   const stickToBottomRef = useRef(true)
+  const typingIntervalsRef = useRef<Record<string | number, ReturnType<typeof setInterval>>>({});
+
+  useEffect(() => {
+    return () => {
+      Object.values(typingIntervalsRef.current).forEach(clearInterval);
+    };
+  }, []);
+
+  const typeOutBotMessage = useCallback((id: string | number, full: string, speed = 16) => {
+    setIsReceiverTyping(true);
+    setMessages(prev => prev.map(m => (m.id === id ? { ...m, display: "", typing: true } : m)));
+
+    let i = 0;
+    const timer = setInterval(() => {
+      i += 1;
+      setMessages(prev => prev.map(m => (m.id === id ? { ...m, display: full.slice(0, i) } : m)));
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+
+      if (i >= full.length) {
+        clearInterval(timer);
+        delete typingIntervalsRef.current[id];
+        setMessages(prev => prev.map(m => (m.id === id ? { ...m, typing: false, display: undefined } : m)));
+        setIsReceiverTyping(false);
+      }
+    }, speed);
+
+    typingIntervalsRef.current[id] = timer;
+  }, []);
 
     const scrollToBottom = (smooth = false) => {
          messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" })
@@ -540,8 +568,9 @@ export default function EnhancedChatTools() {
   }, [receiver?.id, loadingMore, hasMoreMessages, currentOffset])
 
   const sendChatbotMessage = async () => {
-    if (!input.trim()) return
+    if (!input.trim()) return;
 
+    // đẩy tin nhắn của user (giữ nguyên)
     const userMessage: Message = {
       id: `temp-${Date.now()}`,
       sender_id: currentUser?.id || -999,
@@ -559,66 +588,68 @@ export default function EnhancedChatTools() {
         updated_at: new Date().toISOString(),
       },
       receiver: chatbotUser,
-    }
+    };
+    setMessages(prev => [...prev, userMessage]);
 
-    setMessages((prev) => [...prev, userMessage])
-    const originalInput = input
-    setInput("")
-    setLoading(true)
+    const originalInput = input;
+    setInput(""); // KHÔNG bật setLoading nữa (bỏ spinner toàn khung)
+
+    // ➜ thêm bubble bot “đang nhập…”
+    const typingId = `bot-typing-${Date.now()}`;
+    const typingMsg: Message = {
+      id: typingId,
+      sender_id: -1,
+      receiver_id: currentUser?.id || -999,
+      message: "",          // rỗng => render 3 chấm
+      typing: true,         // đang gõ
+      created_at: new Date().toISOString(),
+      sender: chatbotUser,
+      receiver: currentUser || {
+        id: -999,
+        name: "Khách",
+        email: "guest@example.com",
+        avatar: null,
+        phone: null,
+        address: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    };
+    setMessages(prev => [...prev, typingMsg]);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/chatbot`, {
-        message: originalInput,
-      })
+      const response = await axios.post(`${API_BASE_URL}/chatbot`, { message: originalInput });
 
-      const botResponse: Message = {
-        id: `bot-${Date.now()}`,
-        sender_id: -1,
-        receiver_id: currentUser?.id || -999,
-        message: response.data.reply || response.data.message || "Xin lỗi, tôi không hiểu câu hỏi của bạn.",
-        created_at: new Date().toISOString(),
-        sender: chatbotUser,
-        receiver: currentUser || {
-          id: -999,
-          name: "Khách",
-          email: "guest@example.com",
-          avatar: null,
-          phone: null,
-          address: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        products: response.data.products || [],
-      }
+      const fullText =
+        response.data?.reply ||
+        response.data?.message ||
+        "Xin lỗi, tôi không hiểu câu hỏi của bạn.";
 
-      setMessages((prev) => [...prev, botResponse])
+      const products = response.data?.products || [];
+
+      // cập nhật bubble typing thành message thật, rồi chạy typewriter
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === typingId
+            ? { ...m, message: fullText, display: "", typing: true, products }
+            : m
+        )
+      );
+
+      // gõ dần
+      typeOutBotMessage(typingId, fullText, 16);
     } catch (error) {
-      console.error("❌ Lỗi khi gửi tin nhắn chatbot:", error)
-
-      const errorMessage: Message = {
-        id: `error-${Date.now()}`,
-        sender_id: -1,
-        receiver_id: currentUser?.id || -999,
-        message: "Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.",
-        created_at: new Date().toISOString(),
-        sender: chatbotUser,
-        receiver: currentUser || {
-          id: -999,
-          name: "Khách",
-          email: "guest@example.com",
-          avatar: null,
-          phone: null,
-          address: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      }
-
-      setMessages((prev) => [...prev, errorMessage])
-    } finally {
-      setLoading(false)
+      // lỗi: thay bubble typing thành tin lỗi
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === typingId
+            ? { ...m, typing: false, message: "Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau." }
+            : m
+        )
+      );
     }
-  }
+  };
+
 
   const sendMessage = async () => {
     // Chatbot giữ nguyên
@@ -1157,15 +1188,33 @@ export default function EnhancedChatTools() {
                                 className={[
                                   'p-3 rounded-2xl shadow-sm',
                                   isCurrentUser
-                                    ?   'bg-rose-50 text-black border border-rose-200 rounded-br-md'
+                                    ? 'bg-rose-50 text-black border border-rose-200 rounded-br-md'
                                     : isBotMessage
                                       ? 'bg-gradient-to-r from-blue-50 to-purple-50 text-gray-900 rounded-bl-md border border-blue-200/60'
                                       : 'bg-white text-gray-900 rounded-bl-md border border-gray-200/70',
                                 ].join(' ')}
                               >
-                                {!!msg.message && <p className="text-sm leading-relaxed break-words">{msg.message}</p>}
+                                {/* 3 chấm typing khi bot chưa có text hiển thị */}
+                                {isBotMessage && msg.typing && !msg.display && !msg.message && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:.1s]" />
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:.2s]" />
+                                  </div>
+                                )}
 
-                                {!!msg.products?.length && (
+                                {/* Text: khi bot đang gõ => dùng msg.display + caret; xong thì dùng msg.message */}
+                                {(!!msg.message || (isBotMessage && msg.typing && !!msg.display)) && (
+                                  <p className="text-sm leading-relaxed break-words">
+                                    {isBotMessage && msg.typing ? (msg.display ?? '') : msg.message}
+                                    {isBotMessage && msg.typing && (
+                                      <span className="inline-block w-[1px] h-4 align-middle ml-0.5 bg-gray-600 animate-pulse" />
+                                    )}
+                                  </p>
+                                )}
+
+                                {/* Gợi ý sản phẩm: chỉ hiện khi KHÔNG còn typing */}
+                                {!!msg.products?.length && !msg.typing && (
                                   <div className="mt-3 space-y-2">
                                     <div className="text-[12px] font-medium text-gray-600 mb-1">Sản phẩm gợi ý</div>
                                     {msg.products.map((product) => (
@@ -1208,20 +1257,23 @@ export default function EnhancedChatTools() {
                                   </div>
                                 )}
 
+                                {/* Ảnh đính kèm */}
                                 {!!msg.image && (
                                   <img
-                                    src={`${STATIC_BASE_URL}/${msg.image}`}
+                                    src={resolveImageUrl(msg.image) ?? `${STATIC_BASE_URL}/${msg.image}`}
                                     alt="Sent image"
                                     className="mt-2 max-w-full rounded-lg cursor-pointer"
-                                    onClick={() => window.open(`${STATIC_BASE_URL}/${msg.image}`, '_blank')}
+                                    onClick={() => window.open(resolveImageUrl(msg.image) ?? `${STATIC_BASE_URL}/${msg.image}`, '_blank')}
                                   />
                                 )}
                               </div>
+
                               <p className={`text-[11px] text-gray-500 mt-1 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
                                 {isCurrentUser ? 'Bạn' : userName} •{' '}
                                 {new Date(msg.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
+
 
                             {isCurrentUser && (
                               <img
