@@ -31,13 +31,14 @@ class OpenAIService
 
     // Tạo embeddings cho tìm kiếm sản phẩm
 public function embedding($text)
-{
-    $result = $this->client->embeddings()->create([
-        'model' => 'text-embedding-3-small',
-        'input' => $text,
-    ]);
+    {
+        $result = $this->client->embeddings()->create([
+            'model' => 'text-embedding-3-small',
+            'input' => $text,
+        ]);
 
-    return $result->embeddings[0]->embedding;
-}
+        return $result['data'][0]['embedding'];
+
+    }
 
 }
