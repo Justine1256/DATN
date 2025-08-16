@@ -1227,27 +1227,72 @@ class OrderController extends Controller
         return response()->json(['message' => 'Đã từ chối yêu cầu hoàn đơn thành công']);
     }
     // xem chi tiết hoàn đơn
-    public function viewRefundRequest($orderId)
-    {
-        $order = Order::with('user')->find($orderId);
+public function viewRefundRequest($orderId)
+{
+    // Eager load đủ quan hệ để tránh N+1
+    $order = \App\Models\Order::with([
+        'user:id,name,email,phone,avatar',
+        'shop:id,name,email,logo',
+        'orderDetails.product:id,name,image',
+    ])->find($orderId);
 
-        if (!$order) {
-            return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
+    if (!$order) {
+        return response()->json(['message' => 'Không tìm thấy đơn hàng'], 404);
+    }
+
+    // Ảnh hoàn đơn (dùng accessor getImagesAttribute() bạn đã có)
+    $refundPhotos = $order->images ?? [];
+
+    // Chuẩn hoá logo shop về string hoặc null (tránh trường hợp logo bị cast thành array)
+    $shopLogo = $order->shop?->logo;
+    if (is_array($shopLogo)) {
+        $shopLogo = $shopLogo[0] ?? null;
+    }
+
+    // Gom ảnh của từng sản phẩm trong đơn
+    $productImages = $order->orderDetails->map(function ($detail) {
+        $p = $detail->product;
+        if (!$p) return null;
+
+        $imgs = $p->image;
+        // Chuẩn hoá về mảng
+        if (is_string($imgs)) {
+            $decoded = json_decode($imgs, true);
+            $imgs = json_last_error() === JSON_ERROR_NONE ? $decoded : [$imgs];
+        }
+        if (!is_array($imgs)) {
+            $imgs = $imgs ? [$imgs] : [];
         }
 
-        $photos = \App\Models\OrderReturnPhoto::where('order_id', $orderId)->pluck('image_path');
+        return [
+            'product_id'   => $p->id,
+            'product_name' => $p->name,
+            'image'        => $imgs,
+        ];
+    })->filter()->values();
 
-        return response()->json([
-            'order_id'           => $order->id,
-            'user'               => [
-                'id'    => $order->user?->id,
-                'name'  => $order->user?->name,
-            ],
-            'cancel_reason'      => $order->cancel_reason,
-            'photos'             => $order->images,
-            'created_at'         => $order->created_at,
-        ]);
-    }
+    return response()->json([
+        'order_id' => $order->id,
+        'user'     => [
+            'id'     => $order->user?->id,
+            'name'   => $order->user?->name,
+            'email'  => $order->user?->email,
+            'phone'  => $order->user?->phone,
+            'avatar' => $order->user?->avatar,
+        ],
+        'shop' => [
+            'id'    => $order->shop?->id,
+            'name'  => $order->shop?->name,
+            'email' => $order->shop?->email,
+            'logo'  => $shopLogo,
+        ],
+        'cancel_reason' => $order->cancel_reason,
+        'photos'        => $refundPhotos,
+        'product_images'=> $productImages,
+        'return_confirmed_at'    => $order->return_confirmed_at,      // sẽ tự serialize dạng ISO 8601
+        'return_status'        => $order->return_status,   // ví dụ: Requested/Approved/Rejected/Returning/Refunded
+    ]);
+}
 
     // duyệt
     public function approveRefundRequest($orderId)
@@ -1471,7 +1516,7 @@ class OrderController extends Controller
             }),
         ]);
     }
-    public function listRefundReportsFromOrders(Request $request)
+public function listRefundReportsFromOrders(Request $request)
 {
     $user = Auth::user();
     if (!$user) {
@@ -1480,40 +1525,49 @@ class OrderController extends Controller
 
     $orders = Order::with([
             'user:id,name',
+            'shop:id,name,logo',                  // 👈 thêm shop
             'orderDetails.product:id,name,image',
         ])
         ->where('return_status', '!=', 'None')
-        // Seller: lọc theo shop thuộc user hiện tại bằng whereHas, không cần truy vấn Shop riêng
         ->when($user->role === 'seller', function ($q) use ($user) {
             $q->whereHas('shop', function ($s) use ($user) {
                 $s->where('user_id', $user->id);
             });
         })
-        // (Admin) cho phép lọc theo shop_id nếu truyền
-        ->when($user->role !== 'seller' && request()->filled('shop_id'), function ($q) {
-            $q->where('shop_id', request('shop_id'));
+        ->when($user->role !== 'seller' && $request->filled('shop_id'), function ($q) use ($request) {
+            $q->where('shop_id', $request->input('shop_id'));
         })
-        // Lọc theo trạng thái hoàn (tuỳ chọn)
-        ->when(request()->filled('status'), function ($q) {
-            $q->where('return_status', request('status')); // Requested/Approved/Rejected/Returning/Refunded
+        ->when($request->filled('status'), function ($q) use ($request) {
+            $q->where('return_status', $request->input('status'));
         })
         ->orderByDesc('return_confirmed_at')
         ->orderByDesc('created_at')
         ->get();
 
     $data = $orders->map(function ($o) {
+        // ảnh sản phẩm đầu tiên
         $firstProduct = optional($o->orderDetails->first())->product;
         $imgs = $firstProduct?->image;
-
         if (is_string($imgs)) {
             $decoded = json_decode($imgs, true);
             $imgs = json_last_error() === JSON_ERROR_NONE ? $decoded : [$imgs];
         }
         if (!is_array($imgs)) $imgs = $imgs ? [$imgs] : [];
 
+        // logo shop có thể là array do cast -> lấy phần tử đầu
+        $shopLogo = $o->shop?->logo;
+        if (is_array($shopLogo)) {
+            $shopLogo = $shopLogo[0] ?? null;
+        }
+
         return [
             'order_id'            => $o->id,
             'user'                => ['id' => $o->user?->id, 'name' => $o->user?->name],
+            'shop'                => [                         // 👈 thêm block shop
+                'id'   => $o->shop?->id,
+                'name' => $o->shop?->name,
+                'logo' => $shopLogo,
+            ],
             'reason'              => $o->cancel_reason ?? $o->rejection_reason ?? null,
             'return_status'       => $o->return_status,
             'return_confirmed_at' => optional($o->return_confirmed_at)->format('Y-m-d H:i'),
@@ -1523,4 +1577,5 @@ class OrderController extends Controller
 
     return response()->json(['data' => $data]);
 }
+
 }
