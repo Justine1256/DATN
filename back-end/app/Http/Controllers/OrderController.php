@@ -1516,7 +1516,7 @@ public function viewRefundRequest($orderId)
             }),
         ]);
     }
-    public function listRefundReportsFromOrders(Request $request)
+public function listRefundReportsFromOrders(Request $request)
 {
     $user = Auth::user();
     if (!$user) {
@@ -1525,40 +1525,49 @@ public function viewRefundRequest($orderId)
 
     $orders = Order::with([
             'user:id,name',
+            'shop:id,name,logo',                  // 👈 thêm shop
             'orderDetails.product:id,name,image',
         ])
         ->where('return_status', '!=', 'None')
-        // Seller: lọc theo shop thuộc user hiện tại bằng whereHas, không cần truy vấn Shop riêng
         ->when($user->role === 'seller', function ($q) use ($user) {
             $q->whereHas('shop', function ($s) use ($user) {
                 $s->where('user_id', $user->id);
             });
         })
-        // (Admin) cho phép lọc theo shop_id nếu truyền
-        ->when($user->role !== 'seller' && request()->filled('shop_id'), function ($q) {
-            $q->where('shop_id', request('shop_id'));
+        ->when($user->role !== 'seller' && $request->filled('shop_id'), function ($q) use ($request) {
+            $q->where('shop_id', $request->input('shop_id'));
         })
-        // Lọc theo trạng thái hoàn (tuỳ chọn)
-        ->when(request()->filled('status'), function ($q) {
-            $q->where('return_status', request('status')); // Requested/Approved/Rejected/Returning/Refunded
+        ->when($request->filled('status'), function ($q) use ($request) {
+            $q->where('return_status', $request->input('status'));
         })
         ->orderByDesc('return_confirmed_at')
         ->orderByDesc('created_at')
         ->get();
 
     $data = $orders->map(function ($o) {
+        // ảnh sản phẩm đầu tiên
         $firstProduct = optional($o->orderDetails->first())->product;
         $imgs = $firstProduct?->image;
-
         if (is_string($imgs)) {
             $decoded = json_decode($imgs, true);
             $imgs = json_last_error() === JSON_ERROR_NONE ? $decoded : [$imgs];
         }
         if (!is_array($imgs)) $imgs = $imgs ? [$imgs] : [];
 
+        // logo shop có thể là array do cast -> lấy phần tử đầu
+        $shopLogo = $o->shop?->logo;
+        if (is_array($shopLogo)) {
+            $shopLogo = $shopLogo[0] ?? null;
+        }
+
         return [
             'order_id'            => $o->id,
             'user'                => ['id' => $o->user?->id, 'name' => $o->user?->name],
+            'shop'                => [                         // 👈 thêm block shop
+                'id'   => $o->shop?->id,
+                'name' => $o->shop?->name,
+                'logo' => $shopLogo,
+            ],
             'reason'              => $o->cancel_reason ?? $o->rejection_reason ?? null,
             'return_status'       => $o->return_status,
             'return_confirmed_at' => optional($o->return_confirmed_at)->format('Y-m-d H:i'),
@@ -1568,4 +1577,5 @@ public function viewRefundRequest($orderId)
 
     return response()->json(['data' => $data]);
 }
+
 }
