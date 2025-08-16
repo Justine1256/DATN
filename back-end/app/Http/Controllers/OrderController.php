@@ -193,7 +193,7 @@ class OrderController extends Controller
                     $discountAmount = min($voucher->discount_value, $subtotalApplicable);
                 }
             }
-            
+
             // ==== 4. Tạo order theo từng shop ====
             $cartsByShop = $carts->groupBy(fn($cart) => $cart->product->shop_id);
             $orders = [];
@@ -1471,4 +1471,56 @@ class OrderController extends Controller
             }),
         ]);
     }
+    public function listRefundReportsFromOrders(Request $request)
+{
+    $user = Auth::user();
+    if (!$user) {
+        return response()->json(['message' => 'Unauthorized'], 401);
+    }
+
+    $orders = Order::with([
+            'user:id,name',
+            'orderDetails.product:id,name,image',
+        ])
+        ->where('return_status', '!=', 'None')
+        // Seller: lọc theo shop thuộc user hiện tại bằng whereHas, không cần truy vấn Shop riêng
+        ->when($user->role === 'seller', function ($q) use ($user) {
+            $q->whereHas('shop', function ($s) use ($user) {
+                $s->where('user_id', $user->id);
+            });
+        })
+        // (Admin) cho phép lọc theo shop_id nếu truyền
+        ->when($user->role !== 'seller' && request()->filled('shop_id'), function ($q) {
+            $q->where('shop_id', request('shop_id'));
+        })
+        // Lọc theo trạng thái hoàn (tuỳ chọn)
+        ->when(request()->filled('status'), function ($q) {
+            $q->where('return_status', request('status')); // Requested/Approved/Rejected/Returning/Refunded
+        })
+        ->orderByDesc('return_confirmed_at')
+        ->orderByDesc('created_at')
+        ->get();
+
+    $data = $orders->map(function ($o) {
+        $firstProduct = optional($o->orderDetails->first())->product;
+        $imgs = $firstProduct?->image;
+
+        if (is_string($imgs)) {
+            $decoded = json_decode($imgs, true);
+            $imgs = json_last_error() === JSON_ERROR_NONE ? $decoded : [$imgs];
+        }
+        if (!is_array($imgs)) $imgs = $imgs ? [$imgs] : [];
+
+        return [
+            'order_id'            => $o->id,
+            'user'                => ['id' => $o->user?->id, 'name' => $o->user?->name],
+            'reason'              => $o->cancel_reason ?? $o->rejection_reason ?? null,
+            'return_status'       => $o->return_status,
+            'return_confirmed_at' => optional($o->return_confirmed_at)->format('Y-m-d H:i'),
+            'product_image'       => $imgs,
+        ];
+    })->values();
+
+    return response()->json(['data' => $data]);
+}
 }
