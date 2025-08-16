@@ -230,76 +230,99 @@ export default function OrderSection() {
 
 
 const handleSubmitRefund = async (refundData: { reason: string; images: File[] }) => {
+  // Không có orderToRefund thì bỏ qua
   if (!orderToRefund) {
-    console.warn("⚠️ Không có orderToRefund");
+    console.warn("⚠️ Không có orderToRefund để gửi hoàn đơn.");
     return;
   }
 
+  // Tránh bấm nhiều lần
   if (isProcessingRefund) {
-    console.warn("⚠️ Đang xử lý refund, vui lòng đợi...");
+    console.warn("⚠️ Đang xử lý hoàn đơn, vui lòng chờ...");
     return;
   }
 
   setIsProcessingRefund(true);
 
   try {
-    const imageUrls: string[] = [];
+    // 1) Upload ảnh song song (nếu có)
+    const imageUrls: string[] = await (async () => {
+      if (!refundData.images || refundData.images.length === 0) return [];
 
-    for (const image of refundData.images) {
-      const imgForm = new FormData();
-      imgForm.append("image", image);
+      // Tạo các promise upload cho từng ảnh
+      const uploadPromises = refundData.images.map(async (image) => {
+        const formData = new FormData();
+        formData.append("image", image);
 
+        const res = await axios.post(
+          `${API_BASE_URL}/upload-refund-image`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
 
-      const res = await axios.post(`${API_BASE_URL}/upload-refund-image`, imgForm, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
+        const uploadedUrl = res.data?.images?.[0];
+        if (!uploadedUrl) throw new Error("Không thể upload ảnh");
+        return uploadedUrl as string;
       });
 
-      const uploaded = res.data?.images?.[0];
+      // Chờ tất cả upload xong
+      return await Promise.all(uploadPromises);
+    })();
 
-      if (uploaded) {
-        imageUrls.push(uploaded);
-      } else {
-        console.error("❌ Không nhận được URL ảnh sau khi upload:", res.data);
-        throw new Error("Không nhận được URL ảnh sau khi upload");
-      }
-    }
-
+    // 2) Gọi API gửi yêu cầu hoàn đơn
     const payload = {
       reason: refundData.reason,
       images: imageUrls,
     };
 
-
-    const response = await axios.post(`${API_BASE_URL}/orders/${orderToRefund.id}/refund`, payload, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderToRefund.id ? { ...o, refund_requested: true } : o))
+    await axios.post(
+      `${API_BASE_URL}/orders/${orderToRefund.id}/refund`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
     );
+
+    // 3) Cập nhật UI/State
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderToRefund.id ? { ...o, refund_requested: true } : o
+      )
+    );
+
     setShowRefundModal(false);
     setOrderToRefund(null);
-    setPopup({ type: "success", message: "✅ Yêu cầu hoàn đơn đã được gửi thành công!" })
-    setTimeout(() => setPopup(null), 3000)
 
+    setPopup({
+      type: "success",
+      message: "✅ Yêu cầu hoàn đơn đã được gửi thành công!",
+    });
+    setTimeout(() => setPopup(null), 3000);
   } catch (err: any) {
+    // Lấy message từ server nếu có
+    const serverMsg =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      "Đã xảy ra lỗi khi gửi yêu cầu hoàn đơn.";
+
     console.error("❌ Lỗi khi gửi yêu cầu hoàn đơn:", err);
-    console.error("📩 Chi tiết lỗi từ server:", err.response?.data);
-    if (err?.response) {
-      console.error("📩 Chi tiết lỗi từ server:", err.response.data);
-    }
-    alert("Đã xảy ra lỗi khi gửi yêu cầu hoàn đơn.");
+
+    // Hiển thị popup trượt ngang (bạn đã có CSS/animation sẵn)
+    setPopup({ type: "error", message: serverMsg });
+    setTimeout(() => setPopup(null), 3000);
   } finally {
     setIsProcessingRefund(false);
   }
 };
+
   
 
 

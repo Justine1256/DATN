@@ -114,6 +114,17 @@ export default function RefundReportsPage() {
         setShowPopup(true)
         setTimeout(() => setShowPopup(false), 4000)
     }
+    // đặt cạnh các hàm khác trong component
+    const openRejectModalFromDetail = (orderId: number) => {
+        // lưu order cần từ chối trước khi đóng modal chi tiết
+        setSelectedOrderForReject(orderId)
+        // reset nội dung form
+        setRejectionReason("")
+        setRejectionNote("")
+        // đóng modal chi tiết rồi mở modal từ chối
+        setShowDetailModal(false)
+        setShowRejectModal(true)
+    }
 
     // Cập nhật hàm fetchRefundReports để phân chia data:
     const fetchRefundReports = async () => {
@@ -927,18 +938,14 @@ export default function RefundReportsPage() {
                                     <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-xl">
                                         <div className="flex justify-end space-x-3">
                                             <button
-                                                onClick={() => {
-                                                    setSelectedOrderForReject(selectedReport.order_id)
-                                                    setRejectionReason("")
-                                                    setRejectionNote("")
-                                                    setShowRejectModal(true)
-                                                }}
+                                                onClick={() => openRejectModalFromDetail(selectedReport.order_id)}
                                                 disabled={actionLoading}
                                                 className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2 transition-colors"
                                             >
                                                 <XCircle className="w-4 h-4" />
                                                 <span>Từ chối khiếu nại</span>
                                             </button>
+
                                             <button
                                                 onClick={() => approveRefundReport(selectedReport.order_id)}
                                                 disabled={actionLoading}
