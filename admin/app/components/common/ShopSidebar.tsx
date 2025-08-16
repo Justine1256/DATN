@@ -32,7 +32,9 @@ export const menu = [
   {
     label: "Đơn hàng",
     icon: <Truck size={18} />,
-    children: [{ label: "Danh sách", href: "/shop-admin/order" }],
+    children: [{ label: "Danh sách", href: "/shop-admin/order" },
+      { label: "Đơn hàng khiếu nại", href: "/shop-admin/refund-reports" },
+    ],
   },
   
   {
