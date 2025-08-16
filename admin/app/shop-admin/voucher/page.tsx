@@ -249,25 +249,46 @@ export default function AdminVoucherList() {
             title: 'Mã',
             dataIndex: 'code',
             key: 'code',
-            width: 140,
+            width: 180,
+            // ép cell không xuống dòng
+            onCell: () => ({ style: { whiteSpace: 'nowrap' } }),
+            // hoặc dùng ellipsis nếu muốn cắt bớt khi thiếu chỗ
+            ellipsis: true,
+            sorter: true,
             render: (v: string, r: VoucherBE) => (
-                <Space>
-                    <Text strong>{v}</Text>
+                <Space size="small" /* ngăn Space tự wrap */
+                    wrap={false}
+                    style={{ display: 'inline-flex' }}>
+                    <Text
+                        strong
+                        style={{
+                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                            // giữ nguyên từ, không bẻ ký tự
+                            wordBreak: 'keep-all',
+                        }}
+                    >
+                        {v}
+                    </Text>
                     <Tooltip title="Thông tin">
-                        <Button size="small" icon={<InfoCircleOutlined />} onClick={(e) => { e.stopPropagation(); setDetail(r); }} />
+                        <Button
+                            size="small"
+                            icon={<InfoCircleOutlined />}
+                            onClick={(e) => { e.stopPropagation(); setDetail(r); }}
+                            // tránh nút bị co giãn làm wrap
+                            style={{ flexShrink: 0 }}
+                        />
                     </Tooltip>
                 </Space>
             ),
-            sorter: true,
         },
-        {
-            title: 'Shop',
-            dataIndex: 'shop_id',
-            key: 'shop_id',
-            width: 100,
-            render: (v: number | null) => (v == null ? <Tag>Toàn sàn</Tag> : <Tag color="purple">#{v}</Tag>),
-            sorter: true,
-        },
+        // {
+        //     title: 'Shop',
+        //     dataIndex: 'shop_id',
+        //     key: 'shop_id',
+        //     width: 100,
+        //     render: (v: number | null) => (v == null ? <Tag>Toàn sàn</Tag> : <Tag color="purple">#{v}</Tag>),
+        //     sorter: true,
+        // },
         {
             title: 'Loại',
             dataIndex: 'discount_type',

@@ -249,17 +249,31 @@ export default function AdminVoucherList() {
             title: 'Mã',
             dataIndex: 'code',
             key: 'code',
-            width: 140,
+            width: 180,                 // tăng nhẹ để đủ chỗ icon
+            ellipsis: true,             // cắt bớt khi thiếu chỗ
+            sorter: true,
+            // ép cell không xuống dòng
+            onCell: () => ({ style: { whiteSpace: 'nowrap' } }),
             render: (v: string, r: VoucherBE) => (
-                <Space>
-                    <Text strong>{v}</Text>
+                <Space wrap={false} size="small" style={{ display: 'inline-flex' }}>
+                    <Text
+                        strong
+                        style={{ wordBreak: 'keep-all', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
+                    >
+                        {v}
+                    </Text>
                     <Tooltip title="Thông tin">
-                        <Button size="small" icon={<InfoCircleOutlined />} onClick={(e) => { e.stopPropagation(); setDetail(r); }} />
+                        <Button
+                            size="small"
+                            icon={<InfoCircleOutlined />}
+                            onClick={(e) => { e.stopPropagation(); setDetail(r); }}
+                            style={{ flexShrink: 0 }}   // tránh icon bị đẩy xuống dòng
+                        />
                     </Tooltip>
                 </Space>
             ),
-            sorter: true,
         },
+
         {
             title: 'Shop',
             dataIndex: 'shop_id',
