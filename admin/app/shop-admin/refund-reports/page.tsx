@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import {
     Eye,
     CheckCircle,
@@ -73,7 +73,6 @@ interface RefundReportDetail {
     photos: string[]
     product_images: Array<{ product_id: number; product_name: string; image: string[] }>
     created_at: string
-    // 🔧 FIX TS ERROR: dùng ReturnStatus thay vì chỉ "Pending" | "Resolved" | "Rejected"
     status: ReturnStatus
     admin_note?: string
     processed_at?: string
@@ -188,6 +187,19 @@ export default function RefundReportsPage() {
             setLoading(false)
             void startedAt
         }
+    }
+    const tabConfigs = [
+        { key: "all", label: "Tất cả", count: allReports.length, color: "gray" },
+        { key: "Requested", label: "Đã yêu cầu", count: allReports.filter(r => r.return_status === "Requested").length, color: "yellow" },
+        { key: "Approved", label: "Đã duyệt", count: allReports.filter(r => ["Approved", "Resolved"].includes(r.return_status)).length, color: "green" },
+        { key: "Rejected", label: "Đã từ chối", count: allReports.filter(r => r.return_status === "Rejected").length, color: "red" },
+    ]
+
+    const colorClasses: Record<string, { active: string; badgeActive: string; badge: string }> = {
+        gray: { active: "bg-gray-600 text-white border-gray-600", badgeActive: "bg-white/20 text-white", badge: "bg-gray-100 text-gray-700 border border-gray-200" },
+        yellow: { active: "bg-yellow-600 text-white border-yellow-600", badgeActive: "bg-white/20 text-white", badge: "bg-yellow-100 text-yellow-700 border border-yellow-200" },
+        green: { active: "bg-green-600 text-white border-green-600", badgeActive: "bg-white/20 text-white", badge: "bg-green-100 text-green-700 border border-green-200" },
+        red: { active: "bg-red-600 text-white border-red-600", badgeActive: "bg-white/20 text-white", badge: "bg-red-100 text-red-700 border border-red-200" },
     }
 
     // ====== 2) DETAIL: GET /orders/{id}/refund-detail ======
@@ -397,6 +409,22 @@ export default function RefundReportsPage() {
         }
     }
 
+    // ====== Counts for tabs ======
+    const statusCounts = useMemo(() => {
+        const counts = {
+            all: allReports.length,
+            Requested: 0,
+            Approved: 0,
+            Rejected: 0,
+        }
+        for (const r of allReports) {
+            if (r.return_status === "Requested") counts.Requested++
+            else if (r.return_status === "Approved") counts.Approved++
+            else if (r.return_status === "Rejected") counts.Rejected++
+        }
+        return counts
+    }, [allReports])
+
     // Search
     const filteredReports = currentReports.filter((r) => {
         const q = searchTerm.trim().toLowerCase()
@@ -469,22 +497,27 @@ export default function RefundReportsPage() {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                     <div className="p-3">
                         <div className="flex flex-wrap gap-2">
-                            {[
-                                { key: "all", label: "Tất cả" },
-                                { key: "Requested", label: "Đã yêu cầu" },
-                                { key: "Approved", label: "Đã duyệt" },
-                                { key: "Rejected", label: "Đã từ chối" },
-                            ].map((t) => (
-                                <button
-                                    key={t.key}
-                                    onClick={() => setStatusFilter(t.key)}
-                                    className={`px-3 py-2 text-sm rounded-md border transition-colors ${statusFilter === t.key ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                                        }`}
-                                >
-                                    {t.label}
-                                </button>
-                            ))}
+                            {tabConfigs.map((t) => {
+                                const isActive = statusFilter === t.key
+                                const cls = colorClasses[t.color]
+
+                                return (
+                                    <button
+                                        key={t.key}
+                                        onClick={() => setStatusFilter(t.key)}
+                                        className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md border transition-colors
+          ${isActive ? cls.active : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}
+                                    >
+                                        <span>{t.label}</span>
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isActive ? cls.badgeActive : cls.badge}`}>
+                                            {t.count}
+                                        </span>
+                                    </button>
+                                )
+                            })}
                         </div>
+
+
                     </div>
                 </div>
 
@@ -611,8 +644,6 @@ export default function RefundReportsPage() {
                                                         <Eye className="h-3 w-3 mr-1" />
                                                         Chi tiết
                                                     </button>
-
-                                             
                                                 </div>
                                             </td>
                                         </tr>
@@ -637,18 +668,16 @@ export default function RefundReportsPage() {
                                 Prev
                             </button>
 
-                            {/* simple page numbers (limit to 7 buttons) */}
                             {Array.from({ length: totalPages }, (_, i) => i + 1)
                                 .filter((p) => {
-                                    // keep first, last, current, +/-1 around current
                                     const near = Math.abs(p - page) <= 1
                                     const edge = p === 1 || p === totalPages
-                                    return near || edge || (totalPages <= 7)
+                                    return near || edge || totalPages <= 7
                                 })
                                 .reduce<number[]>((acc, p, idx, arr) => {
                                     if (idx === 0) return [p]
                                     const prev = arr[idx - 1]
-                                    if (p - prev > 1) acc.push(-1) // gap marker
+                                    if (p - prev > 1) acc.push(-1)
                                     acc.push(p)
                                     return acc
                                 }, [])
@@ -661,8 +690,7 @@ export default function RefundReportsPage() {
                                         <button
                                             key={p}
                                             onClick={() => setPage(p)}
-                                            className={`px-3 py-1.5 text-sm rounded-md border ${page === p ? "bg-blue-600 text-white border-blue-600" : "bg-white"
-                                                }`}
+                                            className={`px-3 py-1.5 text-sm rounded-md border ${page === p ? "bg-blue-600 text-white border-blue-600" : "bg-white"}`}
                                         >
                                             {p}
                                         </button>
