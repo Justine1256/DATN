@@ -282,22 +282,15 @@ class VoucherController extends Controller
             }
         }
         $hasUsedBefore = \App\Models\Order::where('user_id', $userId)
-        ->where('voucher_id', $voucher->id)
-        ->whereNull('deleted_at')                // nếu có soft delete
-        ->whereNotIn('order_status', ['Canceled']) // không tính đơn đã hủy
-        ->exists();
+            ->where('voucher_id', $voucher->id)
+            ->whereNull('deleted_at')                // nếu có soft delete
+            ->whereNotIn('order_status', ['Canceled']) // không tính đơn đã hủy
+            ->exists();
 
-    if ($hasUsedBefore) {
-        return response()->json(['message' => 'Bạn đã sử dụng voucher này rồi'], 400);
-    }
-        // Tính tổng tiền
-        $subtotalAll = 0;
-        foreach ($carts as $cart) {
-            $subtotalAll += $cart->quantity * $cart->product->price;
+        if ($hasUsedBefore) {
+            return response()->json(['message' => 'Bạn đã sử dụng voucher này rồi'], 400);
         }
-
-        // Kiểm tra category áp dụng
-        $subtotalApplicable = $subtotalAll;
+        // Tính tổng tiền
         $applicableCategoryIds = DB::table('voucher_categories')
             ->where('voucher_id', $voucher->id)
             ->pluck('category_id')
@@ -308,6 +301,7 @@ class VoucherController extends Controller
             if (!empty($applicableCategoryIds) && !in_array($cart->product->category_id, $applicableCategoryIds)) return false;
             return true;
         });
+
         $subtotalApplicable = $eligibleCarts->reduce(function ($s, $cart) {
             return $s + $cart->quantity * $cart->product->price;
         }, 0);
@@ -315,9 +309,11 @@ class VoucherController extends Controller
         if ($subtotalApplicable <= 0) {
             return response()->json(['message' => 'Không có sản phẩm phù hợp để áp dụng mã'], 400);
         }
-        if ($subtotalApplicable < $voucher->min_order_value) {
+
+        if (!is_null($voucher->min_order_value) && $subtotalApplicable < $voucher->min_order_value) {
             return response()->json(['message' => 'Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã'], 400);
         }
+
 
         if (count($applicableCategoryIds) > 0) {
             $subtotalApplicable = 0;
