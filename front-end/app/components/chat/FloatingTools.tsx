@@ -1167,7 +1167,7 @@ export default function EnhancedChatTools() {
                                       <div
                                         key={product.id}
                                         className="bg-white rounded-xl p-3 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group"
-                                        onClick={() => window.open(`/products/${product.slug}`, '_blank')}
+                                        onClick={() => window.open(`/shop/${product.shop.slug}/product/${product.slug}`, '_blank')}
                                       >
                                         <div className="flex gap-3 cursor-pointer">
                                           <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
