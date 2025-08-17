@@ -1234,9 +1234,10 @@ export default function EnhancedChatTools() {
                                                           {Number.parseInt(product.price).toLocaleString("vi-VN")} VND
                                                         </span>
                                                         {typeof product.similarity === "number" && (
-                                                          <span className="text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                                                            {Math.round(product.similarity * 100)}% phù hợp
+                                                          <span className="text-[11px] text-red-600 bg-red-100 px-2 py-0.5 rounded">
+                                                            {Math.round(product.similarity * 100)}%
                                                           </span>
+
                                                         )}
                                                       </div>
                                                     </div>
