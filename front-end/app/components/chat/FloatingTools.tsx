@@ -76,6 +76,7 @@ interface NotificationMessage {
   id: number
   sender: User
   message: string
+  
   image?: string | null
 }
 
@@ -150,15 +151,30 @@ export default function EnhancedChatTools() {
 
   const getSafeImg = (img?: string | null) => resolveImageUrl(img) || `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
 
-  const getShopLogo = (logo?: string) => {
-    if (!logo) return null
+  const getShopLogoUrl = (logo?: string | null) => {
+    const fallback = `${STATIC_BASE_URL}/shops/default-shop.jpg`
+    if (!logo) return fallback
+
+    let raw = String(logo).trim()
+
+    // Nếu backend đôi khi trả JSON array: '["uploads/shops/a.png"]'
     try {
-      const parsed = JSON.parse(logo)
-      if (Array.isArray(parsed) && parsed[0]) return parsed[0]
-    } catch { }
-    // fallback: loại bỏ [" ... "] nếu là chuỗi kiểu đó
-    return logo.replace(/^\[\s*"?|"?\s*\]$/g, "")
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed[0]) raw = String(parsed[0]).trim()
+    } catch {
+      // không phải JSON -> bỏ qua
+    }
+
+    // Dùng trực tiếp nếu là URL tuyệt đối hoặc data URI
+    if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:")) return raw
+
+    // Nếu bắt đầu bằng "/" -> nối trực tiếp sau STATIC_BASE_URL
+    if (raw.startsWith("/")) return `${STATIC_BASE_URL}${raw}`
+
+    // Còn lại coi là path tương đối từ STATIC_BASE_URL
+    return `${STATIC_BASE_URL}/${raw}`
   }
+
 
   const chatbotUser: User = {
     id: -1,
@@ -1179,14 +1195,12 @@ export default function EnhancedChatTools() {
                                                           title={product.shop.name}
                                                         >
                                                           <img
-                                                            src={getShopLogo(product.shop.logo) || `${STATIC_BASE_URL}/shops/default-shop.jpg`}
+                                                            src={getShopLogoUrl(product.shop.logo)}
                                                             alt={product.shop.name}
                                                             className="w-5 h-5 rounded-full object-cover ring-1 ring-gray-200"
-                                                            onError={(e) => {
-                                                              (e.target as HTMLImageElement).src = `${STATIC_BASE_URL}/shops/default-shop.jpg`
-                                                            }}
-
+                                                            onError={(e) => ((e.target as HTMLImageElement).src = `${STATIC_BASE_URL}/shops/default-shop.jpg`)}
                                                           />
+
                                                           <span className="text-[12px] text-gray-600 hover:text-gray-800 truncate">
                                                             {product.shop.name}
                                                           </span>

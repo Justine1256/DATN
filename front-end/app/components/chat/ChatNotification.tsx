@@ -8,7 +8,7 @@ import { STATIC_BASE_URL } from "@/utils/api"
 interface User {
   id: number
   name: string
-  avatar?: string
+  avatar?: string | null   // ✅ cho phép null
   role?: string
 }
 
@@ -29,14 +29,10 @@ export default function ChatNotification({ message, onClose, onClick }: ChatNoti
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    // Animate in
     const timer = setTimeout(() => setIsVisible(true), 100)
-
-    // Auto close after 5 seconds
     const autoCloseTimer = setTimeout(() => {
       handleClose()
     }, 5000)
-
     return () => {
       clearTimeout(timer)
       clearTimeout(autoCloseTimer)
@@ -45,7 +41,7 @@ export default function ChatNotification({ message, onClose, onClick }: ChatNoti
 
   const handleClose = () => {
     setIsVisible(false)
-    setTimeout(onClose, 300) // Wait for animation to complete
+    setTimeout(onClose, 300)
   }
 
   const handleClick = () => {
@@ -53,12 +49,14 @@ export default function ChatNotification({ message, onClose, onClick }: ChatNoti
     handleClose()
   }
 
-  const avatarUrl =
-    message.sender.avatar?.startsWith("http") || message.sender.avatar?.startsWith("/")
-      ? message.sender.avatar
-      : message.sender.avatar
-        ? `${STATIC_BASE_URL}/${message.sender.avatar}`
-        : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+  // ✅ resolve avatar an toàn
+  const resolveAvatar = (img?: string | null) => {
+    if (!img) return `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+    if (img.startsWith("http") || img.startsWith("/")) return img
+    return `${STATIC_BASE_URL}/${img}`
+  }
+
+  const avatarUrl = resolveAvatar(message.sender.avatar)
 
   return (
     <div
@@ -73,7 +71,7 @@ export default function ChatNotification({ message, onClose, onClick }: ChatNoti
       <div className="flex items-start gap-3">
         <div className="relative flex-shrink-0">
           <Image
-            src={avatarUrl || "/placeholder.svg"}
+            src={avatarUrl}
             alt={message.sender.name}
             width={40}
             height={40}
