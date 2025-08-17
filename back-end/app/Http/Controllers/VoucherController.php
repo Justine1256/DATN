@@ -287,37 +287,33 @@ class VoucherController extends Controller
         ->whereNotIn('order_status', ['Canceled']) // không tính đơn đã hủy
         ->exists();
 
-    if ($hasUsedBefore) {
+        if ($hasUsedBefore) {
         return response()->json(['message' => 'Bạn đã sử dụng voucher này rồi'], 400);
-    }
+        }
         // Tính tổng tiền
-        $subtotalAll = 0;
-        foreach ($carts as $cart) {
-            $subtotalAll += $cart->quantity * $cart->product->price;
-        }
+$applicableCategoryIds = DB::table('voucher_categories')
+    ->where('voucher_id', $voucher->id)
+    ->pluck('category_id')
+    ->toArray();
 
-        // Kiểm tra category áp dụng
-        $subtotalApplicable = $subtotalAll;
-        $applicableCategoryIds = DB::table('voucher_categories')
-            ->where('voucher_id', $voucher->id)
-            ->pluck('category_id')
-            ->toArray();
+$eligibleCarts = $carts->filter(function ($cart) use ($voucher, $applicableCategoryIds) {
+    if (!is_null($voucher->shop_id) && $cart->product->shop_id != $voucher->shop_id) return false;
+    if (!empty($applicableCategoryIds) && !in_array($cart->product->category_id, $applicableCategoryIds)) return false;
+    return true;
+});
 
-        $eligibleCarts = $carts->filter(function ($cart) use ($voucher, $applicableCategoryIds) {
-            if (!is_null($voucher->shop_id) && $cart->product->shop_id != $voucher->shop_id) return false;
-            if (!empty($applicableCategoryIds) && !in_array($cart->product->category_id, $applicableCategoryIds)) return false;
-            return true;
-        });
-        $subtotalApplicable = $eligibleCarts->reduce(function ($s, $cart) {
-            return $s + $cart->quantity * $cart->product->price;
-        }, 0);
+$subtotalApplicable = $eligibleCarts->reduce(function ($s, $cart) {
+    return $s + $cart->quantity * $cart->product->price;
+}, 0);
 
-        if ($subtotalApplicable <= 0) {
-            return response()->json(['message' => 'Không có sản phẩm phù hợp để áp dụng mã'], 400);
-        }
-        if ($subtotalApplicable < $voucher->min_order_value) {
-            return response()->json(['message' => 'Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã'], 400);
-        }
+if ($subtotalApplicable <= 0) {
+    return response()->json(['message' => 'Không có sản phẩm phù hợp để áp dụng mã'], 400);
+}
+
+if (!is_null($voucher->min_order_value) && $subtotalApplicable < $voucher->min_order_value) {
+    return response()->json(['message' => 'Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã'], 400);
+}
+
 
         if (count($applicableCategoryIds) > 0) {
             $subtotalApplicable = 0;
