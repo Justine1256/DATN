@@ -119,6 +119,9 @@ export default function EnhancedChatTools() {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const [contactQuery, setContactQuery] = useState("")
   const stickToBottomRef = useRef(true)
+  const [isTyping, setIsTyping] = useState(false)
+  // gần các useState khác
+  const [isBotTyping, setIsBotTyping] = useState(false)
 
   const scrollToBottom = (smooth = false) => {
     messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" })
@@ -349,6 +352,15 @@ export default function EnhancedChatTools() {
       setRecentContacts([chatbotUser])
     }
   }, [])
+  function TypingIndicator() {
+    return (
+      <div className="flex items-center gap-1 p-2">
+        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+      </div>
+    )
+  }
 
   const handleSocketData = useCallback(
     (data: ChatSocketData) => {
@@ -555,62 +567,65 @@ export default function EnhancedChatTools() {
     await fetchMessages(false)
   }, [receiver?.id, loadingMore, hasMoreMessages])
 
-  const sendChatbotMessage = async () => {
-    if (!input.trim()) return
+  // nhớ khai báo state ở trên cùng file (gần các useState khác):
+  // const [isBotTyping, setIsBotTyping] = useState(false);
 
+  const sendChatbotMessage = async () => {
+    if (!input.trim()) return;
+
+    // 1) Push tin nhắn của bạn vào UI ngay
     const userMessage: Message = {
       id: `temp-${Date.now()}`,
       sender_id: currentUser?.id || -999,
       receiver_id: -1,
       message: input.trim(),
       created_at: new Date().toISOString(),
-      sender: currentUser || {
-        id: -999,
-        name: "Khách",
-        email: "guest@example.com",
-        avatar: null,
-        phone: null,
-        address: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
+      sender:
+        currentUser || {
+          id: -999,
+          name: "Khách",
+          avatar: null,
+          role: "guest",
+        },
       receiver: chatbotUser,
-    }
+    };
 
-    setMessages((prev) => [...prev, userMessage])
-    const originalInput = input
-    setInput("")
-    setLoading(true)
+    setMessages((prev) => [...prev, userMessage]);
+
+    // 2) Reset input + bật typing cho bot
+    const originalInput = input;
+    setInput("");
+    setIsBotTyping(true);
 
     try {
+      // 3) Gọi API chatbot
       const response = await axios.post(`${API_BASE_URL}/chatbot`, {
         message: originalInput,
-      })
+      });
 
+      const data = response.data as ChatbotResponse;
+
+      // 4) Push reply của bot
       const botResponse: Message = {
         id: `bot-${Date.now()}`,
         sender_id: -1,
         receiver_id: currentUser?.id || -999,
-        message: (response.data as ChatbotResponse).reply || (response.data as ChatbotResponse).message || "Xin lỗi, tôi không hiểu câu hỏi của bạn.",
+        message: data.reply || data.message || "Xin lỗi, tôi không hiểu câu hỏi của bạn.",
         created_at: new Date().toISOString(),
         sender: chatbotUser,
-        receiver: currentUser || {
-          id: -999,
-          name: "Khách",
-          email: "guest@example.com",
-          avatar: null,
-          phone: null,
-          address: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        products: (response.data as ChatbotResponse).products || [],
-      }
+        receiver:
+          currentUser || {
+            id: -999,
+            name: "Khách",
+            avatar: null,
+            role: "guest",
+          },
+        products: data.products || [],
+      };
 
-      setMessages((prev) => [...prev, botResponse])
-    } catch (error) {
-      console.error("❌ Lỗi khi gửi tin nhắn chatbot:", error)
-
+      setMessages((prev) => [...prev, botResponse]);
+    } catch (e) {
+      // 5) Lỗi -> báo lỗi như bot
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         sender_id: -1,
@@ -618,23 +633,22 @@ export default function EnhancedChatTools() {
         message: "Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.",
         created_at: new Date().toISOString(),
         sender: chatbotUser,
-        receiver: currentUser || {
-          id: -999,
-          name: "Khách",
-          email: "guest@example.com",
-          avatar: null,
-          phone: null,
-          address: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      }
-
-      setMessages((prev) => [...prev, errorMessage])
+        receiver:
+          currentUser || {
+            id: -999,
+            name: "Khách",
+            avatar: null,
+            role: "guest",
+          },
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setLoading(false)
+      // 6) Tắt typing
+      setIsBotTyping(false);
     }
-  }
+  };
+
+
 
   const sendMessage = async () => {
     // 1) Nếu đang chat với bot → dùng flow chatbot
@@ -1061,11 +1075,12 @@ export default function EnhancedChatTools() {
                     <MessageCircle size={48} className="mb-3 opacity-50" />
                     <p>Chọn người để bắt đầu trò chuyện</p>
                   </div>
-                ) : loading ? (
+                ) : loading && !receiver?.isBot ? (   // << chỉ quay khi load hội thoại người thật
                   <div className="flex items-center justify-center h-full">
                     <div className="animate-spin w-8 h-8 border-b-2 border-[#db4444] rounded-full" />
                   </div>
                 ) : (
+
                   <>
                     {!receiver?.isBot && loadingMore && (
                       <div className="flex items-center justify-center py-3 text-sm text-gray-500">
@@ -1084,19 +1099,16 @@ export default function EnhancedChatTools() {
 
                     {messages.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                        {receiver?.isBot ? (
-                          <>
-                            <Bot size={48} className="mb-3 opacity-50" />
-                            <p>Xin chào! Tôi là Chat Bot</p>
-                            <p className="text-[12px] mt-1">Hãy hỏi tôi bất cứ điều gì!</p>
-                          </>
-                        ) : (
-                          <>
-                            <MessageCircle size={48} className="mb-3 opacity-50" />
-                            <p>Chưa có tin nhắn nào</p>
-                            <p className="text-[12px] mt-1">Hãy gửi tin nhắn đầu tiên!</p>
-                          </>
-                        )}
+                            {receiver?.isBot
+                              ? (isBotTyping ? "Chat Bot đang nhập…" : "AI Assistant — Luôn sẵn sàng hỗ trợ")
+                              : connectionStatus === "connected"
+                                ? (isReceiverTyping ? `${receiver?.name} đang nhập…` : "Đang hoạt động")
+                                : connectionStatus === "connecting"
+                                  ? "Đang kết nối WebSocket…"
+                                  : connectionStatus === "error"
+                                    ? "Lỗi WebSocket — dùng API"
+                                    : "WebSocket mất kết nối"}
+
                       </div>
                         ) : (
                           <>
@@ -1142,7 +1154,17 @@ export default function EnhancedChatTools() {
                                               : "bg-white text-gray-900 rounded-bl-md border border-gray-200/70",
                                         ].join(" ")}
                                       >
-                                        {!!msg.message && <p className="text-sm leading-relaxed break-words">{msg.message}</p>}
+                                        {!!msg.message && (
+                                          <div className="text-sm leading-relaxed break-words space-y-2 whitespace-pre-line">
+                                            {msg.message
+                                              .replace(/\*\*/g, "")          // bỏ dấu **
+                                              .replace(/(\d+\.\s)/g, "\n$1") // xuống dòng trước số thứ tự
+                                            }
+                                          </div>
+                                        )}
+
+
+
 
                                         {!!msg.products?.length && (
                                           <div className="mt-3 space-y-2">
@@ -1253,18 +1275,26 @@ export default function EnhancedChatTools() {
                           </>
                         )
                       }
-                    {isReceiverTyping && (
-                      <div className="flex items-center gap-2 text-gray-500 text-sm">
-                        <div className="flex gap-1">
-                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:.1s]" />
-                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:.2s]" />
-                        </div>
-                        <span>{receiver?.name} đang nhập…</span>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </>
+                        {receiver?.isBot && isBotTyping && (
+                          <div className="flex justify-start">
+                            <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/60">
+                              <div className="flex items-center gap-1">
+                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {isReceiverTyping && (
+                          <div className="flex items-center gap-2 text-gray-500 text-sm">
+                            {/* typing indicator cho người thật */}
+                          </div>
+                        )}
+
+                        <div ref={messagesEndRef} />
+                      </>
                 )}
               </div>
 
