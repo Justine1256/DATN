@@ -1182,7 +1182,10 @@ export default function EnhancedChatTools() {
                                                             src={getShopLogo(product.shop.logo) || `${STATIC_BASE_URL}/shops/default-shop.jpg`}
                                                             alt={product.shop.name}
                                                             className="w-5 h-5 rounded-full object-cover ring-1 ring-gray-200"
-                                                            onError={(e) => ((e.target as HTMLImageElement).src = "/shop-default.png")}
+                                                            onError={(e) => {
+                                                              (e.target as HTMLImageElement).src = `${STATIC_BASE_URL}/shops/default-shop.jpg`
+                                                            }}
+
                                                           />
                                                           <span className="text-[12px] text-gray-600 hover:text-gray-800 truncate">
                                                             {product.shop.name}
