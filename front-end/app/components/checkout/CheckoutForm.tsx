@@ -4,7 +4,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { API_BASE_URL } from '@/utils/api';
-import Select from 'react-select';
+
+import {
+  ConfigProvider,
+  Card,
+  Form,
+  Input,
+  Select,
+  Tag,
+  Typography,
+  Checkbox,
+  Space,
+} from 'antd';
+
+const { Text } = Typography;
 
 /** ===== Types ===== */
 interface Address {
@@ -23,7 +36,7 @@ interface Province {
 interface Ward {
   code: number;
   name: string;
-  district?: string; // ✅ cần để phát city "Ward, District, Province"
+  district?: string; // ✅ để phát city "Ward, District, Province"
 }
 
 export interface ManualAddress {
@@ -40,12 +53,18 @@ interface Props {
   onSaveAddressToggle?: (save: boolean) => void;                // phát trạng thái checkbox “lưu địa chỉ”
 }
 
+const MANUAL_OPTION = '__MANUAL__';
+
 export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveAddressToggle }: Props) {
   const [addresses, setAddresses] = useState<Address[]>([]);
-  const [selectedAddressId, setSelectedAddressId] = useState<string>(''); // có giá trị -> đang dùng địa chỉ đã lưu
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(''); // id địa chỉ đã lưu
   const [disableForm, setDisableForm] = useState(false);
 
   const [saveAddress, setSaveAddress] = useState<boolean>(false); // ✅ checkbox “Lưu địa chỉ này”
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // ✅ chế độ tự nhập địa chỉ mới (điều khiển bởi option MANUAL_OPTION trong Select)
+  const [manualMode, setManualMode] = useState(false);
 
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -61,12 +80,12 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
   const [wards, setWards] = useState<Ward[]>([]);
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
   const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     setIsLoggedIn(!!token);
   }, []);
+
   // --- Helpers map API ---
   const mapProvinceList = (data: any): Province[] => {
     const list = Array.isArray(data) ? data : data?.data || [];
@@ -80,12 +99,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
     return list.map((w: any) => ({
       code: Number(w.code ?? w.ward_code ?? w.id),
       name: String(w.name ?? w.ward_name ?? w.full_name).trim(),
-      district: String(
-        w.district_name ??
-        w.district?.name ??
-        w.district ??
-        ''
-      ).trim(),
+      district: String(w.district_name ?? w.district?.name ?? w.district ?? '').trim(),
     }));
   };
 
@@ -97,7 +111,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
       .catch(console.error);
   }, []);
 
-  // Load user's addresses & chọn mặc định
+  // Load user's addresses & chọn mặc định (nếu không ở chế độ tự nhập)
   useEffect(() => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token) return;
@@ -119,7 +133,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
         setAddresses(sorted);
 
         const def = sorted.find((a) => !!a.is_default);
-        if (def) {
+        if (def && !manualMode) {
           const idStr = String(def.id);
           setSelectedAddressId(idStr);
           setDisableForm(true);
@@ -130,7 +144,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
         }
       })
       .catch(console.error);
-  }, [onAddressSelect, onAddressChange, onSaveAddressToggle]);
+  }, [onAddressSelect, onAddressChange, onSaveAddressToggle, manualMode]);
 
   // Load wards khi chọn tỉnh
   useEffect(() => {
@@ -148,45 +162,69 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
       .catch(console.error);
   }, [selectedProvince]);
 
+  // địa chỉ mặc định
+  const defaultAddress = useMemo(
+    () => addresses.find(a => !!a.is_default) || null,
+    [addresses]
+  );
+
   // có nhập tay không?
   const hasManualInput = useMemo(() => {
     const anyForm = Object.values(formData).some((v) => v.trim() !== '');
     return !!(anyForm || selectedProvince || selectedWard);
   }, [formData, selectedProvince, selectedWard]);
 
-  // Chọn/bỏ chọn địa chỉ đã lưu
-  const handleAddressChange = useCallback(
-    (value: string) => {
-      setSelectedAddressId(value);
-      const usingSaved = value !== '';
-      setDisableForm(usingSaved);
+  // ====== Chọn option trong Select (tự nhập hoặc địa chỉ đã lưu) ======
+  const handleAddressSelectChange = useCallback(
+    (value: string | undefined) => {
+      // Clear
+      if (value === undefined) {
+        setManualMode(false);
+        setSelectedAddressId('');
+        setDisableForm(false);
+        onAddressSelect(null);
+        onAddressChange(null);
+        setSaveAddress(false);
+        onSaveAddressToggle?.(false);
+        return;
+      }
 
-      // reset form khi chuyển mode
+      // Chọn "Tự nhập địa chỉ mới"
+      if (value === MANUAL_OPTION) {
+        setManualMode(true);
+        setSelectedAddressId('');
+        setDisableForm(false);
+        onAddressSelect(null);
+        onAddressChange(null);
+        setSaveAddress(false);
+        onSaveAddressToggle?.(false);
+        return;
+      }
+
+      // Chọn 1 địa chỉ đã lưu
+      setManualMode(false);
+      setSelectedAddressId(value);
+      setDisableForm(true);
+
+      // reset form (đang dùng saved address)
       setFormData({ firstName: '', streetAddress: '', apartment: '', phone: '', email: '' });
       setSelectedProvince(null);
       setSelectedWard(null);
       setPhoneError(null);
       setEmailError(null);
 
-      if (usingSaved) {
-        onAddressSelect(Number(value));
-        onAddressChange(null);
-        setSaveAddress(false);
-        onSaveAddressToggle?.(false);
-      } else {
-        onAddressSelect(null);
-        onAddressChange(null);
-        setSaveAddress(false);
-        onSaveAddressToggle?.(false);
-      }
+      onAddressSelect(Number(value));
+      onAddressChange(null);
+      setSaveAddress(false);
+      onSaveAddressToggle?.(false);
     },
-    [onAddressChange, onAddressSelect, onSaveAddressToggle]
+    [onAddressSelect, onAddressChange, onSaveAddressToggle]
   );
 
   // Nhập form tay
   const handleInputChange = useCallback(
     (field: string, value: string) => {
-      if (selectedAddressId) return; // đang dùng địa chỉ đã lưu
+      if (!manualMode) return; // chỉ được nhập khi ở chế độ tự nhập
 
       const updated = { ...formData, [field]: value };
 
@@ -201,12 +239,12 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
 
       setFormData(updated);
     },
-    [formData, selectedAddressId]
+    [formData, manualMode]
   );
 
   // Phát dữ liệu nhập tay ra ngoài – city: "Ward, District, Province"
   useEffect(() => {
-    if (selectedAddressId) return; // đang dùng địa chỉ đã lưu
+    if (!manualMode) return; // chỉ phát khi tự nhập
     if (hasManualInput && !phoneError) {
       onAddressChange({
         full_name: formData.firstName,
@@ -219,7 +257,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
       onAddressChange(null);
     }
   }, [
-    selectedAddressId,
+    manualMode,
     hasManualInput,
     phoneError,
     formData,
@@ -230,26 +268,27 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
 
   // Province/Ward change
   const handleProvinceChange = useCallback(
-    (option: { value: number; label: string } | null) => {
-      if (selectedAddressId) return;
-      const found = option ? provinces.find((p) => p.code === option.value) || null : null;
+    (value: number | null) => {
+      if (!manualMode) return;
+      const found = value ? provinces.find((p) => p.code === value) || null : null;
       setSelectedProvince(found);
       setSelectedWard(null);
     },
-    [provinces, selectedAddressId]
+    [provinces, manualMode]
   );
   const handleWardChange = useCallback(
-    (option: { value: number; label: string } | null) => {
-      if (selectedAddressId) return;
-      const found = option ? wards.find((w) => w.code === option.value) || null : null;
+    (value: number | null) => {
+      if (!manualMode) return;
+      const found = value ? wards.find((w) => w.code === value) || null : null;
       setSelectedWard(found);
     },
-    [wards, selectedAddressId]
+    [wards, manualMode]
   );
 
   // Tick “lưu địa chỉ”
   const handleToggleSave = (checked: boolean) => {
-    if (selectedAddressId) {
+    if (!manualMode) {
+      // đang dùng saved address thì không cho lưu lại (vốn đã có)
       setSaveAddress(false);
       onSaveAddressToggle?.(false);
       return;
@@ -265,163 +304,183 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
     return base.length > max ? base.slice(0, max - 1) + '…' : base;
   };
 
-  return (
-    <div className="text-sm">
-      <h2 className="text-2xl font-bold mb-6">Thanh toán</h2>
+  // ====== Options cho Select (nhóm: Tuỳ chọn / Địa chỉ đã lưu) ======
+  const selectValue = manualMode ? MANUAL_OPTION : (selectedAddressId || undefined);
 
-      <label className="block mb-1 font-medium">Địa chỉ nhận hàng</label>
-      <select
-        className="w-full border rounded-md bg-white px-3 py-2 mb-4 outline-none text-gray-800"
-        value={selectedAddressId}
-        onChange={(e) => handleAddressChange(e.target.value)}
-        disabled={addresses.length === 0}
+  const selectOptions = useMemo(() => {
+    const manualGroup = {
+      label: 'Tuỳ chọn',
+      options: [
+        {
+          value: MANUAL_OPTION,
+          data: 'tu nhap dia chi moi',
+          label: <span style={{ color: '#DB4444', fontWeight: 600 }}>+ Tự nhập địa chỉ mới</span>,
+        },
+      ],
+    };
+
+    const savedGroup = {
+      label: 'Địa chỉ đã lưu',
+      options: addresses.map((addr) => ({
+        value: String(addr.id),
+        data: `${addr.address}, ${addr.ward}${addr.district ? ', ' + addr.district : ''}, ${addr.city}`,
+        label: (
+          <Space size={6}>
+            <span>{formatSavedAddress(addr)}</span>
+            {addr.is_default ? <Tag color="processing">Mặc định</Tag> : null}
+          </Space>
+        ),
+      })),
+    };
+
+    // Nếu chưa có địa chỉ đã lưu, chỉ hiển thị group Tuỳ chọn
+    return addresses.length ? [manualGroup, savedGroup] : [manualGroup];
+  }, [addresses]);
+
+  return (
+    <ConfigProvider
+      theme={{
+        token: { colorPrimary: '#DB4444', borderRadius: 10 },
+        components: {
+          Select: {
+            borderRadius: 10,
+            optionSelectedBg: 'rgba(219,68,68,0.08)',
+          },
+          Input: { borderRadius: 10 },
+          Card: { borderRadiusLG: 16 },
+        },
+      }}
+    >
+      <Card
+        title={<span className="font-semibold">Thanh toán</span>}
+        styles={{ header: { borderBottom: 'none' } }}
       >
-        {addresses.length === 0 ? (
-          <option value="">Bạn chưa thêm địa chỉ nào</option>
-        ) : (
-          <>
-            <option value="">-- Chọn địa chỉ giao hàng --</option>
-            {addresses.map((addr) => (
-              <option key={addr.id} value={addr.id}>
-                {formatSavedAddress(addr)} {addr.is_default ? '(Mặc định)' : ''}
-              </option>
-            ))}
-          </>
-        )}
-      </select>
-
-      <p className="text-sm text-gray-500 mb-4">Hoặc nhập địa chỉ giao hàng mới bên dưới</p>
-
-      <div className="space-y-4">
-        <InputField
-          label="Họ tên "
-          field="firstName"
-          required
-          value={formData.firstName}
-          onChange={handleInputChange}
-          disabled={disableForm}
-        />
-        <InputField
-          label="Số nhà, tòa nhà, căn hộ... "
-          field="streetAddress"
-          required
-          value={formData.streetAddress}
-          onChange={handleInputChange}
-          disabled={disableForm}
-        />
-        <InputField
-          label="Tên đường "
-          required
-          field="apartment"
-          value={formData.apartment}
-          onChange={handleInputChange}
-          disabled={disableForm}
-        />
-
-        <div>
-          <label className="block mb-1 text-gray-700">
-            Tỉnh/Thành phố <span className="text-brand">*</span>
-          </label>
-          <Select
-            instanceId="province-select"
-            isDisabled={disableForm}
-            isClearable
-            options={provinces.map((p) => ({ value: p.code, label: p.name }))}
-            value={selectedProvince ? { value: selectedProvince.code, label: selectedProvince.name } : null}
-            onChange={handleProvinceChange}
-            placeholder="Chọn Tỉnh/Thành phố"
-            isSearchable
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1 text-gray-700">
-            Phường/Xã <span className="text-brand">*</span>
-          </label>
-          <Select
-            instanceId="ward-select"
-            isDisabled={disableForm || wards.length === 0}
-            isClearable
-            options={wards.map((w) => ({ value: w.code, label: w.name }))}
-            value={selectedWard ? { value: selectedWard.code, label: selectedWard.name } : null}
-            onChange={handleWardChange}
-            placeholder="Chọn Phường/Xã"
-            isSearchable
-          />
-          {/* Gợi ý: Quận/Huyện sẽ được tự động lấy từ Phường/Xã */}
-          {!!selectedWard?.district && (
-            <p className="text-xs text-gray-500 mt-1">Quận/Huyện: {selectedWard.district}</p>
-          )}
-        </div>
-
-        <InputField
-          label="Số điện thoại"
-          field="phone"
-          required
-          value={formData.phone}
-          onChange={handleInputChange}
-          disabled={disableForm}
-          error={phoneError}
-        />
-        <InputField
-          label="Email"
-          field="email"
-          required
-          value={formData.email}
-          onChange={handleInputChange}
-          disabled={disableForm}
-          error={emailError}
-        />
-
-        {/* ✅ Checkbox lưu địa chỉ – chỉ dùng khi nhập tay */}
-        {isLoggedIn && (
-          <label className="inline-flex items-center gap-2 mt-2">
-            <input
-              type="checkbox"
-              className="h-4 w-4"
-              checked={!!saveAddress}
-              onChange={(e) => handleToggleSave(e.target.checked)}
+        <Form layout="vertical" className="max-w-2xl">
+          {/* ====== Select: Tự nhập / Địa chỉ đã lưu ====== */}
+          <Form.Item label="Địa chỉ nhận hàng">
+            <Select
+              allowClear
+              showSearch
+              placeholder={
+                addresses.length
+                  ? '-- Chọn địa chỉ giao hàng hoặc tự nhập --'
+                  : 'Chưa có địa chỉ – hãy chọn “Nhập địa chỉ mới”'
+              }
+              value={selectValue}
+              onChange={(val) => handleAddressSelectChange(val as string | undefined)}
+              optionFilterProp="data"
+              options={selectOptions as any}
+              dropdownMatchSelectWidth={false}
+              style={{ width: '100%' }}
             />
-            <span>Lưu địa chỉ này cho lần sau</span>
-          </label>
-        )}
+            <Text type="secondary">
+              {manualMode
+                ? 'Bạn đang ở chế độ tự nhập bên dưới.'
+                : 'Hoặc chọn “+ Nhập địa chỉ mới” ở đầu danh sách.'}
+            </Text>
+          </Form.Item>
 
-      </div>
-    </div>
-  );
-}
+          {/* ====== Manual form (mở khi chọn TỰ NHẬP) ====== */}
+          <Form.Item label="Họ tên" required>
+            <Input
+              placeholder="Nguyễn Văn A"
+              value={formData.firstName}
+              onChange={(e) => handleInputChange('firstName', e.target.value)}
+              disabled={!manualMode}
+            />
+          </Form.Item>
 
-function InputField({
-  label,
-  field,
-  value,
-  onChange,
-  disabled,
-  required = false,
-  error,
-}: {
-  label: string;
-  field: string;
-  value: string;
-  onChange: (field: string, value: string) => void;
-  disabled: boolean;
-  required?: boolean;
-  error?: string | null;
-}) {
-  return (
-    <div>
-      <label className="block mb-1 text-gray-700">
-        {label}
-        {required && <span className="text-brand">*</span>}
-      </label>
-      <input
-        type={field === 'email' ? 'email' : field === 'phone' ? 'tel' : 'text'}
-        value={value}
-        onChange={(e) => onChange(field, e.target.value)}
-        disabled={disabled}
-        className={`w-full border rounded-md bg-gray-100 px-3 py-2 outline-none disabled:opacity-50 ${error ? 'border-red-500' : ''}`}
-      />
-      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
-    </div>
+          <Form.Item label="Số nhà, tòa nhà, căn hộ..." required>
+            <Input
+              placeholder="Số 123, Block B…"
+              value={formData.streetAddress}
+              onChange={(e) => handleInputChange('streetAddress', e.target.value)}
+              disabled={!manualMode}
+            />
+          </Form.Item>
+
+          <Form.Item label="Tên đường" required>
+            <Input
+              placeholder="Nguyễn Trãi…"
+              value={formData.apartment}
+              onChange={(e) => handleInputChange('apartment', e.target.value)}
+              disabled={!manualMode}
+            />
+          </Form.Item>
+
+          <Form.Item label="Tỉnh/Thành phố" required>
+            <Select
+              allowClear
+              showSearch
+              placeholder="Chọn Tỉnh/Thành phố"
+              disabled={!manualMode}
+              value={selectedProvince?.code}
+              onChange={(v) => handleProvinceChange(v ?? null)}
+              options={provinces.map((p) => ({ value: p.code, label: p.name }))}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Phường/Xã"
+            required
+            extra={selectedWard?.district ? `Quận/Huyện: ${selectedWard.district}` : undefined}
+          >
+            <Select
+              allowClear
+              showSearch
+              placeholder="Chọn Phường/Xã"
+              disabled={!manualMode || wards.length === 0}
+              value={selectedWard?.code}
+              onChange={(v) => handleWardChange(v ?? null)}
+              options={wards.map((w) => ({ value: w.code, label: w.name }))}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Số điện thoại"
+            required
+            validateStatus={phoneError ? 'error' : undefined}
+            help={phoneError || undefined}
+          >
+            <Input
+              inputMode="tel"
+              placeholder="0xxxxxxxxx"
+              value={formData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+              disabled={!manualMode}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Email"
+            required
+            validateStatus={emailError ? 'error' : undefined}
+            help={emailError || undefined}
+          >
+            <Input
+              type="email"
+              placeholder="you@example.com"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              disabled={!manualMode}
+            />
+          </Form.Item>
+
+          {isLoggedIn && (
+            <Form.Item>
+              <Checkbox
+                checked={!!saveAddress}
+                onChange={(e) => handleToggleSave(e.target.checked)}
+                disabled={!manualMode}
+              >
+                Lưu địa chỉ này cho lần sau
+              </Checkbox>
+            </Form.Item>
+          )}
+        </Form>
+      </Card>
+    </ConfigProvider>
   );
 }
