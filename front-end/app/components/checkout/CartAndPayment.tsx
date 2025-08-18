@@ -26,7 +26,6 @@ const { Panel } = Collapse;
 const { Text, Title } = Typography;
 
 /* ===================== Types ===================== */
-
 export type VoucherType = 'percent' | 'amount' | 'shipping' | string;
 
 export interface Voucher {
@@ -39,7 +38,7 @@ export interface Voucher {
   min_order?: number;
   expires_at?: string;
   is_active?: boolean;
-  shop_id?: number | null; // null: toàn sàn; number: voucher theo shop
+  shop_id?: number | null;
   used?: boolean;
 }
 
@@ -63,7 +62,6 @@ export interface CartItem {
 
 type PaymentMethod = 'cod' | 'vnpay';
 
-/** ✅ Export để CheckoutPage dùng làm type của onPaymentInfoChange */
 export interface PaymentInfoChangePayload {
   paymentMethod: PaymentMethod;
   perShop: Array<{
@@ -84,8 +82,6 @@ export interface PaymentInfoChangePayload {
 interface Props {
   onPaymentInfoChange?: (info: PaymentInfoChangePayload) => void;
   onCartChange?: (items: CartItem[]) => void;
-
-  /** ✅ Cho CheckoutPage bắt sự kiện áp dụng/bỏ voucher toàn sàn */
   onVoucherApplied?: (res: {
     voucher: Voucher | null;
     serverDiscount: number | null;
@@ -95,10 +91,9 @@ interface Props {
 }
 
 /* ===================== Component ===================== */
-
 const BRAND = '#DB4444';
 const SHIPPING_EACH_SHOP = 20000;
-const COLLAPSE_COUNT = 2; // chỉ show 2 sản phẩm đầu
+const COLLAPSE_COUNT = 2;
 
 const OneLine: React.FC<React.PropsWithChildren> = ({ children }) => (
   <span
@@ -122,7 +117,16 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   const [loading, setLoading] = useState(true);
   const [activeShopId, setActiveShopId] = useState<string>();
 
-  // server overrides (kết quả tính discount/freeship từ BE)
+  // NEW: đọc danh sách id đã chọn từ localStorage
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('selectedCartIds') || '[]');
+      if (Array.isArray(saved)) setSelectedIds(saved.map(String));
+    } catch { /* noop */ }
+  }, []);
+
+  // server overrides
   const [applyLoading, setApplyLoading] = useState(false);
   const [serverGlobal, setServerGlobal] = useState<{ discount: number; freeShipping: boolean }>({
     discount: 0,
@@ -132,7 +136,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
 
   // voucher state
   const [voucherModalOpen, setVoucherModalOpen] = useState(false);
-  const [voucherModalShopId, setVoucherModalShopId] = useState<number | null>(null); // luôn mở từ panel shop (set shop_id), nhưng để null để an toàn
+  const [voucherModalShopId, setVoucherModalShopId] = useState<number | null>(null);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [voucherErr, setVoucherErr] = useState<string | null>(null);
@@ -151,7 +155,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [msgApi, ctxMsg] = message.useMessage();
 
-  // Modal xem toàn bộ items của 1 shop
+  // Modal xem all item 1 shop
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
   const [itemsModalShop, setItemsModalShop] = useState<{ shop_id: number; shop_name?: string; items: CartItem[] } | null>(null);
 
@@ -161,7 +165,6 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   );
 
   /* ---------- Helpers ---------- */
-
   const isExpired = useCallback((v: Voucher) => {
     if (!v?.expires_at) return false;
     const t = new Date(v.expires_at).getTime();
@@ -176,31 +179,40 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   }, []);
 
   const VND = useCallback((n: number) => new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.floor(n))) + 'đ', []);
-
   const imageUrl = useCallback((img: string[] | string) => {
     let i = Array.isArray(img) ? img[0] : img;
     if (!i) return `${STATIC_BASE_URL}/products/default-product.png`;
     if (i.startsWith('http')) return i;
     return i.startsWith('/') ? `${STATIC_BASE_URL}${i}` : `${STATIC_BASE_URL}/${i}`;
   }, []);
-
   const unitPrice = useCallback(
     (it: CartItem) => it.variant?.sale_price ?? it.variant?.price ?? it.product.sale_price ?? it.product.price ?? 0,
     []
   );
 
-  /* ---------- Group cart theo shop ---------- */
+  /* ---------- LỌC ITEMS THEO selectedCartIds ---------- */
+  const itemsForCheckout = useMemo(() => {
+    if (!selectedIds.length) return items; // nếu vào trực tiếp /checkout không có chọn trước → lấy tất cả
+    const setIds = new Set(selectedIds);
+    return items.filter((it) => setIds.has(String(it.id)));
+  }, [items, selectedIds]);
+
+  // Thông báo cho parent (nếu cần) mỗi khi danh sách dùng để checkout thay đổi
+  useEffect(() => {
+    onCartChange?.(itemsForCheckout);
+  }, [itemsForCheckout, onCartChange]);
+
+  /* ---------- Group cart theo shop (sau khi lọc) ---------- */
   const grouped = useMemo(() => {
     const map = new Map<number, { shop_id: number; shop_name?: string; items: CartItem[] }>();
-    for (const it of items) {
+    for (const it of itemsForCheckout) {
       if (!map.has(it.shop_id)) map.set(it.shop_id, { shop_id: it.shop_id, shop_name: it.shop_name, items: [] });
       map.get(it.shop_id)!.items.push(it);
     }
     return Array.from(map.values());
-  }, [items]);
+  }, [itemsForCheckout]);
 
   /* ---------- Tính tiền per shop & toàn giỏ ---------- */
-
   const perShopRaw = useMemo(
     () =>
       grouped.map((g) => ({
@@ -211,10 +223,8 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     [grouped, unitPrice]
   );
 
-  // ✅ Ưu tiên discount từ server cho global
   const globalVoucherDiscount = useMemo(() => {
     if (serverGlobal.discount > 0) return serverGlobal.discount;
-
     const v = applied.global;
     if (!v || isExpired(v) || v.is_active === false) return 0;
     const subAll = perShopRaw.reduce((s, r) => s + r.sub, 0);
@@ -224,10 +234,8 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     return 0;
   }, [applied.global, isExpired, perShopRaw, serverGlobal.discount]);
 
-  // ✅ Ưu tiên freeship từ server cho global
   const globalFreeShipping = useMemo(() => {
     if (serverGlobal.freeShipping) return true;
-
     const v = applied.global;
     if (!v || isExpired(v) || v.is_active === false) return false;
     const subAll = perShopRaw.reduce((s, r) => s + r.sub, 0);
@@ -235,7 +243,6 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     return v.type === 'shipping';
   }, [applied.global, isExpired, perShopRaw, serverGlobal.freeShipping]);
 
-  // ✅ Per-shop: ưu tiên override từ serverShop (nếu có)
   const perShopComputed = useMemo(
     () =>
       grouped.map((g) => {
@@ -251,24 +258,17 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
             else if (v.type === 'amount') vDiscount = Math.min(sub, Math.floor(v.value));
             else if (v.type === 'shipping') {
               ship = 0;
-              vDiscount = 0;
             }
           }
         }
 
         // override server cho shop
-const ovr = serverShop?.[g.shop_id]; // nếu keys là string: serverShop?.[String(g.shop_id)]
-if (ovr) {
-  // dùng số giảm do BE trả về, đã áp trần 100k và min 400k
-  vDiscount = Math.max(0, Math.floor(Number(ovr.discount ?? 0)));
-  if (ovr.freeShipping) {
-    ship = 0; // đảm bảo ship là let, không phải const
-  }
-}
-// freeship toàn cục (nếu có) vẫn đè sau cùng
-if (globalFreeShipping) {
-  ship = 0;
-}
+        const ovr = serverShop?.[g.shop_id];
+        if (ovr) {
+          vDiscount = Math.max(0, Math.floor(Number(ovr.discount ?? 0)));
+          if (ovr.freeShipping) ship = 0;
+        }
+        if (globalFreeShipping) ship = 0;
 
         const lineTotal = Math.max(0, sub - vDiscount) + ship;
         return {
@@ -339,7 +339,6 @@ if (globalFreeShipping) {
           }));
           if (!mounted) return;
           setItems(mapped);
-          onCartChange?.(mapped);
           return;
         }
 
@@ -360,13 +359,11 @@ if (globalFreeShipping) {
         }));
         if (!mounted) return;
         setItems(sv);
-        onCartChange?.(sv);
         localStorage.removeItem('cart');
       } catch (e) {
         console.error('Load cart error:', e);
         if (!mounted) return;
         setItems([]);
-        onCartChange?.([]);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -374,17 +371,13 @@ if (globalFreeShipping) {
     return () => {
       mounted = false;
     };
-  }, [onCartChange]);
+  }, []);
 
   /* ---------- Voucher: open / fetch / filter / apply / clear ---------- */
-
   const openVoucherModal = useCallback(
     (shopId: number) => {
-      // Gộp: modal cho shop sẽ hiển thị cả voucher sàn + voucher của shop
       setVoucherModalShopId(shopId);
       setVoucherModalOpen(true);
-
-      // pre-select: nếu đã có voucher shop thì chọn voucher shop; nếu không, giữ nguyên
       const pre = applied.byShop[shopId]?.id ?? null;
       setSelectedVoucherId(pre);
 
@@ -400,7 +393,6 @@ if (globalFreeShipping) {
             const src = row.voucher ?? row;
             const dt = String(src.discount_type ?? src.type ?? 'amount').toLowerCase();
             return {
-              // ✅ CHỈ dùng id của voucher (không dùng row.id từ pivot)
               id: src.id ?? src.voucher_id ?? src.code,
               code: String(src.code ?? src.voucher_code ?? src.coupon_code ?? '').trim(),
               title: src.title ?? src.name ?? src.label ?? undefined,
@@ -441,7 +433,6 @@ if (globalFreeShipping) {
         shopId == null ? { ...prev, global: null } : { ...prev, byShop: { ...prev.byShop, [shopId]: null } }
       );
 
-      // xoá override từ server
       if (shopId == null) {
         setServerGlobal({ discount: 0, freeShipping: false });
         onVoucherApplied?.({ voucher: null, serverDiscount: 0, serverFreeShipping: false, code: null });
@@ -461,7 +452,7 @@ if (globalFreeShipping) {
     [onVoucherApplied]
   );
 
-  // ✅ GỌI BE /vouchers/apply khi bấm Áp dụng (gộp: có thể áp dụng voucher sàn HOẶC voucher shop từ cùng modal)
+  // Áp dụng voucher → dùng itemsForCheckout trong payload
   const applyVoucher = useCallback(async () => {
     if (selectedVoucherId == null || voucherModalShopId == null) return;
     const v = vouchers.find((x) => String(x.id) === String(selectedVoucherId));
@@ -475,15 +466,13 @@ if (globalFreeShipping) {
         return;
       }
 
-      // payload items: shop_id, price (đơn giá), quantity
-      const itemsPayload = items.map((it) => ({
+      const itemsPayload = itemsForCheckout.map((it) => ({
         shop_id: it.shop_id,
         price: unitPrice(it),
         quantity: it.quantity,
         product_id: it.product.id,
       }));
 
-      // Nếu chọn voucher sàn => shop_id null; nếu voucher shop => gửi shop hiện tại
       const postShopId = v.shop_id == null ? null : voucherModalShopId;
 
       const res = await axios.post(
@@ -494,7 +483,6 @@ if (globalFreeShipping) {
 
       const data = res?.data ?? {};
       const ok = data.valid ?? data.success ?? data.ok ?? (typeof data.error === 'undefined');
-
       if (!ok) {
         message.warning(data.message ?? 'Voucher không hợp lệ.');
         return;
@@ -508,7 +496,6 @@ if (globalFreeShipping) {
       );
 
       if (v.shop_id == null) {
-        // Áp dụng voucher sàn
         setApplied((prev) => ({ ...prev, global: v }));
         setServerGlobal({ discount: serverDiscount, freeShipping: serverFree });
         onVoucherApplied?.({
@@ -518,7 +505,6 @@ if (globalFreeShipping) {
           code: v.code ?? null,
         });
       } else {
-        // Áp dụng voucher cho shop hiện tại
         if (Number(v.shop_id) !== Number(voucherModalShopId)) {
           message.warning('Voucher không thuộc shop này.');
           return;
@@ -548,7 +534,7 @@ if (globalFreeShipping) {
     } finally {
       setApplyLoading(false);
     }
-  }, [selectedVoucherId, vouchers, voucherModalShopId, items, token, unitPrice, onVoucherApplied]);
+  }, [selectedVoucherId, vouchers, voucherModalShopId, itemsForCheckout, token, unitPrice, onVoucherApplied]);
 
   useEffect(() => {
     return () => {
@@ -556,11 +542,9 @@ if (globalFreeShipping) {
     };
   }, []);
 
-  /** ✅ Sắp xếp voucher: ƯU TIÊN voucher sàn trước, sau đó shop; rồi tiêu chí như cũ */
   const filteredVouchers = useMemo(() => {
     const s = voucherSearch.trim().toLowerCase();
 
-    // Chỉ hiển thị: voucher sàn + voucher của shop đang mở modal
     const scopeFiltered = vouchers.filter((v) => {
       if (voucherModalShopId == null) return v.shop_id == null;
       return v.shop_id == null || Number(v.shop_id) === Number(voucherModalShopId);
@@ -573,7 +557,7 @@ if (globalFreeShipping) {
       );
 
     const score = (v: Voucher) => {
-      const isGlobal = v.shop_id == null ? 1 : 0; // Ưu tiên sàn trước
+      const isGlobal = v.shop_id == null ? 1 : 0;
       const globalScore = isGlobal ? 5_000_000 : 0;
 
       const activeScore = v.is_active !== false && !isExpired(v) ? 1_000_000 : 0;
@@ -581,7 +565,7 @@ if (globalFreeShipping) {
       const freeShipScore = v.type === 'shipping' ? 500_000 : 0;
       const percentScore = v.type === 'percent' ? Math.min(100, v.value) * 1_000 : 0;
       const amountScore = v.type === 'amount' ? Math.min(10_000_000, v.value) : 0;
-      const expiryScore = v.expires_at ? (10_000_000_000 - new Date(v.expires_at).getTime()) / 1_000_000 : 0; // hạn gần cao hơn
+      const expiryScore = v.expires_at ? (10_000_000_000 - new Date(v.expires_at).getTime()) / 1_000_000 : 0;
 
       return globalScore + activeScore + usedPenalty + freeShipScore + percentScore + amountScore + expiryScore;
     };
@@ -604,7 +588,6 @@ if (globalFreeShipping) {
   );
 
   /* ===================== UI ===================== */
-
   return (
     <div className="space-y-4">
       {ctxMsg}
@@ -620,44 +603,24 @@ if (globalFreeShipping) {
       )}
 
       {/* Header */}
-      <Space
-        align="center"
-        style={{ width: '100%', justifyContent: 'space-between' }}
-      >
-        <Title
-          level={4}
-          style={{ margin: 0, color: '#222', display: 'flex', alignItems: 'center' }}
-        >
-          <ShoppingCartOutlined
-            style={{ marginRight: 8, color: '#db4444', fontSize: 20 }}
-          />
+      <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
+        <Title level={4} style={{ margin: 0, color: '#222', display: 'flex', alignItems: 'center' }}>
+          <ShoppingCartOutlined style={{ marginRight: 8, color: '#db4444', fontSize: 20 }} />
           Giỏ hàng
         </Title>
-
-        {/* 🔥 Ở bên phải bạn có thể để nút hành động */}
-        {/* <Button type="primary" size="small" icon={<GiftOutlined />}>
-    Voucher
-  </Button> */}
       </Space>
 
-
       {/* Phương thức thanh toán */}
-      <Card title={
-        <Text strong style={{ color: 'black' }}>
-          Phương thức thanh toán
-        </Text>
-      } variant="outlined">
+      <Card
+        title={<Text strong style={{ color: 'black' }}>Phương thức thanh toán</Text>}
+        variant="outlined"
+      >
         <Radio.Group value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
           <Space direction="vertical">
             <Radio value="cod">Thanh toán khi nhận hàng (COD)</Radio>
             <Radio value="vnpay">
               <Space>
-                <Image
-                  src="/vnpay-logo.png" // đường dẫn logo VNPAY
-                  alt="VNPAY"
-                  width={24}
-                  height={24}
-                />
+                <Image src="/vnpay-logo.png" alt="VNPAY" width={24} height={24} />
                 VNPAY
               </Space>
             </Radio>
@@ -665,18 +628,17 @@ if (globalFreeShipping) {
         </Radio.Group>
       </Card>
 
-      {/* Danh sách theo shop */}
-      <Card title={
-        <Text strong style={{ color: 'black' }}>
-          Sản phẩm trong giỏ hàng
-        </Text>
-      } variant="outlined">
+      {/* Danh sách theo shop (ĐÃ LỌC THEO selectedCartIds) */}
+      <Card
+        title={<Text strong style={{ color: 'black' }}>Sản phẩm trong giỏ hàng</Text>}
+        variant="outlined"
+      >
         {loading ? (
           <div style={{ textAlign: 'center', padding: 24 }}>
             <Spin />
           </div>
         ) : grouped.length === 0 ? (
-          <Alert type="info" message="Giỏ hàng đang trống." />
+          <Alert type="info" message="Không có sản phẩm được chọn." />
         ) : (
           <Collapse
             accordion
@@ -711,7 +673,6 @@ if (globalFreeShipping) {
                           {g.shop_name ?? `#${g.shop_id}`}
                         </span>
                       </Text>
-
 
                       <div
                         style={{
@@ -773,14 +734,10 @@ if (globalFreeShipping) {
                             {hasSale ? (
                               <>
                                 <div>
-                                  <Text delete type="secondary">
-                                    {VND(ori)}
-                                  </Text>
+                                  <Text delete type="secondary">{VND(ori)}</Text>
                                 </div>
                                 <div>
-                                  <Text strong type="danger">
-                                    {VND(total)}
-                                  </Text>
+                                  <Text strong type="danger">{VND(total)}</Text>
                                 </div>
                               </>
                             ) : (
@@ -807,10 +764,9 @@ if (globalFreeShipping) {
                     </div>
                   )}
 
-                  {/* Đường kẻ → Voucher row → Tóm tắt */}
                   <Divider style={{ margin: '10px 0' }} />
 
-                  {/* Voucher (gộp sàn + shop, pill sàn hiển thị trước) */}
+                  {/* Voucher pills */}
                   <div
                     style={{
                       marginTop: 6,
@@ -821,7 +777,6 @@ if (globalFreeShipping) {
                       flexWrap: 'wrap',
                     }}
                   >
-                    {/* Pill voucher sàn (nếu có) */}
                     {applied.global && (
                       <div className="voucher-pill" title={`Voucher sàn: ${applied.global.code} • ${badge(applied.global)}`}>
                         <span className="voucher-label">Voucher sàn:</span>
@@ -832,17 +787,13 @@ if (globalFreeShipping) {
                           type="button"
                           className="voucher-close"
                           aria-label="Bỏ voucher sàn"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            clearVoucher(null);
-                          }}
+                          onClick={(e) => { e.preventDefault(); clearVoucher(null); }}
                         >
                           ×
                         </button>
                       </div>
                     )}
 
-                    {/* Pill voucher shop (nếu có) */}
                     {shopVoucher && (
                       <div className="voucher-pill" title={`Voucher shop: ${shopVoucher.code} • ${badge(shopVoucher)}`}>
                         <span className="voucher-label">Voucher shop:</span>
@@ -853,17 +804,13 @@ if (globalFreeShipping) {
                           type="button"
                           className="voucher-close"
                           aria-label="Bỏ voucher shop"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            clearVoucher(g.shop_id);
-                          }}
+                          onClick={(e) => { e.preventDefault(); clearVoucher(g.shop_id); }}
                         >
                           ×
                         </button>
                       </div>
                     )}
 
-                    {/* Nút gộp */}
                     <Button size="small" onClick={() => openVoucherModal(g.shop_id)}>
                       Voucher
                     </Button>
@@ -936,16 +883,8 @@ if (globalFreeShipping) {
                   <div style={{ textAlign: 'right', minWidth: 140 }}>
                     {hasSale ? (
                       <>
-                        <div>
-                          <Text delete type="secondary">
-                            {VND(ori)}
-                          </Text>
-                        </div>
-                        <div>
-                          <Text strong type="danger">
-                            {VND(total)}
-                          </Text>
-                        </div>
+                        <div><Text delete type="secondary">{VND(ori)}</Text></div>
+                        <div><Text strong type="danger">{VND(total)}</Text></div>
                       </>
                     ) : (
                       <Text strong>{VND(total)}</Text>
@@ -958,7 +897,7 @@ if (globalFreeShipping) {
         )}
       </Modal>
 
-      {/* Modal chọn voucher (gộp) */}
+      {/* Modal chọn voucher */}
       <Modal
         open={voucherModalOpen}
         onCancel={closeVoucherModal}
@@ -1011,9 +950,7 @@ if (globalFreeShipping) {
 
                     return (
                       <List.Item
-                        onClick={() => {
-                          if (!disabled) setSelectedVoucherId(selected ? null : v.id);
-                        }}
+                        onClick={() => { if (!disabled) setSelectedVoucherId(selected ? null : v.id); }}
                         style={{
                           cursor: disabled ? 'not-allowed' : 'pointer',
                           background: selected ? '#f5faff' : undefined,
@@ -1028,9 +965,7 @@ if (globalFreeShipping) {
                           <Radio checked={selected} disabled={disabled} />
                           <Space direction="vertical" size={4} style={{ flex: 1, minWidth: 0 }}>
                             <Space wrap>
-                              <Tag bordered={false}>
-                                <OneLine>{v.code}</OneLine>
-                              </Tag>
+                              <Tag bordered={false}><OneLine>{v.code}</OneLine></Tag>
                               <Tag color={v.shop_id == null ? 'blue' : 'purple'}>
                                 {v.shop_id == null ? 'Toàn sàn' : `Shop #${v.shop_id}`}
                               </Tag>
@@ -1038,21 +973,11 @@ if (globalFreeShipping) {
                               {used && <Tag color="default">Đã dùng</Tag>}
                               {expired && <Tag color="red">Hết hạn</Tag>}
                             </Space>
-                            {v.title && (
-                              <OneLine>
-                                <Text strong>{v.title}</Text>
-                              </OneLine>
-                            )}
-                            {v.description && (
-                              <Text type="secondary">
-                                <OneLine>{v.description}</OneLine>
-                              </Text>
-                            )}
+                            {v.title && (<OneLine><Text strong>{v.title}</Text></OneLine>)}
+                            {v.description && (<Text type="secondary"><OneLine>{v.description}</OneLine></Text>)}
                             <Space size="small" wrap>
                               {typeof v.min_order === 'number' && (
-                                <Text type="secondary">
-                                  ĐH tối thiểu: {new Intl.NumberFormat('vi-VN').format(v.min_order)}₫
-                                </Text>
+                                <Text type="secondary">ĐH tối thiểu: {new Intl.NumberFormat('vi-VN').format(v.min_order)}₫</Text>
                               )}
                               {v.expires_at && (
                                 <Text type={expired ? 'danger' : 'secondary'}>
@@ -1075,60 +1000,26 @@ if (globalFreeShipping) {
       {/* animation + style */}
       <style jsx global>{`
         @keyframes slideInFade {
-          0% {
-            transform: translateY(-8px);
-            opacity: 0;
-          }
-          100% {
-            transform: translateY(0);
-            opacity: 1;
-          }
+          0% { transform: translateY(-8px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
         }
-        .animate-slideInFade {
-          animation: slideInFade 260ms ease-out;
-        }
+        .animate-slideInFade { animation: slideInFade 260ms ease-out; }
 
-        /* Voucher pill */
         .voucher-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          max-width: 100%;
-          padding: 6px 8px;
-          border: 1px solid #e8ddff;
-          background: #f6f0ff;
-          color: #5b21b6;
-          border-radius: 8px;
-          line-height: 1;
+          display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+          padding: 6px 8px; border: 1px solid #e8ddff; background: #f6f0ff; color: #5b21b6;
+          border-radius: 8px; line-height: 1;
         }
-        .voucher-label {
-          font-weight: 600;
-          white-space: nowrap;
+        .voucher-label { font-weight: 600; white-space: nowrap; }
+        .voucher-code, .voucher-benefit {
+          max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        .voucher-code,
-        .voucher-benefit {
-          max-width: 180px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .voucher-dot {
-          opacity: 0.7;
-        }
+        .voucher-dot { opacity: 0.7; }
         .voucher-close {
-          margin-left: 2px;
-          border: 0;
-          background: transparent;
-          cursor: pointer;
-          font-size: 16px;
-          line-height: 1;
-          color: #7c3aed;
-          padding: 0 2px;
-          border-radius: 6px;
+          margin-left: 2px; border: 0; background: transparent; cursor: pointer;
+          font-size: 16px; line-height: 1; color: #7c3aed; padding: 0 2px; border-radius: 6px;
         }
-        .voucher-close:hover {
-          background: rgba(124, 58, 237, 0.08);
-        }
+        .voucher-close:hover { background: rgba(124, 58, 237, 0.08); }
       `}</style>
     </div>
   );

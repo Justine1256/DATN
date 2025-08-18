@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import type { CartItem } from './hooks/CartItem';
@@ -33,9 +34,15 @@ export default function CartItemsSection({
   cartItems: propsCartItems,
   setCartItems: propsSetCartItems,
 }: Props) {
+  const router = useRouter();
+
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingIds, setUpdatingIds] = useState<Set<number | string>>(new Set());
+
+  // ========= SELECTION =========
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const sameKey = (a: React.Key, b: React.Key) => String(a) === String(b);
 
   // ===== Helpers =====
   const formatImageUrl = (img: string | string[]): string => {
@@ -67,9 +74,7 @@ export default function CartItemsSection({
     return parts.length ? (
       <Text type="secondary">{parts.join(', ')}</Text>
     ) : (
-      <Text type="secondary" italic>
-        Không có
-      </Text>
+      <Text type="secondary" italic>Không có</Text>
     );
   };
 
@@ -156,7 +161,6 @@ export default function CartItemsSection({
       propsSetCartItems(formatted);
       localStorage.removeItem('cart');
 
-      // 👇 báo cho header / context trong cùng tab
       window.dispatchEvent(new Event('cartUpdated'));
     } catch (error) {
       console.warn('❗ API lỗi, dùng local fallback:', error);
@@ -223,7 +227,10 @@ export default function CartItemsSection({
       propsSetCartItems(updated);
       localStorage.setItem('cart', JSON.stringify(updated));
 
-      window.dispatchEvent(new Event('cartUpdated')); // 👈 thêm
+      // loại khỏi selection nếu đang chọn
+      setSelectedRowKeys((prev) => prev.filter((k) => !sameKey(k, id)));
+
+      window.dispatchEvent(new Event('cartUpdated'));
       message.success('Đã xoá sản phẩm khỏi giỏ');
       return;
     }
@@ -239,7 +246,9 @@ export default function CartItemsSection({
       setCartItems(updated);
       propsSetCartItems(updated);
       localStorage.setItem('cart', JSON.stringify(updated));
-      window.dispatchEvent(new Event('cartUpdated')); // 👈 giữ nguyên (đã có)
+      setSelectedRowKeys((prev) => prev.filter((k) => !sameKey(k, id)));
+
+      window.dispatchEvent(new Event('cartUpdated'));
       message.success('Đã xoá sản phẩm khỏi giỏ');
     } catch (error) {
       console.error('❌ Lỗi khi xoá:', error);
@@ -248,12 +257,9 @@ export default function CartItemsSection({
   };
 
   const handleQuantityChange = async (id: number | string, val: number | null) => {
-    // Tránh null/NaN từ InputNumber
     const quantity = Math.max(1, Number(val ?? 1));
-
     const token = localStorage.getItem('token') || Cookies.get('authToken');
 
-    // Optimistic update
     const prev = cartItems;
     const next = cartItems.map((i) => (i.id === id ? { ...i, quantity } : i));
     setCartItems(next);
@@ -261,13 +267,13 @@ export default function CartItemsSection({
 
     if (!token) {
       localStorage.setItem('cart', JSON.stringify(next));
-      window.dispatchEvent(new Event('cartUpdated')); // 👈 thêm cho guest
+      window.dispatchEvent(new Event('cartUpdated'));
       return;
     }
 
     try {
       setUpdatingIds((s) => new Set([...s, id]));
-      const res = await fetch(`${API_BASE_URL}/cart/${id}`, {
+      await fetch(`${API_BASE_URL}/cart/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -276,12 +282,10 @@ export default function CartItemsSection({
         },
         body: JSON.stringify({ quantity }),
       });
-      // if (!res.ok) throw new Error('Không thể cập nhật số lượng');
       localStorage.setItem('cart', JSON.stringify(next));
-      window.dispatchEvent(new Event('cartUpdated')); // 👈 thêm cho logged-in
+      window.dispatchEvent(new Event('cartUpdated'));
     } catch (error) {
       console.error('❌ Lỗi cập nhật số lượng:', error);
-      // rollback
       setCartItems(prev);
       propsSetCartItems(prev);
       message.error('Cập nhật số lượng thất bại');
@@ -294,27 +298,50 @@ export default function CartItemsSection({
     }
   };
 
-  // ===== Totals =====
+  // ===== Khôi phục & đồng bộ selection =====
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('selectedCartIds') || '[]');
+      if (Array.isArray(saved)) setSelectedRowKeys(saved);
+    } catch { }
+  }, []);
+
+  // Khi giỏ thay đổi, loại các key không còn tồn tại
+  useEffect(() => {
+    setSelectedRowKeys((prev) => prev.filter((k) => cartItems.some((i) => sameKey(i.id, k))));
+  }, [cartItems]);
+
+  // Lưu lại mỗi khi selection đổi
+  useEffect(() => {
+    localStorage.setItem('selectedCartIds', JSON.stringify(selectedRowKeys));
+  }, [selectedRowKeys]);
+
+  // ===== Totals chỉ theo SP đã chọn =====
+  const selectedItems = useMemo(
+    () => cartItems.filter((i) => selectedRowKeys.some((k) => sameKey(k, i.id))),
+    [cartItems, selectedRowKeys]
+  );
+
   const subtotal = useMemo(
-    () => cartItems.reduce((acc, item) => acc + getOriginalPrice(item) * item.quantity, 0),
-    [cartItems]
+    () => selectedItems.reduce((acc, item) => acc + getOriginalPrice(item) * item.quantity, 0),
+    [selectedItems]
   );
 
   const discountedSubtotal = useMemo(
-    () => cartItems.reduce((acc, item) => acc + getPriceToUse(item) * item.quantity, 0),
-    [cartItems]
+    () => selectedItems.reduce((acc, item) => acc + getPriceToUse(item) * item.quantity, 0),
+    [selectedItems]
   );
 
   const promotionDiscount = Math.max(0, subtotal - discountedSubtotal);
 
   const shipping = useMemo(() => {
     const uniqueShopIds = new Set(
-      cartItems
+      selectedItems
         .map((i) => i.product?.shop?.id)
         .filter((id): id is number => typeof id === 'number')
     );
     return uniqueShopIds.size > 0 ? uniqueShopIds.size * 20000 : 0;
-  }, [cartItems]);
+  }, [selectedItems]);
 
   const total = Math.max(0, discountedSubtotal + shipping);
 
@@ -384,14 +411,22 @@ export default function CartItemsSection({
         const original = getOriginalPrice(item);
         const sale = getPriceToUse(item);
         const discounted = sale < original;
+
         return (
           <div>
-            <Text strong type={discounted ? 'danger' : undefined}>
+            {/* Ép màu: đỏ khi giảm giá, đen khi không giảm để tránh bị trắng */}
+            <Text
+              strong
+              type={discounted ? 'danger' : undefined}
+              style={{ color: discounted ? '#DB4444' : '#111827' }} // 👈 chống bị trắng
+            >
               {formatPrice(sale)}
             </Text>
+
             {discounted && (
               <div>
-                <Text delete type="secondary">
+                {/* Giá gốc gạch ngang: xám cố định */}
+                <Text delete style={{ color: '#8c8c8c' }}>
                   {formatPrice(original)}
                 </Text>
               </div>
@@ -400,6 +435,7 @@ export default function CartItemsSection({
         );
       },
     },
+
     {
       title: 'Số lượng',
       dataIndex: 'quantity',
@@ -445,6 +481,23 @@ export default function CartItemsSection({
     },
   ];
 
+  // cấu hình checkbox chọn dòng
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
+    preserveSelectedRowKeys: true,
+  };
+
+  // Đặt hàng theo danh sách đã chọn
+  const handleCheckoutSelected = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('Vui lòng chọn ít nhất 1 sản phẩm để đặt hàng');
+      return;
+    }
+    localStorage.setItem('selectedCartIds', JSON.stringify(selectedRowKeys));
+    router.push('/checkout');
+  };
+
   useEffect(() => {
     fetchCartItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -464,8 +517,30 @@ export default function CartItemsSection({
         pagination={false}
         rowKey="key"
         sticky
+        rowSelection={rowSelection}
         summary={() => (
           <>
+            <Table.Summary.Row>
+              <Table.Summary.Cell index={0} colSpan={6}>
+                <div className="flex items-center justify-between">
+                  <Text>
+                    Đã chọn: <Text strong>{selectedRowKeys.length}</Text> sản phẩm
+                  </Text>
+                  {selectedRowKeys.length > 0 && (
+                    <Space size={12}>
+                      <Button size="small" onClick={() => setSelectedRowKeys([])}>Bỏ chọn</Button>
+                      <Button
+                        size="small"
+                        onClick={() => setSelectedRowKeys(dataSource.map((r) => r.key))}
+                      >
+                        Chọn tất cả
+                      </Button>
+                    </Space>
+                  )}
+                </div>
+              </Table.Summary.Cell>
+            </Table.Summary.Row>
+
             <Table.Summary.Row>
               <Table.Summary.Cell index={0} colSpan={4}>
                 <Text>Tạm tính (giá gốc):</Text>
@@ -513,30 +588,25 @@ export default function CartItemsSection({
         )}
       />
       <style jsx global>{`
-  .ant-table-summary .ant-typography:not(.ant-typography-success):not(.ant-typography-danger) {
-    color: #000 !important;
-  }
-`}</style>
-
+        .ant-table-summary .ant-typography:not(.ant-typography-success):not(.ant-typography-danger) {
+          color: #000 !important;
+        }
+      `}</style>
 
       {/* Footer hành động */}
       <Flex justify="end" align="center" gap={12} style={{ padding: 16 }}>
         <Link href="/">
           <Button>Tiếp tục mua sắm</Button>
         </Link>
-        <Link href="/checkout">
-          <Button
-            type="primary"
-            size="large"
-            disabled={cartItems.length === 0}
-            style={{
-              backgroundColor: '#DB4444',
-              borderColor: '#DB4444'
-            }}
-          >
-            Đặt hàng
-          </Button>
-        </Link>
+        <Button
+          type="primary"
+          size="large"
+          disabled={selectedRowKeys.length === 0}
+          style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
+          onClick={handleCheckoutSelected}
+        >
+          Đặt hàng
+        </Button>
       </Flex>
     </Card>
   );

@@ -611,3 +611,29 @@ a {
     overflow: auto;
   }
 }
+/* Viền mặc định + hover */
+.brand-radio .ant-radio .ant-radio-inner {
+  border-color: #db4444 !important;
+}
+
+.brand-radio .ant-radio:hover .ant-radio-inner,
+.brand-radio .ant-radio-wrapper:hover .ant-radio .ant-radio-inner {
+  border-color: #db4444 !important;
+}
+
+/* Khi checked: viền và chấm giữa màu đỏ */
+.brand-radio .ant-radio-checked .ant-radio-inner {
+  border-color: #db4444 !important;
+  background-color: #fff !important;
+  /* giữ nền trắng, chỉ chấm đỏ */
+}
+
+.brand-radio .ant-radio-checked .ant-radio-inner::after {
+  background-color: #db4444 !important;
+}
+
+/* Focus outline (khi tab bằng bàn phím) */
+.brand-radio .ant-radio-input:focus+.ant-radio-inner {
+  border-color: #db4444 !important;
+  box-shadow: 0 0 0 3px rgba(219, 68, 68, 0.15) !important;
+}
