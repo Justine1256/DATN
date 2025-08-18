@@ -284,18 +284,26 @@ export default function MyVouchersPage() {
                   <Tag color="gold" style={{ borderRadius: 999, fontSize: 10, lineHeight: '16px', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <Space size={4}>
                       <PercentageOutlined />
-                      <Text ellipsis style={{ fontSize: 10 }}>
+                      <Text
+                        ellipsis={{ tooltip: true }}
+                        style={{ fontSize: 10, color: '#000' }}   // hoặc 'rgba(0,0,0,0.88)'
+                      >
                         {toNumber(v.discount_value)}% tối đa {v.max_discount_value ? formatCurrency(v.max_discount_value) : '—'}
                       </Text>
+
                     </Space>
                   </Tag>
                 ) : (
                   <Tag color="purple" style={{ borderRadius: 999, fontSize: 10, lineHeight: '16px', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <Space size={4}>
                       <GiftOutlined />
-                      <Text ellipsis style={{ fontSize: 10 }}>
-                        Giảm {formatCurrency(v.discount_value)}
-                      </Text>
+                        <Text
+                          ellipsis={{ tooltip: `Giảm ${formatCurrency(v.discount_value)}` }}
+                          style={{ fontSize: 10, color: '#000' }}
+                        >
+                          Giảm {formatCurrency(v.discount_value)}
+                        </Text>
+
                     </Space>
                   </Tag>
                 )}
