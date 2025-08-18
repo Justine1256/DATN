@@ -513,14 +513,8 @@ export default function CartItemsSection({
         )}
       />
       <style jsx global>{`
-  /* Giữ text thường màu đen như bạn đã làm */
   .ant-table-summary .ant-typography:not(.ant-typography-success):not(.ant-typography-danger) {
     color: #000 !important;
-  }
-  /* KHÓA màu đỏ cho Typography danger trong summary, kể cả khi hover hàng */
-  .ant-table-summary .ant-typography-danger,
-  .ant-table-summary .total-danger {
-    color: var(--ant-color-error) !important;
   }
 `}</style>
 
