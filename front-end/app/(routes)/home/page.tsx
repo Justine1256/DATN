@@ -6,7 +6,7 @@ import FlashSale from '@/app/components/home/FlashSale';
 import CategoryGrid from '@/app/components/home/CategoryGrid';
 import BestSelling from '@/app/components/home/BestSelling';
 import NewProducts from '@/app/components/home/NewProduct';
-import NewArrivalGrid from '@/app/components/home/NewArrival';
+// import NewArrivalGrid from '@/app/components/home/NewArrival';
 import ServiceBanner from '@/app/components/home/ServiceBanner';
 
 export default function HomePage() {
@@ -39,10 +39,10 @@ export default function HomePage() {
 
       
 
-      {/* ✨ Hàng mới về dạng lưới (có thể dạng ảnh lớn) */}
+      {/* ✨ Hàng mới về dạng lưới (có thể dạng ảnh lớn)
       <section className="max-w-screen-xl mx-auto px-4 ">
         <NewArrivalGrid />
-      </section>
+      </section> */}
 
       {/* ✅ Banner dịch vụ cuối trang (giao hàng, hỗ trợ...) */}
       <section className="max-w-screen-xl mx-auto px-4">
