@@ -1,8 +1,11 @@
-import Link from "next/link";
+'use client';
+
+import Link from 'next/link';
+import { Breadcrumb as AntBreadcrumb, type BreadcrumbProps as AntdBreadcrumbProps } from 'antd';
 
 interface BreadcrumbItem {
   label: string;
-  href?: string; // optional, phần cuối không có href
+  href?: string; // optional: item cuối không có href
 }
 
 interface BreadcrumbProps {
@@ -10,20 +13,20 @@ interface BreadcrumbProps {
 }
 
 export default function Breadcrumb({ items }: BreadcrumbProps) {
+  // Chuyển sang cấu trúc items của Ant Design
+  const antdItems: AntdBreadcrumbProps['items'] = items.map((item) => ({
+    title: item.href ? (
+      <Link href={item.href} className="hover:underline">
+        {item.label}
+      </Link>
+    ) : (
+      <span className="font-semibold text-black">{item.label}</span>
+    ),
+  }));
+
   return (
-    <nav className="text-sm text-gray-500 flex items-center space-x-1">
-      {items.map((item, index) => (
-        <span key={index} className="flex items-center space-x-1">
-          {index > 0 && <span className="text-gray-300">/</span>}
-          {item.href ? (
-            <Link href={item.href} className="hover:underline">
-              {item.label}
-            </Link>
-          ) : (
-            <span className="font-semibold text-black">{item.label}</span>
-          )}
-        </span>
-      ))}
+    <nav aria-label="Breadcrumb">
+      <AntBreadcrumb separator="/" items={antdItems} />
     </nav>
   );
 }
