@@ -34,7 +34,31 @@
   background: inherit !important;
   /* nếu muốn giữ nguyên nền */
 }
+/* Radio được chọn */
+.ant-radio-checked .ant-radio-inner {
+  border-color: #db4444 !important;
+  /* viền đỏ */
+  background-color: #fff !important;
+  /* nền trắng */
+}
 
+/* Chấm tròn bên trong */
+.ant-radio-checked .ant-radio-inner::after {
+  background-color: #db4444 !important;
+}
+
+/* Hover vào radio */
+.ant-radio:hover .ant-radio-inner,
+.ant-radio-wrapper:hover .ant-radio .ant-radio-inner {
+  border-color: #db4444 !important;
+}
+
+/* Focus khi dùng bàn phím/click */
+.ant-radio-input:focus+.ant-radio-inner {
+  border-color: #db4444 !important;
+  box-shadow: 0 0 0 3px rgba(219, 68, 68, 0.15) !important;
+  /* viền mờ đỏ */
+}
 /* 2) Khóa màu danger/success trong summary (kể cả khi hover) */
 .ant-table-summary .ant-typography-danger,
 .ant-table-summary .ant-typography-danger * {
@@ -89,6 +113,17 @@
 .ant-table-tbody tr:hover td .ant-typography-success,
 .ant-table-tbody tr:hover td .ant-typography-success * {
   color: var(--ant-color-success, #52c41a) !important;
+}
+/* Đổi viền khi hover row trong Ant Design Table */
+.ant-table-tbody>tr.ant-table-row:hover>td {
+  border-color: #DB4444 !important;
+  /* viền đỏ thay vì xanh */
+}
+
+/* Nếu có focus (khi tab hoặc click), đổi outline luôn */
+.ant-table-tbody>tr.ant-table-row:focus>td,
+.ant-table-tbody>tr.ant-table-row:active>td {
+  border-color: #DB4444 !important;
 }
 /* ================================
    Cài đặt html & body

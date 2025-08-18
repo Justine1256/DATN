@@ -1,5 +1,5 @@
 'use client';
-
+import Image from 'next/image';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -20,6 +20,7 @@ import {
   Collapse,
 } from 'antd';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
+import { ShoppingCartOutlined } from '@ant-design/icons';
 
 const { Panel } = Collapse;
 const { Text, Title } = Typography;
@@ -619,12 +620,26 @@ if (globalFreeShipping) {
       )}
 
       {/* Header */}
-      <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
-        <Title level={4} style={{ margin: 0 }}>
+      <Space
+        align="center"
+        style={{ width: '100%', justifyContent: 'space-between' }}
+      >
+        <Title
+          level={4}
+          style={{ margin: 0, color: '#222', display: 'flex', alignItems: 'center' }}
+        >
+          <ShoppingCartOutlined
+            style={{ marginRight: 8, color: '#db4444', fontSize: 20 }}
+          />
           Giỏ hàng
         </Title>
-        {/* 🔥 ĐÃ GỠ nút "Voucher toàn sàn" và pill ở header để dồn vào từng panel shop */}
+
+        {/* 🔥 Ở bên phải bạn có thể để nút hành động */}
+        {/* <Button type="primary" size="small" icon={<GiftOutlined />}>
+    Voucher
+  </Button> */}
       </Space>
+
 
       {/* Phương thức thanh toán */}
       <Card title={
@@ -635,7 +650,17 @@ if (globalFreeShipping) {
         <Radio.Group value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
           <Space direction="vertical">
             <Radio value="cod">Thanh toán khi nhận hàng (COD)</Radio>
-            <Radio value="vnpay">VNPAY</Radio>
+            <Radio value="vnpay">
+              <Space>
+                <Image
+                  src="/vnpay-logo.png" // đường dẫn logo VNPAY
+                  alt="VNPAY"
+                  width={24}
+                  height={24}
+                />
+                VNPAY
+              </Space>
+            </Radio>
           </Space>
         </Radio.Group>
       </Card>
