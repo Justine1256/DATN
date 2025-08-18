@@ -29,8 +29,8 @@ export default function Footer() {
         {/* 🛠 Thông tin hỗ trợ */}
         <div className="md:col-span-2 col-span-1">
           <h3 className="text-lg font-bold mb-2">Hỗ trợ</h3>
-          <p className="text-sm">111 Bijoy sarani, Dhaka, DH 1515, Bangladesh.</p>
-          <p className="text-sm">vannhatcr123@gmail.com</p>
+          <p className="text-sm">Fpoly Hồ Chí Minh</p>
+          <p className="text-sm">Marketo.gmail.com</p>
           <p className="text-sm">0978740071</p>
         </div>
 
@@ -38,11 +38,11 @@ export default function Footer() {
         <div className="md:col-span-2 col-span-1">
           <h3 className="text-lg font-bold mb-2">Tài khoản</h3>
           <ul className="space-y-1 text-sm">
-            <li><Link href="#" className="link-underline">Tài khoản của tôi</Link></li>
-            <li><Link href="#" className="link-underline">Đăng nhập / Đăng ký</Link></li>
-            <li><Link href="#" className="link-underline">Giỏ hàng</Link></li>
-            <li><Link href="#" className="link-underline">Danh sách yêu thích</Link></li>
-            <li><Link href="#" className="link-underline">Mua sắm</Link></li>
+            <li><Link href="/account" className="link-underline">Tài khoản của tôi</Link></li>
+            <li><Link href="/login" className="link-underline">Đăng nhập / Đăng ký</Link></li>
+            <li><Link href="/cart" className="link-underline">Giỏ hàng</Link></li>
+            <li><Link href="/wishlist" className="link-underline">Danh sách yêu thích</Link></li>
+            <li><Link href="/category" className="link-underline">Mua sắm</Link></li>
           </ul>
         </div>
 
@@ -60,7 +60,7 @@ export default function Footer() {
         {/* 📱 Tải ứng dụng + Mạng xã hội */}
         <div className="md:col-span-3 col-span-1">
           <h3 className="text-lg font-bold mb-2">Tải ứng dụng</h3>
-          <p className="text-sm mb-2">Tiết kiệm 78k với người dùng mới</p>
+      
           <div className="flex gap-3 mb-3">
             <Link href="/download-app">
               <Image src="/qr.png" alt="QR Code" width={64} height={64} />
