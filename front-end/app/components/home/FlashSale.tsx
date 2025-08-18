@@ -112,6 +112,12 @@ export default function FlashSale() {
           >
             Xem tất cả sản phẩm
           </button>
+        
+
+         
+        </div>
+        <div className="pt-10">
+          <div className="w-full h-[1px] bg-gray-300 mb-6" />
         </div>
       </div>
     </section>
