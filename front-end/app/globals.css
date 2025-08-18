@@ -23,7 +23,73 @@
     --foreground: #ededed;*/
   }
 }
+/* =========================================
+   Ant Design Table: cố định màu trong Summary
+   & không đổi màu khi hover
+========================================= */
 
+/* 1) Không thay đổi màu chữ/nền khi hover vào hàng summary */
+.ant-table-summary tr:hover>td {
+  color: inherit !important;
+  background: inherit !important;
+  /* nếu muốn giữ nguyên nền */
+}
+
+/* 2) Khóa màu danger/success trong summary (kể cả khi hover) */
+.ant-table-summary .ant-typography-danger,
+.ant-table-summary .ant-typography-danger * {
+  color: var(--ant-color-error, #ff4d4f) !important;
+}
+
+.ant-table-summary .ant-typography-success,
+.ant-table-summary .ant-typography-success * {
+  color: var(--ant-color-success, #52c41a) !important;
+}
+
+/* (Tuỳ chọn) Nếu bạn render số tổng bằng <strong> hoặc thẻ khác */
+.ant-table-summary .total-danger,
+.ant-table-summary .total-danger * {
+  color: var(--ant-color-error, #ff4d4f) !important;
+}
+/* =========================================
+   Fix mất màu danger/success khi hover row
+========================================= */
+
+/* Giữ màu đỏ / xanh của Typography khi hover vào row */
+.ant-table-tbody tr:hover td .ant-typography-danger,
+.ant-table-tbody tr:hover td .ant-typography-danger * {
+  color: var(--ant-color-error, #ff4d4f) !important;
+}
+
+.ant-table-tbody tr:hover td .ant-typography-success,
+.ant-table-tbody tr:hover td .ant-typography-success * {
+  color: var(--ant-color-success, #52c41a) !important;
+}
+.ant-table-tbody tr:hover>td {
+  color: inherit !important;
+}
+.ant-table-tbody tr:hover>td {
+  color: inherit !important;
+}
+
+/* Khoá màu xám secondary */
+.ant-table-tbody tr:hover td .ant-typography-secondary,
+.ant-table-tbody tr:hover td .ant-typography-secondary * {
+  color: rgba(0, 0, 0, 0.45) !important;
+  /* hoặc token Ant colorTextSecondary */
+}
+
+/* Khoá màu đỏ danger */
+.ant-table-tbody tr:hover td .ant-typography-danger,
+.ant-table-tbody tr:hover td .ant-typography-danger * {
+  color: var(--ant-color-error, #ff4d4f) !important;
+}
+
+/* Nếu có dùng success (xanh lá) thì khoá luôn */
+.ant-table-tbody tr:hover td .ant-typography-success,
+.ant-table-tbody tr:hover td .ant-typography-success * {
+  color: var(--ant-color-success, #52c41a) !important;
+}
 /* ================================
    Cài đặt html & body
 ================================ */
