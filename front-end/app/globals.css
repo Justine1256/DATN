@@ -15,19 +15,113 @@
   --font-sans: 'Roboto', Arial, Helvetica, sans-serif;
   --font-mono: 'Courier New', Courier, monospace;
 }
+/* ============================
+   Fix màu chữ section filter/sort
+============================ */
+.filter-card .ant-typography,
+.filter-card .ant-typography h5,
+.filter-card label,
+.filter-card .ant-form-item-label>label {
+  color: #1f1f1f !important;
+  /* chữ đậm rõ */
+  font-weight: 600;
+  /* in đậm vừa */
+}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Bật nếu muốn hỗ trợ dark mode gốc
-    --background: #0a0a0a;
-    --foreground: #ededed;*/
-  }
+/* Cho label slider (giá tiền) */
+.filter-card .ant-slider-mark-text {
+  color: #1f1f1f !important;
+  font-weight: 500;
+}
+
+/* Cho tiêu đề sắp xếp theo */
+.sort-card .ant-typography,
+.sort-card label {
+  color: #1f1f1f !important;
+  font-weight: 600;
+}
+/* ================================
+   Category Page - Filter buttons
+   (tô chữ đỏ cho button "default" trong card Bộ lọc)
+================================ */
+.filter-card .ant-btn-default:not(.ant-btn-primary) {
+  border-color: #db4444 !important;
+  color: #db4444 !important;
+  background: #fff !important;
+}
+
+.filter-card .ant-btn-default:not(.ant-btn-primary):hover,
+.filter-card .ant-btn-default:not(.ant-btn-primary):active {
+  border-color: #db4444 !important;
+  color: #db4444 !important;
+  background: rgba(219, 68, 68, 0.06) !important;
+}
+
+.filter-card .ant-btn-default:not(.ant-btn-primary):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(219, 68, 68, 0.15) !important;
+}
+
+/* Trạng thái disabled (nếu có) */
+.filter-card .ant-btn-default.ant-btn-disabled {
+  color: rgba(219, 68, 68, 0.45) !important;
+  border-color: rgba(219, 68, 68, 0.35) !important;
+  background: #fff !important;
 }
 /* =========================================
    Ant Design Table: cố định màu trong Summary
    & không đổi màu khi hover
 ========================================= */
+/* ================================
+   Address page: khoá màu chữ AntD
+   (scope theo .address-page để không ảnh hưởng trang khác)
+================================ */
+.address-page {
+  color: initial;
+  /* ngắt thừa kế nếu wrapper ngoài có class text-* */
+}
 
+/* Chữ chính cho Ant Typography, Input, Select, Tag, tiêu đề Card/Drawer */
+.address-page :where(.ant-typography,
+  .ant-form-item-label > label,
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-select-selector,
+  .ant-select-selection-item,
+  .ant-select-item-option-content,
+  .ant-select-selection-search-input,
+  .ant-tag,
+  .ant-card-head-title,
+  .ant-drawer-title) {
+  color: var(--foreground, #1f2937) !important;
+  /* slate-800 */
+}
+
+/* Chữ phụ (secondary) */
+.address-page .ant-typography-secondary,
+.address-page .ant-text-secondary {
+  color: #4b5563 !important;
+  /* slate-600 */
+}
+
+/* Nhãn Form */
+.address-page .ant-form-item-label>label {
+  color: #111827 !important;
+  /* slate-900 */
+}
+
+/* Placeholder Input/Select */
+.address-page .ant-input::placeholder,
+.address-page .ant-select-selection-placeholder {
+  color: #9ca3af !important;
+  /* slate-400 */
+}
+
+/* Dropdown Select: vì bạn đã dùng getPopupContainer(trigger.parentElement!) 
+   nên dropdown render trong .address-page và rule này sẽ áp được */
+.address-page .ant-select-dropdown .ant-select-item-option-content {
+  color: var(--foreground, #1f2937) !important;
+}
 /* 1) Không thay đổi màu chữ/nền khi hover vào hàng summary */
 .ant-table-summary tr:hover>td {
   color: inherit !important;
@@ -125,6 +219,7 @@
 .ant-table-tbody>tr.ant-table-row:active>td {
   border-color: #DB4444 !important;
 }
+
 /* ================================
    Cài đặt html & body
 ================================ */

@@ -194,7 +194,7 @@ export default function VoucherList() {
                                     title={
                                         <Space align="center" size="small">
                                             <GiftTwoTone twoToneColor={BRAND} />
-                                            <Text strong>{v.code}</Text>
+                                            <Text strong style={{ color: '#db4444' }}>{v.code}</Text> 
                                             <Tag color="blue">
                                                 {v.discount_type === 'percent' ? 'Phần trăm' : 'Số tiền'}
                                             </Tag>

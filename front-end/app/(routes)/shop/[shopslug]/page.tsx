@@ -279,8 +279,9 @@ export default function ShopPageAntd() {
                                     {/* Categories */}
                                     <div>
                                         <Space align="center">
-                                            <Text strong>Danh mục</Text>
+                                            <Text strong style={{ color: '#1f1f1f' }}>Danh mục</Text>
                                         </Space>
+
                                         <div style={{ marginTop: 12 }}>
                                             <Button
                                                 type={!selectedCategory ? "primary" : "default"}
@@ -322,14 +323,16 @@ export default function ShopPageAntd() {
 
                                     {/* Price Range */}
                                     <div>
-                                        <Space direction="vertical" style={{ width: "100%" }}>
-                                            <Text strong>
-                                                Giá <Text type="secondary">(VNĐ)</Text>
+                                        <Space direction="vertical" style={{ width: '100%' }}>
+                                            <Text strong style={{ color: '#1f1f1f' }}>
+                                                Giá <span style={{ color: '#8c8c8c' }}>(VNĐ)</span>
                                             </Text>
+
                                             <Row justify="space-between">
-                                                <Text>{formatVND(tempRange[0])}</Text>
-                                                <Text>{formatVND(tempRange[1])}</Text>
+                                                <Text style={{ color: '#1f1f1f' }}>{formatVND(tempRange[0])}</Text>
+                                                <Text style={{ color: '#1f1f1f' }}>{formatVND(tempRange[1])}</Text>
                                             </Row>
+
                                             <Slider
                                                 range
                                                 min={PRICE_MIN}
@@ -339,12 +342,13 @@ export default function ShopPageAntd() {
                                                 onChange={(v) => setTempRange(v as [number, number])}
                                                 tooltip={{ formatter: (v) => formatVND(Number(v)) }}
                                             />
+
                                             <Space>
                                                 <Button type="primary" onClick={() => { setAppliedRange(tempRange); setCurrentPage(1); }}>
                                                     Áp dụng
                                                 </Button>
                                                 <Button icon={<ReloadOutlined />} onClick={() => {
-                                                    setSelectedSort("Phổ Biến");
+                                                    setSelectedSort('Phổ Biến');
                                                     setSelectedPriceSort(null);
                                                     setSelectedDiscountSort(null);
                                                     setSelectedNameSort(null);
@@ -357,6 +361,7 @@ export default function ShopPageAntd() {
                                                 </Button>
                                             </Space>
                                         </Space>
+
                                     </div>
                                 </Space>
                             </Card>
@@ -368,7 +373,7 @@ export default function ShopPageAntd() {
                                 <Row gutter={[8, 8]} align="middle">
                                     <Col xs={24} md={6}>
                                         <Space>
-                                            <Text strong>Sắp xếp theo:</Text>
+                                            <Text strong style={{ color: '#1f1f1f' }}> Sắp xếp theo:</Text>
                                             <AppstoreOutlined />
                                         </Space>
                                     </Col>

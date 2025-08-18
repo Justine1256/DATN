@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   Layout, Card, Row, Col, Typography, Select, Slider, Button, Space,
-  Divider, List, Skeleton, Alert, Empty, Tag, Pagination, Tooltip, ConfigProvider
+  Divider, List, Skeleton, Alert, Empty, Tag, Pagination, Tooltip, ConfigProvider,
 } from "antd";
 import { FilterOutlined, ReloadOutlined, AppstoreOutlined } from "@ant-design/icons";
 import LandingSlider from "@/app/components/home/LandingSlider";
@@ -162,23 +162,18 @@ export default function CategoryPageAntd() {
   return (
     <ConfigProvider
       theme={{
-        token: { colorPrimary: "#db4444", colorInfo: "#db4444" },
-        components: {
-          Button: { defaultHoverBorderColor: "#db4444", defaultColor: "#db4444", defaultHoverColor: "#db4444" },
-          Slider: { colorPrimary: "#db4444" },
-          Pagination: { colorPrimary: "#db4444" },
-          Select: { colorPrimary: "#db4444" },
-          Tag: { colorPrimary: "#db4444" },
+        token: {
+          colorPrimary: "#db4444",
+          colorInfo: "#db4444",
         },
       }}
     >
       <div className="max-w-[1170px] mx-auto px-4 pt-16 pb-10">
-        <Card bordered={false} style={{ marginBottom: 16 }}>
+      
           <LandingSlider />
-        </Card>
-        <Card bordered={false} style={{ marginBottom: 16 }}>
+        
           <CategoryGrid />
-        </Card>
+  
 
         <Layout style={{ background: "transparent" }}>
           {/* SIDEBAR */}
@@ -188,7 +183,8 @@ export default function CategoryPageAntd() {
             collapsedWidth={0}
             style={{ background: "transparent", paddingRight: 16 }}
           >
-            <Card title={<Space><FilterOutlined />Bộ lọc</Space>}>
+            {/* thêm class để áp CSS cho nút default */}
+            <Card className="filter-card" title={<Space><FilterOutlined />Bộ lọc</Space>}>
               <Space direction="vertical" size="large" style={{ width: "100%" }}>
                 {/* Danh mục */}
                 <div>
@@ -280,7 +276,8 @@ export default function CategoryPageAntd() {
               <Row gutter={[8, 8]} align="middle">
                 <Col xs={24} md={6}>
                   <Space>
-                    <Text strong>Sắp xếp theo:</Text>
+                    <Text strong style={{ color: '#1f1f1f' }}>Sắp xếp theo:</Text>
+
                     <AppstoreOutlined />
                   </Space>
                 </Col>
@@ -395,7 +392,6 @@ export default function CategoryPageAntd() {
                     </div>
                   )}
 
-                  {/* 3 cột một hàng */}
                   <List
                     grid={{ gutter: 16, column: 3, xs: 1, sm: 3, md: 3, lg: 3, xl: 3 }}
                     dataSource={products}
@@ -421,6 +417,7 @@ export default function CategoryPageAntd() {
                         pageSize={pageInfo.per_page}
                         showSizeChanger={false}
                         onChange={(p) => {
+                          // dùng API đã có
                           setPage(p);
                           fetchProducts(p);
                           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -434,6 +431,20 @@ export default function CategoryPageAntd() {
           </Content>
         </Layout>
       </div>
+
+      {/* CSS: tô đỏ cho các nút default (không phải primary) trong card bộ lọc */}
+      {/* <style jsx global>{`
+      .filter-card .ant-btn-default:not(.ant-btn-primary) {
+        border-color: #db4444;
+        color: #db4444;
+      }
+      .filter-card .ant-btn-default:not(.ant-btn-primary):hover {
+        border-color: #db4444;
+        color: #db4444;
+        background: rgba(219, 68, 68, 0.06);
+      }
+    `}</style> */}
     </ConfigProvider>
   );
+
 }

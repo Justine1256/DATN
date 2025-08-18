@@ -265,9 +265,14 @@ export default function VoucherByCategory() {
 
                                             <Space direction="vertical" size={2} style={{ width: '100%' }}>
                                                 <Text type="secondary">Mã áp dụng</Text>
-                                                <Text copyable={{ text: v.code }} strong>
+                                                <Text
+                                                    strong
+                                                    style={{ color: '#db4444' }}
+                                                    copyable={{ text: v.code }}
+                                                >
                                                     {v.code || '(Chưa có mã)'}
                                                 </Text>
+
                                             </Space>
 
                                             <Space
