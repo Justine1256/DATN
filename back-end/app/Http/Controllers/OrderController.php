@@ -40,6 +40,7 @@ class OrderController extends Controller
                     'id' => $order->id,
                     'user_id' => $order->user_id,
                     'shop_name' => $order->shop->name ?? null,
+                    'shop_slug' => $order->shop->slug ?? null,
                     'final_amount' => $order->final_amount,
                     'total_amount' => $order->total_amount,
                     'payment_method' => $order->payment_method,
