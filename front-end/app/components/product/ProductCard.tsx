@@ -28,25 +28,16 @@ export interface Product {
   sold?: number;
   review_count?: number;
   rating_avg?: number | string;
-  // Có thể API trả lồng hoặc phẳng:
-  shop?: {
-    name?: string;
-    logo?: string;
-    slug?: string;
-  };
+  shop?: { name?: string; logo?: string; slug?: string };
   shop_name?: string;
   shop_logo?: string;
 }
 
 const formatImageUrl = (img: unknown): string => {
   if (Array.isArray(img)) img = img[0];
-  if (typeof img !== "string" || !img.trim()) {
-    return `${STATIC_BASE_URL}/products/default-product.png`;
-  }
+  if (typeof img !== "string" || !img.trim()) return `${STATIC_BASE_URL}/products/default-product.png`;
   if (img.startsWith("http")) return img;
-  return img.startsWith("/")
-    ? `${STATIC_BASE_URL}${img}`
-    : `${STATIC_BASE_URL}/${img}`;
+  return img.startsWith("/") ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`;
 };
 
 const formatNumberShort = (num: number): string => {
@@ -55,7 +46,6 @@ const formatNumberShort = (num: number): string => {
   return num.toString();
 };
 
-// Dùng chung formatter, nếu không có logo sẽ rơi về ảnh mặc định
 const formatShopLogo = (img: unknown): string => formatImageUrl(img ?? "");
 
 export default function ProductCard({
@@ -89,16 +79,13 @@ export default function ProductCard({
   if (!product) return <LoadingSkeleton />;
 
   const getPrice = () => {
-    if (selectedVariant) {
-      return Number(selectedVariant.sale_price || selectedVariant.price).toLocaleString('vi-VN');
-    }
+    if (selectedVariant) return Number(selectedVariant.sale_price || selectedVariant.price).toLocaleString('vi-VN');
     return Number(product.sale_price || product.price).toLocaleString('vi-VN');
   };
 
   const mainImage = formatImageUrl(product.image?.[0]);
   const ratingValue = Number(product.rating_avg ?? 0);
 
-  // 🔹 Gom thông tin shop, hỗ trợ cả cấu trúc lồng & phẳng
   const shopObj: any = product.shop ?? {};
   const shopSlug = product.shop_slug || shopObj.slug;
   const shopName = shopObj.name || product.shop_name || "Shop";
@@ -124,10 +111,7 @@ export default function ProductCard({
       if (newLiked) {
         const res = await fetch(`${API_BASE_URL}/wishlist`, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify({ product_id: product.id }),
         });
 
@@ -143,14 +127,9 @@ export default function ProductCard({
       } else {
         const res = await fetch(`${API_BASE_URL}/wishlist/${product.id}`, {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-
-        if (!res.ok) {
-          throw new Error("Không thể xóa khỏi wishlist!");
-        }
+        if (!res.ok) throw new Error("Không thể xóa khỏi wishlist!");
 
         setPopupMessage("Đã xóa khỏi yêu thích");
         removeItem(product.id);
@@ -173,7 +152,7 @@ export default function ProductCard({
   };
 
   const handleGoShop = (e: React.MouseEvent) => {
-    e.stopPropagation(); // tránh mở trang chi tiết sp
+    e.stopPropagation();
     if (!shopSlug) return;
     router.push(`/shop/${shopSlug}`);
   };
@@ -181,7 +160,12 @@ export default function ProductCard({
   return (
     <div
       onClick={handleViewDetail}
-      className="group relative bg-white rounded-lg border border-gray-200 shadow p-3 w-full max-w-[250px] flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer"
+      className="
+      group relative bg-white rounded-lg border border-gray-200 shadow
+      p-3
+      w-full max-w-[250px]
+      flex flex-col justify-start mx-auto overflow-hidden transition cursor-pointer
+    "
       style={{ minHeight: '250px' }}
     >
       {showPopup && (
@@ -199,23 +183,20 @@ export default function ProductCard({
       <button
         onClick={handleLike}
         disabled={isLiking}
-        className={`absolute top-2 right-2 text-xl z-20 pointer-events-auto transition ${isLiking ? "opacity-50 cursor-not-allowed" : ""}`}
+        className={`absolute top-2 right-2 z-20 pointer-events-auto transition ${isLiking ? "opacity-50 cursor-not-allowed" : ""} text-xl`}
         aria-label={liked ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
       >
-        {liked ? (
-          <AiFillHeart className="text-red-500" />
-        ) : (
-          <AiOutlineHeart className="text-red-500" />
-        )}
+        {liked ? <AiFillHeart className="text-red-500" /> : <AiOutlineHeart className="text-red-500" />}
       </button>
 
+      {/* Ảnh sản phẩm: giữ chiều cao 150px như ban đầu */}
       <div className="w-full h-[150px] mt-8 flex items-center justify-center overflow-hidden">
         <Image
           src={mainImage}
           alt={product.name}
           width={150}
           height={150}
-          className="object-contain md:w-[150px] md:h-[150px] transition-transform duration-300 group-hover:scale-105"
+          className="object-contain transition-transform duration-300 group-hover:scale-105"
         />
       </div>
 
@@ -224,20 +205,14 @@ export default function ProductCard({
           {product.name}
         </h4>
 
-        {/* 🔥 NEW: Logo + Tên shop ngay dưới tên sản phẩm */}
+        {/* Logo + tên shop */}
         <button
           onClick={handleGoShop}
           className="mt-1 inline-flex items-center gap-2 text-xs text-gray-700 hover:text-brand transition pointer-events-auto"
           aria-label={`Đi tới shop ${shopName}`}
         >
           <span className="relative w-5 h-5 overflow-hidden rounded-full border border-gray-200 bg-white shrink-0">
-            <Image
-              src={shopLogo}
-              alt={shopName}
-              width={20}
-              height={20}
-              className="object-cover"
-            />
+            <Image src={shopLogo} alt={shopName} width={20} height={20} className="object-cover" />
           </span>
           <span className="font-medium truncate max-w-[160px]">{shopName}</span>
         </button>
@@ -254,7 +229,7 @@ export default function ProductCard({
         </div>
 
         <div className="flex items-center justify-between text-sm mt-2 flex-wrap gap-y-1">
-          <div className="flex items-center gap-1 flex-wrap">
+          <div className="flex items-center gap-1">
             {Number(ratingValue) > 0 ? (
               <>
                 <AiFillStar className="w-4 h-4 text-yellow-500" />
@@ -277,4 +252,5 @@ export default function ProductCard({
       </div>
     </div>
   );
+
 }

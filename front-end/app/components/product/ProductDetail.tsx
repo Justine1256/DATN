@@ -61,7 +61,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
   const [isLiking, setIsLiking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showSelectionWarning, setShowSelectionWarning] = useState(false);
-const [isCheckingFollow, setIsCheckingFollow] = useState(true);
+  const [isCheckingFollow, setIsCheckingFollow] = useState(true);
   // Context giỏ hàng & yêu thích
   const { reloadCart } = useCart();
   const { reloadWishlist, wishlistItems } = useWishlist();
@@ -95,71 +95,73 @@ const [isCheckingFollow, setIsCheckingFollow] = useState(true);
     setTimeout(() => setIsQuantityUpdating(false), 100); // delay 200ms
   };
 
-useEffect(() => {
-  const token = Cookies.get("authToken");
-  if (!token) return; // ❗ Không đăng nhập -> không làm gì, isOwner vẫn false
+  useEffect(() => {
+    const token = Cookies.get("authToken");
+    if (!token) return; // ❗ Không đăng nhập -> không làm gì, isOwner vẫn false
 
-  (async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/user`, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("USER_API_FAILED");
-      const userData = await res.json();
-      const userPayload = userData?.data ?? userData; // tuỳ backend
-      setCurrentUser(userPayload);
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/user`, {
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("USER_API_FAILED");
+        const userData = await res.json();
+        const userPayload = userData?.data ?? userData; // tuỳ backend
+        setCurrentUser(userPayload);
 
-      // Nếu product đã có, so khớp luôn
-      if (product?.shop) {
-        const owner =
-          (userPayload?.shop?.id ?? userPayload?.shop_id ?? userPayload?.shops?.[0]?.id) != null
-            ? String(userPayload?.shop?.id ?? userPayload?.shop_id ?? userPayload?.shops?.[0]?.id) === String(product.shop.id)
-            : (userPayload?.shop?.slug ?? userPayload?.shop_slug ?? userPayload?.shops?.[0]?.slug)
+        // Nếu product đã có, so khớp luôn
+        if (product?.shop) {
+          const owner =
+            (userPayload?.shop?.id ?? userPayload?.shop_id ?? userPayload?.shops?.[0]?.id) != null
+              ? String(userPayload?.shop?.id ?? userPayload?.shop_id ?? userPayload?.shops?.[0]?.id) === String(product.shop.id)
+              : (userPayload?.shop?.slug ?? userPayload?.shop_slug ?? userPayload?.shops?.[0]?.slug)
               && String(userPayload?.shop?.slug ?? userPayload?.shop_slug ?? userPayload?.shops?.[0]?.slug) === String(product.shop.slug);
 
-        setIsOwner(Boolean(owner));
+          setIsOwner(Boolean(owner));
+        }
+      } catch {
+        setCurrentUser(null);
+        setIsOwner(false); // lỗi user -> coi như không phải chủ shop
       }
-    } catch {
-      setCurrentUser(null);
-      setIsOwner(false); // lỗi user -> coi như không phải chủ shop
-    }
-  })();
-}, []); // chỉ chạy 1 lần
-useEffect(() => {
-  if (!product?.shop || !currentUser) return;
-  const owner =
-    (currentUser?.shop?.id ?? currentUser?.shop_id ?? currentUser?.shops?.[0]?.id) != null
-      ? String(currentUser?.shop?.id ?? currentUser?.shop_id ?? currentUser?.shops?.[0]?.id) === String(product.shop.id)
-      : (currentUser?.shop?.slug ?? currentUser?.shop_slug ?? currentUser?.shops?.[0]?.slug)
+    })();
+  }, []); // chỉ chạy 1 lần
+
+  useEffect(() => {
+    if (!product?.shop || !currentUser) return;
+    const owner =
+      (currentUser?.shop?.id ?? currentUser?.shop_id ?? currentUser?.shops?.[0]?.id) != null
+        ? String(currentUser?.shop?.id ?? currentUser?.shop_id ?? currentUser?.shops?.[0]?.id) === String(product.shop.id)
+        : (currentUser?.shop?.slug ?? currentUser?.shop_slug ?? currentUser?.shops?.[0]?.slug)
         && String(currentUser?.shop?.slug ?? currentUser?.shop_slug ?? currentUser?.shops?.[0]?.slug) === String(product.shop.slug);
 
-  setIsOwner(Boolean(owner));
-}, [product, currentUser]);
-useEffect(() => {
-  const token = Cookies.get("authToken");
-  if (!product?.shop?.id || !token) {
-    setIsCheckingFollow(false);
-    return;
-  }
+    setIsOwner(Boolean(owner));
+  }, [product, currentUser]);
 
-  const checkFollow = async () => {
-    try {
-      setIsCheckingFollow(true); // bắt đầu check
-      const res = await fetch(`${API_BASE_URL}/shops/${product.shop.id}/is-following`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setFollowed(data.followed);
-    } catch (err) {
-      console.error("Lỗi fetch follow status:", err);
-    } finally {
-      setIsCheckingFollow(false); // xong thì set false
+  useEffect(() => {
+    const token = Cookies.get("authToken");
+    if (!product?.shop?.id || !token) {
+      setIsCheckingFollow(false);
+      return;
     }
-  };
 
-  checkFollow();
-}, [product?.shop?.id]);
+    const checkFollow = async () => {
+      try {
+        setIsCheckingFollow(true); // bắt đầu check
+        const res = await fetch(`${API_BASE_URL}/shops/${product.shop.id}/is-following`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setFollowed(data.followed);
+      } catch (err) {
+        console.error("Lỗi fetch follow status:", err);
+      } finally {
+        setIsCheckingFollow(false); // xong thì set false
+      }
+    };
+
+    checkFollow();
+  }, [product?.shop?.id]);
 
   // Fetch chi tiết sản phẩm và ghi nhận lịch sử xem
   useEffect(() => {
@@ -223,18 +225,19 @@ useEffect(() => {
 
     setSelectedVariant(matched || null);
   }, [selectedA, selectedB, product]);
+
   useEffect(() => {
-  // Nếu chưa có product thì thoát sớm để tránh đọc null.stock
-  if (!product) return;
+    // Nếu chưa có product thì thoát sớm để tránh đọc null.stock
+    if (!product) return;
 
-  const s = selectedVariant?.stock ?? product.stock ?? 0;
+    const s = selectedVariant?.stock ?? product.stock ?? 0;
 
-  setQuantity((prev) => {
-    if (s <= 0) return 1;
-    return prev > s ? s : prev;
-  });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [selectedVariant, selectedA, selectedB, product]);
+    setQuantity((prev) => {
+      if (s <= 0) return 1;
+      return prev > s ? s : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedVariant, selectedA, selectedB, product]);
 
   // Loading khi chưa có dữ liệu
   if (loading || !product) {
@@ -260,34 +263,33 @@ useEffect(() => {
   ].filter(Boolean)));
 
   // Kiểm tra sự kết hợp hợp lệ giữa A và B
-// Thay thế hàm cũ:
-const hasCombination = (a: string, b: string) => {
-  const norm = (s?: string) => (s || '').trim().toLowerCase();
+  // Thay thế hàm cũ:
+  const hasCombination = (a: string, b: string) => {
+    const norm = (s?: string) => (s || '').trim().toLowerCase();
 
-  // Không có variants -> dùng stock của product
-  if (!product.variants.length) {
-    return (product.stock ?? 0) > 0;
-  }
+    // Không có variants -> dùng stock của product
+    if (!product.variants.length) {
+      return (product.stock ?? 0) > 0;
+    }
 
-  const aN = norm(a);
-  const bN = norm(b);
+    const aN = norm(a);
+    const bN = norm(b);
 
-  // Còn hàng ở biến thể (nếu đã chọn A/B thì khớp theo A/B; nếu chưa chọn B thì chỉ cần khớp A)
-  const variantInStock = product.variants.some(v =>
-    (!a || norm(v.value1) === aN) &&
-    (!b || norm(v.value2) === bN) &&
-    (v.stock ?? 0) > 0
-  );
+    // Còn hàng ở biến thể (nếu đã chọn A/B thì khớp theo A/B; nếu chưa chọn B thì chỉ cần khớp A)
+    const variantInStock = product.variants.some(v =>
+      (!a || norm(v.value1) === aN) &&
+      (!b || norm(v.value2) === bN) &&
+      (v.stock ?? 0) > 0
+    );
 
-  // Còn hàng ở "biến thể gốc" (giá trị value1/value2 trực tiếp trên bảng products)
-  const baseInStock =
-    (!a || norm(product.value1) === aN) &&
-    (!b || norm(product.value2) === bN) &&
-    (product.stock ?? 0) > 0;
+    // Còn hàng ở "biến thể gốc" (giá trị value1/value2 trực tiếp trên bảng products)
+    const baseInStock =
+      (!a || norm(product.value1) === aN) &&
+      (!b || norm(product.value2) === bN) &&
+      (product.stock ?? 0) > 0;
 
-  return variantInStock || baseInStock;
-};
-
+    return variantInStock || baseInStock;
+  };
 
   // Kiểm tra selected có nằm trong product gốc
   const isFromProduct = parseOptionValues(product.value1).includes(selectedA)
@@ -306,7 +308,6 @@ const hasCombination = (a: string, b: string) => {
     return Number((product.sale_price ?? product.price) || 0).toLocaleString('vi-VN');
   };
 
-
   // Lấy tồn kho hiện tại
   const getStock = () => {
     if (selectedVariant) return selectedVariant.stock;
@@ -314,7 +315,7 @@ const hasCombination = (a: string, b: string) => {
     return product.stock;
   };
   const currentStock = selectedVariant?.stock ?? product.stock ?? 0;
-    // Trạng thái hết hàng cho lựa chọn hiện tại
+  // Trạng thái hết hàng cho lựa chọn hiện tại
   const isOutOfStock = () => {
     if (!product.variants.length) return (product.stock ?? 0) <= 0;
     if (selectedVariant) return (selectedVariant.stock ?? 0) <= 0;
@@ -326,14 +327,12 @@ const hasCombination = (a: string, b: string) => {
   const handleSelectA = (a: string) => setSelectedA(a);
   const handleSelectB = (b: string) => setSelectedB(b);
 
-  // Hiện popup nhanh
   // Hiện popup nhanh (ẩn bớt tên nếu quá dài)
   const commonPopup = (msg: string) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    // Nếu là thông báo có chứa tên sản phẩm → cắt ngắn
     if (msg.includes("🛒")) {
-      const match = msg.match(/"(.+?)"/); // Lấy phần tên trong dấu "
+      const match = msg.match(/"(.+?)"/);
       if (match && match[1].length > 30) {
         const shortName = match[1].slice(0, 30) + "...";
         msg = msg.replace(match[1], shortName);
@@ -348,13 +347,12 @@ const hasCombination = (a: string, b: string) => {
     }, 2000);
   };
 
-
   // Thêm vào giỏ hàng (token hoặc localStorage)
   const handleAddToCart = async () => {
-     if (isOwner) {
-    commonPopup('Bạn là chủ shop của sản phẩm này nên không thể đặt hàng.');
-    return;
-  }
+    if (isOwner) {
+      commonPopup('Bạn là chủ shop của sản phẩm này nên không thể đặt hàng.');
+      return;
+    }
     if (isAddingToCart) return;
     setIsAddingToCart(true);
 
@@ -398,7 +396,7 @@ const hasCombination = (a: string, b: string) => {
       setIsAddingToCart(false);
       return;
     }
-        // Chặn thêm giỏ khi hết hàng theo lựa chọn hiện tại
+    // Chặn thêm giỏ khi hết hàng theo lựa chọn hiện tại
     {
       const chosenStock = matchedVariant
         ? (matchedVariant.stock ?? 0)
@@ -488,7 +486,6 @@ const hasCombination = (a: string, b: string) => {
     }
   };
 
-
   // Thêm vào wishlist
   const toggleLike = async () => {
     if (isLiking) return;
@@ -540,8 +537,6 @@ const hasCombination = (a: string, b: string) => {
     }
   };
 
-
-
   // Theo dõi shop
   const handleFollow = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
@@ -559,9 +554,9 @@ const hasCombination = (a: string, b: string) => {
   // Mua ngay (thêm vào giỏ và chuyển trang)
   const handleBuyNow = async () => {
     if (isOwner) {
-    commonPopup('Bạn là chủ shop của sản phẩm này nên không thể đặt hàng.');
-    return;
-  }
+      commonPopup('Bạn là chủ shop của sản phẩm này nên không thể đặt hàng.');
+      return;
+    }
     if (isBuyingNow) return;
     setIsBuyingNow(true);
 
@@ -693,15 +688,10 @@ const hasCombination = (a: string, b: string) => {
     }
   };
 
-
-
-
-  // ⬇️ Phần hiển thị JSX sẽ viết bên dưới
-
-
+  // ⬇️ Phần hiển thị JSX
   return (
-    <div className="max-w-screen-xl mx-auto px-4 pt-[80px] pb-10 relative">
-      <div className="mb-8">
+    <div className="max-w-screen-xl mx-auto px-3 sm:px-4 pt-[72px] sm:pt-[80px] pb-8 sm:pb-10 relative">
+      <div className="mb-6 sm:mb-8">
         <Breadcrumb
           items={[
             { label: 'Trang chủ', href: '/' },
@@ -712,9 +702,8 @@ const hasCombination = (a: string, b: string) => {
         />
       </div>
 
-      <div className="rounded-xl border shadow-sm bg-white p-10">
-
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
+      <div className="rounded-xl border shadow-sm bg-white p-4 sm:p-6 md:p-8 lg:p-10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 lg:gap-10 items-start">
           {/* Gallery & like */}
           <div className="md:col-span-6 flex flex-col gap-4 relative">
             <button
@@ -735,16 +724,15 @@ const hasCombination = (a: string, b: string) => {
                   ? product.image
                   : [`${STATIC_BASE_URL}/products/default-product.png`]
               }
-
               mainImage={mainImage}
               setMainImage={setMainImage}
             />
-
           </div>
 
           {/* Info */}
           <div className="md:col-span-6 space-y-4">
             <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{product.name}</h1>
+
             {/* Rating, stock */}
             <div className="flex items-center gap-3 text-sm">
               <div className="flex items-center gap-2 text-base">
@@ -795,7 +783,6 @@ const hasCombination = (a: string, b: string) => {
                 </span>
               ) : null}
             </div>
-
 
             {/* Option A */}
             <div className="flex flex-col gap-2 mb-4 mt-4">
@@ -852,6 +839,7 @@ const hasCombination = (a: string, b: string) => {
                 ))}
               </div>
             </div>
+
             {showSelectionWarning && (
               <p className="text-red-500 text-sm mt-1">
                 Vui lòng chọn đầy đủ phân loại hàng
@@ -859,18 +847,16 @@ const hasCombination = (a: string, b: string) => {
             )}
 
             {/* Quantity & actions */}
-         
-            {/* Quantity & actions */}
             {!isOwner && (
-              <div className="flex items-center gap-3 mt-4">
-                <div className="flex flex-col items-start gap-1">
-                  <div className="flex border rounded overflow-hidden h-[44px] w-[165px]">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4 w-full">
+                <div className="flex flex-col items-start gap-1 w-full sm:w-auto">
+                  <div className="flex border rounded overflow-hidden h-[44px] w-full sm:w-[165px]">
                     <button
                       onClick={handleDecrease}
                       disabled={isQuantityUpdating || quantity <= 1}
                       className={`w-[55px] text-2xl font-extrabold transition ${quantity <= 1 || isQuantityUpdating
-                          ? 'text-gray-400 cursor-not-allowed'
-                          : 'text-black hover:bg-brand hover:text-white'
+                        ? 'text-gray-400 cursor-not-allowed'
+                        : 'text-black hover:bg-brand hover:text-white'
                         }`}
                     >
                       −
@@ -899,8 +885,8 @@ const hasCombination = (a: string, b: string) => {
                       onClick={handleIncrease}
                       disabled={isQuantityUpdating || quantity >= getStock()}
                       className={`w-[55px] text-2xl font-extrabold transition ${quantity >= getStock() || isQuantityUpdating
-                          ? 'text-gray-400 cursor-not-allowed'
-                          : 'text-black hover:bg-brand hover:text-white'
+                        ? 'text-gray-400 cursor-not-allowed'
+                        : 'text-black hover:bg-brand hover:text-white'
                         }`}
                     >
                       +
@@ -908,21 +894,21 @@ const hasCombination = (a: string, b: string) => {
                   </div>
 
                   <style jsx>{`
-        input[type='number']::-webkit-inner-spin-button,
-        input[type='number']::-webkit-outer-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        input[type='number'] {
-          -moz-appearance: textfield;
-        }
-      `}</style>
+                    input[type='number']::-webkit-inner-spin-button,
+                    input[type='number']::-webkit-outer-spin-button {
+                      -webkit-appearance: none;
+                      margin: 0;
+                    }
+                    input[type='number'] {
+                      -moz-appearance: textfield;
+                    }
+                  `}</style>
                 </div>
 
                 <button
                   onClick={handleBuyNow}
                   disabled={isBuyingNow || isOutOfStock()}
-                  className={`w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded transition font-medium hover:bg-red-600 ${(isBuyingNow || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''
+                  className={`w-full sm:w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded transition font-medium hover:bg-red-600 ${(isBuyingNow || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''
                     }`}
                 >
                   Mua Ngay
@@ -931,7 +917,7 @@ const hasCombination = (a: string, b: string) => {
                 <button
                   onClick={handleAddToCart}
                   disabled={isAddingToCart || isOutOfStock()}
-                  className={`w-[165px] h-[44px] text-sm md:text-base rounded transition font-medium border text-brand border-brand hover:bg-brand hover:text-white ${(isAddingToCart || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''
+                  className={`w-full sm:w-[165px] h-[44px] text-sm md:text-base rounded transition font-medium border text-brand border-brand hover:bg-brand hover:text-white ${(isAddingToCart || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''
                     }`}
                 >
                   Thêm Vào Giỏ Hàng
@@ -939,7 +925,7 @@ const hasCombination = (a: string, b: string) => {
               </div>
             )}
 
-            {/* Chính sách vận chuyển */}  {/* <- KHÔNG có </div> trước dòng này nữa */}
+            {/* Chính sách vận chuyển */}
             <div className="border rounded-lg divide-y text-sm text-gray-700 mt-6">
               <div className="flex items-center gap-3 p-4">
                 <div className="flex justify-center items-center h-[40px]">
@@ -965,23 +951,18 @@ const hasCombination = (a: string, b: string) => {
                 </div>
               </div>
             </div>
-
-
-           
-      
           </div>
         </div>
       </div>
 
       {/* Shop Info & Description */}
-      <div className="max-w-screen-xl mx-auto px-4 mt-16 space-y-16">
-        <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} isCheckingFollow={isCheckingFollow}/>
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-4 mt-10 sm:mt-16 space-y-10 sm:space-y-16">
+        <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} isCheckingFollow={isCheckingFollow} />
         <ProductDescription html={product.description} />
         <ProductReviews productId={product.id} />
         <ShopProductSlider shopSlug={product.shop.slug} />
         <BestSellingSlider />
       </div>
-
 
       {/* Popup */}
       {showPopup && (
@@ -990,8 +971,6 @@ const hasCombination = (a: string, b: string) => {
             (liked ? 'Đã thêm vào mục yêu thích!' : 'Đã xóa khỏi mục yêu thích!')}
         </div>
       )}
-
-
     </div>
   );
 }
