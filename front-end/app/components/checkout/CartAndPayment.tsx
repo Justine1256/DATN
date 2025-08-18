@@ -256,9 +256,18 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
         }
 
         // override server cho shop
-        const ovr = serverShop[g.shop_id];
-        if (ovr?.discount) vDiscount = Math.max(vDiscount, ovr.discount);
-        if (globalFreeShipping || ovr?.freeShipping) ship = 0;
+const ovr = serverShop?.[g.shop_id]; // nếu keys là string: serverShop?.[String(g.shop_id)]
+if (ovr) {
+  // dùng số giảm do BE trả về, đã áp trần 100k và min 400k
+  vDiscount = Math.max(0, Math.floor(Number(ovr.discount ?? 0)));
+  if (ovr.freeShipping) {
+    ship = 0; // đảm bảo ship là let, không phải const
+  }
+}
+// freeship toàn cục (nếu có) vẫn đè sau cùng
+if (globalFreeShipping) {
+  ship = 0;
+}
 
         const lineTotal = Math.max(0, sub - vDiscount) + ship;
         return {
