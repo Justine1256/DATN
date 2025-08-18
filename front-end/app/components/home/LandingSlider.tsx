@@ -16,22 +16,36 @@ export default function LandingSlider() {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [current, setCurrent] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Drag desktop
   const isDragging = useRef(false);
   const startX = useRef(0);
+
+  // Touch mobile
+  const touchDragging = useRef(false);
+  const touchStartX = useRef(0);
+
   const router = useRouter();
 
+  // Fetch banner
   useEffect(() => {
     const fetchBanners = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/banner`);
-        const data = await res.json();
-        const formatted = data.map((item: any) => ({
-          id: item.id,
-          image: `${API_BASE_URL}/image/${item.image}`, // remove quotes
-          buttonText: "Mua Ngay",
-          variant: item.id % 2 === 0 ? "black" : "red",
-        }));
+        const data: any[] = await res.json();
+
+        const formatted: Slide[] = (Array.isArray(data) ? data : []).map((item: any) => {
+          const variant: Slide["variant"] =
+            Number(item?.id) % 2 === 0 ? "black" : "red";
+          return {
+            id: Number(item?.id),
+            image: `${API_BASE_URL}/image/${item?.image}`,
+            buttonText: "Mua Ngay",
+            variant,
+          };
+        });
 
         setSlides(formatted);
       } catch (error) {
@@ -42,6 +56,7 @@ export default function LandingSlider() {
     fetchBanners();
   }, []);
 
+  // Auto-play
   useEffect(() => {
     const interval = setInterval(() => {
       if (!isHovered && slides.length > 0) {
@@ -51,34 +66,62 @@ export default function LandingSlider() {
     return () => clearInterval(interval);
   }, [isHovered, slides.length]);
 
-  const handleDotClick = (index: number) => {
-    setCurrent(index);
+  const go = (next: number) => {
+    if (slides.length === 0) return;
+    const total = slides.length;
+    setCurrent((next + total) % total);
   };
 
+  const handleDotClick = (index: number) => setCurrent(index);
+
+  // ===== Desktop drag =====
   const handleMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true;
     startX.current = e.clientX;
   };
-
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging.current) return;
+    if (!isDragging.current || slides.length === 0) return;
     const dx = e.clientX - startX.current;
     if (Math.abs(dx) > 50) {
-      setCurrent((prev) =>
-        dx < 0 ? (prev + 1) % slides.length : (prev - 1 + slides.length) % slides.length
-      );
+      go(current + (dx < 0 ? 1 : -1));
       isDragging.current = false;
     }
   };
-
   const handleMouseUp = () => {
     isDragging.current = false;
+  };
+
+  // ===== Mobile touch swipe =====
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchDragging.current = true;
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchDragging.current || slides.length === 0) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 40) {
+      go(current + (dx < 0 ? 1 : -1));
+      touchDragging.current = false;
+    }
+  };
+  const handleTouchEnd = () => {
+    touchDragging.current = false;
   };
 
   return (
     <div
       ref={containerRef}
-      className="relative max-w-[1120px] h-[344px] mx-auto overflow-hidden rounded-lg cursor-grab"
+      role="region"
+      aria-label="Landing slider"
+      aria-roledescription="carousel"
+      aria-live="polite"
+      // Giữ kích thước nền: max-w 1120px, cao responsive 180/220/280/344
+      className="
+        relative w-full max-w-[1120px] mx-auto overflow-hidden rounded-lg
+        h-[180px] sm:h-[220px] md:h-[280px] lg:h-[344px]
+        select-none
+      "
+      style={{ touchAction: "pan-y" }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
@@ -87,29 +130,48 @@ export default function LandingSlider() {
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onDragStart={(e) => e.preventDefault()}
     >
       {slides.map((slide, index) => (
         <div
           key={slide.id}
-          className={`absolute inset-0 transition-all duration-700 ease-in-out ${index === current ? "opacity-100 z-10" : "opacity-0 z-0"
-            }`}
+          className={`
+            absolute inset-0 transition-opacity duration-700 ease-in-out
+            ${index === current ? "opacity-100 z-10" : "opacity-0 z-0"}
+          `}
         >
+          {/* Ảnh: object-cover + object-center để tự căn giữa, không méo/không lệch */}
           <Image
             src={slide.image}
             alt={`banner-${slide.id}`}
-            className="object-cover rounded-lg"
+            className="object-cover object-center rounded-lg"
             fill
-            priority
+            priority={index === 0}
+            draggable={false}
             sizes="(max-width: 768px) 100vw, 1120px"
           />
+
+          {/* Nút CTA giữ vị trí tương tự, responsive nhẹ */}
           {index === current && (
-            <div className="absolute left-10 bottom-12 z-20">
+            <div
+              className="
+                absolute z-20
+                left-4 sm:left-8 md:left-10
+                bottom-4 sm:bottom-8 md:bottom-12
+              "
+            >
               <button
                 onClick={() => router.push("/shop")}
-                className={`w-[143px] h-[43px] rounded-md text-white font-semibold transition ${slide.variant === "red"
-                  ? "bg-brand hover:bg-red-600"
-                  : "bg-black hover:bg-neutral-700"
-                  }`}
+                className={`
+                  rounded-md text-white font-semibold transition
+                  w-28 h-10 sm:w-[143px] sm:h-[43px]
+                  ${slide.variant === "red"
+                    ? "bg-brand hover:bg-red-600"
+                    : "bg-black hover:bg-neutral-700"}
+                `}
               >
                 {slide.buttonText}
               </button>
@@ -118,13 +180,17 @@ export default function LandingSlider() {
         </div>
       ))}
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 z-30">
+      {/* Dots */}
+      <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-30">
         {slides.map((_, index) => (
-          <div
+          <button
             key={index}
             onClick={() => handleDotClick(index)}
-            className={`w-2 h-2 mb-2 rounded-full cursor-pointer transition-all duration-300 ${index === current ? "bg-brand" : "bg-gray-300"
-              }`}
+            aria-label={`Chuyển đến slide ${index + 1}`}
+            className={`
+              rounded-full cursor-pointer transition-all duration-300
+              ${index === current ? "bg-brand w-2.5 h-2.5 sm:w-3 sm:h-3" : "bg-gray-300 w-2 h-2 sm:w-2.5 sm:h-2.5"}
+            `}
           />
         ))}
       </div>
