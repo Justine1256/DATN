@@ -18,7 +18,6 @@ import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
 import { useOptimizedNavigation } from "@/hooks/useOptimizedNavigation";
 
-// Interface định nghĩa kiểu dữ liệu thông báo
 interface Notification {
   id: number;
   image_url: string;
@@ -29,7 +28,6 @@ interface Notification {
   created_at: string;
 }
 
-// 🔔 Component Popup xác nhận
 const Popup = ({
   message,
   onConfirm,
@@ -41,7 +39,7 @@ const Popup = ({
 }) => {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      <div className="bg-white rounded-2xl px-6 py-5 max-w-lg w-[90%] sm:w-full shadow-2xl animate-fade-in-up border border-gray-300">
+      <div className="bg-white rounded-2xl px-6 py-5 max-w-lg w-[90%] sm:w-full shadow-2xl animate-fade-in-up border border-gray-200">
         <p className="text-gray-800 text-base mb-6 flex items-center gap-2">{message}</p>
         <div className="flex justify-end gap-3">
           <button onClick={onClose} className="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm">Hủy</button>
@@ -50,7 +48,7 @@ const Popup = ({
               onClose();
               onConfirm();
             }}
-            className="px-5 py-2 rounded-lg bg-[#db4444] text-white text-sm hover:bg-[#c33]"
+            className="px-5 py-2 rounded-lg bg-[#DB4444] text-white text-sm hover:bg-[#c33]"
           >
             OK
           </button>
@@ -60,100 +58,67 @@ const Popup = ({
   );
 };
 
-// 🧠 Component chính: Header (giữ NGUYÊN layout desktop gốc)
+const BRAND = '#DB4444';
+
 const Header = () => {
   const router = useRouter();
   const categoryRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // State liên quan đến người dùng
   const { user, setUser } = useUser();
   const shopSlug = user?.shop?.slug;
 
-  // State danh mục
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
-
-  // State giỏ hàng
-  const { cartItems, setCartItems, reloadCart } = useCart();
+  const { cartItems, reloadCart } = useCart();
   const [cartCount, setCartCount] = useState(0);
-
-  // State wishlist
   const { wishlistItems } = useWishlist();
 
-  // State thông báo
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
-  // State khác
   const [searchQuery, setSearchQuery] = useState("");
   const [isSticky, setIsSticky] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [showVoucherPopup, setShowVoucherPopup] = useState(false);
-  const [showMobileSearch, setShowMobileSearch] = useState(false); // ✅ chỉ dùng cho mobile, KHÔNG đổi layout desktop
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
-  // 🚀 Optimized navigation hook
-  const { navigateTo, navigateToCart, prefetchRoute } = useOptimizedNavigation({
+  const { navigateToCart, prefetchRoute } = useOptimizedNavigation({
     user,
     cartItems,
     categories,
   });
 
-  // 🛒 Handle cart navigation with smart caching
-  const handleCartNavigation = () => {
-    const cartCache = sessionStorage.getItem('cart-page-cache');
-    const cacheTime = sessionStorage.getItem('cart-cache-time');
-    const now = Date.now();
-    if (cartCache && cacheTime && (now - parseInt(cacheTime)) < 30000) {
-      router.replace("/cart");
-      return;
-    }
-    router.prefetch("/cart");
-    router.replace("/cart");
-    sessionStorage.setItem('cart-cache-time', now.toString());
-  };
-
-  // 🎯 Handle navigation with smart prefetching
-  const handleNavigation = (path: string, shouldReplace = false) => {
-    router.prefetch(path);
-    if (shouldReplace) router.replace(path);
-    else router.push(path);
-  };
-
-  // 🚀 Critical pages prefetch on component mount (giữ nguyên)
+  // Prefetch các trang quan trọng
   useEffect(() => {
     const timer = setTimeout(() => {
       router.prefetch("/cart");
       if (user) {
         router.prefetch("/account");
         router.prefetch("/wishlist");
-        if (cartItems.length > 0) router.prefetch("/checkout");
+        if (cartCount > 0) router.prefetch("/checkout");
         if (user.shop) router.prefetch(`/shop/${user.shop.slug}`);
       } else {
         router.prefetch("/login");
-        router.prefetch("/register");
+        router.prefetch("/register"); // (fix syntax)
       }
       if (categories.length > 0) {
         categories.slice(0, 3).forEach(cat => router.prefetch(`/category/${cat.slug}`));
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [user, router, cartItems.length, categories]);
+  }, [user, router, cartCount, categories]);
 
-  // 🛒 Lắng nghe sự kiện cập nhật giỏ hàng từ nơi khác
   useEffect(() => {
     const handleCartUpdate = () => reloadCart();
     window.addEventListener("cartUpdated", handleCartUpdate);
     return () => window.removeEventListener("cartUpdated", handleCartUpdate);
   }, [reloadCart]);
 
-  // 🧮 Tính tổng số lượng sản phẩm trong giỏ
   useEffect(() => {
     const total = cartItems.reduce((acc, item) => acc + item.quantity, 0);
     setCartCount(total);
   }, [cartItems]);
 
-  // 📦 Lấy danh mục sản phẩm
   useEffect(() => {
     fetch(`${API_BASE_URL}/category`)
       .then(res => res.json())
@@ -161,7 +126,6 @@ const Header = () => {
       .catch(err => console.error("Lỗi lấy category:", err));
   }, []);
 
-  // 👤 Lấy thông tin người dùng (nếu có token)
   useEffect(() => {
     const token = Cookies.get("authToken");
     if (!token) return;
@@ -199,7 +163,6 @@ const Header = () => {
       });
   }, []);
 
-  // 🔁 Đồng bộ cart giữa local & server khi storage thay đổi
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === "cart") reloadCart();
@@ -208,7 +171,6 @@ const Header = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [reloadCart]);
 
-  // 📨 Lấy danh sách thông báo
   useEffect(() => {
     const token = Cookies.get("authToken");
     if (!token) return;
@@ -223,14 +185,12 @@ const Header = () => {
       .catch(err => console.error("Lỗi lấy notification:", err));
   }, []);
 
-  // 📌 Header sticky khi cuộn
   useEffect(() => {
     const onScroll = () => setIsSticky(window.scrollY > 50);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // 👂 Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -241,14 +201,12 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 📷 Xử lý ảnh (trả về URL đầy đủ)
   const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];
     if (!img || !img.trim()) return `${STATIC_BASE_URL}/products/default-product.png`;
     return img.startsWith('http') ? img : `${STATIC_BASE_URL}${img.startsWith('/') ? '' : '/'}${img}`;
   };
 
-  // 🔍 Xử lý tìm kiếm
   const handleSearchSubmit = (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
     const keyword = searchQuery.trim();
@@ -257,16 +215,13 @@ const Header = () => {
     setShowMobileSearch(false);
   };
 
-  // 🚪 Xử lý đăng xuất (giữ nguyên)
   const handleLogout = () => {
     Cookies.remove("authToken", { domain: ".marketo.info.vn", secure: true, sameSite: "None" });
     Cookies.remove("authToken");
-    setUser(null);
     const baseUrl = window.location.hostname === "localhost" ? "http://localhost:3000" : "https://marketo.info.vn";
     window.location.href = `${baseUrl}/`;
   };
 
-  // 📨 Xử lý khi click vào thông báo
   const handleNotificationClick = async (id: number, link: string) => {
     try {
       const token = Cookies.get("authToken");
@@ -286,20 +241,29 @@ const Header = () => {
     if (link) router.push(link);
   };
 
-  return (
-    <header className={`fixed top-0 left-0 right-0 z-[100] bg-white transition duration-300 ${isSticky ? "shadow-md" : ""}`}>
-      {/* Banner khuyến mãi (GIỮ NGUYÊN) */}
-      {/* <div className="bg-black text-white py-2 text-center text-sm">
-        <div className="container mx-auto max-w-[1200px] px-2">
-          <span className="text-gray-400">Khuyến mãi mùa hè cho đồ bơi - GIẢM 50%!</span>
-          <Link href="/shop" className="text-white ml-2 hover:underline">Mua Ngay</Link>
-        </div>
-      </div> */}
+  const linkCls = "relative group text-neutral-700 hover:text-[#DB4444] transition-colors";
+  const underline = "absolute left-0 bottom-[-2px] h-[2px] w-0 bg-[#DB4444] transition-all duration-300 group-hover:w-full";
 
-      {/* Thanh header chính (GIỮ NGUYÊN grid desktop) */}
-      <div className="py-0 px-2 border-b border-gray-200">
+  return (
+    <header
+      className={[
+        "fixed top-0 left-0 right-0 z-[100]",
+        "bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70",
+        "border-b border-neutral-200",
+        isSticky ? "shadow-md" : "shadow-[0_1px_0_rgba(0,0,0,0.04)]",
+        "transition-colors"
+      ].join(" ")}
+    >
+      {/* thanh gradient thương hiệu trên đỉnh */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#DB4444] via-[#ff6b6b] to-[#DB4444]"
+      />
+
+      {/* Thanh header chính */}
+      <div className="py-0 px-2">
         <div className="grid grid-cols-12 items-center py-4 md:px-16 max-w-[1280px] mx-auto">
-          {/* Logo (GIỮ NGUYÊN) */}
+          {/* Logo */}
           <div className="col-span-6 sm:col-span-3 lg:col-span-2">
             <Link href="/">
               <Image
@@ -314,19 +278,27 @@ const Header = () => {
             </Link>
           </div>
 
-          {/* Menu (GIỮ NGUYÊN) */}
+          {/* Menu */}
           <nav className="hidden md:flex items-center space-x-5 col-span-6 justify-center">
-            <Link href="/" className="relative group text-black hover:opacity-90" onMouseEnter={() => router.prefetch("/")}>Trang Chủ<span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span></Link>
+            <Link href="/" className={linkCls} onMouseEnter={() => router.prefetch("/")}>
+              Trang Chủ
+              <span className={underline}></span>
+            </Link>
+
             <div className="relative group" ref={categoryRef}>
-              <Link href="/category" className="relative block text-black group" onMouseEnter={() => router.prefetch("/category")}>
+              <Link href="/category" className={linkCls} onMouseEnter={() => router.prefetch("/category")}>
                 Danh mục
-                <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
+                <span className={underline}></span>
               </Link>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border shadow-lg rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white border border-neutral-200 shadow-lg rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
                 <ul>
                   {categories.map(cat => (
                     <li key={cat.id}>
-                      <Link href={`/category/${cat.slug}`} className="block px-4 py-2 hover:bg-brand/10" onMouseEnter={() => router.prefetch(`/category/${cat.slug}`)}>
+                      <Link
+                        href={`/category/${cat.slug}`}
+                        className="block px-4 py-2 text-neutral-700 hover:bg-[rgba(219,68,68,0.06)]"
+                        onMouseEnter={() => router.prefetch(`/category/${cat.slug}`)}
+                      >
                         {cat.name}
                       </Link>
                     </li>
@@ -334,25 +306,34 @@ const Header = () => {
                 </ul>
               </div>
             </div>
-            <Link href="/about" className="relative group text-black hover:opacity-90" onMouseEnter={() => router.prefetch("/about")}>Giới Thiệu<span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span></Link>
+
+            <Link href="/about" className={linkCls} onMouseEnter={() => router.prefetch("/about")}>
+              Giới Thiệu
+              <span className={underline}></span>
+            </Link>
+
             <a
               onClick={(e) => { e.preventDefault(); if (!user) { setShowVoucherPopup(true); } else { router.push("/voucher"); } }}
               onMouseEnter={() => user && router.prefetch("/voucher")}
-              className="relative group text-black hover:opacity-90 cursor-pointer"
+              className={linkCls + " cursor-pointer"}
             >
               Mã Giảm Giá
-              <span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span>
+              <span className={underline}></span>
             </a>
+
             {!user && (
-              <Link href="/login" className="relative group text-black hover:opacity-90" onMouseEnter={() => router.prefetch("/login")}>Đăng Nhập<span className="absolute left-0 bottom-[-2px] h-[2px] w-0 bg-black transition-all duration-300 group-hover:w-full"></span></Link>
+              <Link href="/login" className={linkCls} onMouseEnter={() => router.prefetch("/login")}>
+                Đăng Nhập
+                <span className={underline}></span>
+              </Link>
             )}
           </nav>
 
-          {/* Phần bên phải: GIỮ NGUYÊN trên desktop, thêm nút search cho mobile */}
+          {/* Right */}
           <div className="col-span-6 sm:col-span-9 lg:col-span-4 flex justify-end items-center space-x-4">
-            {/* Nút mở tìm kiếm (chỉ mobile) */}
+            {/* Mobile search toggle */}
             <button
-              className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200"
+              className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 hover:border-[#DB4444] hover:text-[#DB4444]"
               aria-label="Mở tìm kiếm"
               onClick={() => setShowMobileSearch(s => !s)}
             >
@@ -372,14 +353,18 @@ const Header = () => {
             <div className="relative" onClick={navigateToCart} onMouseEnter={() => prefetchRoute("/cart")}>
               <CartDropdown key={cartItems.length} cartItems={cartItems} formatImageUrl={formatImageUrl} />
               {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">{cartCount}</span>
+                <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                  {cartCount}
+                </span>
               )}
             </div>
 
             <Link href="/wishlist" className="relative w-5 h-5 block" onMouseEnter={() => router.prefetch("/wishlist")}>
-              <AiOutlineHeart className="w-5 h-5 text-black hover:text-red-500 transition-colors duration-300" />
+              <AiOutlineHeart className="w-5 h-5 text-neutral-700 hover:text-[#DB4444] transition-colors duration-300" />
               {wishlistItems.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">{wishlistItems.length}</span>
+                <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                  {wishlistItems.length}
+                </span>
               )}
             </Link>
 
@@ -399,42 +384,81 @@ const Header = () => {
                 />
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-56 rounded-md shadow-xl bg-[rgba(30,30,30,0.7)] backdrop-blur p-3 z-50">
+                  <div
+                    className="
+      absolute right-0 mt-3 w-56
+      rounded-xl bg-[rgba(30,30,30,0.80)] backdrop-blur
+      shadow-2xl p-3 z-50
+      ring-1 ring-white/10
+    "
+                  >
                     <ul className="text-white space-y-1 text-sm">
                       <li>
-                        <Link href="/account" className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"><FiUser /> Quản Lý Tài Khoản</Link>
+                        <Link
+                          href="/account"
+                          className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10"
+                        >
+                          <FiUser /> Quản Lý Tài Khoản
+                        </Link>
                       </li>
+
                       {user?.shop?.slug ? (
-                        <Link href={`/shop/${user.shop.slug}`} className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"><TbBuildingStore className="w-5 h-5" /> Cửa Hàng của bạn</Link>
+                        <Link
+                          href={`/shop/${user.shop.slug}`}
+                          className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10"
+                        >
+                          <TbBuildingStore className="w-5 h-5" /> Cửa Hàng của bạn
+                        </Link>
                       ) : (
-                        <Link href="/shop/register" className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"><TbBuildingStore className="w-5 h-5" /> Đăng Ký Shop</Link>
+                        <Link
+                          href="/shop/register"
+                          className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10"
+                        >
+                          <TbBuildingStore className="w-5 h-5" /> Đăng Ký Shop
+                        </Link>
                       )}
+
                       {(user?.role === "admin" || user?.role === "seller") && (
                         <Link
                           href={
                             typeof window !== "undefined" && window.location.hostname === "localhost"
-                              ? user.role === "admin" ? "http://localhost:3001/admin/dashboard" : "http://localhost:3001/shop-admin/dashboard"
-                              : user.role === "admin" ? "https://admin.marketo.info.vn/admin/dashboard" : "https://admin.marketo.info.vn/shop-admin/dashboard"
+                              ? user.role === "admin"
+                                ? "http://localhost:3001/admin/dashboard"
+                                : "http://localhost:3001/shop-admin/dashboard"
+                              : user.role === "admin"
+                                ? "https://admin.marketo.info.vn/admin/dashboard"
+                                : "https://admin.marketo.info.vn/shop-admin/dashboard"
                           }
-                          className="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded"
+                          className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10"
                         >
                           <FiSettings className="w-5 h-5" /> {user.role === "admin" ? "Trang Quản Trị Tổng" : "Trang Quản Trị Shop"}
                         </Link>
                       )}
-                      <li onClick={handleLogout} className="flex items-center gap-2 text-red-400 hover:bg-white/10 px-3 py-2 rounded cursor-pointer"><FiLogOut /> Đăng Xuất</li>
+
+                      <li
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-3 py-2 rounded cursor-pointer text-red-400 hover:bg-white/10"
+                      >
+                        <FiLogOut /> Đăng Xuất
+                      </li>
                     </ul>
                   </div>
                 )}
+
               </div>
             )}
 
             {showVoucherPopup && (
-              <Popup message="⚠️ Bạn cần đăng nhập để xem mã giảm giá." onConfirm={() => router.push("/login")} onClose={() => setShowVoucherPopup(false)} />
+              <Popup
+                message="⚠️ Bạn cần đăng nhập để xem mã giảm giá."
+                onConfirm={() => router.push("/login")}
+                onClose={() => setShowVoucherPopup(false)}
+              />
             )}
           </div>
         </div>
 
-        {/* Ô tìm kiếm trượt xuống cho mobile, KHÔNG ảnh hưởng desktop */}
+        {/* Ô tìm kiếm cho mobile */}
         {showMobileSearch && (
           <div className="md:hidden max-w-[1280px] mx-auto px-2 pb-3">
             <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
@@ -442,10 +466,12 @@ const Header = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                className="flex-1 rounded-full border border-neutral-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DB4444]/20"
                 placeholder="Tìm kiếm sản phẩm..."
               />
-              <button type="submit" className="rounded-full px-4 py-2 bg-black text-white text-sm">Tìm</button>
+              <button type="submit" className="rounded-full px-4 py-2 bg-[#DB4444] text-white text-sm hover:bg-[#c33]">
+                Tìm
+              </button>
             </form>
           </div>
         )}
