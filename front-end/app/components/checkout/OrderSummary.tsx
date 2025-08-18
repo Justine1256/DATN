@@ -17,11 +17,12 @@ export interface CartItem {
     original_price?: number;
   };
   variant?: {
-    id: number;
-    price?: number;
+    id?: number | string | null;   // 👈 thêm id
+    price?: number | null;
     sale_price?: number | null;
+  } | null;
   };
-}
+
 
 export type VoucherType = 'percent' | 'amount' | 'shipping' | string;
 export interface Voucher {
@@ -135,6 +136,7 @@ export default function OrderSummary({
   const finalTotal = Math.max(0, (subtotal - promotionDiscount) - voucherDiscount + shipping);
 
   /** ===== Lưu địa chỉ (đăng nhập + nhập tay + tick + không chọn addressId) ===== */
+  
   const trySaveManualAddress = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token || !manualAddressData) return;
@@ -218,23 +220,17 @@ export default function OrderSummary({
       const token = localStorage.getItem('token') || Cookies.get('authToken');
       const isGuest = !token;
 
-      let cartPayload: any[];
-      if (isGuest) {
-        cartPayload = JSON.parse(localStorage.getItem('cart') || '[]');
-        if (!cartPayload.length) throw new Error('Giỏ hàng trống.');
-      } else {
-        cartPayload = cartItems.map((item) => ({
-          product_id: item.product.id,
-          quantity: item.quantity,
-          price: item.product.price,
-          sale_price: item.product.sale_price ?? null,
-          variant_id: item.variant?.id ?? null,
-        }));
+      const cart_items = buildCartItemsPayload(cartItems);
+      if (cart_items.length === 0) {
+        throw new Error('Giỏ hàng trống hoặc thiếu product_id/price.');
       }
 
+      // ----- GUEST -----
       if (isGuest) {
         const guestPayload = {
           payment_method: paymentMethod,
+          cart_items,                                  // 👈 gửi cart_items
+          voucher_code: voucherCode ?? appliedVoucher?.code ?? null,
           address_manual: {
             full_name: manualAddressData?.full_name || '',
             address: `${manualAddressData?.address ?? ''}${manualAddressData?.apartment ? ', ' + manualAddressData.apartment : ''}`,
@@ -242,13 +238,13 @@ export default function OrderSummary({
             phone: manualAddressData?.phone || '',
             email: manualAddressData?.email || '',
           },
-          cart_items: cartPayload,
-          voucher_code: null,
         };
         await axios.post(`${API_BASE_URL}/nologin`, guestPayload);
       } else {
-        const requestBody: OrderRequestBody = {
+        // ----- LOGGED-IN -----
+        const requestBody: any = {
           payment_method: paymentMethod,
+          cart_items,                                  // 👈 gửi cart_items
           voucher_code: appliedVoucher?.code || voucherCode || null,
         };
 
@@ -271,8 +267,7 @@ export default function OrderSummary({
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // ⛔️ GỌI LƯU ĐỊA CHỈ CHỈ 1 LẦN Ở ĐÂY
-        await maybeSaveManualAddress();
+        await maybeSaveManualAddress(); // lưu địa chỉ 1 lần nếu có tick
 
         if (response.data?.redirect_url) {
           localStorage.removeItem('cart');
@@ -303,6 +298,7 @@ export default function OrderSummary({
       setLoading(false);
     }
   };
+;
 
   useEffect(() => {
     if (showPopup) {
@@ -313,6 +309,31 @@ export default function OrderSummary({
       return () => clearTimeout(t);
     }
   }, [showPopup]);
+  // chuẩn hoá cart_items gửi lên BE
+  const buildCartItemsPayload = (list: CartItem[]) => {
+    return list
+      .map((it) => {
+        const product_id = Number(it.product?.id);
+        const variant_id = it.variant?.id ?? null;
+        const quantity = Number(it.quantity);
+        const price = num(
+          it.variant?.sale_price ??
+          it.variant?.price ??
+          it.product?.sale_price ??
+          it.product?.price
+        );
+
+        return { product_id, variant_id, quantity, price };
+      })
+      // lọc item thiếu thông tin
+      .filter(
+        (x) =>
+          Number.isFinite(x.product_id) &&
+          x.product_id > 0 &&
+          Number.isFinite(x.price) &&
+          x.quantity > 0
+      );
+  };
 
   return (
     <div className="space-y-6 text-sm relative">

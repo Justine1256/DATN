@@ -55,6 +55,7 @@ export interface CartItem {
     sale_price?: number | null;
   };
   variant?: {
+    id?: number | string | null;   // 👈 thêm id
     price?: number | null;
     sale_price?: number | null;
   } | null;
@@ -185,17 +186,22 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     if (i.startsWith('http')) return i;
     return i.startsWith('/') ? `${STATIC_BASE_URL}${i}` : `${STATIC_BASE_URL}/${i}`;
   }, []);
-  const unitPrice = useCallback(
-    (it: CartItem) => it.variant?.sale_price ?? it.variant?.price ?? it.product.sale_price ?? it.product.price ?? 0,
-    []
-  );
+ 
 
   /* ---------- LỌC ITEMS THEO selectedCartIds ---------- */
   const itemsForCheckout = useMemo(() => {
-    if (!selectedIds.length) return items; // nếu vào trực tiếp /checkout không có chọn trước → lấy tất cả
-    const setIds = new Set(selectedIds);
-    return items.filter((it) => setIds.has(String(it.id)));
-  }, [items, selectedIds]);
+    const all = items;
+    if (!selectedIds.length) return all;
+
+    const setIds = new Set(selectedIds.map(String));
+    const filtered = all.filter((it) => setIds.has(String(it.id)));
+
+    // Guest: nếu lọc rỗng (không khớp ID) thì fallback lấy toàn bộ
+    if (!token && filtered.length === 0) return all;
+
+    return filtered;
+  }, [items, selectedIds, token]);
+
 
   // Thông báo cho parent (nếu cần) mỗi khi danh sách dùng để checkout thay đổi
   useEffect(() => {
@@ -213,6 +219,19 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   }, [itemsForCheckout]);
 
   /* ---------- Tính tiền per shop & toàn giỏ ---------- */
+  const toNum = (v: any, def = 0) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : def;
+  };
+
+  const unitPrice = useCallback((it: CartItem) => {
+    const p =
+      it.variant?.sale_price ??
+      it.variant?.price ??
+      it.product?.sale_price ??
+      it.product?.price;
+    return toNum(p, 0); // chặn NaN → 0
+  }, []);
   const perShopRaw = useMemo(
     () =>
       grouped.map((g) => ({
@@ -300,6 +319,8 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     [applied.byShop]
   );
   const globalVoucherCode = applied.global?.code ?? null;
+  // đặt ngay dưới const COLLAPSE_COUNT = 2;
+
 
   useEffect(() => {
     onPaymentInfoChange?.({
@@ -312,6 +333,56 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
       globalVoucherCode,
     });
   }, [paymentMethod, perShopComputed, globalVoucherDiscount, globalFreeShipping, summary, onPaymentInfoChange]);
+  // Chuẩn hóa item từ localStorage cho guest
+  const normalizeGuestItem = (raw: any, idx: number): CartItem => {
+    const prod = raw.product ?? {};
+
+    const productId = toNum(prod.id ?? raw.product_id ?? raw.id, 0);
+    const productName = (prod.name ?? raw.name ?? 'Sản phẩm') as string;
+
+    let image = prod.image ?? raw.image ?? [];
+    if (!Array.isArray(image)) image = image ? [image] : [];
+
+    const price = toNum(prod.price ?? raw.price ?? raw.variant_price, 0);
+    const salePriceRaw =
+      (raw.variant?.sale_price ?? raw.variant_sale_price ??
+        prod.sale_price ?? raw.sale_price);
+    const salePrice = Number.isFinite(Number(salePriceRaw))
+      ? toNum(salePriceRaw, 0)
+      : null;
+
+    const variantId =
+      raw.variant?.id ?? raw.variant_id ?? null;
+
+    const variant = (raw.variant || raw.variant_id || raw.variant_price || raw.variant_sale_price)
+      ? {
+        id: variantId,
+        price: (raw.variant?.price != null) ? toNum(raw.variant.price, 0) : toNum(raw.variant_price, 0),
+        sale_price: (raw.variant?.sale_price != null) ? toNum(raw.variant.sale_price, 0) : toNum(raw.variant_sale_price, 0),
+      }
+      : null;
+
+    const shopId = toNum(prod.shop?.id ?? prod.shop_id ?? raw.shop_id, 0);
+    const shopName = (prod.shop?.name ?? raw.shop_name ?? 'Shop') as string;
+
+    const id = String(raw.id ?? raw.cart_item_id ?? `guest-${productId}-${variantId ?? 'no-variant'}-${idx}`);
+
+    return {
+      id,
+      quantity: toNum(raw.quantity, 1),
+      shop_id: shopId,
+      shop_name: shopName,
+      product: {
+        id: productId,
+        name: productName,
+        image,
+        price,
+        sale_price: salePrice,
+      },
+      variant,
+    };
+  };
+
 
   /* ---------- Fetch cart ---------- */
   useEffect(() => {
@@ -323,24 +394,16 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
         if (!t) {
           const guest = localStorage.getItem('cart');
           const parsed = guest ? JSON.parse(guest) : [];
-          const mapped: CartItem[] = parsed.map((it: any, idx: number) => ({
-            id: it.id ?? `guest-${idx}`,
-            quantity: it.quantity,
-            shop_id: Number(it.shop_id ?? 0),
-            shop_name: it.shop_name ?? 'Shop',
-            product: {
-              id: Number(it.product_id ?? it.id ?? 0),
-              name: it.name,
-              image: it.image,
-              price: Number(it.price ?? 0),
-              sale_price: it.sale_price ?? null,
-            },
-            variant: it.variant ?? null,
-          }));
+          const mapped: CartItem[] = Array.isArray(parsed)
+            ? parsed.map((it: any, idx: number) => normalizeGuestItem(it, idx))
+            : [];
+
           if (!mounted) return;
           setItems(mapped);
+          // (không cần onCartChange ở đây; effect itemsForCheckout sẽ gọi)
           return;
         }
+
 
         const res = await axios.get(`${API_BASE_URL}/cart`, { headers: { Authorization: `Bearer ${t}` } });
         const sv: CartItem[] = (res.data || []).map((it: any, idx: number) => ({
@@ -355,7 +418,19 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
             price: Number(it.product?.price ?? 0),
             sale_price: it.product?.sale_price ?? null,
           },
-          variant: it.variant ?? null,
+          variant: it.variant
+            ? {
+              id: it.variant.id ?? it.variant_id ?? null,   // 👈 cố gắng lấy variant_id
+              price: it.variant.price ?? it.variant_price ?? null,
+              sale_price: it.variant.sale_price ?? it.variant_sale_price ?? null,
+            }
+            : (it.variant_id || it.variant_price || it.variant_sale_price)
+              ? {
+                id: it.variant_id ?? null,
+                price: it.variant_price ?? null,
+                sale_price: it.variant_sale_price ?? null,
+              }
+              : null,
         }));
         if (!mounted) return;
         setItems(sv);
@@ -656,7 +731,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                 <Panel
                   key={String(g.shop_id)}
                   header={
-                    <div style={{ display: 'flex,', alignItems: 'center', gap: 12, width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
                       <Text strong style={{ color: 'black' }}>
                         Shop:{' '}
                         <span
@@ -728,7 +803,12 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                                 <strong>{it.product.name}</strong>
                               </OneLine>
                             }
-                            description={<Text type="secondary">SL: {it.quantity}</Text>}
+                            description={
+                              <Text type="secondary" style={{ color: 'rgba(0,0,0,.45)' }}>
+                                SL: {it.quantity}
+                              </Text>
+                            }
+
                           />
                           <div style={{ textAlign: 'right', minWidth: 120 }}>
                             {hasSale ? (
