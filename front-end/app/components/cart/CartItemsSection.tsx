@@ -87,46 +87,61 @@ export default function CartItemsSection({
     if (guestCart) {
       try {
         const parsed = JSON.parse(guestCart);
-        localCartItems = parsed.map((item: any, index: number) => {
-          const isVariant = !!item.variant_id;
-          const variantData = isVariant
+
+        // helper tạo id ổn định để tránh trùng
+        const makeStableId = (row: any, idx: number, v?: any) => {
+          const pid = row.product_id ?? row.product?.id ?? 'p';
+          const vid = v?.id ?? row.variant_id ?? 'base';
+          const v1 = v?.value1 ?? row.value1 ?? '';
+          const v2 = v?.value2 ?? row.value2 ?? '';
+          return row.id ?? `${pid}-${vid}-${v1}-${v2}-${idx}`;
+        };
+
+        localCartItems = parsed.map((row: any, idx: number) => {
+          // v: ưu tiên schema mới (row.variant), fallback schema cũ (variant_* + option/value)
+          const v = row.variant ?? null;
+          const hasVariant = !!v || !!row.variant_id;
+
+          const variantData = hasVariant
             ? {
-              id: item.variant_id,
-              option1: item.option1 || 'Phân loại 1',
-              option2: item.option2 || 'Phân loại 2',
-              value1: item.value1 ?? null,
-              value2: item.value2 ?? null,
-              price: item.variant_price,
-              sale_price: item.variant_sale_price ?? null,
+              id: v?.id ?? row.variant_id ?? null,
+              option1: v?.option1 ?? row.option1 ?? 'Phân loại 1',
+              option2: v?.option2 ?? row.option2 ?? 'Phân loại 2',
+              value1: v?.value1 ?? row.value1 ?? null,
+              value2: v?.value2 ?? row.value2 ?? null,
+              price: v?.price ?? row.variant_price ?? row.price ?? 0,
+              sale_price: v?.sale_price ?? row.variant_sale_price ?? row.sale_price ?? null,
             }
             : {
               id: null,
-              option1: item.option1 || 'Phân loại 1',
-              option2: item.option2 || 'Phân loại 2',
-              value1: item.value1 ?? null,
-              value2: item.value2 ?? null,
-              price: item.price,
-              sale_price: item.sale_price ?? null,
+              option1: row.option1 ?? 'Phân loại 1',
+              option2: row.option2 ?? 'Phân loại 2',
+              value1: row.value1 ?? null,
+              value2: row.value2 ?? null,
+              price: row.price ?? 0,
+              sale_price: row.sale_price ?? null,
             };
 
           return {
-            id: item.id || index + 1,
-            quantity: Number(item.quantity) || 1,
+            id: makeStableId(row, idx, hasVariant ? variantData : undefined),
+            quantity: Number(row.quantity) || 1,
             product: {
-              id: item.product_id,
-              name: item.name,
-              image: [formatImageUrl(item.image)],
-              price: item.price,
-              sale_price: isVariant ? undefined : item.sale_price ?? null,
-              shop: item.shop ?? undefined,
+              id: Number(row.product_id ?? row.product?.id ?? 0),
+              name: row.name ?? row.product?.name ?? 'Sản phẩm',
+              image: [formatImageUrl(row.image ?? (Array.isArray(row.product?.image) ? row.product.image[0] : row.product?.image))],
+              price: Number(row.price ?? row.product?.price ?? variantData.price ?? 0),
+              // nếu có biến thể thì để sale ở biến thể; base product thì dùng sale_price ở root
+              sale_price: hasVariant ? undefined : (row.sale_price ?? row.product?.sale_price ?? null),
+              shop: row.shop ?? (row.shop_id ? { id: Number(row.shop_id), name: row.shop_name } : undefined),
             },
-            variant: variantData,
+            variant: hasVariant ? variantData : null,
           } as CartItem;
         });
       } catch (err) {
         console.error('❌ Lỗi parse local cart:', err);
       }
     }
+
 
     if (!token) {
       setCartItems(localCartItems);

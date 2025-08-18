@@ -402,8 +402,8 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
               min_order: src.min_order_value
                 ? Number(src.min_order_value)
                 : src.min_order_amount
-                  ? Number(src.min_order_amount)
-                  : undefined,
+                ? Number(src.min_order_amount)
+                : undefined,
               expires_at: src.end_date ?? src.expires_at ?? src.expired_at ?? src.end_at ?? undefined,
               is_active: src.is_active ?? src.active ?? true,
               shop_id: src.shop_id ?? null,
@@ -553,8 +553,8 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     const searched = !s
       ? scopeFiltered
       : scopeFiltered.filter((v) =>
-        [v.code, v.title, v.description].filter(Boolean).some((x) => String(x).toLowerCase().includes(s))
-      );
+          [v.code, v.title, v.description].filter(Boolean).some((x) => String(x).toLowerCase().includes(s))
+        );
 
     const score = (v: Voucher) => {
       const isGlobal = v.shop_id == null ? 1 : 0;
