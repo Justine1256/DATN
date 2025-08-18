@@ -1,11 +1,26 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { User, MessageCircle, Star, Phone, Package, Calendar, Users } from 'lucide-react';
 import Image from 'next/image';
-import { API_BASE_URL } from "@/utils/api";
-import ShopProductSlider from '../home/ShopProduct';
 import Cookies from 'js-cookie';
+import ShopProductSlider from '../home/ShopProduct';
+import { API_BASE_URL } from '@/utils/api';
+import { User, MessageCircle, Star, Phone, Package, Calendar, Users } from 'lucide-react';
+import {
+    ConfigProvider,
+    Card,
+    Row,
+    Col,
+    Avatar,
+    Tag,
+    Button,
+    Tooltip,
+    Typography,
+    Divider,
+    Space,
+} from 'antd';
+
+const { Text, Title } = Typography;
 
 const formatTimeAgo = (dateString: string): string => {
     const now = new Date();
@@ -36,34 +51,32 @@ interface Shop {
     email: string;
     slug: string;
     followers_count: number;
-    is_following?: boolean; // nếu backend có
+    is_following?: boolean;
 }
 
-const ShopCard = ({ shop }: { shop: Shop }) => {
-    // trạng thái theo dõi (lấy từ API nếu có)
+export default function ShopCard({ shop }: { shop: Shop }) {
+    // ---- Follow state (giữ nguyên logic) ----
     const [followed, setFollowed] = useState<boolean>(!!shop?.is_following);
-    useEffect(() => {
-        setFollowed(!!shop?.is_following);
-    }, [shop?.id, shop?.is_following]);
+    useEffect(() => setFollowed(!!shop?.is_following), [shop?.id, shop?.is_following]);
 
-    // pending để disable nút khi gọi API
     const [pending, setPending] = useState(false);
-
-    // Toast xanh lá đúng format
     const [showPopup, setShowPopup] = useState(false);
     const [popupText, setPopupText] = useState('');
+
     useEffect(() => {
         if (!showPopup) return;
-        const t = setTimeout(() => setShowPopup(false), 2000);
+        const t = setTimeout(() => setShowPopup(false), 1800);
         return () => clearTimeout(t);
     }, [showPopup]);
-    const showToast = (msg: string) => { setPopupText(msg); setShowPopup(true); };
 
-    // FOLLOW
+    const toast = (msg: string) => {
+        setPopupText(msg);
+        setShowPopup(true);
+    };
+
     const followShop = async () => {
         const token = Cookies.get('authToken') || localStorage.getItem('token');
-        if (!token) return showToast('Vui lòng đăng nhập để theo dõi cửa hàng');
-
+        if (!token) return toast('Vui lòng đăng nhập để theo dõi cửa hàng');
         setPending(true);
         try {
             const res = await fetch(`${API_BASE_URL}/shops/${shop.id}/follow`, {
@@ -71,29 +84,23 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                 headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
             });
             const data = await res.json().catch(() => null);
-
             if (res.ok) {
                 setFollowed(true);
-                showToast(data?.message || 'Đã theo dõi cửa hàng');
+                toast(data?.message || 'Đã theo dõi cửa hàng');
             } else {
-                // nhiều backend trả "Bạn đã theo dõi shop này." kèm status 400/409
-                if (data?.message?.toLowerCase().includes('đã theo dõi')) {
-                    setFollowed(true);
-                }
-                showToast(data?.message || 'Theo dõi thất bại. Vui lòng thử lại!');
+                if (data?.message?.toLowerCase?.().includes('đã theo dõi')) setFollowed(true);
+                toast(data?.message || 'Theo dõi thất bại. Vui lòng thử lại!');
             }
         } catch {
-            showToast('Có lỗi xảy ra. Vui lòng thử lại!');
+            toast('Có lỗi xảy ra. Vui lòng thử lại!');
         } finally {
             setPending(false);
         }
     };
 
-    // UNFOLLOW
     const unfollowShop = async () => {
         const token = Cookies.get('authToken') || localStorage.getItem('token');
-        if (!token) return showToast('Vui lòng đăng nhập để hủy theo dõi');
-
+        if (!token) return toast('Vui lòng đăng nhập để hủy theo dõi');
         setPending(true);
         try {
             const res = await fetch(`${API_BASE_URL}/shops/${shop.id}/unfollow`, {
@@ -101,160 +108,194 @@ const ShopCard = ({ shop }: { shop: Shop }) => {
                 headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
             });
             const data = await res.json().catch(() => null);
-
             if (res.ok) {
                 setFollowed(false);
-                showToast(data?.message || 'Đã hủy theo dõi cửa hàng');
+                toast(data?.message || 'Đã hủy theo dõi cửa hàng');
             } else {
-                // server có thể trả "Bạn chưa theo dõi shop này."
-                if (data?.message?.toLowerCase().includes('chưa theo dõi')) {
-                    setFollowed(false);
-                }
-                showToast(data?.message || 'Hủy theo dõi thất bại. Vui lòng thử lại!');
+                if (data?.message?.toLowerCase?.().includes('chưa theo dõi')) setFollowed(false);
+                toast(data?.message || 'Hủy theo dõi thất bại. Vui lòng thử lại!');
             }
         } catch {
-            showToast('Có lỗi xảy ra. Vui lòng thử lại!');
+            toast('Có lỗi xảy ra. Vui lòng thử lại!');
         } finally {
             setPending(false);
         }
     };
 
-    // Toggle (chỉ GIỮ 1 phiên bản, không khai báo trùng)
-    const handleToggleFollow = useCallback(() => {
-        if (followed) unfollowShop();
-        else followShop();
-    }, [followed]);
+    const toggleFollow = useCallback(() => (followed ? unfollowShop() : followShop()), [followed]);
 
+    // ---- UI (Ant Design), gọn gàng, avatar không đè, card KHÔNG overlay ảnh ----
     return (
-        <div className="bg-white py-4">
-            <div className='mt-10 relative h-80 rounded-2xl outline-1 outline-gray-200'>
-                {/* Cover photo */}
-                <div className='absolute w-full h-full overflow-hidden'>
-                    <Image
-                        src="/shop_cover.jpg"
-                        alt="Shop Cover"
-                        width={1200}
-                        height={320}
-                        className="w-full h-80 object-cover rounded-2xl"
-                    />
-                </div>
-
-                {/* Shop Avatar */}
-                <div className="absolute z-10 left-12 top-16 w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden transition-transform duration-300 hover:scale-105">
-                    <Image
-                        src={`${API_BASE_URL}/image/${shop.logo}`}
-                        alt="Shop Logo"
-                        width={56}
-                        height={56}
-                        className="rounded-full object-cover w-full h-full border-4 border-white"
-                    />
-                </div>
-
-                {/* Main Shop Card */}
-                <div className="absolute z-1 bottom-0 bg-gray-50 w-full rounded-2xl overflow-hidden pr-8 pb-8 pt-4 flex justify-end">
-                    <div className='w-full md:w-[83%]'>
-                        <div className="flex gap-8 items-center mb-8">
-                            <h1 className="text-2xl font-bold text-black">{shop.name}</h1>
-                            <div className="inline-block px-2 rounded-full text-sm bg-green-100 text-green-800 font-medium">
-                                {shop.status === 'activated' ? 'Đã kích hoạt' : 'Chưa kích hoạt'}
-                            </div>
-                        </div>
-
-                        <div className="flex justify-between">
-                            {/* Shop Info Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <Phone size={18} className="text-brand" />
-                                    <div>
-                                        <div className="text-xs text-gray-500">Điện thoại</div>
-                                        <div className="font-semibold text-black w-max">{shop.phone}</div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <Package size={18} className="text-brand" />
-                                    <div>
-                                        <div className="text-xs text-gray-500">Đã bán</div>
-                                        <div className="font-semibold text-black w-max">
-                                            {shop.total_sales == null || shop.total_sales === 0 ? "Chưa có lượt bán" : shop.total_sales}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <Star size={18} className="text-brand" />
-                                    <div>
-                                        <div className="text-xs text-gray-500">Đánh giá</div>
-                                        <div className="font-semibold text-black w-max">
-                                            {shop.rating == null || shop.rating === "0.0" ? "Chưa có đánh giá" : shop.rating}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <Calendar size={18} className="text-brand" />
-                                    <div>
-                                        <div className="text-xs text-gray-500">Tham gia</div>
-                                        <div className="font-semibold text-black w-max">{formatTimeAgo(shop.created_at)}</div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <Users size={18} className="text-brand" />
-                                    <div>
-                                        <div className="text-xs text-gray-500">Người theo dõi</div>
-                                        <div className="font-semibold text-black w-max">
-                                            {shop.followers_count == null || shop.followers_count === 0 ? "Chưa có người theo dõi" : shop.followers_count}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 md:min-w-[200px]">
-                                    <MessageCircle size={18} className="text-brand" />
-                                    <div>
-                                        <div className="text-xs text-gray-500">Email</div>
-                                        <div className="font-semibold text-black max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">{shop.email}</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Follow and Chat Buttons */}
-                            <div className="flex flex-col gap-4 w-[200px] justify-end flex-wrap">
-                                <button
-                                    onClick={handleToggleFollow}
-                                    disabled={pending}
-                                    className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg
-                             hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full disabled:opacity-60 disabled:cursor-not-allowed"
-                                >
-                                    <User size={20} />
-                                    <span>{followed ? 'Đã theo dõi' : 'Theo Dõi'}</span>
-                                </button>
-
-                                <button className="flex items-center justify-center gap-2 px-2 py-1 bg-white text-brand border border-[#db4444] rounded-lg hover:bg-[#db4444] hover:text-white transition-colors text-sm w-full">
-                                    <MessageCircle size={20} />
-                                    <span>Chat</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <ConfigProvider
+            theme={{
+                token: {
+                    colorPrimary: '#db4444',
+                    colorInfo: '#db4444',
+                    borderRadiusLG: 14,
+                    fontSize: 14,
+                },
+                components: {
+                    Button: { controlHeight: 34, paddingInline: 12 },
+                    Card: { paddingLG: 16 },
+                    Tag: { defaultBg: '#eef6ee' },
+                },
+            }}
+        >
+            {/* COVER — độc lập, không bị che */}
+            <div className="rounded-2xl overflow-hidden">
+                <Image
+                    src="/shop_cover.jpg"
+                    alt="Shop Cover"
+                    width={1440}
+                    height={280}
+                    className="w-full h-[220px] md:h-[280px] object-cover"
+                    priority
+                />
             </div>
 
-            {/* Gợi ý sản phẩm shop */}
+            {/* INFO — card tách rời, dưới cover */}
+            <Card className="mt-4" bordered styles={{ body: { paddingTop: 12, paddingBottom: 12 } }}>
+                <Row gutter={[16, 16]} align="middle" wrap>
+                    {/* Avatar + Name */}
+                    <Col xs={24} md={12} lg={10}>
+                        <Space align="center" size={12} wrap>
+                            <Avatar
+                                size={72}
+                                src={`${API_BASE_URL}/image/${shop.logo}`}
+                                style={{
+                                    border: '3px solid #fff',
+                                    boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+                                    backgroundColor: '#fafafa',
+                                }}
+                            />
+                            <div>
+                                <Space size={8} align="center" wrap>
+                                    <Title level={4} style={{ margin: 0 }}>
+                                        {shop.name}
+                                    </Title>
+                                    <Tag color={shop.status === 'activated' ? 'success' : 'default'}>
+                                        {shop.status === 'activated' ? 'Đã kích hoạt' : 'Chưa kích hoạt'}
+                                    </Tag>
+                                </Space>
+                                <div className="mt-1">
+                                    <Tooltip title={shop.email}>
+                                        <Text
+                                            type="secondary"
+                                            ellipsis={{ tooltip: false }}
+                                            style={{ maxWidth: 260, display: 'inline-block' }}
+                                        >
+                                            {shop.email}
+                                        </Text>
+                                    </Tooltip>
+                                </div>
+                            </div>
+                        </Space>
+                    </Col>
+
+                    {/* Actions */}
+                    <Col xs={24} md={12} lg={14}>
+                        <Row justify="end" gutter={8} wrap>
+                            <Col>
+                                <Button
+                                    onClick={toggleFollow}
+                                    loading={pending}
+                                    type={followed ? 'default' : 'primary'}
+                                    ghost={followed}
+                                    icon={<User size={16} />}
+                                >
+                                    {followed ? 'Đã theo dõi' : 'Theo dõi'}
+                                </Button>
+                            </Col>
+                            <Col>
+                                <Button
+                                    icon={<MessageCircle size={16} />}
+                                    onClick={() => {
+                                        setPopupText('Tính năng chat sẽ sớm có nhé!');
+                                        setShowPopup(true);
+                                    }}
+                                >
+                                    Chat
+                                </Button>
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
+
+                <Divider style={{ margin: '12px 0' }} />
+
+                {/* Stats Grid */}
+                <Row gutter={[16, 16]}>
+                    <Col xs={24} sm={12} lg={8}>
+                        <Space>
+                            <Phone size={16} className="text-[#db4444]" />
+                            <div>
+                                <Text type="secondary">Điện thoại</Text>
+                                <div className="font-semibold text-black">{shop.phone}</div>
+                            </div>
+                        </Space>
+                    </Col>
+
+                    <Col xs={24} sm={12} lg={8}>
+                        <Space>
+                            <Package size={16} className="text-[#db4444]" />
+                            <div>
+                                <Text type="secondary">Đã bán</Text>
+                                <div className="font-semibold text-black">
+                                    {shop.total_sales ? shop.total_sales : 'Chưa có lượt bán'}
+                                </div>
+                            </div>
+                        </Space>
+                    </Col>
+
+                    <Col xs={24} sm={12} lg={8}>
+                        <Space>
+                            <Star size={16} className="text-[#db4444]" />
+                            <div>
+                                <Text type="secondary">Đánh giá</Text>
+                                <div className="font-semibold text-black">
+                                    {shop.rating && shop.rating !== '0.0' ? shop.rating : 'Chưa có đánh giá'}
+                                </div>
+                            </div>
+                        </Space>
+                    </Col>
+
+                    <Col xs={24} sm={12} lg={8}>
+                        <Space>
+                            <Calendar size={16} className="text-[#db4444]" />
+                            <div>
+                                <Text type="secondary">Tham gia</Text>
+                                <div className="font-semibold text-black">{formatTimeAgo(shop.created_at)}</div>
+                            </div>
+                        </Space>
+                    </Col>
+
+                    <Col xs={24} sm={12} lg={8}>
+                        <Space>
+                            <Users size={16} className="text-[#db4444]" />
+                            <div>
+                                <Text type="secondary">Người theo dõi</Text>
+                                <div className="font-semibold text-black">
+                                    {shop.followers_count ? shop.followers_count : 'Chưa có người theo dõi'}
+                                </div>
+                            </div>
+                        </Space>
+                    </Col>
+                </Row>
+            </Card>
+
+            {/* Sản phẩm của shop — tách riêng, không bọc chung card */}
             {shop.slug && (
-                <div className="w-full max-w-screen-xl mx-auto mt-8 ">
+                <div className="w-full max-w-screen-xl mx-auto mt-6">
                     <ShopProductSlider shopSlug={shop.slug} />
                 </div>
             )}
 
-            {/* Toast */}
+            {/* Toast nhẹ */}
             {showPopup && (
-                <div className="fixed top-[140px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
+                <div className="fixed top-[120px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500">
                     {popupText}
                 </div>
             )}
-        </div>
+        </ConfigProvider>
     );
-};
-
-export default ShopCard;
+}
