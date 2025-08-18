@@ -63,12 +63,13 @@ export default function AboutPage() {
   const prev = () => setCurrent((c) => (c - 1 + totalSlides) % totalSlides);
 
   useEffect(() => {
-    if (paused) return;
-    autoplayRef.current = setInterval(next, 4000); // auto trượt 4s
+    if (paused || totalSlides <= 1) return; // thêm điều kiện
+    autoplayRef.current = setInterval(next, 2000);
     return () => {
       if (autoplayRef.current) clearInterval(autoplayRef.current);
     };
   }, [paused, totalSlides]);
+
 
   return (
     <div className={`container mx-auto px-4 ${inter.className}`}>
