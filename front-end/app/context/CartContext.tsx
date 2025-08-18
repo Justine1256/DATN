@@ -134,6 +134,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [reloadCart]);
 
+    // ✅ Lắng nghe custom event 'cartUpdated' ngay trong cùng tab
+    useEffect(() => {
+        const onCartUpdated = () => {
+            reloadCart();
+        };
+        window.addEventListener('cartUpdated', onCartUpdated);
+        return () => window.removeEventListener('cartUpdated', onCartUpdated);
+    }, [reloadCart]);
+
     // ===== Xoá sản phẩm khỏi giỏ hàng =====
     const removeCartItem = async (itemId: number) => {
         const token = Cookies.get('authToken');
@@ -156,7 +165,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 variant: item.variant || null,
             }));
             setCartItems(updated);
-            window.dispatchEvent(new Event('cartUpdated'));
+            window.dispatchEvent(new Event('cartUpdated')); // 👈 thông báo UI khác
             return;
         }
 
@@ -166,7 +175,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 withCredentials: true,
             });
             await reloadCart();
-            window.dispatchEvent(new Event('cartUpdated'));
+            window.dispatchEvent(new Event('cartUpdated')); // 👈 thông báo UI khác
         } catch (err) {
             console.error('❌ Lỗi xóa sản phẩm khỏi giỏ hàng:', err);
         }
@@ -191,6 +200,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             );
             localStorage.removeItem('cart');
             await reloadCart();
+            window.dispatchEvent(new Event('cartUpdated')); // 👈 optional, đồng bộ UI
         } catch (err) {
             console.error('❌ Lỗi đồng bộ local cart lên server:', err);
         }

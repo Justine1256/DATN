@@ -155,6 +155,8 @@ export default function CartItemsSection({
       setCartItems(formatted);
       propsSetCartItems(formatted);
       localStorage.removeItem('cart');
+
+      // 👇 báo cho header / context trong cùng tab
       window.dispatchEvent(new Event('cartUpdated'));
     } catch (error) {
       console.warn('❗ API lỗi, dùng local fallback:', error);
@@ -220,6 +222,8 @@ export default function CartItemsSection({
       setCartItems(updated);
       propsSetCartItems(updated);
       localStorage.setItem('cart', JSON.stringify(updated));
+
+      window.dispatchEvent(new Event('cartUpdated')); // 👈 thêm
       message.success('Đã xoá sản phẩm khỏi giỏ');
       return;
     }
@@ -235,7 +239,7 @@ export default function CartItemsSection({
       setCartItems(updated);
       propsSetCartItems(updated);
       localStorage.setItem('cart', JSON.stringify(updated));
-      window.dispatchEvent(new Event('cartUpdated'));
+      window.dispatchEvent(new Event('cartUpdated')); // 👈 giữ nguyên (đã có)
       message.success('Đã xoá sản phẩm khỏi giỏ');
     } catch (error) {
       console.error('❌ Lỗi khi xoá:', error);
@@ -257,6 +261,7 @@ export default function CartItemsSection({
 
     if (!token) {
       localStorage.setItem('cart', JSON.stringify(next));
+      window.dispatchEvent(new Event('cartUpdated')); // 👈 thêm cho guest
       return;
     }
 
@@ -273,6 +278,7 @@ export default function CartItemsSection({
       });
       // if (!res.ok) throw new Error('Không thể cập nhật số lượng');
       localStorage.setItem('cart', JSON.stringify(next));
+      window.dispatchEvent(new Event('cartUpdated')); // 👈 thêm cho logged-in
     } catch (error) {
       console.error('❌ Lỗi cập nhật số lượng:', error);
       // rollback
@@ -323,7 +329,7 @@ export default function CartItemsSection({
       key: 'product',
       render: (_: any, item) => {
         const shopSlug = item.product?.shop?.slug || item.product?.shop?.id;
-        const productSlug = item.product?.slug || item.product?.id;
+        const productSlug = (item as any).product?.slug || (item as any).product?.id;
 
         return (
           <Space align="start">
@@ -351,10 +357,7 @@ export default function CartItemsSection({
 
               {/* Tag shop */}
               {item.product.shop && (
-                <Link
-                  href={`/shop/${shopSlug}`}
-                  className="text-xs"
-                >
+                <Link href={`/shop/${shopSlug}`} className="text-xs">
                   <Tag color="processing" className="mt-1">
                     🏪 {item.product.shop.name}
                   </Tag>
@@ -450,8 +453,8 @@ export default function CartItemsSection({
   return (
     <Card
       title={<span className="font-semibold">Giỏ hàng</span>}
-      variant="outlined"                       // ✅ thay bordered
-      styles={{ body: { padding: 0 } }}        // ✅ thay bodyStyle
+      variant="outlined"
+      styles={{ body: { padding: 0 } }}
       className="bg-white"
     >
       <Table<RowType>
@@ -501,12 +504,26 @@ export default function CartItemsSection({
                 <Text strong className="text-brand">Tổng thanh toán:</Text>
               </Table.Summary.Cell>
               <Table.Summary.Cell index={1} align="right" colSpan={2}>
-                <Text strong type="danger">{formatPrice(total)}</Text>
+                <Text strong type="danger" className="total-danger">
+                  {formatPrice(total)}
+                </Text>
               </Table.Summary.Cell>
             </Table.Summary.Row>
           </>
         )}
       />
+      <style jsx global>{`
+  /* Giữ text thường màu đen như bạn đã làm */
+  .ant-table-summary .ant-typography:not(.ant-typography-success):not(.ant-typography-danger) {
+    color: #000 !important;
+  }
+  /* KHÓA màu đỏ cho Typography danger trong summary, kể cả khi hover hàng */
+  .ant-table-summary .ant-typography-danger,
+  .ant-table-summary .total-danger {
+    color: var(--ant-color-error) !important;
+  }
+`}</style>
+
 
       {/* Footer hành động */}
       <Flex justify="end" align="center" gap={12} style={{ padding: 16 }}>
@@ -525,7 +542,6 @@ export default function CartItemsSection({
           >
             Đặt hàng
           </Button>
-
         </Link>
       </Flex>
     </Card>

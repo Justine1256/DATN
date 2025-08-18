@@ -618,7 +618,11 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
       </Space>
 
       {/* Phương thức thanh toán */}
-      <Card title={<Text strong>Phương thức thanh toán</Text>} styles={{ body: { padding: 12 } }} variant="outlined">
+      <Card title={
+        <Text strong style={{ color: 'black' }}>
+          Phương thức thanh toán
+        </Text>
+      } variant="outlined">
         <Radio.Group value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
           <Space direction="vertical">
             <Radio value="cod">Thanh toán khi nhận hàng (COD)</Radio>
@@ -628,7 +632,11 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
       </Card>
 
       {/* Danh sách theo shop */}
-      <Card title={<Text strong>Giỏ Hàng</Text>} styles={{ body: { padding: 12 } }} variant="outlined">
+      <Card title={
+        <Text strong style={{ color: 'black' }}>
+          Sản phẩm trong giỏ hàng
+        </Text>
+      } variant="outlined">
         {loading ? (
           <div style={{ textAlign: 'center', padding: 24 }}>
             <Spin />
@@ -653,7 +661,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                   key={String(g.shop_id)}
                   header={
                     <div style={{ display: 'flex,', alignItems: 'center', gap: 12, width: '100%' }}>
-                      <Text strong>
+                      <Text strong style={{ color: 'black' }}>
                         Shop:{' '}
                         <span
                           style={{
@@ -669,6 +677,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
                           {g.shop_name ?? `#${g.shop_id}`}
                         </span>
                       </Text>
+
 
                       <div
                         style={{
