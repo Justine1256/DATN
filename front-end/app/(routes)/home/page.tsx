@@ -13,7 +13,7 @@ export default function HomePage() {
   return (
     <main className="bg-white pb-10">
       {/* 🖼️ Slide giới thiệu đầu trang */}
-      <section className="max-w-screen-xl mx-auto px-4 pt-16">
+      <section className="max-w-screen-xl mx-auto px-4 pt-4">
         <LandingSlider />
       </section>
       {/* 🆕 Sản phẩm mới đăng */}

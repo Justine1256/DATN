@@ -289,12 +289,12 @@ const Header = () => {
   return (
     <header className={`fixed top-0 left-0 right-0 z-[100] bg-white transition duration-300 ${isSticky ? "shadow-md" : ""}`}>
       {/* Banner khuyến mãi (GIỮ NGUYÊN) */}
-      <div className="bg-black text-white py-2 text-center text-sm">
+      {/* <div className="bg-black text-white py-2 text-center text-sm">
         <div className="container mx-auto max-w-[1200px] px-2">
           <span className="text-gray-400">Khuyến mãi mùa hè cho đồ bơi - GIẢM 50%!</span>
           <Link href="/shop" className="text-white ml-2 hover:underline">Mua Ngay</Link>
         </div>
-      </div>
+      </div> */}
 
       {/* Thanh header chính (GIỮ NGUYÊN grid desktop) */}
       <div className="py-0 px-2 border-b border-gray-200">

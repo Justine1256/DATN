@@ -2,87 +2,180 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import React from 'react';
+import {
+  Row,
+  Col,
+  Typography,
+  Space,
+  Form,
+  Input,
+  Button,
+  Divider,
+  message,
+} from 'antd';
+import {
+  FacebookFilled,
+  TwitterSquareFilled,
+  InstagramFilled,
+  LinkedinFilled,
+} from '@ant-design/icons';
+
+const { Title, Text } = Typography;
 
 export default function Footer() {
+  const [form] = Form.useForm();
+
+  const onFinish = (values: { email: string }) => {
+    // TODO: gọi API subscribe của bạn ở đây
+    message.success(`Đã đăng ký: ${values.email}`);
+    form.resetFields();
+  };
+
   return (
-    <footer className="w-full bg-neutral-900 text-white pt-8 pb-6">
-      {/* 🧱 Grid container chia 12 cột - tự động responsive */}
-      <div className="max-w-screen-xl mx-auto px-6 md:px-16 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-10">
-
-        {/* 🌐 Logo + Subscribe (3 cột trên desktop, full trên mobile) */}
-        <div className="md:col-span-3 col-span-1">
-          <Link href="/" className="inline-block mb-2 relative md:h-[40px]">
-            <Image src="/logoft.png" alt="Logo công ty" fill sizes="(max-width: 120px) 120px, 40px" />
-          </Link>
-          <p className="text-sm mb-2">Đăng ký nhận tin</p>
-          <p className="text-sm mb-4">Nhận 10% giảm giá cho đơn hàng đầu tiên</p>
-          <form className="flex border border-white rounded overflow-hidden">
-            <input
-              type="email"
-              placeholder="Nhập email của bạn"
-              className="flex-1 px-3 py-2 text-sm text-white bg-transparent placeholder:text-gray-400 outline-none"
-            />
-            <button className="bg-white text-black px-4 hover:bg-gray-300 transition">→</button>
-          </form>
-        </div>
-
-        {/* 🛠 Thông tin hỗ trợ */}
-        <div className="md:col-span-2 col-span-1">
-          <h3 className="text-lg font-bold mb-2">Hỗ trợ</h3>
-          <p className="text-sm">Fpoly Hồ Chí Minh</p>
-          <p className="text-sm">Marketo.gmail.com</p>
-          <p className="text-sm">0978740071</p>
-        </div>
-
-        {/* 👤 Liên kết tài khoản */}
-        <div className="md:col-span-2 col-span-1">
-          <h3 className="text-lg font-bold mb-2">Tài khoản</h3>
-          <ul className="space-y-1 text-sm">
-            <li><Link href="/account" className="link-underline">Tài khoản của tôi</Link></li>
-            <li><Link href="/login" className="link-underline">Đăng nhập / Đăng ký</Link></li>
-            <li><Link href="/cart" className="link-underline">Giỏ hàng</Link></li>
-            <li><Link href="/wishlist" className="link-underline">Danh sách yêu thích</Link></li>
-            <li><Link href="/category" className="link-underline">Mua sắm</Link></li>
-          </ul>
-        </div>
-
-        {/* ⚡ Liên kết nhanh */}
-        <div className="md:col-span-2 col-span-1">
-          <h3 className="text-lg font-bold mb-2">Liên kết nhanh</h3>
-          <ul className="space-y-1 text-sm">
-            <li><Link href="#" className="link-underline">Chính sách bảo mật</Link></li>
-            <li><Link href="/dieu-khoan" className="link-underline">Điều khoản sử dụng</Link></li>
-            <li><Link href="#" className="link-underline">Câu hỏi thường gặp</Link></li>
-            <li><Link href="#" className="link-underline">Liên hệ</Link></li>
-          </ul>
-        </div>
-
-        {/* 📱 Tải ứng dụng + Mạng xã hội */}
-        <div className="md:col-span-3 col-span-1">
-          <h3 className="text-lg font-bold mb-2">Tải ứng dụng</h3>
-      
-          <div className="flex gap-3 mb-3">
-            <Link href="/download-app">
-              <Image src="/qr.png" alt="QR Code" width={64} height={64} />
+    <footer style={{ background: '#111827', color: '#fff' }}>
+      <div className="max-w-screen-xl mx-auto px-6 md:px-16 py-8">
+        {/* Header */}
+        <Row gutter={[24, 24]} align="top" justify="space-between">
+          {/* Logo + Subscribe (md: 6/24 ~ 3/12) */}
+          <Col xs={24} sm={12} md={6}>
+            <Link href="/" className="inline-block mb-3">
+              <Image
+                src="/logoft.png"
+                alt="Logo công ty"
+                width={140}
+                height={40}
+                priority
+              />
             </Link>
-            <div className="flex flex-col gap-2">
-              <Link href="https://play.google.com/store" target="_blank" rel="noopener noreferrer" className='relative md:h-[30px]'>
-                <Image src="/gg.png" alt="Google Play" fill sizes="(max-width: 96px) 96px, 30px" />
+
+            <Space direction="vertical" size={6} style={{ display: 'block' }}>
+              <Text>Đăng ký nhận tin</Text>
+              <Text type="secondary">Nhận 10% giảm giá cho đơn hàng đầu tiên</Text>
+            </Space>
+
+            <Form
+              form={form}
+              layout="inline"
+              onFinish={onFinish}
+              style={{ marginTop: 12 }}
+            >
+              <Form.Item
+                name="email"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập email' },
+                  { type: 'email', message: 'Email không hợp lệ' },
+                ]}
+                style={{ flex: 1 }}
+              >
+                <Input
+                  placeholder="Nhập email của bạn"
+                  allowClear
+                />
+              </Form.Item>
+              <Form.Item>
+                <Button type="default" htmlType="submit">
+                  Đăng ký
+                </Button>
+              </Form.Item>
+            </Form>
+          </Col>
+
+          {/* Hỗ trợ (md: 4/24 ~ 2/12) */}
+          <Col xs={24} sm={12} md={4}>
+            <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>Hỗ trợ</Title>
+            <Space direction="vertical" size={4}>
+              <Text>Fpoly Hồ Chí Minh</Text>
+              <Text>Marketo.gmail.com</Text>
+              <Text>0978740071</Text>
+            </Space>
+          </Col>
+
+          {/* Tài khoản (md: 4/24 ~ 2/12) */}
+          <Col xs={24} sm={12} md={4}>
+            <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>Tài khoản</Title>
+            <Space direction="vertical" size={6}>
+              <Link href="/account" className="ant-typography">Tài khoản của tôi</Link>
+              <Link href="/login" className="ant-typography">Đăng nhập / Đăng ký</Link>
+              <Link href="/cart" className="ant-typography">Giỏ hàng</Link>
+              <Link href="/wishlist" className="ant-typography">Danh sách yêu thích</Link>
+              <Link href="/category" className="ant-typography">Mua sắm</Link>
+            </Space>
+          </Col>
+
+          {/* Liên kết nhanh (md: 4/24 ~ 2/12) */}
+          <Col xs={24} sm={12} md={4}>
+            <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>Liên kết nhanh</Title>
+            <Space direction="vertical" size={6}>
+              <Link href="#" className="ant-typography">Chính sách bảo mật</Link>
+              <Link href="/dieu-khoan" className="ant-typography">Điều khoản sử dụng</Link>
+              <Link href="#" className="ant-typography">Câu hỏi thường gặp</Link>
+              <Link href="#" className="ant-typography">Liên hệ</Link>
+            </Space>
+          </Col>
+
+          {/* App + Social (md: 6/24 ~ 3/12) */}
+          <Col xs={24} sm={12} md={6}>
+            <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>Tải ứng dụng</Title>
+            <Space align="start" size={16}>
+              <Link href="/download-app">
+                <Image src="/qr.png" alt="QR Code" width={72} height={72} />
               </Link>
-              <Link href="https://www.apple.com/app-store/" target="_blank" rel="noopener noreferrer" className='relative md:h-[30px]'>
-                <Image src="/ap.png" alt="App Store" fill sizes="(max-width: 96px) 96px, 30px" />
+              <Space direction="vertical" size={10}>
+                <Link
+                  href="https://play.google.com/store"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Image src="/gg.png" alt="Google Play" width={80} height={44} />
+                </Link>
+                <Link
+                  href="https://www.apple.com/app-store/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Image src="/ap.png" alt="App Store" width={80} height={44} />
+                </Link>
+              </Space>
+            </Space>
+
+            <Divider style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '16px 0' }} />
+
+            <Space size="large" style={{ fontSize: 22, color: '#9CA3AF' }}>
+              <Link href="#" className="hover:text-white">
+                <FacebookFilled />
               </Link>
-            </div>
-          </div>
-          {/* 🌐 Mạng xã hội */}
-          <div className="flex gap-4 text-xl text-gray-400">
-            <Link href="#" className="hover:text-white"><i className="fab fa-facebook-f" /></Link>
-            <Link href="#" className="hover:text-white"><i className="fab fa-twitter" /></Link>
-            <Link href="#" className="hover:text-white"><i className="fab fa-instagram" /></Link>
-            <Link href="#" className="hover:text-white"><i className="fab fa-linkedin-in" /></Link>
-          </div>
-        </div>
+              <Link href="#" className="hover:text-white">
+                <TwitterSquareFilled />
+              </Link>
+              <Link href="#" className="hover:text-white">
+                <InstagramFilled />
+              </Link>
+              <Link href="#" className="hover:text-white">
+                <LinkedinFilled />
+              </Link>
+            </Space>
+          </Col>
+        </Row>
+
+        <Divider style={{ borderColor: 'rgba(255,255,255,0.12)', marginTop: 24 }} />
+
+        <Row justify="center">
+          <Col>
+            <Text type="secondary" style={{ color: 'rgba(255,255,255,0.65)' }}>
+              © {new Date().getFullYear()} Your Company. All rights reserved.
+            </Text>
+          </Col>
+        </Row>
       </div>
+      <style jsx global>{`
+        .ant-typography {
+          color: rgba(255,255,255,0.85);
+        }
+        .ant-typography:hover {
+          color: #ffffff;
+        }
+      `}</style>
     </footer>
   );
 }
