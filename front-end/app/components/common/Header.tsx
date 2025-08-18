@@ -257,7 +257,7 @@ const Header = () => {
       {/* thanh gradient thương hiệu trên đỉnh */}
       <span
         aria-hidden
-        className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#DB4444] via-[#ff6b6b] to-[#DB4444]"
+        className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#DB4444]  to-[#DB4444]"
       />
 
       {/* Thanh header chính */}
