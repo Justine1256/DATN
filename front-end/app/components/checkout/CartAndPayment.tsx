@@ -76,9 +76,8 @@ export interface PaymentInfoChangePayload {
   globalVoucherDiscount: number;
   globalFreeShipping: boolean;
   summary: { subTotal: number; discount: number; shipping: number; total: number };
-    shopVouchers: Array<{ shop_id: number; code: string }>;
+  shopVouchers: Array<{ shop_id: number; code: string }>;
   globalVoucherCode: string | null;
-
 }
 
 interface Props {
@@ -132,7 +131,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
 
   // voucher state
   const [voucherModalOpen, setVoucherModalOpen] = useState(false);
-  const [voucherModalShopId, setVoucherModalShopId] = useState<number | null>(null); // null = toàn sàn
+  const [voucherModalShopId, setVoucherModalShopId] = useState<number | null>(null); // luôn mở từ panel shop (set shop_id), nhưng để null để an toàn
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [voucherErr, setVoucherErr] = useState<string | null>(null);
@@ -140,7 +139,10 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | number | null>(null);
 
   // voucher đã áp dụng
-  const [applied, setApplied] = useState<{ global: Voucher | null; byShop: Record<number, Voucher | null> }>({ global: null, byShop: {} });
+  const [applied, setApplied] = useState<{ global: Voucher | null; byShop: Record<number, Voucher | null> }>({
+    global: null,
+    byShop: {},
+  });
 
   // toast trượt
   const [popupMsg, setPopupMsg] = useState<string | null>(null);
@@ -172,10 +174,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     return '';
   }, []);
 
-  const VND = useCallback(
-    (n: number) => new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.floor(n))) + 'đ',
-    []
-  );
+  const VND = useCallback((n: number) => new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.floor(n))) + 'đ', []);
 
   const imageUrl = useCallback((img: string[] | string) => {
     let i = Array.isArray(img) ? img[0] : img;
@@ -185,8 +184,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   }, []);
 
   const unitPrice = useCallback(
-    (it: CartItem) =>
-      it.variant?.sale_price ?? it.variant?.price ?? it.product.sale_price ?? it.product.price ?? 0,
+    (it: CartItem) => it.variant?.sale_price ?? it.variant?.price ?? it.product.sale_price ?? it.product.price ?? 0,
     []
   );
 
@@ -283,13 +281,16 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     const total = Math.max(0, subAll - globalVoucherDiscount) - shopDiscounts + shippingAll;
     return { subTotal: subAll, discount: discountAll, shipping: shippingAll, total };
   }, [perShopComputed, globalVoucherDiscount]);
+
   const shopVouchers = useMemo(
-  () => Object.entries(applied.byShop || {})
-    .filter(([, v]) => v?.code)
-    .map(([sid, v]) => ({ shop_id: Number(sid), code: String(v!.code) })),
-  [applied.byShop]
-);
-const globalVoucherCode = applied.global?.code ?? null;
+    () =>
+      Object.entries(applied.byShop || {})
+        .filter(([, v]) => v?.code)
+        .map(([sid, v]) => ({ shop_id: Number(sid), code: String(v!.code) })),
+    [applied.byShop]
+  );
+  const globalVoucherCode = applied.global?.code ?? null;
+
   useEffect(() => {
     onPaymentInfoChange?.({
       paymentMethod,
@@ -297,8 +298,8 @@ const globalVoucherCode = applied.global?.code ?? null;
       globalVoucherDiscount,
       globalFreeShipping,
       summary,
-        shopVouchers,          // ✅ thêm
-  globalVoucherCode,
+      shopVouchers,
+      globalVoucherCode,
     });
   }, [paymentMethod, perShopComputed, globalVoucherDiscount, globalFreeShipping, summary, onPaymentInfoChange]);
 
@@ -368,58 +369,62 @@ const globalVoucherCode = applied.global?.code ?? null;
   /* ---------- Voucher: open / fetch / filter / apply / clear ---------- */
 
   const openVoucherModal = useCallback(
-    (shopId: number | null) => {
+    (shopId: number) => {
+      // Gộp: modal cho shop sẽ hiển thị cả voucher sàn + voucher của shop
       setVoucherModalShopId(shopId);
-      setSelectedVoucherId((shopId == null ? applied.global?.id : applied.byShop[shopId]?.id) ?? null);
       setVoucherModalOpen(true);
-        
-        setVoucherLoading(true);
-        setVoucherErr(null);
-        axios
-          .get(`${API_BASE_URL}/my-vouchers`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
-          .then((res) => {
-            const list = Array.isArray(res.data?.data)
-              ? res.data.data
-              : res.data?.data?.vouchers || res.data || [];
-            const mapped: Voucher[] = list.map((row: any) => {
-              const src = row.voucher ?? row;
-              const dt = String(src.discount_type ?? src.type ?? 'amount').toLowerCase();
-              return {
-                // ✅ CHỈ dùng id của voucher (không dùng row.id từ pivot)
-                id: src.id ?? src.voucher_id ?? src.code,
-                code: String(src.code ?? src.voucher_code ?? src.coupon_code ?? '').trim(),
-                title: src.title ?? src.name ?? src.label ?? undefined,
-                description: src.description ?? src.desc ?? undefined,
-                type: (['percent', 'amount', 'shipping'].includes(dt) ? dt : 'amount') as VoucherType,
-                value: Number(src.discount_value ?? src.value ?? src.amount ?? 0),
-                min_order: src.min_order_value
-                  ? Number(src.min_order_value)
-                  : src.min_order_amount
-                    ? Number(src.min_order_amount)
-                    : undefined,
-                expires_at: src.end_date ?? src.expires_at ?? src.expired_at ?? src.end_at ?? undefined,
-                is_active: src.is_active ?? src.active ?? true,
-                shop_id: src.shop_id ?? null, // ✅ không lấy row.shop_id
-                used: Boolean(src.is_used ?? src.used ?? src.used_at ?? false),
-              };
-            });
-            const dedup = Array.from(
-              new Map(mapped.map((v) => [`${v.code}|${v.shop_id ?? 'all'}`, v])).values()
-            );
-            setVouchers(dedup); // ✅ giữ bản đã lọc trùng
-          })
-          .catch(() => setVoucherErr('Không tải được danh sách voucher.'))
-          .finally(() => setVoucherLoading(false));
+
+      // pre-select: nếu đã có voucher shop thì chọn voucher shop; nếu không, giữ nguyên
+      const pre = applied.byShop[shopId]?.id ?? null;
+      setSelectedVoucherId(pre);
+
+      setVoucherLoading(true);
+      setVoucherErr(null);
+      axios
+        .get(`${API_BASE_URL}/my-vouchers`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+        .then((res) => {
+          const list = Array.isArray(res.data?.data)
+            ? res.data.data
+            : res.data?.data?.vouchers || res.data || [];
+          const mapped: Voucher[] = list.map((row: any) => {
+            const src = row.voucher ?? row;
+            const dt = String(src.discount_type ?? src.type ?? 'amount').toLowerCase();
+            return {
+              // ✅ CHỈ dùng id của voucher (không dùng row.id từ pivot)
+              id: src.id ?? src.voucher_id ?? src.code,
+              code: String(src.code ?? src.voucher_code ?? src.coupon_code ?? '').trim(),
+              title: src.title ?? src.name ?? src.label ?? undefined,
+              description: src.description ?? src.desc ?? undefined,
+              type: (['percent', 'amount', 'shipping'].includes(dt) ? dt : 'amount') as VoucherType,
+              value: Number(src.discount_value ?? src.value ?? src.amount ?? 0),
+              min_order: src.min_order_value
+                ? Number(src.min_order_value)
+                : src.min_order_amount
+                  ? Number(src.min_order_amount)
+                  : undefined,
+              expires_at: src.end_date ?? src.expires_at ?? src.expired_at ?? src.end_at ?? undefined,
+              is_active: src.is_active ?? src.active ?? true,
+              shop_id: src.shop_id ?? null,
+              used: Boolean(src.is_used ?? src.used ?? src.used_at ?? false),
+            };
+          });
+          const dedup = Array.from(new Map(mapped.map((v) => [`${v.code}|${v.shop_id ?? 'all'}`, v])).values());
+          setVouchers(dedup);
+        })
+        .catch(() => setVoucherErr('Không tải được danh sách voucher.'))
+        .finally(() => setVoucherLoading(false));
     },
-    [token, vouchers.length, applied.global?.id, applied.byShop]
+    [token, applied.byShop]
   );
 
   const closeVoucherModal = useCallback(() => {
     setVoucherModalOpen(false);
     setVoucherSearch('');
+    setVoucherModalShopId(null);
   }, []);
 
-  const current = vouchers.find(x => String(x.id) === String(selectedVoucherId));
+  const current = vouchers.find((x) => String(x.id) === String(selectedVoucherId));
+
   const clearVoucher = useCallback(
     (shopId: number | null) => {
       setApplied((prev) =>
@@ -446,9 +451,9 @@ const globalVoucherCode = applied.global?.code ?? null;
     [onVoucherApplied]
   );
 
-  // ✅ GỌI BE /vouchers/apply khi bấm Áp dụng
+  // ✅ GỌI BE /vouchers/apply khi bấm Áp dụng (gộp: có thể áp dụng voucher sàn HOẶC voucher shop từ cùng modal)
   const applyVoucher = useCallback(async () => {
-    if (selectedVoucherId == null) return;
+    if (selectedVoucherId == null || voucherModalShopId == null) return;
     const v = vouchers.find((x) => String(x.id) === String(selectedVoucherId));
     if (!v) return;
 
@@ -465,13 +470,15 @@ const globalVoucherCode = applied.global?.code ?? null;
         shop_id: it.shop_id,
         price: unitPrice(it),
         quantity: it.quantity,
-        // có thể kèm product_id/variant_id nếu BE cần:
         product_id: it.product.id,
       }));
 
+      // Nếu chọn voucher sàn => shop_id null; nếu voucher shop => gửi shop hiện tại
+      const postShopId = v.shop_id == null ? null : voucherModalShopId;
+
       const res = await axios.post(
         `${API_BASE_URL}/vouchers/apply`,
-        { code: v.code, shop_id: voucherModalShopId, items: itemsPayload },
+        { code: v.code, shop_id: postShopId, items: itemsPayload },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -483,7 +490,6 @@ const globalVoucherCode = applied.global?.code ?? null;
         return;
       }
 
-      // Gom các tên field có thể khác nhau từ BE
       const serverDiscount = Number(
         data.total_discount ?? data.discount_amount ?? data.amount ?? data.discount ?? 0
       );
@@ -491,12 +497,8 @@ const globalVoucherCode = applied.global?.code ?? null;
         data.free_shipping ?? data.shipping_free ?? data.is_free_shipping ?? false
       );
 
-      if (voucherModalShopId == null) {
-        // áp dụng toàn sàn
-        if (v.shop_id != null) {
-          message.warning('Voucher này là của shop, không áp dụng toàn sàn.');
-          return;
-        }
+      if (v.shop_id == null) {
+        // Áp dụng voucher sàn
         setApplied((prev) => ({ ...prev, global: v }));
         setServerGlobal({ discount: serverDiscount, freeShipping: serverFree });
         onVoucherApplied?.({
@@ -506,8 +508,8 @@ const globalVoucherCode = applied.global?.code ?? null;
           code: v.code ?? null,
         });
       } else {
-        // áp dụng cho shop cụ thể
-        if (v.shop_id == null || Number(v.shop_id) !== Number(voucherModalShopId)) {
+        // Áp dụng voucher cho shop hiện tại
+        if (Number(v.shop_id) !== Number(voucherModalShopId)) {
           message.warning('Voucher không thuộc shop này.');
           return;
         }
@@ -524,18 +526,18 @@ const globalVoucherCode = applied.global?.code ?? null;
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(() => setShowPopup(false), 2000);
     } catch (e: any) {
-  const code = e?.response?.data?.code;
-  const msg = e?.response?.data?.message ?? 'Áp dụng voucher thất bại.';
-  message.error(msg);
+      const code = e?.response?.data?.code;
+      const msg = e?.response?.data?.message ?? 'Áp dụng voucher thất bại.';
+      message.error(msg);
 
-  if (code === 'VOUCHER_ALREADY_USED') {
-    setVouchers(prev =>
-      prev.map(x => String(x.id) === String(selectedVoucherId) ? { ...x, used: true } : x)
-    );
-  }
-} finally {
-  setApplyLoading(false);
-}
+      if (code === 'VOUCHER_ALREADY_USED') {
+        setVouchers((prev) =>
+          prev.map((x) => (String(x.id) === String(selectedVoucherId) ? { ...x, used: true } : x))
+        );
+      }
+    } finally {
+      setApplyLoading(false);
+    }
   }, [selectedVoucherId, vouchers, voucherModalShopId, items, token, unitPrice, onVoucherApplied]);
 
   useEffect(() => {
@@ -544,13 +546,16 @@ const globalVoucherCode = applied.global?.code ?? null;
     };
   }, []);
 
-  /** ✅ Sắp xếp voucher: hoạt động & chưa hết hạn trước, rồi freeship → % cao → số tiền cao → hạn gần */
+  /** ✅ Sắp xếp voucher: ƯU TIÊN voucher sàn trước, sau đó shop; rồi tiêu chí như cũ */
   const filteredVouchers = useMemo(() => {
     const s = voucherSearch.trim().toLowerCase();
+
+    // Chỉ hiển thị: voucher sàn + voucher của shop đang mở modal
     const scopeFiltered = vouchers.filter((v) => {
       if (voucherModalShopId == null) return v.shop_id == null;
-      return v.shop_id != null && Number(v.shop_id) === Number(voucherModalShopId);
+      return v.shop_id == null || Number(v.shop_id) === Number(voucherModalShopId);
     });
+
     const searched = !s
       ? scopeFiltered
       : scopeFiltered.filter((v) =>
@@ -558,13 +563,17 @@ const globalVoucherCode = applied.global?.code ?? null;
       );
 
     const score = (v: Voucher) => {
-      const activeScore = v.is_active !== false && !isExpired(v) ? 1000000 : 0; // ưu tiên hoạt động
+      const isGlobal = v.shop_id == null ? 1 : 0; // Ưu tiên sàn trước
+      const globalScore = isGlobal ? 5_000_000 : 0;
+
+      const activeScore = v.is_active !== false && !isExpired(v) ? 1_000_000 : 0;
       const usedPenalty = v.used ? -2_000_000 : 0;
-      const freeShipScore = v.type === 'shipping' ? 500000 : 0;
-      const percentScore = v.type === 'percent' ? Math.min(100, v.value) * 1000 : 0;
+      const freeShipScore = v.type === 'shipping' ? 500_000 : 0;
+      const percentScore = v.type === 'percent' ? Math.min(100, v.value) * 1_000 : 0;
       const amountScore = v.type === 'amount' ? Math.min(10_000_000, v.value) : 0;
       const expiryScore = v.expires_at ? (10_000_000_000 - new Date(v.expires_at).getTime()) / 1_000_000 : 0; // hạn gần cao hơn
-      return activeScore + freeShipScore + percentScore + amountScore + expiryScore;
+
+      return globalScore + activeScore + usedPenalty + freeShipScore + percentScore + amountScore + expiryScore;
     };
 
     return searched.slice().sort((a, b) => score(b) - score(a));
@@ -605,32 +614,8 @@ const globalVoucherCode = applied.global?.code ?? null;
         <Title level={4} style={{ margin: 0 }}>
           Giỏ hàng
         </Title>
-        <Space>
-          <Button
-            type="primary"
-            onClick={() => openVoucherModal(null)}
-            style={{ background: BRAND, borderColor: BRAND }}
-          >
-            Voucher toàn sàn
-          </Button>
-
-          {applied.global && (
-            <Tag
-              color="blue"
-              closable
-              onClose={(e) => {
-                e.preventDefault();
-                clearVoucher(null);
-              }}
-              style={{ paddingInline: 10, height: 28, display: 'inline-flex', alignItems: 'center' }}
-            >
-              <strong>Voucher sàn:</strong>&nbsp;
-              <OneLine>{applied.global.code}</OneLine>&nbsp;•&nbsp;{badge(applied.global)}
-            </Tag>
-          )}
-        </Space>
+        {/* 🔥 ĐÃ GỠ nút "Voucher toàn sàn" và pill ở header để dồn vào từng panel shop */}
       </Space>
-      {/* 👉 Đặt nút trước, pill sau để pill nằm BÊN PHẢI đúng ý bạn */}
 
       {/* Phương thức thanh toán */}
       <Card title={<Text strong>Phương thức thanh toán</Text>} styles={{ body: { padding: 12 } }} variant="outlined">
@@ -711,7 +696,7 @@ const globalVoucherCode = applied.global?.code ?? null;
                   <List<CartItem>
                     itemLayout="horizontal"
                     dataSource={firstTwo}
-                    rowKey={(it) => String(it.id)} // ✅ FIX TS rowKey
+                    rowKey={(it) => String(it.id)}
                     renderItem={(it) => {
                       const u = unitPrice(it);
                       const total = u * it.quantity;
@@ -782,7 +767,7 @@ const globalVoucherCode = applied.global?.code ?? null;
                   {/* Đường kẻ → Voucher row → Tóm tắt */}
                   <Divider style={{ margin: '10px 0' }} />
 
-                  {/* Voucher shop row (ngay dưới đường kẻ, trước tóm tắt) */}
+                  {/* Voucher (gộp sàn + shop, pill sàn hiển thị trước) */}
                   <div
                     style={{
                       marginTop: 6,
@@ -793,8 +778,30 @@ const globalVoucherCode = applied.global?.code ?? null;
                       flexWrap: 'wrap',
                     }}
                   >
+                    {/* Pill voucher sàn (nếu có) */}
+                    {applied.global && (
+                      <div className="voucher-pill" title={`Voucher sàn: ${applied.global.code} • ${badge(applied.global)}`}>
+                        <span className="voucher-label">Voucher sàn:</span>
+                        <span className="voucher-code">{applied.global.code}</span>
+                        <span className="voucher-dot">•</span>
+                        <span className="voucher-benefit">{badge(applied.global)}</span>
+                        <button
+                          type="button"
+                          className="voucher-close"
+                          aria-label="Bỏ voucher sàn"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            clearVoucher(null);
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Pill voucher shop (nếu có) */}
                     {shopVoucher && (
-                      <div className="voucher-pill" title={`Voucher: ${shopVoucher.code} • ${badge(shopVoucher)}`}>
+                      <div className="voucher-pill" title={`Voucher shop: ${shopVoucher.code} • ${badge(shopVoucher)}`}>
                         <span className="voucher-label">Voucher shop:</span>
                         <span className="voucher-code">{shopVoucher.code}</span>
                         <span className="voucher-dot">•</span>
@@ -802,7 +809,7 @@ const globalVoucherCode = applied.global?.code ?? null;
                         <button
                           type="button"
                           className="voucher-close"
-                          aria-label="Bỏ voucher"
+                          aria-label="Bỏ voucher shop"
                           onClick={(e) => {
                             e.preventDefault();
                             clearVoucher(g.shop_id);
@@ -813,8 +820,9 @@ const globalVoucherCode = applied.global?.code ?? null;
                       </div>
                     )}
 
+                    {/* Nút gộp */}
                     <Button size="small" onClick={() => openVoucherModal(g.shop_id)}>
-                      Voucher shop
+                      Voucher
                     </Button>
                   </div>
 
@@ -853,7 +861,7 @@ const globalVoucherCode = applied.global?.code ?? null;
           <List<CartItem>
             itemLayout="horizontal"
             dataSource={itemsModalShop.items}
-            rowKey={(it) => String(it.id)} // ✅ key ổn định & đúng TS
+            rowKey={(it) => String(it.id)}
             renderItem={(it) => {
               const u = unitPrice(it);
               const total = u * it.quantity;
@@ -907,11 +915,11 @@ const globalVoucherCode = applied.global?.code ?? null;
         )}
       </Modal>
 
-      {/* Modal chọn voucher */}
+      {/* Modal chọn voucher (gộp) */}
       <Modal
         open={voucherModalOpen}
         onCancel={closeVoucherModal}
-        title={voucherModalShopId == null ? 'Chọn voucher toàn sàn' : `Chọn voucher shop #${voucherModalShopId}`}
+        title="Chọn voucher"
         footer={
           <Space>
             <Button onClick={closeVoucherModal}>Hủy</Button>
