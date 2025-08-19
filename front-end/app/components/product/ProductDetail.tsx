@@ -116,7 +116,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
             (userPayload?.shop?.id ?? userPayload?.shop_id ?? userPayload?.shops?.[0]?.id) != null
               ? String(userPayload?.shop?.id ?? userPayload?.shop_id ?? userPayload?.shops?.[0]?.id) === String(product.shop.id)
               : (userPayload?.shop?.slug ?? userPayload?.shop_slug ?? userPayload?.shops?.[0]?.slug)
-              && String(userPayload?.shop?.slug ?? userPayload?.shop_slug ?? userPayload?.shops?.[0]?.slug) === String(product.shop.slug);
+                && String(userPayload?.shop?.slug ?? userPayload?.shop_slug ?? userPayload?.shops?.[0]?.slug) === String(product.shop.slug);
 
           setIsOwner(Boolean(owner));
         }
@@ -133,7 +133,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       (currentUser?.shop?.id ?? currentUser?.shop_id ?? currentUser?.shops?.[0]?.id) != null
         ? String(currentUser?.shop?.id ?? currentUser?.shop_id ?? currentUser?.shops?.[0]?.id) === String(product.shop.id)
         : (currentUser?.shop?.slug ?? currentUser?.shop_slug ?? currentUser?.shops?.[0]?.slug)
-        && String(currentUser?.shop?.slug ?? currentUser?.shop_slug ?? currentUser?.shops?.[0]?.slug) === String(product.shop.slug);
+          && String(currentUser?.shop?.slug ?? currentUser?.shop_slug ?? currentUser?.shops?.[0]?.slug) === String(product.shop.slug);
 
     setIsOwner(Boolean(owner));
   }, [product, currentUser]);
@@ -182,6 +182,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
         if (!res.ok) throw new Error('Lỗi khi fetch sản phẩm');
         const { data } = await res.json();
+        console.log("📦 Product detail data:", data);
         setProduct({
           ...data,
           variants: Array.isArray(data.variants) ? data.variants : [],
@@ -550,8 +551,19 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
     setFollowed(!followed);
   };
+// đơn nháp khi mua ngày 
+  const pushDraftIds = (ids: string[]) => {
+    try {
+      const cur = JSON.parse(localStorage.getItem('buyNowDraftCartIds') || '[]');
+      const set = new Set([...(Array.isArray(cur) ? cur.map(String) : []), ...ids.map(String)]);
+      localStorage.setItem('buyNowDraftCartIds', JSON.stringify(Array.from(set)));
+    } catch {
+      localStorage.setItem('buyNowDraftCartIds', JSON.stringify(ids.map(String)));
+    }
+  };
 
   // Mua ngay (thêm vào giỏ và chuyển trang)
+
   const handleBuyNow = async () => {
     if (isOwner) {
       commonPopup('Bạn là chủ shop của sản phẩm này nên không thể đặt hàng.');
@@ -599,6 +611,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       setIsBuyingNow(false);
       return;
     }
+
     {
       const chosenStock = matchedVariant
         ? (matchedVariant.stock ?? 0)
@@ -621,7 +634,12 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     const price = useVariant?.price ?? product.price;
     const sale_price = useVariant?.sale_price ?? product.sale_price;
 
+    // ID tạm cho guest (nếu đã có item cũ thì sẽ dùng id cũ)
+    const guestTempId = `guest-${product.id}-${useVariant?.id ?? 'no-variant'}-${Date.now()}`;
+
     const cartItem = {
+      // id chỉ dùng cho guest; server có thể bỏ qua
+      id: guestTempId,
       product_id: product.id,
       quantity,
       name: product.name,
@@ -644,24 +662,35 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
     try {
       if (!token) {
-        const local = localStorage.getItem("cart");
-        const cart = local ? JSON.parse(local) : [];
-        const index = cart.findIndex(
-          (i: any) =>
-            i.product_id === cartItem.product_id &&
-            i.variant_id === cartItem.variant_id
+        // ---------- GUEST ----------
+        const raw = localStorage.getItem("cart");
+        const cart = raw ? (() => { try { return JSON.parse(raw); } catch { return []; } })() : [];
+
+        const idx = cart.findIndex(
+          (i: any) => i.product_id === cartItem.product_id && i.variant_id === cartItem.variant_id
         );
 
-        if (index !== -1) {
-          cart[index].quantity += quantity;
+        let selectedIdForCheckout = guestTempId;
+
+        if (idx !== -1) {
+          const existingId = String(cart[idx].id ?? guestTempId);
+          cart[idx].id = existingId;
+          cart[idx].quantity += quantity;
+          selectedIdForCheckout = existingId;
         } else {
           cart.push(cartItem);
+          selectedIdForCheckout = String(cartItem.id);
         }
 
         localStorage.setItem("cart", JSON.stringify(cart));
+        localStorage.setItem("selectedCartIds", JSON.stringify([selectedIdForCheckout]));
+        // ★ ghi ID nháp để /checkout có thể dọn khi hủy
+        pushDraftIds([selectedIdForCheckout]);
+
         await reloadCart();
-        router.push('/cart');
+        router.push('/checkout');
       } else {
+        // ---------- LOGGED-IN ----------
         const res = await fetch(`${API_BASE_URL}/cart`, {
           method: "POST",
           headers: {
@@ -671,14 +700,55 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           body: JSON.stringify(cartItem),
         });
 
-        if (res.ok) {
-          await reloadCart();
-          router.push('/cart');
-        } else {
-          const err = await res.json();
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
           console.error("❌ Cart API error:", err);
           commonPopup("❌ Thêm vào giỏ hàng thất bại");
+          setIsBuyingNow(false);
+          return;
         }
+
+        // đọc payload để lấy id
+        let payload: any = await res.json().catch(() => ({}));
+        const createdId =
+          payload?.data?.id ??
+          payload?.id ??
+          payload?.cart_item?.id ??
+          null;
+
+        let finalId = createdId;
+
+        // fallback: GET /cart để dò theo (product_id, variant_id)
+        if (!finalId) {
+          try {
+            const check = await fetch(`${API_BASE_URL}/cart`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const listJson: any = await check.json().catch(() => ({}));
+            const rows: any[] = Array.isArray(listJson?.data)
+              ? listJson.data
+              : (Array.isArray(listJson) ? listJson : []);
+
+            const found = rows.find((it: any) =>
+              Number(it?.product_id ?? it?.product?.id) === Number(product.id) &&
+              String(it?.variant_id ?? it?.variant?.id ?? '') === String(useVariant?.id ?? '')
+            );
+
+            finalId = found?.id ?? null;
+          } catch { /* ignore */ }
+        }
+
+        await reloadCart();
+
+        if (finalId) {
+          localStorage.setItem("selectedCartIds", JSON.stringify([String(finalId)]));
+          // ★ ghi ID nháp để /checkout có thể dọn khi hủy
+          pushDraftIds([String(finalId)]);
+        } else {
+          localStorage.setItem("selectedCartIds", JSON.stringify([]));
+        }
+
+        router.push('/checkout');
       }
     } catch (error) {
       console.error("❌ Cart request failed:", error);
@@ -687,6 +757,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
       setIsBuyingNow(false);
     }
   };
+
 
   // ⬇️ Phần hiển thị JSX
   return (
@@ -953,11 +1024,11 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
             </div>
           </div>
         </div>
-      </div>
+      </div> 
 
       {/* Shop Info & Description */}
       <div className="max-w-screen-xl mx-auto px-3 sm:px-4 mt-10 sm:mt-16 space-y-10 sm:space-y-16">
-        <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} isCheckingFollow={isCheckingFollow} />
+        <ShopInfo shop={product.shop} followed={followed} onFollowToggle={handleFollow} isCheckingFollow={isCheckingFollow}/>
         <ProductDescription html={product.description} />
         <ProductReviews productId={product.id} />
         <ShopProductSlider shopSlug={product.shop.slug} />
