@@ -213,7 +213,7 @@ const handleToggleFollow = useCallback(async () => {
             <span className="text-yellow-400 text-base">★</span>
           </div>
           <div className="flex items-center gap-1 min-w-[130px]">
-            <span className="text-gray-500">Sản Phẩm:</span>
+            <span className="text-gray-500">Sản Phẩm Đã Bán:</span>
             <span className="text-red-500 font-semibold">{shop.total_sales}</span>
           </div>
           <div className="flex items-center gap-1 min-w-[130px]">
