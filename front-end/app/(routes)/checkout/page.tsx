@@ -2,27 +2,23 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import Breadcrumb from '@/app/components/cart/CartBreadcrumb';
-import CartAndPayment, { Voucher, PaymentInfoChangePayload } from '@/app/components/checkout/CartAndPayment';
-import CheckoutForm, { ManualAddress } from '@/app/components/checkout/CheckoutForm'; // ✅ lấy type
-import OrderSummary from '@/app/components/checkout/OrderSummary';
 
-export interface CartItem {
-  id: number | string;
-  quantity: number;
-  product: {
-    id: number;
-    name: string;
-    image: string | string[];
-    price: number;
-    sale_price?: number | null;
-    original_price?: number;
-  };
-  variant?: {
-    id: number;
-    price?: number;
-    sale_price?: number | null;
-  };
-}
+// ⬇️ LẤY TYPE CartItem TỪ OrderSummary (đồng bộ kiểu)
+import OrderSummary, {
+  type CartItem as OSCartItem,
+} from '@/app/components/checkout/OrderSummary';
+
+import CartAndPayment, {
+  Voucher,
+  PaymentInfoChangePayload,
+} from '@/app/components/checkout/CartAndPayment';
+
+import CheckoutForm, {
+  ManualAddress,
+} from '@/app/components/checkout/CheckoutForm';
+
+// Dùng alias nội bộ cho tiện
+type CartItem = OSCartItem;
 
 type Totals = {
   subtotal: number;
@@ -59,9 +55,9 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay' | string>('cod');
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfoFromChild | null>(null);
 
-  const [manualAddressData, setManualAddressData] = useState<ManualAddress | null>(null); // ✅ có type
+  const [manualAddressData, setManualAddressData] = useState<ManualAddress | null>(null);
   const [addressId, setAddressId] = useState<number | null>(null);
-  const [saveAddress, setSaveAddress] = useState<boolean>(false); // ✅ nhận từ form
+  const [saveAddress, setSaveAddress] = useState<boolean>(false);
 
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
   const [voucherCode, setVoucherCode] = useState<string | null>(null);
@@ -84,7 +80,6 @@ export default function CheckoutPage() {
     setManualAddressData(manualData);
   }, []);
 
-  // ✅ nhận trạng thái tick “Lưu địa chỉ này cho lần sau”
   const handleSaveToggle = useCallback((save: boolean) => {
     setSaveAddress(save);
   }, []);
@@ -95,7 +90,7 @@ export default function CheckoutPage() {
     setPaymentInfo(info);
   }, []);
 
-  // ===== Cart normalize =====
+  // ===== Cart normalize (đầu ra kiểu CartItem của OrderSummary) =====
   const handleCartChange = useCallback((items: any[]) => {
     const n = (v: any) => {
       const x = Number(v);
@@ -114,11 +109,13 @@ export default function CheckoutPage() {
           price: Number(p.price ?? it.price ?? 0),
           sale_price: p.sale_price ?? it.sale_price ?? null,
         },
+        // ⬇️ KHÔNG trả về null cho variant để khớp type của OrderSummary
         variant: it.variant
           ? {
-            id: Number(it.variant.id ?? 0),
+            id: n(it.variant.id) ?? 0,
             price: n(it.variant.price),
-            sale_price: it.variant.sale_price != null ? Number(it.variant.sale_price) : null,
+            sale_price:
+              it.variant.sale_price != null ? Number(it.variant.sale_price) : null,
           }
           : undefined,
       };
@@ -162,6 +159,11 @@ export default function CheckoutPage() {
     return { subtotal, promotionDiscount, voucherDiscount, shipping, finalTotal };
   }, [paymentInfo, cartItems]);
 
+  // ⬇️ WRAPPER khớp prop setCartItems: (items: CartItem[]) => void
+  const replaceCartItems = useCallback((items: CartItem[]) => {
+    setCartItems(items);
+  }, []);
+
   return (
     <div className="container my-10 px-4">
       <Breadcrumb
@@ -180,7 +182,7 @@ export default function CheckoutPage() {
           <CheckoutForm
             onAddressSelect={handleAddressSelect}
             onAddressChange={handleAddressChange}
-            onSaveAddressToggle={handleSaveToggle}   // ✅ nhận tick “lưu địa chỉ”
+            onSaveAddressToggle={handleSaveToggle}
           />
         </div>
 
@@ -194,15 +196,15 @@ export default function CheckoutPage() {
 
           <OrderSummary
             cartItems={cartItems}
-            setCartItems={setCartItems}
+            setCartItems={replaceCartItems} 
             paymentMethod={paymentMethod}
             addressId={addressId}
             appliedVoucher={appliedVoucher}
-            voucherCode={voucherCodeForSubmit}
+            voucherCode={voucherCode ?? undefined}
             serverDiscount={serverDiscount ?? null}
             serverFreeShipping={serverFreeShipping}
             manualAddressData={manualAddressData ?? undefined}
-            saveAddress={saveAddress}                
+            saveAddress={saveAddress}
             totals={totals || undefined}
           />
         </div>
