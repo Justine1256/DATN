@@ -5,6 +5,8 @@ import Cookies from 'js-cookie';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { API_BASE_URL } from '@/utils/api';
 
+/* ===================== Types ===================== */
+
 export interface CartItem {
   id: number | string;
   quantity: number;
@@ -17,14 +19,16 @@ export interface CartItem {
     original_price?: number;
   };
   variant?: {
-    id?: number | string | null;   // 👈 thêm id
+    id?: number | string | null;   // id có thể là string → sẽ ép kiểu khi gửi
     price?: number | null;
     sale_price?: number | null;
   } | null;
-  };
+}
 
+type ShopVoucher = { shop_id: number; code: string };
 
 export type VoucherType = 'percent' | 'amount' | 'shipping' | string;
+
 export interface Voucher {
   id: number | string;
   code: string;
@@ -37,9 +41,11 @@ export interface Voucher {
   is_active?: boolean;
 }
 
+// (tuỳ BE có dùng hay không)
 interface OrderRequestBody {
   payment_method: string;
   voucher_code: string | null;
+  voucher_codes?: ShopVoucher[];                // 👈 thêm mảng mã theo shop
   address_id?: number;
   address_manual?: {
     full_name: string;
@@ -48,6 +54,12 @@ interface OrderRequestBody {
     phone: string;
     email: string;
   };
+  cart_items: Array<{
+    product_id: number;
+    variant_id: number | null;
+    quantity: number;
+    price: number;
+  }>;
 }
 
 interface Totals {
@@ -63,8 +75,10 @@ interface Props {
   paymentMethod: string;
   addressId: number | null;
 
-  appliedVoucher?: Voucher | null;
-  voucherCode?: string | null;
+  appliedVoucher?: Voucher | null;  // 1 voucher (global) nếu có
+  voucherCode?: string | null;      // code global (nếu bạn đã chuẩn hoá ở trên)
+  globalVoucherCode?: string | null;             // 👈 NHẬN THÊM
+  shopVouchers?: Array<{ shop_id: number; code: string }>; // 👈 NHẬN THÊM
 
   serverDiscount?: number | null;
   serverFreeShipping?: boolean;
@@ -81,15 +95,21 @@ interface Props {
   totals?: Totals;
 
   setCartItems: (items: CartItem[]) => void;
-  saveAddress?: boolean; // ✅ tick “Lưu địa chỉ”
+  saveAddress?: boolean; // tick “Lưu địa chỉ”
 }
+
+/* ===================== Component ===================== */
 
 export default function OrderSummary({
   cartItems,
   paymentMethod,
   addressId,
+
   appliedVoucher = null,
   voucherCode = null,
+  globalVoucherCode = null,       // 👈 nhận thêm
+  shopVouchers = [],              // 👈 nhận thêm
+
   manualAddressData,
   setCartItems,
   serverDiscount = null,
@@ -104,7 +124,7 @@ export default function OrderSummary({
   const [popupType, setPopupType] = useState<'success' | 'error' | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
 
-  // 🔒 Chống lưu 2 lần
+  // 🔒 chống lưu địa chỉ 2 lần
   const saveOnceRef = useRef(false);
 
   const num = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -113,6 +133,7 @@ export default function OrderSummary({
   const getOriginalPrice = (item: CartItem) =>
     num(item.variant?.price ?? item.product.price);
 
+  // ======== Tính tiền local (fallback) =========
   const {
     subtotal: localSubtotal,
     promotionDiscount: localPromo,
@@ -129,6 +150,7 @@ export default function OrderSummary({
     return { subtotal, promotionDiscount, voucherDiscount, shipping };
   }, [cartItems, serverDiscount, serverFreeShipping]);
 
+  // ======== Giá trị hiển thị summary =========
   const subtotal = localSubtotal;
   const promotionDiscount = localPromo;
   const voucherDiscount = totals?.voucherDiscount ?? localVoucherDiscount;
@@ -136,7 +158,6 @@ export default function OrderSummary({
   const finalTotal = Math.max(0, (subtotal - promotionDiscount) - voucherDiscount + shipping);
 
   /** ===== Lưu địa chỉ (đăng nhập + nhập tay + tick + không chọn addressId) ===== */
-  
   const trySaveManualAddress = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
     if (!token || !manualAddressData) return;
@@ -169,7 +190,7 @@ export default function OrderSummary({
       phone: manualAddressData.phone,
       address: manualAddressData.address,
       ward,
-      district,          // ✅ gửi district
+      district,
       province,
       city,
       note: '',
@@ -194,12 +215,21 @@ export default function OrderSummary({
     const isGuest = !token;
     if (isGuest) return;
     if (!saveAddress) return;
-    if (!!addressId) return;            // đang dùng địa chỉ đã lưu
+    if (!!addressId) return;            // đang dùng address đã lưu
     if (!manualAddressData) return;
 
     await trySaveManualAddress();
     saveOnceRef.current = true;
   };
+
+  /* ============== Gộp mã voucher để gửi BE ============== */
+  // Global code ưu tiên: prop `voucherCode` → `appliedVoucher?.code` → `globalVoucherCode`
+  const globalCode: string | null =
+    (voucherCode ?? appliedVoucher?.code ?? globalVoucherCode) ?? null;
+
+  // Mảng mã theo shop (nếu có)
+  const voucherCodesArray: ShopVoucher[] | undefined =
+    Array.isArray(shopVouchers) && shopVouchers.length ? shopVouchers : undefined;
 
   /* ============== Đặt hàng ============== */
   const handlePlaceOrder = async () => {
@@ -225,12 +255,13 @@ export default function OrderSummary({
         throw new Error('Giỏ hàng trống hoặc thiếu product_id/price.');
       }
 
-      // ----- GUEST -----
       if (isGuest) {
-        const guestPayload = {
+        // ----- GUEST -----
+        const guestPayload: OrderRequestBody = {
           payment_method: paymentMethod,
-          cart_items,                                  // 👈 gửi cart_items
-          voucher_code: voucherCode ?? appliedVoucher?.code ?? null,
+          cart_items,
+          voucher_code: globalCode,                            // 👈 gửi mã global
+          ...(voucherCodesArray ? { voucher_codes: voucherCodesArray } : {}), // 👈 gửi list shop
           address_manual: {
             full_name: manualAddressData?.full_name || '',
             address: `${manualAddressData?.address ?? ''}${manualAddressData?.apartment ? ', ' + manualAddressData.apartment : ''}`,
@@ -239,13 +270,18 @@ export default function OrderSummary({
             email: manualAddressData?.email || '',
           },
         };
-        await axios.post(`${API_BASE_URL}/nologin`, guestPayload);
+
+        await axios.post(`${API_BASE_URL}/nologin`, guestPayload, {
+          headers: { 'Content-Type': 'application/json' },
+        });
       } else {
         // ----- LOGGED-IN -----
-        const requestBody: any = {
+        const requestBody: OrderRequestBody = {
           payment_method: paymentMethod,
-          cart_items,                                  // 👈 gửi cart_items
-          voucher_code: appliedVoucher?.code || voucherCode || null,
+          cart_items,
+          voucher_code: globalCode,    
+                                  // 👈 gửi mã global
+          ...(voucherCodesArray ? { voucher_codes: voucherCodesArray } : {}), // 👈 gửi list shop
         };
 
         if (
@@ -298,7 +334,6 @@ export default function OrderSummary({
       setLoading(false);
     }
   };
-;
 
   useEffect(() => {
     if (showPopup) {
@@ -309,12 +344,22 @@ export default function OrderSummary({
       return () => clearTimeout(t);
     }
   }, [showPopup]);
-  // chuẩn hoá cart_items gửi lên BE
+
+  // ===== Chuẩn hoá cart_items gửi lên BE =====
   const buildCartItemsPayload = (list: CartItem[]) => {
     return list
       .map((it) => {
         const product_id = Number(it.product?.id);
-        const variant_id = it.variant?.id ?? null;
+
+        // 👇 ép variant_id sang number (nếu parse được), không thì để null
+        const rawVarId = (it.variant?.id ?? null) as any;
+        const variant_id =
+          rawVarId === null || rawVarId === undefined
+            ? null
+            : Number.isFinite(Number(rawVarId))
+              ? Number(rawVarId)
+              : null;
+
         const quantity = Number(it.quantity);
         const price = num(
           it.variant?.sale_price ??
@@ -325,7 +370,6 @@ export default function OrderSummary({
 
         return { product_id, variant_id, quantity, price };
       })
-      // lọc item thiếu thông tin
       .filter(
         (x) =>
           Number.isFinite(x.product_id) &&
@@ -334,6 +378,8 @@ export default function OrderSummary({
           x.quantity > 0
       );
   };
+
+  /* ===================== UI ===================== */
 
   return (
     <div className="space-y-6 text-sm relative">

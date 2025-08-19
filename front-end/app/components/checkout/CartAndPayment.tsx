@@ -558,7 +558,8 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
         product_id: it.product.id,
       }));
 
-      const postShopId = v.shop_id == null ? null : voucherModalShopId;
+      const postShopId = v.shop_id == null ? null : Number(v.shop_id);
+
 
       const res = await axios.post(
         `${API_BASE_URL}/vouchers/apply`,

@@ -112,7 +112,7 @@ export default function CheckoutPage() {
         // ⬇️ KHÔNG trả về null cho variant để khớp type của OrderSummary
         variant: it.variant
           ? {
-            id: n(it.variant.id) ?? 0,
+            id: n(it.variant.id) ?? null,
             price: n(it.variant.price),
             sale_price:
               it.variant.sale_price != null ? Number(it.variant.sale_price) : null,
@@ -206,6 +206,8 @@ export default function CheckoutPage() {
             manualAddressData={manualAddressData ?? undefined}
             saveAddress={saveAddress}
             totals={totals || undefined}
+            globalVoucherCode={paymentInfo?.globalVoucherCode ?? null}
+            shopVouchers={paymentInfo?.shopVouchers ?? []}
           />
         </div>
       </div>
