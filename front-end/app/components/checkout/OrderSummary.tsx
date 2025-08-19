@@ -246,31 +246,25 @@ export default function OrderSummary({
     setSuccessMessage('');
     setShowPopup(false);
     setPopupType(null);
-    const cartItemIds = cartItems
-      .map(it => Number(it.id))
-      .filter(n => Number.isFinite(n));
-    if (!cartItemIds.length) {
-      setError('Không có sản phẩm hợp lệ để đặt hàng.');
-      setPopupType('error');
-      setShowPopup(true);
-      return;
-    }
+
     try {
       const token = localStorage.getItem('token') || Cookies.get('authToken');
       const isGuest = !token;
 
+      // Chuẩn hoá items sẽ gửi
       const cart_items = buildCartItemsPayload(cartItems);
-      if (cart_items.length === 0) {
-        throw new Error('Giỏ hàng trống hoặc thiếu product_id/price.');
-      }
 
+      // ✅ Guest: CHỈ cần có cart_items hợp lệ
       if (isGuest) {
-        // ----- GUEST -----
+        if (cart_items.length === 0) {
+          throw new Error('Giỏ hàng trống hoặc thiếu product_id/price.');
+        }
+
         const guestPayload: OrderRequestBody = {
           payment_method: paymentMethod,
           cart_items,
-          voucher_code: globalCode,                            // 👈 gửi mã global
-          ...(voucherCodesArray ? { voucher_codes: voucherCodesArray } : {}), // 👈 gửi list shop
+          voucher_code: globalCode,
+          ...(voucherCodesArray ? { voucher_codes: voucherCodesArray } : {}),
           address_manual: {
             full_name: manualAddressData?.full_name || '',
             address: `${manualAddressData?.address ?? ''}${manualAddressData?.apartment ? ', ' + manualAddressData.apartment : ''}`,
@@ -283,15 +277,23 @@ export default function OrderSummary({
         await axios.post(`${API_BASE_URL}/nologin`, guestPayload, {
           headers: { 'Content-Type': 'application/json' },
         });
+
       } else {
-        // ----- LOGGED-IN -----
+        // ✅ Logged-in: MỚI cần cart_item_ids (ID cart-item trên server phải là số)
+        const cartItemIds = cartItems
+          .map((it) => Number(it.id))
+          .filter((n) => Number.isFinite(n));
+
+        if (!cartItemIds.length) {
+          throw new Error('Không có sản phẩm hợp lệ để đặt hàng.');
+        }
+
         const requestBody: OrderRequestBody = {
           payment_method: paymentMethod,
           cart_items,
-          cart_item_ids: cartItemIds, 
-          voucher_code: globalCode,    
-                                  // 👈 gửi mã global
-          ...(voucherCodesArray ? { voucher_codes: voucherCodesArray } : {}), // 👈 gửi list shop
+          cart_item_ids: cartItemIds,       // 👈 lọc đúng SP đã tick
+          voucher_code: globalCode,
+          ...(voucherCodesArray ? { voucher_codes: voucherCodesArray } : {}),
         };
 
         if (
@@ -313,7 +315,7 @@ export default function OrderSummary({
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        await maybeSaveManualAddress(); // lưu địa chỉ 1 lần nếu có tick
+        await maybeSaveManualAddress();
 
         if (response.data?.redirect_url) {
           localStorage.removeItem('cart');
@@ -344,6 +346,7 @@ export default function OrderSummary({
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     if (showPopup) {

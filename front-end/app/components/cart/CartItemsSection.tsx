@@ -40,10 +40,6 @@ export default function CartItemsSection({
   const [loading, setLoading] = useState(true);
   const [updatingIds, setUpdatingIds] = useState<Set<number | string>>(new Set());
 
-  // ========= SELECTION =========
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const sameKey = (a: React.Key, b: React.Key) => String(a) === String(b);
-
   // ===== Helpers =====
   const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];
@@ -62,10 +58,10 @@ export default function CartItemsSection({
     item.variant ? Number(item.variant.price ?? 0) : Number(item.product.price ?? 0);
 
   const renderVariant = (item: CartItem) => {
-    const option1 = item.variant?.option1 ?? 'Phân loại 1';
-    const option2 = item.variant?.option2 ?? 'Phân loại 2';
-    const value1 = item.variant?.value1;
-    const value2 = item.variant?.value2;
+    const option1 = (item as any).variant?.option1 ?? 'Phân loại 1';
+    const option2 = (item as any).variant?.option2 ?? 'Phân loại 2';
+    const value1 = (item as any).variant?.value1;
+    const value2 = (item as any).variant?.value2;
 
     const parts: string[] = [];
     if (option1 && value1) parts.push(`${option1}: ${value1}`);
@@ -78,6 +74,11 @@ export default function CartItemsSection({
     );
   };
 
+  // Dọn state checkbox cũ (nếu từng lưu)
+  useEffect(() => {
+    try { localStorage.removeItem('selectedCartIds'); } catch { }
+  }, []);
+
   // ===== Fetch & sync cart =====
   const fetchCartItems = async () => {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
@@ -87,8 +88,6 @@ export default function CartItemsSection({
     if (guestCart) {
       try {
         const parsed = JSON.parse(guestCart);
-
-        // helper tạo id ổn định để tránh trùng
         const makeStableId = (row: any, idx: number, v?: any) => {
           const pid = row.product_id ?? row.product?.id ?? 'p';
           const vid = v?.id ?? row.variant_id ?? 'base';
@@ -98,7 +97,6 @@ export default function CartItemsSection({
         };
 
         localCartItems = parsed.map((row: any, idx: number) => {
-          // v: ưu tiên schema mới (row.variant), fallback schema cũ (variant_* + option/value)
           const v = row.variant ?? null;
           const hasVariant = !!v || !!row.variant_id;
 
@@ -137,7 +135,6 @@ export default function CartItemsSection({
                 ),
               ],
               price: Number(row.price ?? row.product?.price ?? variantData.price ?? 0),
-              // nếu có biến thể thì để sale ở biến thể; base product thì dùng sale_price ở root
               sale_price: hasVariant ? undefined : (row.sale_price ?? row.product?.sale_price ?? null),
               shop:
                 row.shop ??
@@ -194,7 +191,6 @@ export default function CartItemsSection({
     }
   };
 
-
   const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
     try {
       const serverRes = await fetch(`${API_BASE_URL}/cart`, {
@@ -203,8 +199,8 @@ export default function CartItemsSection({
       const serverItems: CartItem[] = serverRes.ok ? await serverRes.json() : [];
 
       const isSameItem = (local: CartItem, server: CartItem) => {
-        const localKey = `${local.variant?.option1}-${local.variant?.option2}-${local.variant?.value1}-${local.variant?.value2}`.toLowerCase();
-        const serverKey = `${server.variant?.option1}-${server.variant?.option2}-${server.variant?.value1}-${server.variant?.value2}`.toLowerCase();
+        const localKey = `${(local as any).variant?.option1}-${(local as any).variant?.option2}-${(local as any).variant?.value1}-${(local as any).variant?.value2}`.toLowerCase();
+        const serverKey = `${(server as any).variant?.option1}-${(server as any).variant?.option2}-${(server as any).variant?.value1}-${(server as any).variant?.value2}`.toLowerCase();
         return local.product.id === server.product.id && localKey === serverKey;
       };
 
@@ -217,7 +213,7 @@ export default function CartItemsSection({
           product_id: item.product.id,
           quantity: item.quantity,
           replace_quantity: true,
-          ...(item.variant && { variant_id: item.variant.id }),
+          ...(item.variant && { variant_id: (item as any).variant.id }),
         };
 
         const res = await fetch(`${API_BASE_URL}/cart/add`, {
@@ -251,9 +247,6 @@ export default function CartItemsSection({
       propsSetCartItems(updated);
       localStorage.setItem('cart', JSON.stringify(updated));
 
-      // loại khỏi selection nếu đang chọn
-      setSelectedRowKeys((prev) => prev.filter((k) => !sameKey(k, id)));
-
       window.dispatchEvent(new Event('cartUpdated'));
       message.success('Đã xoá sản phẩm khỏi giỏ');
       return;
@@ -270,7 +263,6 @@ export default function CartItemsSection({
       setCartItems(updated);
       propsSetCartItems(updated);
       localStorage.setItem('cart', JSON.stringify(updated));
-      setSelectedRowKeys((prev) => prev.filter((k) => !sameKey(k, id)));
 
       window.dispatchEvent(new Event('cartUpdated'));
       message.success('Đã xoá sản phẩm khỏi giỏ');
@@ -322,50 +314,27 @@ export default function CartItemsSection({
     }
   };
 
-  // ===== Khôi phục & đồng bộ selection =====
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('selectedCartIds') || '[]');
-      if (Array.isArray(saved)) setSelectedRowKeys(saved);
-    } catch { }
-  }, []);
-
-  // Khi giỏ thay đổi, loại các key không còn tồn tại
-  useEffect(() => {
-    setSelectedRowKeys((prev) => prev.filter((k) => cartItems.some((i) => sameKey(i.id, k))));
-  }, [cartItems]);
-
-  // Lưu lại mỗi khi selection đổi
-  useEffect(() => {
-    localStorage.setItem('selectedCartIds', JSON.stringify(selectedRowKeys));
-  }, [selectedRowKeys]);
-
-  // ===== Totals chỉ theo SP đã chọn =====
-  const selectedItems = useMemo(
-    () => cartItems.filter((i) => selectedRowKeys.some((k) => sameKey(k, i.id))),
-    [cartItems, selectedRowKeys]
-  );
-
+  // ===== Totals (TOÀN BỘ GIỎ HÀNG) =====
   const subtotal = useMemo(
-    () => selectedItems.reduce((acc, item) => acc + getOriginalPrice(item) * item.quantity, 0),
-    [selectedItems]
+    () => cartItems.reduce((acc, item) => acc + getOriginalPrice(item) * item.quantity, 0),
+    [cartItems]
   );
 
   const discountedSubtotal = useMemo(
-    () => selectedItems.reduce((acc, item) => acc + getPriceToUse(item) * item.quantity, 0),
-    [selectedItems]
+    () => cartItems.reduce((acc, item) => acc + getPriceToUse(item) * item.quantity, 0),
+    [cartItems]
   );
 
   const promotionDiscount = Math.max(0, subtotal - discountedSubtotal);
 
   const shipping = useMemo(() => {
     const uniqueShopIds = new Set(
-      selectedItems
-        .map((i) => i.product?.shop?.id)
+      cartItems
+        .map((i: any) => i.product?.shop?.id)
         .filter((id): id is number => typeof id === 'number')
     );
     return uniqueShopIds.size > 0 ? uniqueShopIds.size * 20000 : 0;
-  }, [selectedItems]);
+  }, [cartItems]);
 
   const total = Math.max(0, discountedSubtotal + shipping);
 
@@ -379,12 +348,11 @@ export default function CartItemsSection({
       dataIndex: 'product',
       key: 'product',
       render: (_: any, item) => {
-        const shopSlug = item.product?.shop?.slug || item.product?.shop?.id;
+        const shopSlug = (item as any).product?.shop?.slug || (item as any).product?.shop?.id;
         const productSlug = (item as any).product?.slug || (item as any).product?.id;
 
         return (
           <Space align="start">
-            {/* Click ảnh → chi tiết sản phẩm */}
             <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
               <div className="relative w-16 h-16 rounded border overflow-hidden bg-white cursor-pointer">
                 <Image
@@ -397,7 +365,6 @@ export default function CartItemsSection({
             </Link>
 
             <div>
-              {/* Click tên → chi tiết sản phẩm */}
               <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
                 <div className="font-medium text-black hover:text-red-500 transition-colors cursor-pointer">
                   {item.product.name?.length > 60
@@ -406,11 +373,10 @@ export default function CartItemsSection({
                 </div>
               </Link>
 
-              {/* Tag shop */}
-              {item.product.shop && (
+              {(item as any).product.shop && (
                 <Link href={`/shop/${shopSlug}`} className="text-xs">
                   <Tag color="processing" className="mt-1">
-                    🏪 {item.product.shop.name}
+                    🏪 {(item as any).product.shop.name}
                   </Tag>
                 </Link>
               )}
@@ -419,7 +385,6 @@ export default function CartItemsSection({
         );
       },
     },
-
     {
       title: 'Biến thể',
       key: 'variant',
@@ -438,18 +403,16 @@ export default function CartItemsSection({
 
         return (
           <div>
-            {/* Ép màu: đỏ khi giảm giá, đen khi không giảm để tránh bị trắng */}
             <Text
               strong
               type={discounted ? 'danger' : undefined}
-              style={{ color: discounted ? '#DB4444' : '#111827' }} // 👈 chống bị trắng
+              style={{ color: discounted ? '#DB4444' : '#111827' }}
             >
               {formatPrice(sale)}
             </Text>
 
             {discounted && (
               <div>
-                {/* Giá gốc gạch ngang: xám cố định */}
                 <Text delete style={{ color: '#8c8c8c' }}>
                   {formatPrice(original)}
                 </Text>
@@ -459,7 +422,6 @@ export default function CartItemsSection({
         );
       },
     },
-
     {
       title: 'Số lượng',
       dataIndex: 'quantity',
@@ -505,20 +467,8 @@ export default function CartItemsSection({
     },
   ];
 
-  // cấu hình checkbox chọn dòng
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
-    preserveSelectedRowKeys: true,
-  };
-
-  // Đặt hàng theo danh sách đã chọn
-  const handleCheckoutSelected = () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning('Vui lòng chọn ít nhất 1 sản phẩm để đặt hàng');
-      return;
-    }
-    localStorage.setItem('selectedCartIds', JSON.stringify(selectedRowKeys));
+  // Đặt hàng: luôn lấy toàn bộ giỏ
+  const handleCheckoutAll = () => {
     router.push('/checkout');
   };
 
@@ -541,30 +491,9 @@ export default function CartItemsSection({
         pagination={false}
         rowKey="key"
         sticky
-        rowSelection={rowSelection}
+        // ⛔ bỏ rowSelection để không có checkbox
         summary={() => (
           <>
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={6}>
-                <div className="flex items-center justify-between">
-                  <Text>
-                    Đã chọn: <Text strong>{selectedRowKeys.length}</Text> sản phẩm
-                  </Text>
-                  {selectedRowKeys.length > 0 && (
-                    <Space size={12}>
-                      <Button size="small" onClick={() => setSelectedRowKeys([])}>Bỏ chọn</Button>
-                      <Button
-                        size="small"
-                        onClick={() => setSelectedRowKeys(dataSource.map((r) => r.key))}
-                      >
-                        Chọn tất cả
-                      </Button>
-                    </Space>
-                  )}
-                </div>
-              </Table.Summary.Cell>
-            </Table.Summary.Row>
-
             <Table.Summary.Row>
               <Table.Summary.Cell index={0} colSpan={4}>
                 <Text>Tạm tính (giá gốc):</Text>
@@ -625,9 +554,9 @@ export default function CartItemsSection({
         <Button
           type="primary"
           size="large"
-          disabled={selectedRowKeys.length === 0}
+          disabled={dataSource.length === 0}
           style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
-          onClick={handleCheckoutSelected}
+          onClick={handleCheckoutAll}
         >
           Đặt hàng
         </Button>
