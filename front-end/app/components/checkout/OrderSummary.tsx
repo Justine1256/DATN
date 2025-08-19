@@ -47,6 +47,7 @@ interface OrderRequestBody {
   voucher_code: string | null;
   voucher_codes?: ShopVoucher[];                // 👈 thêm mảng mã theo shop
   address_id?: number;
+  cart_item_ids?: number[]; 
   address_manual?: {
     full_name: string;
     address: string;
@@ -245,7 +246,15 @@ export default function OrderSummary({
     setSuccessMessage('');
     setShowPopup(false);
     setPopupType(null);
-
+    const cartItemIds = cartItems
+      .map(it => Number(it.id))
+      .filter(n => Number.isFinite(n));
+    if (!cartItemIds.length) {
+      setError('Không có sản phẩm hợp lệ để đặt hàng.');
+      setPopupType('error');
+      setShowPopup(true);
+      return;
+    }
     try {
       const token = localStorage.getItem('token') || Cookies.get('authToken');
       const isGuest = !token;
@@ -279,6 +288,7 @@ export default function OrderSummary({
         const requestBody: OrderRequestBody = {
           payment_method: paymentMethod,
           cart_items,
+          cart_item_ids: cartItemIds, 
           voucher_code: globalCode,    
                                   // 👈 gửi mã global
           ...(voucherCodesArray ? { voucher_codes: voucherCodesArray } : {}), // 👈 gửi list shop
