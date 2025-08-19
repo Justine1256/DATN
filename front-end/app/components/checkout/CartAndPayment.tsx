@@ -332,7 +332,17 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
       shopVouchers,
       globalVoucherCode,
     });
-  }, [paymentMethod, perShopComputed, globalVoucherDiscount, globalFreeShipping, summary, onPaymentInfoChange]);
+  }, [
+    paymentMethod,
+    perShopComputed,
+    globalVoucherDiscount,
+    globalFreeShipping,
+    summary,
+    shopVouchers,          // 👈 THÊM
+    globalVoucherCode,     // 👈 THÊM
+    onPaymentInfoChange,
+  ]);
+
   // Chuẩn hóa item từ localStorage cho guest
   const normalizeGuestItem = (raw: any, idx: number): CartItem => {
     const prod = raw.product ?? {};
@@ -620,17 +630,22 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   const filteredVouchers = useMemo(() => {
     const s = voucherSearch.trim().toLowerCase();
 
+    // Lọc theo scope (voucher toàn sàn hoặc theo shop đang mở)
     const scopeFiltered = vouchers.filter((v) => {
-      if (voucherModalShopId == null) return v.shop_id == null;
+      if (voucherModalShopId == null) return v.shop_id == null;            // modal global → chỉ lấy voucher sàn
       return v.shop_id == null || Number(v.shop_id) === Number(voucherModalShopId);
     });
 
+    // Lọc theo từ khoá tìm kiếm
     const searched = !s
       ? scopeFiltered
       : scopeFiltered.filter((v) =>
-          [v.code, v.title, v.description].filter(Boolean).some((x) => String(x).toLowerCase().includes(s))
-        );
+        [v.code, v.title, v.description]
+          .filter(Boolean)
+          .some((x) => String(x).toLowerCase().includes(s))
+      );
 
+    // Hàm chấm điểm (giữ nguyên logic cũ nếu bạn thích)
     const score = (v: Voucher) => {
       const isGlobal = v.shop_id == null ? 1 : 0;
       const globalScore = isGlobal ? 5_000_000 : 0;
@@ -645,8 +660,16 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
       return globalScore + activeScore + usedPenalty + freeShipScore + percentScore + amountScore + expiryScore;
     };
 
-    return searched.slice().sort((a, b) => score(b) - score(a));
+    // Ưu tiên voucher còn hạn/active trước, sau đó mới tới hết hạn
+    return searched.slice().sort((a, b) => {
+      const aValid = a.is_active !== false && !isExpired(a);
+      const bValid = b.is_active !== false && !isExpired(b);
+      if (aValid !== bValid) return aValid ? -1 : 1;   // valid đứng trước
+      // trong mỗi nhóm, sắp xếp theo score giảm dần
+      return score(b) - score(a);
+    });
   }, [vouchers, voucherSearch, voucherModalShopId, isExpired]);
+
 
   /* ---------- util tính tiền shop ---------- */
   const calcShopMoney = useCallback(
