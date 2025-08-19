@@ -128,11 +128,20 @@ export default function CartItemsSection({
             product: {
               id: Number(row.product_id ?? row.product?.id ?? 0),
               name: row.name ?? row.product?.name ?? 'Sản phẩm',
-              image: [formatImageUrl(row.image ?? (Array.isArray(row.product?.image) ? row.product.image[0] : row.product?.image))],
+              image: [
+                formatImageUrl(
+                  row.image ??
+                  (Array.isArray(row.product?.image)
+                    ? row.product.image[0]
+                    : row.product?.image)
+                ),
+              ],
               price: Number(row.price ?? row.product?.price ?? variantData.price ?? 0),
               // nếu có biến thể thì để sale ở biến thể; base product thì dùng sale_price ở root
               sale_price: hasVariant ? undefined : (row.sale_price ?? row.product?.sale_price ?? null),
-              shop: row.shop ?? (row.shop_id ? { id: Number(row.shop_id), name: row.shop_name } : undefined),
+              shop:
+                row.shop ??
+                (row.shop_id ? { id: Number(row.shop_id), name: row.shop_name } : undefined),
             },
             variant: hasVariant ? variantData : null,
           } as CartItem;
@@ -141,7 +150,6 @@ export default function CartItemsSection({
         console.error('❌ Lỗi parse local cart:', err);
       }
     }
-
 
     if (!token) {
       setCartItems(localCartItems);
@@ -185,6 +193,7 @@ export default function CartItemsSection({
       setLoading(false);
     }
   };
+
 
   const syncLocalCartToApi = async (localItems: CartItem[], token: string) => {
     try {
