@@ -230,9 +230,11 @@ class VoucherController extends Controller
     // 6. Kiểm tra và áp dụng mã giảm giá (đã có)
     public function apply(Request $request)
     {
-        $request->validate([
-            'code' => 'required|string'
-        ]);
+ $validated = $request->validate([
+        'code'    => 'required|string',
+        'shop_id' => 'nullable|integer',       // 👈 NEW: cho phép chỉ định shop
+        // (nếu bạn muốn: 'items' => 'nullable|array' để tính theo danh sách đã chọn)
+    ]);
 
         $userId = Auth::id();
         if (!$userId) {
@@ -250,6 +252,13 @@ class VoucherController extends Controller
         if ($carts->isEmpty()) {
             return response()->json(['message' => 'Giỏ hàng trống'], 400);
         }
+         $targetShopId = $validated['shop_id'] ?? null;
+    if ($targetShopId !== null) {
+        $carts = $carts->filter(fn($c) => (int)$c->product->shop_id === (int)$targetShopId);
+        if ($carts->isEmpty()) {
+            return response()->json(['message' => 'Không có sản phẩm thuộc shop đã chọn'], 400);
+        }
+    }
 
         // Tìm voucher
         $voucher = Voucher::where('code', $request->code)
