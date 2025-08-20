@@ -19,6 +19,12 @@ class VnpayService
         $vnp_Url        = rtrim(config('services.vnpay.url') ?? env('VNP_URL'), '/');
         $vnp_TmnCode    = config('services.vnpay.tmn_code') ?? env('VNP_TMN_CODE');
         $vnp_HashSecret = trim((string) (config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
+Log::info('[VNP] secret_fingerprint', [
+  'where' => 'create/verify',
+  'len' => strlen($vnp_HashSecret),
+  'md5' => md5($vnp_HashSecret),
+  'host' => gethostname(),
+]);
 
         Log::info('[VNP] runtime cfg', [
             'tmn'        => $vnp_TmnCode,
@@ -123,6 +129,12 @@ class VnpayService
     public static function verifyHash(array $params): bool
     {
         $vnp_HashSecret = trim((string) (config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
+        Log::info('[VNP] secret_fingerprint', [
+  'where' => 'create/verify',
+  'len' => strlen($vnp_HashSecret),
+  'md5' => md5($vnp_HashSecret),
+  'host' => gethostname(),
+]);
 
         $secureHash = $params['vnp_SecureHash'] ?? '';
         $originalParams = $params; // Keep original for debugging
