@@ -8,28 +8,19 @@ use Illuminate\Support\Facades\Log;
 class VnpayService
 {
     /**
-     * $payload:
-     *  - user_id: int|null
-     *  - order_ids: int[]
-     *  - amount: int|float (VND, chưa nhân 100)
-     *  - return_url?: string (absolute/relative) -> nên truyền route('vnpay.return', [], true)
+     * Fixed signature generation to match VNPay requirements exactly
+     * Based on debugging results: HMAC-SHA512 with vnp_SecureHashType excluded
      */
     public static function createPaymentUrl(array $payload): string
     {
         $vnp_Url        = rtrim(config('services.vnpay.url') ?? env('VNP_URL'), '/');
         $vnp_TmnCode    = config('services.vnpay.tmn_code') ?? env('VNP_TMN_CODE');
         $vnp_HashSecret = trim((string) (config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
-Log::info('[VNP] secret_fingerprint', [
-  'where' => 'create/verify',
-  'len' => strlen($vnp_HashSecret),
-  'md5' => md5($vnp_HashSecret),
-  'host' => gethostname(),
-]);
 
-        Log::info('[VNP] runtime cfg', [
+        Log::info('[VNP] createPaymentUrl start', [
             'tmn'        => $vnp_TmnCode,
             'secret_len' => strlen($vnp_HashSecret),
-            'env_url'    => $vnp_Url,
+            'url'        => $vnp_Url,
         ]);
 
         // 1) Tạo mã giao dịch nội bộ
@@ -42,7 +33,7 @@ Log::info('[VNP] secret_fingerprint', [
             'amount'    => (int) ($payload['amount'] ?? 0),
         ], now()->addMinutes(30));
 
-        // 3) Return URL (backend)
+        // 3) Return URL
         $vnp_ReturnUrl = $payload['return_url']
             ?? (config('services.vnpay.return_url') ?? env('VNP_RETURNURL'));
 
@@ -62,148 +53,83 @@ Log::info('[VNP] secret_fingerprint', [
             'vnp_CurrCode'   => 'VND',
             'vnp_IpAddr'     => request()->ip(),
             'vnp_Locale'     => 'vn',
-            'vnp_OrderInfo'  => 'Thanh toan don hang: ' . $txnRef,
+            'vnp_OrderInfo'  => $payload['order_info'] ?? ('Thanh toan don hang: ' . $txnRef),
             'vnp_OrderType'  => 'other',
             'vnp_ReturnUrl'  => $vnp_ReturnUrl,
             'vnp_TxnRef'     => $txnRef,
             'vnp_ExpireDate' => now()->addMinutes(15)->format('YmdHis'),
         ];
 
-        // Loại param rỗng
         $params = array_filter($params, fn($v) => $v !== null && $v !== '');
 
-        // 5) hashData: KHÔNG urlencode
+        // This matches our debugging results exactly
         ksort($params);
         $hashData = implode('&', array_map(
             fn($k,$v) => $k.'='.$v,
             array_keys($params), $params
         ));
 
-        // 6) query: CÓ urlencode
+        $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
+
         $query = implode('&', array_map(
             fn($k,$v) => urlencode($k).'='.urlencode($v),
             array_keys($params), $params
         ));
 
-        $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
-
-        // Một số môi trường yêu cầu có vnp_SecureHashType
         $fullUrl = $vnp_Url.'?'.$query
                  .'&vnp_SecureHashType=HmacSHA512'
                  .'&vnp_SecureHash='.$secureHash;
 
-        // ===== Self-check từ URL đã build =====
-        parse_str(parse_url($fullUrl, PHP_URL_QUERY), $p);
-        $recv = $p['vnp_SecureHash'] ?? '';
-        unset($p['vnp_SecureHash'], $p['vnp_SecureHashType']);
-        $p = array_filter($p, fn($v) => $v !== null && $v !== '');
-        ksort($p);
-        $rehash = hash_hmac('sha512',
-            implode('&', array_map(fn($k,$v)=>$k.'='.$v, array_keys($p), $p)),
-            $vnp_HashSecret
-        );
-
-        Log::info('[VNP] createPaymentUrl', [
-            'hash_equal'  => hash_equals(strtolower($rehash), strtolower($recv)),
-            'secret_len'  => strlen($vnp_HashSecret),
+        Log::info('[VNP] createPaymentUrl success', [
+            'txn_ref'     => $txnRef,
+            'amount'      => $vnp_Amount,
             'return_url'  => $vnp_ReturnUrl,
-            'full_url'    => $fullUrl,
+            'hash_data'   => $hashData,
+            'secure_hash' => $secureHash,
         ]);
-
-        if (!hash_equals(strtolower($rehash), strtolower($recv))) {
-            Log::error('[VNP] SELF-CHECK FAILED', [
-                'hashData_used_to_sign' => $hashData,
-                'rehash_from_query'     => $rehash,
-                'sent_secure_hash'      => $recv,
-                'full_url'              => $fullUrl,
-            ]);
-            throw new \RuntimeException('VNP SELF-CHECK FAILED: signature mismatch before redirect');
-        }
 
         return $fullUrl;
     }
 
     /**
-     * Verify checksum ở Return/IPN với debug chi tiết
+     * Fixed verification to match VNPay requirements exactly
+     * Based on debugging: HMAC-SHA512 with vnp_SecureHashType excluded from signature
      */
     public static function verifyHash(array $params): bool
     {
         $vnp_HashSecret = trim((string) (config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
-        Log::info('[VNP] secret_fingerprint', [
-  'where' => 'create/verify',
-  'len' => strlen($vnp_HashSecret),
-  'md5' => md5($vnp_HashSecret),
-  'host' => gethostname(),
-]);
-
         $secureHash = $params['vnp_SecureHash'] ?? '';
-        $originalParams = $params; // Keep original for debugging
 
-        unset($params['vnp_SecureHash'], $params['vnp_SecureHashType']);
-        $params = array_filter($params, fn($v) => $v !== null && $v !== '');
-        ksort($params);
+        if (empty($secureHash)) {
+            Log::warning('[VNP] verifyHash: no secure hash provided');
+            return false;
+        }
 
+        // Then remove vnp_SecureHashType from signature generation
+        $verifyParams = $params;
+        unset($verifyParams['vnp_SecureHash']);
 
-        // Approach 1: Original (no encoding)
-        $hashData1 = implode('&', array_map(
+        unset($verifyParams['vnp_SecureHashType']);
+
+        $verifyParams = array_filter($verifyParams, fn($v) => $v !== null && $v !== '');
+        ksort($verifyParams);
+
+        $hashData = implode('&', array_map(
             fn($k,$v) => $k.'='.$v,
-            array_keys($params), $params
+            array_keys($verifyParams), $verifyParams
         ));
-        $calc1 = hash_hmac('sha512', $hashData1, $vnp_HashSecret);
-        $ok1 = hash_equals(strtolower($calc1), strtolower($secureHash));
 
-        // Approach 2: URL decode values (VNPay might send encoded)
-        $decodedParams = array_map('urldecode', $params);
-        $hashData2 = implode('&', array_map(
-            fn($k,$v) => $k.'='.$v,
-            array_keys($decodedParams), $decodedParams
-        ));
-        $calc2 = hash_hmac('sha512', $hashData2, $vnp_HashSecret);
-        $ok2 = hash_equals(strtolower($calc2), strtolower($secureHash));
+        $calculatedHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
+        $isValid = hash_equals(strtolower($calculatedHash), strtolower($secureHash));
 
-        // Approach 3: URL encode values (opposite approach)
-        $encodedParams = array_map('urlencode', $params);
-        $hashData3 = implode('&', array_map(
-            fn($k,$v) => $k.'='.$v,
-            array_keys($encodedParams), $encodedParams
-        ));
-        $calc3 = hash_hmac('sha512', $hashData3, $vnp_HashSecret);
-        $ok3 = hash_equals(strtolower($calc3), strtolower($secureHash));
-
-        Log::info('[VNP] verifyHash DEBUG', [
-            'secret_len' => strlen($vnp_HashSecret),
-            'received_hash' => $secureHash,
-            'original_params' => $originalParams,
-            'filtered_params' => $params,
-
-            'approach_1_no_encoding' => [
-                'hash_data' => $hashData1,
-                'calculated' => $calc1,
-                'match' => $ok1
-            ],
-
-            'approach_2_url_decode' => [
-                'decoded_params' => $decodedParams,
-                'hash_data' => $hashData2,
-                'calculated' => $calc2,
-                'match' => $ok2
-            ],
-
-            'approach_3_url_encode' => [
-                'encoded_params' => $encodedParams,
-                'hash_data' => $hashData3,
-                'calculated' => $calc3,
-                'match' => $ok3
-            ]
+        Log::info('[VNP] verifyHash result', [
+            'is_valid'        => $isValid,
+            'received_hash'   => $secureHash,
+            'calculated_hash' => $calculatedHash,
+            'hash_data'       => $hashData,
+            'params_count'    => count($verifyParams),
         ]);
 
-        $finalResult = $ok1 || $ok2 || $ok3;
-
-        Log::info('[VNP] verifyHash RESULT', [
-            'final_ok' => $finalResult,
-            'which_worked' => $ok1 ? 'no_encoding' : ($ok2 ? 'url_decode' : ($ok3 ? 'url_encode' : 'none'))
-        ]);
-
-        return $finalResult;
+        return $isValid;
     }
 }
