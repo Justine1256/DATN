@@ -72,25 +72,23 @@ Log::info('[VNP] secret_fingerprint', [
         // Loại param rỗng
         $params = array_filter($params, fn($v) => $v !== null && $v !== '');
 
-        // 5) hashData: KHÔNG urlencode
-        ksort($params);
-        $hashData = implode('&', array_map(
-            fn($k,$v) => $k.'='.$v,
-            array_keys($params), $params
-        ));
+        // 5) hashData: KHÔNG encode, sort theo key
+ksort($params);
+$hashData = implode('&', array_map(fn($k,$v)=>$k.'='.$v, array_keys($params), $params));
 
-        // 6) query: CÓ urlencode
-        $query = implode('&', array_map(
-            fn($k,$v) => urlencode($k).'='.urlencode($v),
-            array_keys($params), $params
-        ));
+// 6) Ký theo thuật toán chọn (mặc định SHA512)
+$algo = env('VNP_HASH_ALGO', 'SHA512'); // SHA512 | SHA256
+$secureHash = hash_hmac(strtolower($algo), $hashData, $vnp_HashSecret);
 
-        $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
+// 7) Build query: dùng rawurlencode để tránh dấu '+' ↔ '%20'
+$query = implode('&', array_map(
+    fn($k,$v) => rawurlencode($k).'='.rawurlencode($v),
+    array_keys($params), $params
+));
 
-        // Một số môi trường yêu cầu có vnp_SecureHashType
-        $fullUrl = $vnp_Url.'?'.$query
-                 .'&vnp_SecureHashType=HmacSHA512'
-                 .'&vnp_SecureHash='.$secureHash;
+// Không cần vnp_SecureHashType
+$fullUrl = $vnp_Url.'?'.$query.'&vnp_SecureHash='.$secureHash;
+
 
         // ===== Self-check từ URL đã build =====
         parse_str(parse_url($fullUrl, PHP_URL_QUERY), $p);
