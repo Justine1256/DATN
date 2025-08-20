@@ -22,10 +22,10 @@ class PaymentController extends Controller
         ]);
 
         $url = VnpayService::createPaymentUrl([
-            'user_id'   => Auth::user()->id,
+            'user_id' => Auth::id(),
             'order_ids' => $request->order_ids,
             'amount'    => (int)$request->amount,
-            'return_url'=> route('vnpay.return'),
+            'return_url' => route('vnpay.return', [], true),
         ]);
 
         return response()->json(['payment_url' => $url]);
