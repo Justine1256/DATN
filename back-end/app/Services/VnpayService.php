@@ -12,7 +12,7 @@ class VnpayService
      *  - user_id: int|null
      *  - order_ids: int[]
      *  - amount: int|float (VND, chưa nhân 100)
-     *  - return_url?: string (absolute/relative)
+     *  - return_url?: string (FE URL, absolute/relative)
      */
     public static function createPaymentUrl(array $payload): string
     {
@@ -23,21 +23,24 @@ class VnpayService
         // Mã giao dịch nội bộ
         $txnRef = 'PMT' . now()->format('YmdHis') . random_int(1000, 9999);
 
-        // Map txnRef -> orders để return/ipn xử lý
+        // Lưu map txnRef -> orders để return/ipn xử lý
         Cache::put("vnp:{$txnRef}", [
             'user_id'   => $payload['user_id'] ?? null,
             'order_ids' => $payload['order_ids'] ?? [],
             'amount'    => (int) ($payload['amount'] ?? 0),
         ], now()->addMinutes(30));
 
-        // Dùng MỘT giá trị return_url duy nhất cho cả hash lẫn query
+        // Return URL cho FE (dùng đúng 1 giá trị cho hash & query)
         $vnp_ReturnUrl = $payload['return_url']
             ?? (config('services.vnpay.return_url') ?? env('VNP_RETURNURL'));
+
+        // Ép absolute URL nếu cần
         if (!preg_match('~^https?://~i', (string)$vnp_ReturnUrl)) {
-            $vnp_ReturnUrl = url($vnp_ReturnUrl); // ép absolute
+            $vnp_ReturnUrl = url($vnp_ReturnUrl);
         }
 
-        $vnp_Amount = (int) round(((int)($payload['amount'] ?? 0)) * 100); // nhân 100 theo chuẩn VNPAY
+        // amount × 100 theo chuẩn VNPAY (số nguyên)
+        $vnp_Amount = (int) round(((int)($payload['amount'] ?? 0)) * 100);
 
         $params = [
             'vnp_Version'    => '2.1.0',
@@ -105,15 +108,20 @@ class VnpayService
         return $fullUrl;
     }
 
+    /**
+     * Verify checksum ở Return/IPN.
+     */
     public static function verifyHash(array $params): bool
     {
         $vnp_HashSecret = trim((string) (config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
 
         $secureHash = $params['vnp_SecureHash'] ?? '';
         unset($params['vnp_SecureHash'], $params['vnp_SecureHashType']);
+
         $params = array_filter($params, fn($v) => $v !== null && $v !== '');
         ksort($params);
 
+        // KHÔNG urlencode khi verify
         $hashData = implode('&', array_map(
             fn($k,$v) => $k.'='.$v,
             array_keys($params), $params

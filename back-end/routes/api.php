@@ -128,9 +128,9 @@ Route::post('/admin/orders/{orderId}/refund-report/approve', [OrderController::c
 Route::post('/admin/orders/{orderId}/refund-report/reject', [OrderController::class, 'rejectRefundReport']);// ko duyệt admin đơn hàng tố cáo
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment'])->name('vnpay.create');
-    Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
-    Route::get('/vnpay/ipn',    [PaymentController::class, 'vnpayIpn'])->name('vnpay.ipn');
+        Route::post('/create', [PaymentController::class, 'createVnpayPayment'])->name('vnpay.create');
+    Route::get('/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
+    Route::match(['get', 'post'], '/ipn', [PaymentController::class, 'vnpayIpn'])->name('vnpay.ipn');
     // User
     // Route::get('/user', [UserController::class, 'show']);
     Route::put('/user', [UserController::class, 'update']);

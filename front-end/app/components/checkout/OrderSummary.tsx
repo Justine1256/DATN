@@ -249,42 +249,85 @@ const handlePlaceOrder = async () => {
 
   try {
     const token = localStorage.getItem('token') || Cookies.get('authToken');
-    if (!token) {
-      throw new Error('Vui lòng đăng nhập trước khi đặt hàng.');
-    }
+    const isGuest = !token;
 
-    // Payload đúng với BE hiện tại
-    const payload: any = {
+    // Chuẩn hóa mã voucher
+    const globalCode: string | null =
+      (voucherCode ?? appliedVoucher?.code ?? globalVoucherCode) ?? null;
+
+    // (tuỳ BE có dùng hay không) — build cart_items nếu cần cho guest
+    const cart_items = buildCartItemsPayload(cartItems);
+
+    // 1) Chuẩn hóa payload base
+    const basePayload: any = {
       payment_method: (paymentMethod || '').toLowerCase(), // 'cod' | 'vnpay'
-      voucher_code: (voucherCode ?? appliedVoucher?.code ?? globalVoucherCode) ?? null,
+      voucher_code: globalCode,
     };
-
     if (Array.isArray(shopVouchers) && shopVouchers.length) {
-      payload.voucher_codes = shopVouchers; // [{shop_id, code}]
+      basePayload.voucher_codes = shopVouchers; // [{shop_id, code}]
     }
 
-    if (addressId) {
-      payload.address_id = addressId;
-    } else if (manualAddressData) {
-      payload.address_manual = {
-        full_name: manualAddressData.full_name,
-        address:
-          `${manualAddressData.address}` +
-          (manualAddressData.apartment ? `, ${manualAddressData.apartment}` : ''),
-        city: manualAddressData.city, // "Ward, District, Province"
-        phone: manualAddressData.phone,
-        email: manualAddressData.email,
+    // 2) Chọn endpoint & payload theo login/guest
+    let url = '';
+    let payload: any = {};
+
+    if (isGuest) {
+      // ---- GUEST FLOW ----
+      url = `${API_BASE_URL}/nologin`;
+      if (!manualAddressData) {
+        throw new Error('Khách vãng lai cần nhập địa chỉ giao hàng.');
+      }
+      if (!cart_items.length) {
+        throw new Error('Giỏ hàng trống hoặc thiếu sản phẩm hợp lệ.');
+      }
+      payload = {
+        ...basePayload,
+        cart_items,
+        address_manual: {
+          full_name: manualAddressData.full_name || '',
+          address:
+            `${manualAddressData.address || ''}` +
+            (manualAddressData.apartment ? `, ${manualAddressData.apartment}` : ''),
+          city: manualAddressData.city || '', // "Ward, District, Province"
+          phone: manualAddressData.phone || '',
+          email: manualAddressData.email || '',
+        },
       };
+    } else {
+      // ---- LOGGED-IN FLOW ----
+      url = `${API_BASE_URL}/dathang`;
+
+      // BE của bạn không bắt buộc cart_items với user đã login (vì BE lấy từ bảng carts theo user_id),
+      // nhưng nếu bạn muốn gửi kèm để kiểm soát sản phẩm đã tick thì vẫn có thể bổ sung.
+      payload = {
+        ...basePayload,
+        // cart_items, // nếu BE dùng
+      };
+
+      if (manualAddressData && Object.values(manualAddressData).some(v => (v ?? '').toString().trim() !== '')) {
+        payload.address_manual = {
+          full_name: manualAddressData.full_name,
+          address:
+            `${manualAddressData.address}` +
+            (manualAddressData.apartment ? `, ${manualAddressData.apartment}` : ''),
+          city: manualAddressData.city,
+          phone: manualAddressData.phone,
+          email: manualAddressData.email,
+        };
+      } else if (addressId) {
+        payload.address_id = addressId;
+      } else {
+        throw new Error('Thiếu địa chỉ giao hàng.');
+      }
     }
 
-    const response = await axios.post(`${API_BASE_URL}/dathang`, payload, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    // 3) Gọi API
+    const headers: any = { 'Content-Type': 'application/json' };
+    if (!isGuest) headers.Authorization = `Bearer ${token}`;
 
-    // Tuỳ chọn: lưu địa chỉ nhập tay 1 lần
-    await maybeSaveManualAddress();
+    const response = await axios.post(url, payload, { headers });
 
-    // Nếu là VNPAY → chuyển hướng
+    // 4) Nếu VNPAY → chuyển hướng ngay
     if (response.data?.redirect_url) {
       localStorage.removeItem('cart');
       setCartItems([]);
@@ -293,7 +336,7 @@ const handlePlaceOrder = async () => {
       return;
     }
 
-    // COD → hiển thị thành công + về trang chủ
+    // 5) COD → hiển thị thành công, clear giỏ, về trang chủ
     setSuccessMessage('Đặt hàng thành công!');
     setPopupType('success');
     setShowPopup(true);
@@ -302,9 +345,15 @@ const handlePlaceOrder = async () => {
     setCartItems([]);
     window.dispatchEvent(new Event('cartUpdated'));
 
+    // Option: điều hướng sau 2.5s
     setTimeout(() => {
       window.location.href = '/';
     }, 2500);
+
+    // 6) Nếu đăng nhập & có nhập tay địa chỉ + chọn “Lưu địa chỉ”, lưu 1 lần
+    if (!isGuest) {
+      await maybeSaveManualAddress();
+    }
   } catch (err: any) {
     const msg = err.response?.data?.message || err.message || 'Lỗi đặt hàng';
     setError(msg);
@@ -314,6 +363,7 @@ const handlePlaceOrder = async () => {
     setLoading(false);
   }
 };
+
 
 
 

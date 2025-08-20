@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
+    // Endpoint optional để FE gọi tạo link (nếu không, bạn có thể tạo link ngay ở /dathang)
     public function createVnpayPayment(Request $request)
     {
         $request->validate([
@@ -24,12 +25,14 @@ class PaymentController extends Controller
             'user_id'   => Auth::id(),
             'order_ids' => $request->order_ids,
             'amount'    => (int)$request->amount,
-            'return_url'=> route('vnpay.return', [], true), // absolute
+            // Dùng FE URL cấu hình (absolute)
+            'return_url'=> config('services.vnpay.return_url'),
         ]);
 
         return response()->json(['payment_url' => $url]);
     }
 
+    // Front-channel: user quay về sau thanh toán -> chuyển tiếp sang FE
     public function vnpayReturn(Request $request)
     {
         $params = $request->all();
@@ -88,6 +91,7 @@ class PaymentController extends Controller
         ]);
     }
 
+    // Server-to-server: IPN đối soát/cập nhật
     public function vnpayIpn(Request $request)
     {
         $params = $request->all();
@@ -101,6 +105,7 @@ class PaymentController extends Controller
         $map    = $txnRef ? Cache::get("vnp:{$txnRef}") : null;
 
         if (!$map) {
+            // Có thể đã xử lý ở return; coi như OK để idempotent
             return response()->json(['RspCode' => '00', 'Message' => 'OK']);
         }
 
@@ -131,6 +136,7 @@ class PaymentController extends Controller
 
     private function redirectToFrontend(array $query)
     {
+        // FE page để hiển thị kết quả cuối cùng
         $url = config('services.vnpay.return_url') ?? env('FRONTEND_RESULT_URL') ?? env('VNP_RETURNURL');
         $qs  = http_build_query($query);
         return redirect()->away($url . (str_contains($url, '?') ? '&' : '?') . $qs);
