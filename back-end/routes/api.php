@@ -114,7 +114,6 @@ Route::get('/vouchers', [VoucherController::class, 'index']);
 Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
 Route::get('/products/{id}/reviews', [ReviewController::class, 'getByProduct']);
-Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
 
 
 Route::post('/forgot-password/send-otp', [UserController::class, 'sendResetOtp']);
