@@ -126,10 +126,14 @@ Route::get('/admin/orders/{orderId}/refund-report', [OrderController::class, 'vi
 Route::post('/admin/orders/{orderId}/refund-report/approve', [OrderController::class, 'approveRefundReport']);// duyệt admin đơn hàng tố cáo
 Route::post('/admin/orders/{orderId}/refund-report/reject', [OrderController::class, 'rejectRefundReport']);// ko duyệt admin đơn hàng tố cáo
 
-Route::middleware('auth:sanctum')->group(function () {
-Route::post('/create', [PaymentController::class, 'createVnpayPayment'])->name('vnpay.create');
-    Route::get('/return',  [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
+Route::prefix('vnpay')->group(function () {
+    Route::post('/create', [PaymentController::class, 'createVnpayPayment'])->name('vnpay.create');
+    Route::get('/return',  [PaymentController::class, 'vnpayReturn'])->name('vnpay.return'); // GIỮ LẠI CÁI NÀY
     Route::match(['get','post'], '/ipn', [PaymentController::class, 'vnpayIpn'])->name('vnpay.ipn');
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+
 
     // User
     // Route::get('/user', [UserController::class, 'show']);
