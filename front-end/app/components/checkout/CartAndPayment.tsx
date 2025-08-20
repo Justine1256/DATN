@@ -186,7 +186,7 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     if (i.startsWith('http')) return i;
     return i.startsWith('/') ? `${STATIC_BASE_URL}${i}` : `${STATIC_BASE_URL}/${i}`;
   }, []);
- 
+
 
   /* ---------- LỌC ITEMS THEO selectedCartIds ---------- */
   const itemsForCheckout = useMemo(() => {
@@ -487,8 +487,8 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
               min_order: src.min_order_value
                 ? Number(src.min_order_value)
                 : src.min_order_amount
-                ? Number(src.min_order_amount)
-                : undefined,
+                  ? Number(src.min_order_amount)
+                  : undefined,
               expires_at: src.end_date ?? src.expires_at ?? src.expired_at ?? src.end_at ?? undefined,
               is_active: src.is_active ?? src.active ?? true,
               shop_id: src.shop_id ?? null,
@@ -558,7 +558,8 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
         product_id: it.product.id,
       }));
 
-      const postShopId = v.shop_id == null ? null : Number(v.shop_id);
+      const postShopId = Number(voucherModalShopId);
+
 
 
       const res = await axios.post(
@@ -581,9 +582,28 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
         data.free_shipping ?? data.shipping_free ?? data.is_free_shipping ?? false
       );
 
-      if (v.shop_id == null) {
-        setApplied((prev) => ({ ...prev, global: v }));
-        setServerGlobal({ discount: serverDiscount, freeShipping: serverFree });
+      if (v.shop_id == null && Number(v.shop_id) !== Number(voucherModalShopId)) {
+        if (v.shop_id != null && Number(v.shop_id) !== Number(voucherModalShopId)) {
+          message.warning('Voucher này thuộc shop khác.');
+          return;
+        }
+        // Áp vào shop đang mở modal (kể cả voucher toàn sàn)
+        setApplied((prev) => ({
+          ...prev,
+          global: null, // không dùng giảm toàn giỏ
+          byShop: { ...prev.byShop, [voucherModalShopId!]: v },
+        }));
+
+        // Ghi đè kết quả từ server cho đúng shop
+        setServerShop((prev) => ({
+          ...prev,
+          [voucherModalShopId!]: { discount: serverDiscount, freeShipping: serverFree },
+        }));
+
+        // Xoá mọi “global override” còn lưu
+        setServerGlobal({ discount: 0, freeShipping: false });
+
+        // Cho parent biết (tuỳ bạn có dùng hay không)
         onVoucherApplied?.({
           voucher: v,
           serverDiscount,
