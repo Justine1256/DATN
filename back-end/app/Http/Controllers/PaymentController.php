@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-    // Endpoint optional để FE gọi tạo link (nếu không, bạn có thể tạo link ngay ở /dathang)
+    // FE có thể gọi endpoint này để tạo link (hoặc bạn tạo trong /dathang)
     public function createVnpayPayment(Request $request)
     {
         $request->validate([
@@ -25,19 +25,22 @@ class PaymentController extends Controller
             'user_id'   => Auth::id(),
             'order_ids' => $request->order_ids,
             'amount'    => (int)$request->amount,
-            // Dùng FE URL cấu hình (absolute)
-            'return_url'=> config('services.vnpay.return_url'),
+            // Return (backend) – dùng route tuyệt đối
+            'return_url'=> route('vnpay.return', [], true),
         ]);
 
         return response()->json(['payment_url' => $url]);
     }
 
-    // Front-channel: user quay về sau thanh toán -> chuyển tiếp sang FE
+    // User quay về từ VNPAY
     public function vnpayReturn(Request $request)
     {
+        Log::info('[VNP] return raw', ['qs' => $request->getQueryString()]);
+
         $params = $request->all();
 
         if (!VnpayService::verifyHash($params)) {
+            Log::warning('[VNP] return invalid hash');
             return $this->redirectToFrontend([
                 'status' => 'failed',
                 'reason' => 'invalid_hash',
@@ -49,11 +52,14 @@ class PaymentController extends Controller
         $map    = $txnRef ? Cache::get("vnp:{$txnRef}") : null;
 
         if (!$map) {
+            Log::warning('[VNP] return mapping_not_found', ['ref' => $txnRef]);
             return $this->redirectToFrontend([
                 'status' => 'failed',
                 'reason' => 'mapping_not_found',
             ]);
         }
+
+        Log::info('[VNP] return verify', ['ok' => true, 'resp' => $resp, 'ref' => $txnRef]);
 
         if ($resp === '00') {
             try {
@@ -91,9 +97,11 @@ class PaymentController extends Controller
         ]);
     }
 
-    // Server-to-server: IPN đối soát/cập nhật
+    // IPN (server-to-server)
     public function vnpayIpn(Request $request)
     {
+        Log::info('[VNP] ipn raw', ['qs' => $request->getQueryString()]);
+
         $params = $request->all();
 
         if (!VnpayService::verifyHash($params)) {
@@ -105,7 +113,7 @@ class PaymentController extends Controller
         $map    = $txnRef ? Cache::get("vnp:{$txnRef}") : null;
 
         if (!$map) {
-            // Có thể đã xử lý ở return; coi như OK để idempotent
+            // Có thể đã xử lý ở return; idempotent OK
             return response()->json(['RspCode' => '00', 'Message' => 'OK']);
         }
 
@@ -136,7 +144,7 @@ class PaymentController extends Controller
 
     private function redirectToFrontend(array $query)
     {
-        // FE page để hiển thị kết quả cuối cùng
+        // FE page hiển thị kết quả cuối
         $url = config('services.vnpay.return_url') ?? env('FRONTEND_RESULT_URL') ?? env('VNP_RETURNURL');
         $qs  = http_build_query($query);
         return redirect()->away($url . (str_contains($url, '?') ? '&' : '?') . $qs);

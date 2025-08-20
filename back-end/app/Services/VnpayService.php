@@ -12,7 +12,7 @@ class VnpayService
      *  - user_id: int|null
      *  - order_ids: int[]
      *  - amount: int|float (VND, chưa nhân 100)
-     *  - return_url?: string (FE URL, absolute/relative)
+     *  - return_url?: string (absolute/relative) -> nên truyền route('vnpay.return', [], true)
      */
     public static function createPaymentUrl(array $payload): string
     {
@@ -20,26 +20,31 @@ class VnpayService
         $vnp_TmnCode    = config('services.vnpay.tmn_code') ?? env('VNP_TMN_CODE');
         $vnp_HashSecret = trim((string) (config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
 
-        // Mã giao dịch nội bộ
+        Log::info('[VNP] runtime cfg', [
+            'tmn'        => $vnp_TmnCode,
+            'secret_len' => strlen($vnp_HashSecret),
+            'env_url'    => $vnp_Url,
+        ]);
+
+        // 1) Tạo mã giao dịch nội bộ
         $txnRef = 'PMT' . now()->format('YmdHis') . random_int(1000, 9999);
 
-        // Lưu map txnRef -> orders để return/ipn xử lý
+        // 2) Lưu map txnRef -> info để return/ipn xử lý
         Cache::put("vnp:{$txnRef}", [
             'user_id'   => $payload['user_id'] ?? null,
             'order_ids' => $payload['order_ids'] ?? [],
             'amount'    => (int) ($payload['amount'] ?? 0),
         ], now()->addMinutes(30));
 
-        // Return URL cho FE (dùng đúng 1 giá trị cho hash & query)
+        // 3) Return URL (backend)
         $vnp_ReturnUrl = $payload['return_url']
             ?? (config('services.vnpay.return_url') ?? env('VNP_RETURNURL'));
 
-        // Ép absolute URL nếu cần
         if (!preg_match('~^https?://~i', (string)$vnp_ReturnUrl)) {
             $vnp_ReturnUrl = url($vnp_ReturnUrl);
         }
 
-        // amount × 100 theo chuẩn VNPAY (số nguyên)
+        // 4) Build params (amount phải *100)
         $vnp_Amount = (int) round(((int)($payload['amount'] ?? 0)) * 100);
 
         $params = [
@@ -58,26 +63,30 @@ class VnpayService
             'vnp_ExpireDate' => now()->addMinutes(15)->format('YmdHis'),
         ];
 
-        // Loại param rỗng (an toàn)
+        // Loại param rỗng
         $params = array_filter($params, fn($v) => $v !== null && $v !== '');
 
-        // 1) hashData: KHÔNG urlencode
+        // 5) hashData: KHÔNG urlencode
         ksort($params);
         $hashData = implode('&', array_map(
             fn($k,$v) => $k.'='.$v,
             array_keys($params), $params
         ));
 
-        // 2) query: CÓ urlencode
+        // 6) query: CÓ urlencode
         $query = implode('&', array_map(
             fn($k,$v) => urlencode($k).'='.urlencode($v),
             array_keys($params), $params
         ));
 
         $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
-        $fullUrl = $vnp_Url.'?'.$query.'&vnp_SecureHash='.$secureHash;
 
-        // ===== Self-check từ chính URL đã build =====
+        // Một số môi trường yêu cầu có vnp_SecureHashType
+        $fullUrl = $vnp_Url.'?'.$query
+                 .'&vnp_SecureHashType=HmacSHA512'
+                 .'&vnp_SecureHash='.$secureHash;
+
+        // ===== Self-check từ URL đã build =====
         parse_str(parse_url($fullUrl, PHP_URL_QUERY), $p);
         $recv = $p['vnp_SecureHash'] ?? '';
         unset($p['vnp_SecureHash'], $p['vnp_SecureHashType']);
@@ -109,7 +118,7 @@ class VnpayService
     }
 
     /**
-     * Verify checksum ở Return/IPN.
+     * Verify checksum ở Return/IPN (không urlencode).
      */
     public static function verifyHash(array $params): bool
     {
@@ -121,7 +130,6 @@ class VnpayService
         $params = array_filter($params, fn($v) => $v !== null && $v !== '');
         ksort($params);
 
-        // KHÔNG urlencode khi verify
         $hashData = implode('&', array_map(
             fn($k,$v) => $k.'='.$v,
             array_keys($params), $params
