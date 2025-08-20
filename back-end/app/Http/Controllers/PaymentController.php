@@ -39,7 +39,17 @@ class PaymentController extends Controller
 
         $params = $request->all();
 
-        if (!VnpayService::verifyHash($params)) {
+        Log::info('[VNP] return params received', [
+            'params_count' => count($params),
+            'has_hash' => isset($params['vnp_SecureHash']),
+            'received_hash' => $params['vnp_SecureHash'] ?? 'missing',
+            'all_params' => $params
+        ]);
+
+        $verifyResult = VnpayService::verifyHash($params);
+        Log::info('[VNP] return hash verification', ['result' => $verifyResult]);
+
+        if (!$verifyResult) {
             Log::warning('[VNP] return invalid hash');
             return $this->redirectToFrontend([
                 'status' => 'failed',
@@ -104,7 +114,17 @@ class PaymentController extends Controller
 
         $params = $request->all();
 
-        if (!VnpayService::verifyHash($params)) {
+        Log::info('[VNP] ipn params received', [
+            'params_count' => count($params),
+            'has_hash' => isset($params['vnp_SecureHash']),
+            'received_hash' => $params['vnp_SecureHash'] ?? 'missing',
+            'all_params' => $params
+        ]);
+
+        $verifyResult = VnpayService::verifyHash($params);
+        Log::info('[VNP] ipn hash verification', ['result' => $verifyResult]);
+
+        if (!$verifyResult) {
             return response()->json(['RspCode' => '97', 'Message' => 'Invalid Checksum']);
         }
 
