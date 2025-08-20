@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-    // Tạo link thanh toán (nếu bạn muốn endpoint riêng)
     public function createVnpayPayment(Request $request)
     {
         $request->validate([
@@ -31,7 +30,6 @@ class PaymentController extends Controller
         return response()->json(['payment_url' => $url]);
     }
 
-    // Front-channel: user quay về sau thanh toán
     public function vnpayReturn(Request $request)
     {
         $params = $request->all();
@@ -90,7 +88,6 @@ class PaymentController extends Controller
         ]);
     }
 
-    // Server-to-server: IPN đối soát
     public function vnpayIpn(Request $request)
     {
         $params = $request->all();
@@ -104,7 +101,6 @@ class PaymentController extends Controller
         $map    = $txnRef ? Cache::get("vnp:{$txnRef}") : null;
 
         if (!$map) {
-            // có thể đã xử lý ở return
             return response()->json(['RspCode' => '00', 'Message' => 'OK']);
         }
 
@@ -135,7 +131,6 @@ class PaymentController extends Controller
 
     private function redirectToFrontend(array $query)
     {
-        // Trang FE nhận kết quả cuối cùng (vd: /checkout)
         $url = config('services.vnpay.return_url') ?? env('FRONTEND_RESULT_URL') ?? env('VNP_RETURNURL');
         $qs  = http_build_query($query);
         return redirect()->away($url . (str_contains($url, '?') ? '&' : '?') . $qs);
