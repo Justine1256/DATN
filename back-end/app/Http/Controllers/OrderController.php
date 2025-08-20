@@ -73,7 +73,6 @@ public function checkout(Request $request)
             'voucher_codes'                => 'nullable|array',
             'voucher_codes.*.shop_id'      => 'required|integer',
             'voucher_codes.*.code'         => 'required|string',
-
             'address_id'                   => 'nullable|exists:addresses,id',
             'address_manual'               => 'nullable|array',
             'address_manual.full_name'     => 'required_with:address_manual|string',
@@ -91,7 +90,6 @@ public function checkout(Request $request)
         $carts = Cart::query()
             ->select(['id','product_id','variant_id','product_option','product_value','quantity'])
             ->with(['product' => function ($q) {
-                // đảm bảo product có các field cần thiết
                 $q->select('id','name','price','sale_price','stock','category_id','shop_id');
             }])
             ->where('user_id', $userId)
@@ -103,7 +101,7 @@ public function checkout(Request $request)
         }
 
         // Gom nhóm theo shop
-        $cartsByShop = $carts->groupBy(fn($c) => (int)$c->product->shop_id);
+        $cartsByShop   = $carts->groupBy(fn($c) => (int)$c->product->shop_id);
         $shopIdsInCart = $cartsByShop->keys()->all();
 
         // Nếu có voucher_code đơn lẻ mà giỏ >1 shop => buộc dùng voucher_codes
@@ -129,22 +127,40 @@ public function checkout(Request $request)
         try {
             $orders           = [];
             $totalFinalAmount = 0;
-            $usedVoucherIds   = []; // để cập nhật usage_count & voucher_users sau cùng
+            $usedVoucherIds   = [];
 
             // ===== 3) Duyệt từng shop để tính riêng, KHÔNG CHIA voucher =====
             foreach ($cartsByShop as $shopId => $shopCarts) {
-                $shopId = (int)$shopId;
+                $shopId           = (int)$shopId;
+                $shopTotalAmount  = 0;
+                $shopDiscount     = 0;
+                $shopVoucher      = null;
 
-                // 3.1 Tính tổng tiền của shop + kiểm kho + trừ kho
-                $shopTotalAmount = 0;
-
+                // 3.1 Tính tổng tiền + kiểm kho + trừ kho (LOCK để tránh over-sell)
                 foreach ($shopCarts as $cart) {
-                    /** @var \App\Models\Product $product */
-                    $product = $cart->product;
+                    /** @var \App\Models\Product $productRel */
+                    $productRel = $cart->product;
+
+                    // Lock product / variant trước khi trừ kho
+                    $product = Product::whereKey($productRel->id)
+                        ->select('id','name','price','sale_price','stock')
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$product) {
+                        throw new \Exception("Sản phẩm không tồn tại (ID {$productRel->id})");
+                    }
 
                     $variant = null;
                     if ($cart->variant_id) {
-                        $variant = ProductVariant::find($cart->variant_id, ['id','price','sale_price','stock','option1','option2','value1','value2']);
+                        $variant = ProductVariant::select('id','price','sale_price','stock')
+                            ->whereKey($cart->variant_id)
+                            ->lockForUpdate()
+                            ->first();
+
+                        if (!$variant) {
+                            throw new \Exception("Biến thể không tồn tại (ID {$cart->variant_id})");
+                        }
                     }
 
                     // Giá tại thời điểm đặt
@@ -169,13 +185,9 @@ public function checkout(Request $request)
                 }
 
                 // 3.2 Tính giảm giá RIÊNG shop nếu có mã của shop đó
-                $shopDiscount = 0;
-                $shopVoucher  = null;
-
                 if ($codesByShop->has($shopId)) {
                     $code = $codesByShop[$shopId];
 
-                    // Tìm voucher theo code & thời gian
                     $shopVoucher = Voucher::where('code', $code)
                         ->where('start_date', '<=', now())
                         ->where('end_date', '>=', now())
@@ -185,12 +197,11 @@ public function checkout(Request $request)
                         throw new \Exception("Mã {$code} không hợp lệ hoặc đã hết hạn");
                     }
 
-                    // Nếu voucher có ràng buộc shop_id thì phải trùng
                     if (!is_null($shopVoucher->shop_id) && (int)$shopVoucher->shop_id !== $shopId) {
                         throw new \Exception("Mã {$code} không áp dụng cho shop này");
                     }
 
-                    // Nếu voucher giới hạn người dùng (voucher_users) → phải nằm trong whitelist
+                    // Giới hạn người dùng theo bảng voucher_users (nếu có)
                     $userVoucherCount = DB::table('voucher_users')->where('voucher_id', $shopVoucher->id)->count();
                     if ($userVoucherCount > 0) {
                         $userVoucherExists = DB::table('voucher_users')
@@ -202,7 +213,7 @@ public function checkout(Request $request)
                         }
                     }
 
-                    // Check đã dùng voucher này trước đó (không tính đơn đã hủy)
+                    // Đã dùng voucher này trước đó (không tính đơn hủy)
                     $hasUsedBefore = Order::where('user_id', $userId)
                         ->where('voucher_id', $shopVoucher->id)
                         ->whereNull('deleted_at')
@@ -212,12 +223,12 @@ public function checkout(Request $request)
                         throw new \Exception("Bạn đã sử dụng voucher {$code} rồi");
                     }
 
-                    // Check usage limit
+                    // Hết lượt
                     if ($shopVoucher->usage_limit && $shopVoucher->usage_count >= $shopVoucher->usage_limit) {
                         throw new \Exception("Mã {$code} đã hết lượt sử dụng");
                     }
 
-                    // Tính subtotal áp dụng TRONG shop này (xét category nếu có)
+                    // Tính subtotal áp dụng (lọc theo category nếu có)
                     $applicableCategoryIds = DB::table('voucher_categories')
                         ->where('voucher_id', $shopVoucher->id)
                         ->pluck('category_id')
@@ -225,9 +236,8 @@ public function checkout(Request $request)
 
                     $shopApplicableSubtotal = 0;
                     foreach ($shopCarts as $cart) {
-                        // dùng giá gốc để xét điều kiện tối thiểu
                         if (empty($applicableCategoryIds) || in_array($cart->product->category_id, $applicableCategoryIds)) {
-                            $basePrice = $cart->product->price;
+                            $basePrice = $cart->product->price; // dùng giá gốc để xét min_order_value
                             $shopApplicableSubtotal += $cart->quantity * $basePrice;
                         }
                     }
@@ -239,7 +249,7 @@ public function checkout(Request $request)
                         throw new \Exception("Đơn của shop chưa đạt giá trị tối thiểu để dùng {$code}");
                     }
 
-                    // Tính số tiền giảm RIÊNG cho shop này
+                    // Tính tiền giảm
                     if ($shopVoucher->discount_type === 'percent') {
                         $shopDiscount = min(
                             ($shopVoucher->discount_value / 100) * $shopApplicableSubtotal,
@@ -250,7 +260,7 @@ public function checkout(Request $request)
                     }
 
                     $shopDiscount = (int) round($shopDiscount);
-                    $usedVoucherIds[$shopVoucher->id] = true; // đánh dấu để tăng usage_count sau
+                    $usedVoucherIds[$shopVoucher->id] = true;
                 }
 
                 // 3.3 Tạo order cho shop này
@@ -260,7 +270,7 @@ public function checkout(Request $request)
                 $order = Order::create([
                     'user_id'          => $userId,
                     'shop_id'          => $shopId,
-                    'voucher_id'       => $shopVoucher?->id,      // mỗi order giữ 1 voucher riêng (nếu có)
+                    'voucher_id'       => $shopVoucher?->id,
                     'discount_amount'  => $shopDiscount,
                     'total_amount'     => $shopTotalAmount,
                     'final_amount'     => $finalAmount,
@@ -271,10 +281,12 @@ public function checkout(Request $request)
                     'shipping_address' => $fullAddress,
                 ]);
 
-                // 3.4 Tạo order details
+                // 3.4 Tạo order details (ghi option/value từ giỏ)
                 foreach ($shopCarts as $cart) {
                     $product = $cart->product;
-                    $variant = $cart->variant_id ? ProductVariant::find($cart->variant_id) : null;
+                    $variant = $cart->variant_id
+                        ? ProductVariant::select('id','price','sale_price')->find($cart->variant_id)
+                        : null;
 
                     $priceAtTime = $variant
                         ? ($variant->sale_price ?? $variant->price)
@@ -283,16 +295,16 @@ public function checkout(Request $request)
                     OrderDetail::create([
                         'order_id'       => $order->id,
                         'product_id'     => $product->id,
-                        'variant_id'     => $cart->variant_id ?? ($variant?->id),
-                        'product_option' => $cart->product_option ?? ($variant ? "{$variant->option1} - {$variant->option2}" : null),
-                        'product_value'  => $cart->product_value  ?? ($variant ? "{$variant->value1} - {$variant->value2}" : null),
+                        'variant_id'     => $cart->variant_id ?: ($variant?->id),
+                        'product_option' => $cart->product_option,  // lấy từ giỏ
+                        'product_value'  => $cart->product_value,   // lấy từ giỏ
                         'price_at_time'  => $priceAtTime,
                         'quantity'       => $cart->quantity,
                         'subtotal'       => $cart->quantity * $priceAtTime,
                     ]);
 
                     // tăng sold
-                    $product->increment('sold', $cart->quantity);
+                    Product::whereKey($product->id)->increment('sold', $cart->quantity);
                 }
 
                 $orders[] = $order;
@@ -311,14 +323,13 @@ public function checkout(Request $request)
             }
 
             // ===== 6) Phân nhánh thanh toán =====
-            $redirectUrl = null;
             if ($validated['payment_method'] === 'vnpay') {
                 // Tạo URL thanh toán gom tiền tất cả orders
                 $redirectUrl = ServicesVnpayService::createPaymentUrl([
                     'user_id'   => $userId,
                     'order_ids' => collect($orders)->pluck('id')->toArray(),
                     'amount'    => (int) $totalFinalAmount,
-                    'return_url'=> route('vnpay.return'),
+                    'return_url'=> route('vnpay.return', [], true), // absolute
                 ]);
 
                 DB::commit();
@@ -331,11 +342,11 @@ public function checkout(Request $request)
                 ], 201);
             }
 
-            // COD: đánh dấu đơn vẫn Pending payment, bạn có thể cho về "order confirmation" luôn nếu muốn
+            // COD
             foreach ($orders as $od) {
                 $od->update([
-                    'payment_status' => 'Pending',               // với COD, thu tiền khi giao
-                    'order_status'   => 'order confirmation',    // tuỳ business
+                    'payment_status' => 'Pending',
+                    'order_status'   => 'order confirmation',
                 ]);
             }
 
@@ -356,6 +367,10 @@ public function checkout(Request $request)
             return response()->json(['message' => 'Lỗi khi đặt hàng: '.$e->getMessage()], 500);
         }
     }
+
+    /**
+     * Build địa chỉ giao hàng từ address_id hoặc address_manual
+     */
 
     private function buildShippingAddress(int $userId, array $validated): string
     {

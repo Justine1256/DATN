@@ -12,21 +12,26 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-    // FE có thể gọi endpoint này để tạo link (hoặc bạn tạo trong /dathang)
     public function createVnpayPayment(Request $request)
     {
         $request->validate([
             'amount'      => 'required|numeric|min:1000',
             'order_ids'   => 'required|array|min:1',
             'order_ids.*' => 'integer',
+            'return_url'  => 'nullable|string', // Accept return_url from frontend
         ]);
+
+        $returnUrl = $request->return_url ?? route('vnpay.return', [], true);
 
         $url = VnpayService::createPaymentUrl([
             'user_id'   => Auth::id(),
             'order_ids' => $request->order_ids,
             'amount'    => (int)$request->amount,
-            // Return (backend) – dùng route tuyệt đối
-            'return_url'=> route('vnpay.return', [], true),
+            'return_url'=> $returnUrl, // Use the determined return URL
+            'customer_name' => $request->customer_name,
+            'customer_email' => $request->customer_email,
+            'customer_phone' => $request->customer_phone,
+            'order_info' => $request->order_info ?? 'Thanh toan don hang',
         ]);
 
         return response()->json(['payment_url' => $url]);
@@ -39,21 +44,13 @@ class PaymentController extends Controller
 
         $params = $request->all();
 
-        Log::info('[VNP] return params received', [
-            'params_count' => count($params),
-            'has_hash' => isset($params['vnp_SecureHash']),
-            'received_hash' => $params['vnp_SecureHash'] ?? 'missing',
-            'all_params' => $params
-        ]);
-
-        $verifyResult = VnpayService::verifyHash($params);
-        Log::info('[VNP] return hash verification', ['result' => $verifyResult]);
-
-        if (!$verifyResult) {
+        if (!VnpayService::verifyHash($params)) {
             Log::warning('[VNP] return invalid hash');
             return $this->redirectToFrontend([
                 'status' => 'failed',
                 'reason' => 'invalid_hash',
+                'vnp_ResponseCode' => $params['vnp_ResponseCode'] ?? '',
+                'vnp_TxnRef' => $params['vnp_TxnRef'] ?? '',
             ]);
         }
 
@@ -66,6 +63,8 @@ class PaymentController extends Controller
             return $this->redirectToFrontend([
                 'status' => 'failed',
                 'reason' => 'mapping_not_found',
+                'vnp_ResponseCode' => $resp,
+                'vnp_TxnRef' => $txnRef,
             ]);
         }
 
@@ -88,6 +87,8 @@ class PaymentController extends Controller
                 return $this->redirectToFrontend([
                     'status' => 'failed',
                     'reason' => 'db_error',
+                    'vnp_ResponseCode' => $resp,
+                    'vnp_TxnRef' => $txnRef,
                 ]);
             }
 
@@ -97,75 +98,30 @@ class PaymentController extends Controller
                 'status'     => 'success',
                 'order_ids'  => implode(',', $map['order_ids'] ?? []),
                 'amount'     => (int)($map['amount'] ?? 0),
-                'code'       => $params['vnp_TransactionNo'] ?? '',
+                'vnp_TransactionNo' => $params['vnp_TransactionNo'] ?? '',
+                'vnp_ResponseCode' => $resp,
+                'vnp_TxnRef' => $txnRef,
+                'vnp_PayDate' => $params['vnp_PayDate'] ?? '',
+                'vnp_OrderInfo' => $params['vnp_OrderInfo'] ?? '',
             ]);
         }
 
         return $this->redirectToFrontend([
             'status' => 'failed',
             'reason' => $resp,
+            'vnp_ResponseCode' => $resp,
+            'vnp_TxnRef' => $txnRef,
         ]);
     }
 
-    // IPN (server-to-server)
-    public function vnpayIpn(Request $request)
-    {
-        Log::info('[VNP] ipn raw', ['qs' => $request->getQueryString()]);
-
-        $params = $request->all();
-
-        Log::info('[VNP] ipn params received', [
-            'params_count' => count($params),
-            'has_hash' => isset($params['vnp_SecureHash']),
-            'received_hash' => $params['vnp_SecureHash'] ?? 'missing',
-            'all_params' => $params
-        ]);
-
-        $verifyResult = VnpayService::verifyHash($params);
-        Log::info('[VNP] ipn hash verification', ['result' => $verifyResult]);
-
-        if (!$verifyResult) {
-            return response()->json(['RspCode' => '97', 'Message' => 'Invalid Checksum']);
-        }
-
-        $txnRef = $params['vnp_TxnRef'] ?? null;
-        $resp   = $params['vnp_ResponseCode'] ?? null;
-        $map    = $txnRef ? Cache::get("vnp:{$txnRef}") : null;
-
-        if (!$map) {
-            // Có thể đã xử lý ở return; idempotent OK
-            return response()->json(['RspCode' => '00', 'Message' => 'OK']);
-        }
-
-        if ($resp === '00') {
-            try {
-                DB::transaction(function () use ($map, $params) {
-                    $orderIds = $map['order_ids'] ?? [];
-                    $payCode  = $params['vnp_TransactionNo'] ?? null;
-
-                    Order::whereIn('id', $orderIds)->update([
-                        'payment_status' => 'Completed',
-                        'transaction_id' => $payCode,
-                        'order_status'   => 'order confirmation',
-                    ]);
-                });
-
-                Cache::forget("vnp:{$txnRef}");
-
-                return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
-            } catch (\Throwable $e) {
-                Log::error('VNPAY IPN update error: '.$e->getMessage());
-                return response()->json(['RspCode' => '99', 'Message' => 'DB Error']);
-            }
-        }
-
-        return response()->json(['RspCode' => '00', 'Message' => 'Payment Failed']);
-    }
 
     private function redirectToFrontend(array $query)
     {
-        // FE page hiển thị kết quả cuối
-        $url = config('services.vnpay.return_url') ?? env('FRONTEND_RESULT_URL') ?? env('VNP_RETURNURL');
+        $url = config('services.vnpay.frontend_return_url')
+            ?? env('FRONTEND_RESULT_URL')
+            ?? env('VNP_RETURNURL')
+            ?? 'http://localhost:3000/checkout/result'; // Default to frontend result page
+
         $qs  = http_build_query($query);
         return redirect()->away($url . (str_contains($url, '?') ? '&' : '?') . $qs);
     }

@@ -2,49 +2,54 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class VnpayService
 {
     /**
-     * $payload:
-     *  - user_id: int|null
-     *  - order_ids: int[]
-     *  - amount: int|float (VND, chưa nhân 100)
-     *  - return_url?: string (absolute/relative) -> nên truyền route('vnpay.return', [], true)
+     * - Ký HMAC-SHA512 trên chuỗi THÔ đã sort (không encode)
+     * - Query dùng rawurlencode (tránh '+' ↔ '%20')
+     * - KHÔNG đưa vnp_SecureHashType vào chuỗi ký
+     * - vnp_SecureHash UPPERCASE
+     * - Có block log 4 biến thể URL để test sandbox (bật/tắt qua ENV)
+     *
+     * ENV hỗ trợ (tùy chọn):
+     *  - VNP_DEBUG_VARIANTS=true  => log 4 URL thử nghiệm
+     *  - VNP_FORCE_ALGO=SHA512|SHA256
+     *  - VNP_FORCE_HASH_TYPE=NONE|SHA512|HmacSHA512  (NONE = không kèm type)
      */
     public static function createPaymentUrl(array $payload): string
     {
         $vnp_Url        = rtrim(config('services.vnpay.url') ?? env('VNP_URL'), '/');
         $vnp_TmnCode    = config('services.vnpay.tmn_code') ?? env('VNP_TMN_CODE');
-        $vnp_HashSecret = trim((string) (config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
+        $vnp_HashSecret = trim((string)(config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
 
-        Log::info('[VNP] runtime cfg', [
-            'tmn'        => $vnp_TmnCode,
-            'secret_len' => strlen($vnp_HashSecret),
-            'env_url'    => $vnp_Url,
+        Log::info('[VNP] secret_fingerprint', [
+            'where' => 'create',
+            'len'   => strlen($vnp_HashSecret),
+            'md5'   => md5($vnp_HashSecret),
         ]);
 
-        // 1) Tạo mã giao dịch nội bộ
+        // 1) Mã giao dịch nội bộ
         $txnRef = 'PMT' . now()->format('YmdHis') . random_int(1000, 9999);
 
-        // 2) Lưu map txnRef -> info để return/ipn xử lý
+        // 2) Map txnRef -> info
         Cache::put("vnp:{$txnRef}", [
             'user_id'   => $payload['user_id'] ?? null,
             'order_ids' => $payload['order_ids'] ?? [],
             'amount'    => (int) ($payload['amount'] ?? 0),
         ], now()->addMinutes(30));
 
-        // 3) Return URL (backend)
+        // 3) Return URL
         $vnp_ReturnUrl = $payload['return_url']
             ?? (config('services.vnpay.return_url') ?? env('VNP_RETURNURL'));
-
         if (!preg_match('~^https?://~i', (string)$vnp_ReturnUrl)) {
             $vnp_ReturnUrl = url($vnp_ReturnUrl);
         }
 
-        // 4) Build params (amount phải *100)
+        // 4) Params (Amount *100)
         $vnp_Amount = (int) round(((int)($payload['amount'] ?? 0)) * 100);
 
         $params = [
@@ -56,193 +61,171 @@ class VnpayService
             'vnp_CurrCode'   => 'VND',
             'vnp_IpAddr'     => request()->ip(),
             'vnp_Locale'     => 'vn',
-            'vnp_OrderInfo'  => 'Thanh toan don hang: ' . $txnRef,
+            'vnp_OrderInfo'  => $payload['order_info'] ?? ('Thanh toan don hang: ' . $txnRef),
             'vnp_OrderType'  => 'other',
             'vnp_ReturnUrl'  => $vnp_ReturnUrl,
             'vnp_TxnRef'     => $txnRef,
             'vnp_ExpireDate' => now()->addMinutes(15)->format('YmdHis'),
+            // 'vnp_BankCode' => 'NCB', // nếu muốn cố định bank khi test
         ];
 
-        // Loại param rỗng
+        // 5) Ký HMAC trên chuỗi THÔ (sort, KHÔNG encode)
         $params = array_filter($params, fn($v) => $v !== null && $v !== '');
-
-        // 5) hashData: KHÔNG urlencode
         ksort($params);
-        $hashData = implode('&', array_map(
-            fn($k,$v) => $k.'='.$v,
+        $hashData = implode('&', array_map(fn($k,$v)=>$k.'='.$v, array_keys($params), $params));
+
+        // Hash variants (UPPERCASE)
+        $h512 = strtoupper(hash_hmac('sha512', $hashData, $vnp_HashSecret));
+        $h256 = strtoupper(hash_hmac('sha256', $hashData, $vnp_HashSecret));
+
+        // Build query: rawurlencode
+        $q = implode('&', array_map(
+            fn($k,$v) => rawurlencode($k).'='.rawurlencode($v),
             array_keys($params), $params
         ));
 
-        // 6) query: CÓ urlencode
-        $query = implode('&', array_map(
-            fn($k,$v) => urlencode($k).'='.urlencode($v),
-            array_keys($params), $params
-        ));
+        // 6) Tạo các biến thể URL (KHÔNG đưa type vào chuỗi ký)
+        $url_512_plain     = $vnp_Url.'?'.$q.'&vnp_SecureHash='.$h512;
+        $url_512_withtype1 = $vnp_Url.'?'.$q.'&vnp_SecureHashType=SHA512&vnp_SecureHash='.$h512;
+        $url_512_withtype2 = $vnp_Url.'?'.$q.'&vnp_SecureHashType=HmacSHA512&vnp_SecureHash='.$h512;
+        $url_256_withtype  = $vnp_Url.'?'.$q.'&vnp_SecureHashType=SHA256&vnp_SecureHash='.$h256;
 
-        $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
+        // 7) Log thử nghiệm (bật qua ENV nếu muốn)
+        if (filter_var(env('VNP_DEBUG_VARIANTS', false), FILTER_VALIDATE_BOOLEAN)) {
+            Log::info('[VNP] try_urls', compact(
+                'url_512_plain','url_512_withtype1','url_512_withtype2','url_256_withtype','hashData'
+            ));
+        }
 
-        // Một số môi trường yêu cầu có vnp_SecureHashType
-        $fullUrl = $vnp_Url.'?'.$query
-                 .'&vnp_SecureHashType=HmacSHA512'
-                 .'&vnp_SecureHash='.$secureHash;
+        // 8) Chọn URL trả về theo ENV (mặc định: SHA512, không type)
+        $forceAlgo = strtoupper((string) env('VNP_FORCE_ALGO', 'SHA512'));          // SHA512|SHA256
+        $forceType = strtoupper((string) env('VNP_FORCE_HASH_TYPE', 'NONE'));       // NONE|SHA512|HMACSHA512
 
-        // ===== Self-check từ URL đã build =====
+        if ($forceAlgo === 'SHA256') {
+            $fullUrl = $url_256_withtype; // SHA256 đa số yêu cầu kèm type
+        } else {
+            if ($forceType === 'SHA512') {
+                $fullUrl = $url_512_withtype1;
+            } elseif ($forceType === 'HMACSHA512') {
+                $fullUrl = $url_512_withtype2;
+            } else {
+                $fullUrl = $url_512_plain;
+            }
+        }
+
+        // 9) Self-check (bỏ SecureHash/Type ra khỏi chuỗi ký khi rehash)
         parse_str(parse_url($fullUrl, PHP_URL_QUERY), $p);
-        $recv = $p['vnp_SecureHash'] ?? '';
+        $recv = strtoupper((string)($p['vnp_SecureHash'] ?? ''));
         unset($p['vnp_SecureHash'], $p['vnp_SecureHashType']);
         $p = array_filter($p, fn($v) => $v !== null && $v !== '');
         ksort($p);
-        $rehash = hash_hmac('sha512',
+        $rehash = strtoupper(hash_hmac('sha512',
             implode('&', array_map(fn($k,$v)=>$k.'='.$v, array_keys($p), $p)),
             $vnp_HashSecret
-        );
+        ));
 
         Log::info('[VNP] createPaymentUrl', [
-            'hash_equal'  => hash_equals(strtolower($rehash), strtolower($recv)),
-            'secret_len'  => strlen($vnp_HashSecret),
-            'return_url'  => $vnp_ReturnUrl,
-            'full_url'    => $fullUrl,
+            'hash_equal' => hash_equals($rehash, $recv),
+            'return_url' => $vnp_ReturnUrl,
+            'full_url'   => $fullUrl,
         ]);
-
-        if (!hash_equals(strtolower($rehash), strtolower($recv))) {
-            Log::error('[VNP] SELF-CHECK FAILED', [
-                'hashData_used_to_sign' => $hashData,
-                'rehash_from_query'     => $rehash,
-                'sent_secure_hash'      => $recv,
-                'full_url'              => $fullUrl,
-            ]);
-            throw new \RuntimeException('VNP SELF-CHECK FAILED: signature mismatch before redirect');
-        }
 
         return $fullUrl;
     }
 
     /**
-     * Verify checksum ở Return/IPN với debug chi tiết
+     * Verify từ mảng params (đã decode bởi framework)
+     * - Bỏ vnp_SecureHash & vnp_SecureHashType khỏi dữ liệu ký
+     * - So sánh UPPERCASE
      */
     public static function verifyHash(array $params): bool
     {
-        $vnp_HashSecret = trim((string) (config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
+        $vnp_HashSecret = trim((string)(config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
 
-        $secureHash = $params['vnp_SecureHash'] ?? '';
-        $originalParams = $params; // Keep original for debugging
+        Log::info('[VNP] secret_fingerprint', [
+            'where' => 'verify',
+            'len'   => strlen($vnp_HashSecret),
+            'md5'   => md5($vnp_HashSecret),
+        ]);
+
+        $secureHashRecv = strtoupper((string)($params['vnp_SecureHash'] ?? ''));
+        if ($secureHashRecv === '') {
+            Log::warning('[VNP] verifyHash: missing vnp_SecureHash');
+            return false;
+        }
 
         unset($params['vnp_SecureHash'], $params['vnp_SecureHashType']);
         $params = array_filter($params, fn($v) => $v !== null && $v !== '');
         ksort($params);
 
-        // Log raw parameters as received
-        Log::info('[VNP] RAW PARAMETERS RECEIVED', [
-            'all_params' => $originalParams,
-            'query_string' => $_SERVER['QUERY_STRING'] ?? 'N/A',
-            'request_uri' => $_SERVER['REQUEST_URI'] ?? 'N/A'
-        ]);
+        $hashData = implode('&', array_map(fn($k,$v)=>$k.'='.$v, array_keys($params), $params));
+        $calc512  = strtoupper(hash_hmac('sha512', $hashData, $vnp_HashSecret));
 
-        // Approach 1: Original (no encoding)
-        $hashData1 = implode('&', array_map(
-            fn($k,$v) => $k.'='.$v,
-            array_keys($params), $params
-        ));
-        $calc1 = hash_hmac('sha512', $hashData1, $vnp_HashSecret);
-        $ok1 = hash_equals(strtolower($calc1), strtolower($secureHash));
-
-        // Approach 2: URL decode values (VNPay might send encoded)
-        $decodedParams = array_map('urldecode', $params);
-        $hashData2 = implode('&', array_map(
-            fn($k,$v) => $k.'='.$v,
-            array_keys($decodedParams), $decodedParams
-        ));
-        $calc2 = hash_hmac('sha512', $hashData2, $vnp_HashSecret);
-        $ok2 = hash_equals(strtolower($calc2), strtolower($secureHash));
-
-        // Approach 3: URL encode values (opposite approach)
-        $encodedParams = array_map('urlencode', $params);
-        $hashData3 = implode('&', array_map(
-            fn($k,$v) => $k.'='.$v,
-            array_keys($encodedParams), $encodedParams
-        ));
-        $calc3 = hash_hmac('sha512', $hashData3, $vnp_HashSecret);
-        $ok3 = hash_equals(strtolower($calc3), strtolower($secureHash));
-
-        // Approach 4: Try with raw query string parsing
-        $rawQuery = $_SERVER['QUERY_STRING'] ?? '';
-        $rawParams = [];
-        if ($rawQuery) {
-            parse_str($rawQuery, $rawParams);
-            unset($rawParams['vnp_SecureHash'], $rawParams['vnp_SecureHashType']);
-            $rawParams = array_filter($rawParams, fn($v) => $v !== null && $v !== '');
-            ksort($rawParams);
-
-            $hashData4 = implode('&', array_map(
-                fn($k,$v) => $k.'='.$v,
-                array_keys($rawParams), $rawParams
-            ));
-            $calc4 = hash_hmac('sha512', $hashData4, $vnp_HashSecret);
-            $ok4 = hash_equals(strtolower($calc4), strtolower($secureHash));
-        } else {
-            $hashData4 = 'N/A';
-            $calc4 = 'N/A';
-            $ok4 = false;
+        // So sánh SHA512 trước
+        if (hash_equals($calc512, $secureHashRecv)) {
+            Log::info('[VNP] verifyHash result', ['ok' => true, 'algo' => 'SHA512', 'hash_data' => $hashData]);
+            return true;
         }
 
-        // Approach 5: Try with plus signs as spaces (common URL encoding issue)
-        $spaceFixedParams = array_map(fn($v) => str_replace('+', ' ', $v), $params);
-        $hashData5 = implode('&', array_map(
-            fn($k,$v) => $k.'='.$v,
-            array_keys($spaceFixedParams), $spaceFixedParams
-        ));
-        $calc5 = hash_hmac('sha512', $hashData5, $vnp_HashSecret);
-        $ok5 = hash_equals(strtolower($calc5), strtolower($secureHash));
+        // (Dự phòng) Nếu sandbox của bạn dùng SHA256 cho return/ipn
+        $calc256 = strtoupper(hash_hmac('sha256', $hashData, $vnp_HashSecret));
+        $ok256   = hash_equals($calc256, $secureHashRecv);
 
-        Log::info('[VNP] verifyHash EXTENDED DEBUG', [
-            'secret_len' => strlen($vnp_HashSecret),
-            'received_hash' => $secureHash,
-            'original_params' => $originalParams,
-            'filtered_params' => $params,
-
-            'approach_1_no_encoding' => [
-                'hash_data' => $hashData1,
-                'calculated' => $calc1,
-                'match' => $ok1
-            ],
-
-            'approach_2_url_decode' => [
-                'decoded_params' => $decodedParams,
-                'hash_data' => $hashData2,
-                'calculated' => $calc2,
-                'match' => $ok2
-            ],
-
-            'approach_3_url_encode' => [
-                'encoded_params' => $encodedParams,
-                'hash_data' => $hashData3,
-                'calculated' => $calc3,
-                'match' => $ok3
-            ],
-
-            'approach_4_raw_query' => [
-                'raw_query' => $rawQuery,
-                'raw_params' => $rawParams ?? 'N/A',
-                'hash_data' => $hashData4,
-                'calculated' => $calc4,
-                'match' => $ok4
-            ],
-
-            'approach_5_space_fix' => [
-                'space_fixed_params' => $spaceFixedParams,
-                'hash_data' => $hashData5,
-                'calculated' => $calc5,
-                'match' => $ok5
-            ]
+        Log::info('[VNP] verifyHash result', [
+            'ok'        => $ok256,
+            'algo'      => $ok256 ? 'SHA256' : 'NONE',
+            'hash_data' => $hashData,
+            'recv'      => $secureHashRecv,
         ]);
 
-        $finalResult = $ok1 || $ok2 || $ok3 || $ok4 || $ok5;
+        return $ok256;
+    }
 
-        Log::info('[VNP] verifyHash FINAL RESULT', [
-            'final_ok' => $finalResult,
-            'which_worked' => $ok1 ? 'no_encoding' : ($ok2 ? 'url_decode' : ($ok3 ? 'url_encode' : ($ok4 ? 'raw_query' : ($ok5 ? 'space_fix' : 'none'))))
+    /**
+     * Verify từ RAW query string (tránh '+' / '%20' sai khác)
+     * - Bỏ vnp_SecureHash & vnp_SecureHashType
+     * - So sánh UPPERCASE
+     */
+    public static function verifyHashFromRaw(Request $request): bool
+    {
+        $vnp_HashSecret = trim((string)(config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
+        $qs = (string) $request->getQueryString();
+        if ($qs === '') {
+            Log::warning('[VNP] verifyHashFromRaw: empty query string');
+            return false;
+        }
+
+        $pairs = [];
+        foreach (explode('&', $qs) as $seg) {
+            if (str_starts_with($seg, 'vnp_SecureHash=')) continue;
+            if (str_starts_with($seg, 'vnp_SecureHashType=')) continue;
+            $pairs[] = $seg; // giữ nguyên thô
+        }
+
+        $kv = [];
+        foreach ($pairs as $seg) {
+            [$k, $v] = array_pad(explode('=', $seg, 2), 2, '');
+            $kv[$k] = $v;
+        }
+        ksort($kv);
+
+        $hashData = implode('&', array_map(fn($k,$v)=>"$k=$v", array_keys($kv), $kv));
+        $recv     = strtoupper((string) $request->query('vnp_SecureHash', ''));
+
+        // Thử SHA512 rồi fallback SHA256
+        $calc512  = strtoupper(hash_hmac('sha512', $hashData, $vnp_HashSecret));
+        if (hash_equals($calc512, $recv)) {
+            Log::info('[VNP] verifyHashFromRaw', ['ok' => true, 'algo' => 'SHA512']);
+            return true;
+        }
+        $calc256  = strtoupper(hash_hmac('sha256', $hashData, $vnp_HashSecret));
+        $ok       = hash_equals($calc256, $recv);
+
+        Log::info('[VNP] verifyHashFromRaw', [
+            'ok'   => $ok,
+            'algo' => $ok ? 'SHA256' : 'NONE',
         ]);
 
-        return $finalResult;
+        return $ok;
     }
 }
