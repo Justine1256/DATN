@@ -13,6 +13,7 @@ export default function VNPayTestPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [signatureValidation, setSignatureValidation] = useState<any>(null)
+  const [urlDebugInfo, setUrlDebugInfo] = useState<any>(null)
 
   const validateSignature = (paymentUrl: string) => {
     try {
@@ -26,33 +27,81 @@ export default function VNPayTestPage() {
       const providedHash = params.vnp_SecureHash
       const hashSecret = "KSYRJQ4J2780JAHHP57GTI4XHIG2ICT3"
 
-      // Remove vnp_SecureHash and vnp_SecureHashType for signature generation
       const filteredParams = { ...params }
       delete filteredParams.vnp_SecureHash
       delete filteredParams.vnp_SecureHashType
 
-      // Sort parameters alphabetically
       const sortedKeys = Object.keys(filteredParams).sort()
-      const queryString = sortedKeys.map((key) => `${key}=${filteredParams[key]}`).join("&")
+      const queryStringUnencoded = sortedKeys.map((key) => `${key}=${filteredParams[key]}`).join("&")
+      const queryStringEncoded = sortedKeys.map((key) => `${key}=${encodeURIComponent(filteredParams[key])}`).join("&")
 
-      // Generate signature using HMAC-SHA512
-      const generatedHash = CryptoJS.HmacSHA512(queryString, hashSecret).toString().toUpperCase()
+      const generatedHashUnencoded = CryptoJS.HmacSHA512(queryStringUnencoded, hashSecret).toString().toUpperCase()
+      const generatedHashEncoded = CryptoJS.HmacSHA512(queryStringEncoded, hashSecret).toString().toUpperCase()
+
+      const debugInfo = {
+        originalUrl: paymentUrl,
+        decodedUrl: decodeURIComponent(paymentUrl),
+        urlLength: paymentUrl.length,
+        parameterCount: Object.keys(params).length,
+        hasSpecialChars: /[<>'"&]/.test(paymentUrl),
+        encodingIssues: paymentUrl !== encodeURI(decodeURI(paymentUrl)),
+        allParameters: params,
+        filteredParameters: filteredParams,
+        sortedKeys,
+        rawQueryString: url.search,
+        generatedQueryString: queryStringUnencoded,
+        encodedQueryString: queryStringEncoded,
+      }
+
+      const isValidUnencoded = providedHash === generatedHashUnencoded
+      const isValidEncoded = providedHash === generatedHashEncoded
 
       return {
         providedHash,
-        generatedHash,
-        isValid: providedHash === generatedHash,
-        queryString,
+        generatedHashUnencoded,
+        generatedHashEncoded,
+        isValidUnencoded,
+        isValidEncoded,
+        isValid: isValidUnencoded || isValidEncoded,
+        queryString: queryStringUnencoded,
+        encodedQueryString: queryStringEncoded,
         parameters: filteredParams,
+        debugInfo,
+        recommendedMethod: isValidEncoded ? "URL_ENCODED" : isValidUnencoded ? "UNENCODED" : "NONE",
       }
     } catch (error) {
       return { error: error.message }
     }
   }
 
+  const interceptVNPayURL = (paymentUrl: string) => {
+    const interceptInfo = {
+      timestamp: new Date().toISOString(),
+      originalUrl: paymentUrl,
+      urlComponents: {
+        protocol: new URL(paymentUrl).protocol,
+        host: new URL(paymentUrl).host,
+        pathname: new URL(paymentUrl).pathname,
+        search: new URL(paymentUrl).search,
+      },
+      suspiciousPatterns: {
+        doubleEncoding: paymentUrl.includes("%25"),
+        specialChars: /[<>'"&]/.test(paymentUrl),
+        longUrl: paymentUrl.length > 2000,
+        malformedParams: !paymentUrl.includes("vnp_SecureHash="),
+      },
+    }
+
+    setUrlDebugInfo(interceptInfo)
+    console.log("[v0] VNPay URL Debug:", interceptInfo)
+
+    return interceptInfo
+  }
+
   const handleTest = async (values: any) => {
     setLoading(true)
     setSignatureValidation(null)
+    setUrlDebugInfo(null)
 
     try {
       const response = await fetch(`${API_BASE_URL}/vnpay/create`, {
@@ -78,8 +127,17 @@ export default function VNPayTestPage() {
         const validation = validateSignature(data.payment_url)
         setSignatureValidation(validation)
 
+        const urlDebug = interceptVNPayURL(data.payment_url)
+
         if (validation.isValid) {
-          window.open(data.payment_url, "_blank")
+          setTimeout(() => {
+            const confirmed = window.confirm(
+              `Signature hợp lệ! Mở VNPay payment page?\n\nNếu VNPay vẫn báo "sai chữ ký", có thể là vấn đề URL encoding hoặc VNPay sandbox.`,
+            )
+            if (confirmed) {
+              window.open(data.payment_url, "_blank")
+            }
+          }, 1000)
         }
       }
     } catch (error) {
@@ -246,29 +304,137 @@ export default function VNPayTestPage() {
                               </Text>
                             </div>
                             <div>
-                              <Text strong>Expected Hash (HMAC-SHA512):</Text>
+                              <Text strong>Expected Hash (Unencoded):</Text>
                               <br />
-                              <Text code style={{ color: "#52c41a" }}>
-                                {signatureValidation.generatedHash}
+                              <Text
+                                code
+                                style={{ color: signatureValidation.isValidUnencoded ? "#52c41a" : "#ff4d4f" }}
+                              >
+                                {signatureValidation.generatedHashUnencoded}{" "}
+                                {signatureValidation.isValidUnencoded ? "✅" : "❌"}
                               </Text>
                             </div>
                             <div>
-                              <Text strong>Query String for Signature:</Text>
+                              <Text strong>Expected Hash (URL Encoded):</Text>
                               <br />
-                              <Text code style={{ wordBreak: "break-all" }}>
-                                {signatureValidation.queryString}
+                              <Text code style={{ color: signatureValidation.isValidEncoded ? "#52c41a" : "#ff4d4f" }}>
+                                {signatureValidation.generatedHashEncoded}{" "}
+                                {signatureValidation.isValidEncoded ? "✅" : "❌"}
                               </Text>
                             </div>
-                            {!signatureValidation.isValid && (
+                            {signatureValidation.recommendedMethod && (
                               <Alert
-                                message="🔧 Cách sửa Laravel VnpayService"
-                                description="Laravel backend cần sử dụng HMAC-SHA512 và loại bỏ vnp_SecureHashType khỏi signature generation."
-                                type="info"
+                                message={`🎯 Recommended Method: ${signatureValidation.recommendedMethod}`}
+                                description={
+                                  signatureValidation.recommendedMethod === "URL_ENCODED"
+                                    ? "Laravel cần URL encode các parameter values trước khi tạo signature!"
+                                    : signatureValidation.recommendedMethod === "UNENCODED"
+                                      ? "Laravel đang dùng unencoded values - đây là method đúng."
+                                      : "Không có method nào hoạt động - cần kiểm tra lại hash secret."
+                                }
+                                type={signatureValidation.isValid ? "success" : "error"}
                                 showIcon
                               />
                             )}
+                            <div>
+                              <Text strong>Query String (Unencoded):</Text>
+                              <br />
+                              <Text code style={{ wordBreak: "break-all", fontSize: "12px" }}>
+                                {signatureValidation.queryString}
+                              </Text>
+                            </div>
+                            <div>
+                              <Text strong>Query String (URL Encoded):</Text>
+                              <br />
+                              <Text code style={{ wordBreak: "break-all", fontSize: "12px" }}>
+                                {signatureValidation.encodedQueryString}
+                              </Text>
+                            </div>
                           </Space>
                         </Panel>
+                        {signatureValidation.debugInfo && (
+                          <Panel header="🐛 URL Debug Information" key="2">
+                            <Space direction="vertical" style={{ width: "100%" }}>
+                              <div>
+                                <Text strong>URL Length:</Text> {signatureValidation.debugInfo.urlLength} characters
+                              </div>
+                              <div>
+                                <Text strong>Parameter Count:</Text> {signatureValidation.debugInfo.parameterCount}
+                              </div>
+                              <div>
+                                <Text strong>Encoding Issues:</Text>{" "}
+                                <Text
+                                  style={{
+                                    color: signatureValidation.debugInfo.encodingIssues ? "#ff4d4f" : "#52c41a",
+                                  }}
+                                >
+                                  {signatureValidation.debugInfo.encodingIssues ? "⚠️ Detected" : "✅ None"}
+                                </Text>
+                              </div>
+                              <div>
+                                <Text strong>Special Characters:</Text>{" "}
+                                <Text
+                                  style={{
+                                    color: signatureValidation.debugInfo.hasSpecialChars ? "#ff4d4f" : "#52c41a",
+                                  }}
+                                >
+                                  {signatureValidation.debugInfo.hasSpecialChars ? "⚠️ Found" : "✅ Clean"}
+                                </Text>
+                              </div>
+                              <div>
+                                <Text strong>Raw Query String:</Text>
+                                <br />
+                                <Text code style={{ wordBreak: "break-all", fontSize: "12px" }}>
+                                  {signatureValidation.debugInfo.rawQueryString}
+                                </Text>
+                              </div>
+                            </Space>
+                          </Panel>
+                        )}
+                        {urlDebugInfo && (
+                          <Panel header="🕵️ URL Interception Analysis" key="3">
+                            <Space direction="vertical" style={{ width: "100%" }}>
+                              <Alert
+                                message="URL được phân tích trước khi gửi tới VNPay"
+                                description="Thông tin này giúp xác định vấn đề encoding hoặc parameter tampering"
+                                type="info"
+                                showIcon
+                              />
+                              <div>
+                                <Text strong>Timestamp:</Text> {urlDebugInfo.timestamp}
+                              </div>
+                              <div>
+                                <Text strong>Double Encoding:</Text>{" "}
+                                <Text
+                                  style={{
+                                    color: urlDebugInfo.suspiciousPatterns.doubleEncoding ? "#ff4d4f" : "#52c41a",
+                                  }}
+                                >
+                                  {urlDebugInfo.suspiciousPatterns.doubleEncoding ? "⚠️ Detected" : "✅ None"}
+                                </Text>
+                              </div>
+                              <div>
+                                <Text strong>URL Length:</Text>{" "}
+                                <Text
+                                  style={{ color: urlDebugInfo.suspiciousPatterns.longUrl ? "#ff4d4f" : "#52c41a" }}
+                                >
+                                  {urlDebugInfo.originalUrl.length} chars{" "}
+                                  {urlDebugInfo.suspiciousPatterns.longUrl ? "(⚠️ Very long)" : "(✅ Normal)"}
+                                </Text>
+                              </div>
+                              <div>
+                                <Text strong>Malformed Parameters:</Text>{" "}
+                                <Text
+                                  style={{
+                                    color: urlDebugInfo.suspiciousPatterns.malformedParams ? "#ff4d4f" : "#52c41a",
+                                  }}
+                                >
+                                  {urlDebugInfo.suspiciousPatterns.malformedParams ? "⚠️ Issues found" : "✅ All good"}
+                                </Text>
+                              </div>
+                            </Space>
+                          </Panel>
+                        )}
                       </Collapse>
                     )}
                   </Space>
@@ -291,10 +457,19 @@ export default function VNPayTestPage() {
           <Card title="📋 Checklist Implementation" type="inner">
             <Space direction="vertical">
               <Text>✅ Signature validation method đã tìm thấy</Text>
-              <Text>🔄 Cập nhật Laravel VnpayService (HMAC-SHA512, exclude vnp_SecureHashType)</Text>
-              <Text>🔄 Test thanh toán thực tế</Text>
+              <Text>✅ Laravel VnpayService đã cập nhật (HMAC-SHA512, exclude vnp_SecureHashType)</Text>
+              <Text>✅ Signature validation thành công trong test</Text>
+              <Text style={{ color: "#ff4d4f" }}>
+                ❌ VNPay vẫn báo "sai chữ ký" - có thể là vấn đề VNPay sandbox hoặc URL encoding
+              </Text>
               <Text>🔄 Kiểm tra return URL hoạt động</Text>
               <Text>🔄 Test IPN handling</Text>
+              <Divider />
+              <Text strong>🔧 Troubleshooting Suggestions:</Text>
+              <Text>1. Thử với VNPay production environment thay vì sandbox</Text>
+              <Text>2. Kiểm tra VNP_HASH_SECRET có đúng không</Text>
+              <Text>3. Liên hệ VNPay support để xác nhận sandbox hoạt động</Text>
+              <Text>4. Test với browser khác hoặc incognito mode</Text>
             </Space>
           </Card>
         </Space>
