@@ -63,7 +63,7 @@ class OrderController extends Controller
     }
 
 public function checkout(Request $request)
-    {
+   {
         $userId = Auth::id();
 
         // ===== 0) Validate =====
@@ -73,7 +73,6 @@ public function checkout(Request $request)
             'voucher_codes'                => 'nullable|array',
             'voucher_codes.*.shop_id'      => 'required|integer',
             'voucher_codes.*.code'         => 'required|string',
-
             'address_id'                   => 'nullable|exists:addresses,id',
             'address_manual'               => 'nullable|array',
             'address_manual.full_name'     => 'required_with:address_manual|string',
