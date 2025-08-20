@@ -118,31 +118,80 @@ class VnpayService
     }
 
     /**
-     * Verify checksum ở Return/IPN (không urlencode).
+     * Verify checksum ở Return/IPN với debug chi tiết
      */
     public static function verifyHash(array $params): bool
     {
         $vnp_HashSecret = trim((string) (config('services.vnpay.hash_secret') ?? env('VNP_HASH_SECRET')));
 
         $secureHash = $params['vnp_SecureHash'] ?? '';
-        unset($params['vnp_SecureHash'], $params['vnp_SecureHashType']);
+        $originalParams = $params; // Keep original for debugging
 
+        unset($params['vnp_SecureHash'], $params['vnp_SecureHashType']);
         $params = array_filter($params, fn($v) => $v !== null && $v !== '');
         ksort($params);
 
-        $hashData = implode('&', array_map(
+
+        // Approach 1: Original (no encoding)
+        $hashData1 = implode('&', array_map(
             fn($k,$v) => $k.'='.$v,
             array_keys($params), $params
         ));
+        $calc1 = hash_hmac('sha512', $hashData1, $vnp_HashSecret);
+        $ok1 = hash_equals(strtolower($calc1), strtolower($secureHash));
 
-        $calc = hash_hmac('sha512', $hashData, $vnp_HashSecret);
-        $ok = hash_equals(strtolower($calc), strtolower($secureHash));
+        // Approach 2: URL decode values (VNPay might send encoded)
+        $decodedParams = array_map('urldecode', $params);
+        $hashData2 = implode('&', array_map(
+            fn($k,$v) => $k.'='.$v,
+            array_keys($decodedParams), $decodedParams
+        ));
+        $calc2 = hash_hmac('sha512', $hashData2, $vnp_HashSecret);
+        $ok2 = hash_equals(strtolower($calc2), strtolower($secureHash));
 
-        Log::info('[VNP] verifyHash', [
-            'ok'         => $ok,
+        // Approach 3: URL encode values (opposite approach)
+        $encodedParams = array_map('urlencode', $params);
+        $hashData3 = implode('&', array_map(
+            fn($k,$v) => $k.'='.$v,
+            array_keys($encodedParams), $encodedParams
+        ));
+        $calc3 = hash_hmac('sha512', $hashData3, $vnp_HashSecret);
+        $ok3 = hash_equals(strtolower($calc3), strtolower($secureHash));
+
+        Log::info('[VNP] verifyHash DEBUG', [
             'secret_len' => strlen($vnp_HashSecret),
+            'received_hash' => $secureHash,
+            'original_params' => $originalParams,
+            'filtered_params' => $params,
+
+            'approach_1_no_encoding' => [
+                'hash_data' => $hashData1,
+                'calculated' => $calc1,
+                'match' => $ok1
+            ],
+
+            'approach_2_url_decode' => [
+                'decoded_params' => $decodedParams,
+                'hash_data' => $hashData2,
+                'calculated' => $calc2,
+                'match' => $ok2
+            ],
+
+            'approach_3_url_encode' => [
+                'encoded_params' => $encodedParams,
+                'hash_data' => $hashData3,
+                'calculated' => $calc3,
+                'match' => $ok3
+            ]
         ]);
 
-        return $ok;
+        $finalResult = $ok1 || $ok2 || $ok3;
+
+        Log::info('[VNP] verifyHash RESULT', [
+            'final_ok' => $finalResult,
+            'which_worked' => $ok1 ? 'no_encoding' : ($ok2 ? 'url_decode' : ($ok3 ? 'url_encode' : 'none'))
+        ]);
+
+        return $finalResult;
     }
 }
