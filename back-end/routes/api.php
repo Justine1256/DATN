@@ -128,7 +128,13 @@ Route::post('/admin/orders/{orderId}/refund-report/approve', [OrderController::c
 Route::post('/admin/orders/{orderId}/refund-report/reject', [OrderController::class, 'rejectRefundReport']);// ko duyệt admin đơn hàng tố cáo
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment']);
+    Route::post('/vnpay/create', [PaymentController::class, 'createVnpayPayment'])->name('vnpay.create');
+
+    // VNPAY sẽ redirect về đây (front-channel)
+    Route::get('/vnpay/return', [PaymentController::class, 'vnpayReturn'])->name('vnpay.return');
+
+    // IPN (server-to-server) – nhớ cấu hình URL này trong cổng VNPAY của bạn
+    Route::get('/vnpay/ipn', [PaymentController::class, 'vnpayIpn'])->name('vnpay.ipn');
     // User
     // Route::get('/user', [UserController::class, 'show']);
     Route::put('/user', [UserController::class, 'update']);
