@@ -233,119 +233,88 @@ export default function OrderSummary({
     Array.isArray(shopVouchers) && shopVouchers.length ? shopVouchers : undefined;
 
   /* ============== Đặt hàng ============== */
-  const handlePlaceOrder = async () => {
-    if (!addressId && !manualAddressData) {
-      setError('Vui lòng chọn hoặc nhập địa chỉ giao hàng.');
-      setPopupType('error');
-      setShowPopup(true);
-      return;
+const handlePlaceOrder = async () => {
+  if (!addressId && !manualAddressData) {
+    setError('Vui lòng chọn hoặc nhập địa chỉ giao hàng.');
+    setPopupType('error');
+    setShowPopup(true);
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+  setSuccessMessage('');
+  setShowPopup(false);
+  setPopupType(null);
+
+  try {
+    const token = localStorage.getItem('token') || Cookies.get('authToken');
+    if (!token) {
+      throw new Error('Vui lòng đăng nhập trước khi đặt hàng.');
     }
 
-    setLoading(true);
-    setError('');
-    setSuccessMessage('');
-    setShowPopup(false);
-    setPopupType(null);
+    // Payload đúng với BE hiện tại
+    const payload: any = {
+      payment_method: (paymentMethod || '').toLowerCase(), // 'cod' | 'vnpay'
+      voucher_code: (voucherCode ?? appliedVoucher?.code ?? globalVoucherCode) ?? null,
+    };
 
-    try {
-      const token = localStorage.getItem('token') || Cookies.get('authToken');
-      const isGuest = !token;
+    if (Array.isArray(shopVouchers) && shopVouchers.length) {
+      payload.voucher_codes = shopVouchers; // [{shop_id, code}]
+    }
 
-      // Chuẩn hoá items sẽ gửi
-      const cart_items = buildCartItemsPayload(cartItems);
+    if (addressId) {
+      payload.address_id = addressId;
+    } else if (manualAddressData) {
+      payload.address_manual = {
+        full_name: manualAddressData.full_name,
+        address:
+          `${manualAddressData.address}` +
+          (manualAddressData.apartment ? `, ${manualAddressData.apartment}` : ''),
+        city: manualAddressData.city, // "Ward, District, Province"
+        phone: manualAddressData.phone,
+        email: manualAddressData.email,
+      };
+    }
 
-      // ✅ Guest: CHỈ cần có cart_items hợp lệ
-      if (isGuest) {
-        if (cart_items.length === 0) {
-          throw new Error('Giỏ hàng trống hoặc thiếu product_id/price.');
-        }
+    const response = await axios.post(`${API_BASE_URL}/dathang`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-        const guestPayload: OrderRequestBody = {
-          payment_method: paymentMethod,
-          cart_items,
-          voucher_code: globalCode,
-          ...(voucherCodesArray ? { voucher_codes: voucherCodesArray } : {}),
-          address_manual: {
-            full_name: manualAddressData?.full_name || '',
-            address: `${manualAddressData?.address ?? ''}${manualAddressData?.apartment ? ', ' + manualAddressData.apartment : ''}`,
-            city: manualAddressData?.city || '',
-            phone: manualAddressData?.phone || '',
-            email: manualAddressData?.email || '',
-          },
-        };
+    // Tuỳ chọn: lưu địa chỉ nhập tay 1 lần
+    await maybeSaveManualAddress();
 
-        await axios.post(`${API_BASE_URL}/nologin`, guestPayload, {
-          headers: { 'Content-Type': 'application/json' },
-        });
-
-      } else {
-        // ✅ Logged-in: MỚI cần cart_item_ids (ID cart-item trên server phải là số)
-        const cartItemIds = cartItems
-          .map((it) => Number(it.id))
-          .filter((n) => Number.isFinite(n));
-
-        if (!cartItemIds.length) {
-          throw new Error('Không có sản phẩm hợp lệ để đặt hàng.');
-        }
-
-        const requestBody: OrderRequestBody = {
-          payment_method: paymentMethod,
-          cart_items,
-          cart_item_ids: cartItemIds,       // 👈 lọc đúng SP đã tick
-          voucher_code: globalCode,
-          ...(voucherCodesArray ? { voucher_codes: voucherCodesArray } : {}),
-        };
-
-        if (
-          manualAddressData &&
-          Object.values(manualAddressData).some((v) => (v ?? '').toString().trim() !== '')
-        ) {
-          requestBody.address_manual = {
-            full_name: manualAddressData.full_name,
-            address: `${manualAddressData.address}${manualAddressData.apartment ? ', ' + manualAddressData.apartment : ''}`,
-            city: manualAddressData.city,
-            phone: manualAddressData.phone,
-            email: manualAddressData.email,
-          };
-        } else if (addressId) {
-          requestBody.address_id = addressId;
-        }
-
-        const response = await axios.post(`${API_BASE_URL}/dathang`, requestBody, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        await maybeSaveManualAddress();
-
-        if (response.data?.redirect_url) {
-          localStorage.removeItem('cart');
-          setCartItems([]);
-          window.dispatchEvent(new Event('cartUpdated'));
-          window.location.href = response.data.redirect_url;
-          return;
-        }
-      }
-
-      setSuccessMessage('Đặt hàng thành công!');
-      setPopupType('success');
-      setShowPopup(true);
-
+    // Nếu là VNPAY → chuyển hướng
+    if (response.data?.redirect_url) {
       localStorage.removeItem('cart');
       setCartItems([]);
       window.dispatchEvent(new Event('cartUpdated'));
-
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 2500);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Lỗi đặt hàng';
-      setError(msg);
-      setPopupType('error');
-      setShowPopup(true);
-    } finally {
-      setLoading(false);
+      window.location.href = response.data.redirect_url;
+      return;
     }
-  };
+
+    // COD → hiển thị thành công + về trang chủ
+    setSuccessMessage('Đặt hàng thành công!');
+    setPopupType('success');
+    setShowPopup(true);
+
+    localStorage.removeItem('cart');
+    setCartItems([]);
+    window.dispatchEvent(new Event('cartUpdated'));
+
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 2500);
+  } catch (err: any) {
+    const msg = err.response?.data?.message || err.message || 'Lỗi đặt hàng';
+    setError(msg);
+    setPopupType('error');
+    setShowPopup(true);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
 
   useEffect(() => {
