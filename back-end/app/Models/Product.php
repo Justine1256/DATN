@@ -123,5 +123,36 @@ public function toSearchableArray()
     ];
 }
 
+    // Chỉ lấy product đang active
+    public function scopeActive($q)
+    {
+        return $q->where('products.status', 'activated');
+    }
 
+    // Chỉ lấy product thuộc category đang active
+    public function scopeInActiveCategory($q)
+    {
+        return $q->whereHas('category', fn($c) => $c->where('status', 'activated'));
+    }
+
+    public function scopeInCategory($q, $categoryId)
+    {
+        return $q->where('products.category_id', $categoryId);
+    }
+
+    public function scopeTopRated($q)
+    {
+        return $q->orderByDesc('rating')->orderByDesc('sold')->orderByDesc('id');
+    }
+
+    public function scopeBestSelling($q)
+    {
+        return $q->orderByDesc('sold')->orderByDesc('rating')->orderByDesc('id');
+    }
+
+    public function scopeNewest($q)
+    {
+        return $q->orderByDesc('id');
+        // hoặc orderByDesc('created_at')
+    }
 }
