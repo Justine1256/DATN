@@ -15,6 +15,9 @@ use App\Models\Shop;
 use Illuminate\Support\Str;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
+use App\Models\OrderDetail;
+use App\Models\Review;
+use Illuminate\Support\Facades\Schema;
 
 class ShopController extends Controller
 {
@@ -203,47 +206,66 @@ public function update(Request $request)
         return redirect('/');
     }
 
-    public function showShopInfo($slug)
-    {
-        $shop = Shop::where('slug', $slug)->first();
+public function showShopInfo(Request $request, string $slug)
+{
+    $shop = Shop::where('slug', $slug)->first();
 
-        if (!$shop) {
-            return response()->json(['error' => 'Shop không tồn tại'], 404);
-        }
-        // 📦 Tính tổng đã bán (Delivered)
-        $totalSales = \App\Models\OrderDetail::whereHas('order', function ($q) use ($shop) {
-            $q->where('shop_id', $shop->id)
-                ->where('order_status', 'Delivered');
-        })->sum('quantity');
-
-        // ⭐ Tính rating động
-        $avgRating = \App\Models\Review::whereHas('orderDetail.product', function ($q) use ($shop) {
-            $q->where('shop_id', $shop->id);
-        })->avg('rating');
-
-
-        // 🎯 Ghi đè giá trị động lên model
-        $shop->total_sales = $totalSales;
-        $shop->rating = $avgRating ? round($avgRating, 1) : null;
-        $shop->save();
-
-        return response()->json([
-            'shop' => [
-                'id' => $shop->id,
-                'name' => $shop->name,
-                'slug' => $shop->slug,
-                'description' => $shop->description,
-                'logo' => $shop->logo,
-                'phone' => $shop->phone,
-                'email' => $shop->email,
-                'total_sales' => $shop->total_sales,
-                'rating' => $shop->rating,
-                'status' => $shop->status,
-                'created_at' => $shop->created_at,
-                'updated_at' => $shop->updated_at,
-            ]
-        ]);
+    if (!$shop) {
+        return response()->json(['error' => 'Shop không tồn tại'], 404);
     }
+
+    // 📦 Tổng đã bán
+    $totalSales = OrderDetail::whereHas('order', function ($q) use ($shop) {
+        $q->where('shop_id', $shop->id)
+          ->where('order_status', 'Delivered');
+    })->sum('quantity');
+
+    // ⭐ Rating trung bình
+    $avgRating = Review::whereHas('orderDetail.product', function ($q) use ($shop) {
+        $q->where('shop_id', $shop->id);
+    })->avg('rating');
+
+    // 👥 Theo dõi — 1 trong 2 cách (tự chọn theo DB đang có)
+    $userId = optional($request->user())->id;
+
+    if (Schema::hasTable('follows')) {
+        // Dùng bảng follows + quan hệ followRecords()
+        $followersCount = $shop->followRecords()->count();
+        $isFollowing    = $userId
+            ? $shop->followRecords()->where('user_id', $userId)->exists()
+            : false;
+    } else {
+        // Dùng pivot shop_user + quan hệ followers()
+        $followersCount = $shop->followers()->count();
+        $isFollowing    = $userId
+            ? $shop->followers()->where('users.id', $userId)->exists()
+            : false;
+    }
+
+    // ❌ Không save để tránh bẩn updated_at
+    return response()->json([
+        'shop' => [
+            'id'              => $shop->id,
+            'name'            => $shop->name,
+            'slug'            => $shop->slug,
+            'description'     => $shop->description,
+            'logo'            => $shop->logo,
+            'phone'           => $shop->phone,
+            'email'           => $shop->email,
+            'status'          => $shop->status,
+            'created_at'      => $shop->created_at,
+            'updated_at'      => $shop->updated_at,
+
+            // Giá trị động
+            'total_sales'     => (int) $totalSales,
+            'rating'          => $avgRating !== null ? round((float) $avgRating, 1) : null,
+
+            // 🔢 Số follower + trạng thái đã theo dõi (1 endpoint)
+            'followers_count' => (int) $followersCount,
+            'is_following'    => (bool) $isFollowing,
+        ]
+    ]);
+}
     public function getShopProducts($slug)
     {
         $shop = Shop::where('slug', $slug)->first();

@@ -839,21 +839,19 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
             </div>
 
             {/* Price */}
-            <div className="flex items-center gap-3">
-              <span className="text-[1.5rem] font-bold text-brand">{getPrice()}₫</span>
+<div className="flex items-center gap-3">
+  <span className="text-[1.5rem] font-bold text-brand">{getPrice()}₫</span>
 
-              {selectedVariant ? (
-                selectedVariant.sale_price && (
-                  <span className="line-through text-gray-400">
-                    {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
-                  </span>
-                )
-              ) : isFromProduct && product.sale_price ? (
-                <span className="line-through text-gray-400">
-                  {Number(product.price).toLocaleString('vi-VN')}₫
-                </span>
-              ) : null}
-            </div>
+  {selectedVariant?.sale_price ? (
+    <span className="line-through text-gray-400">
+      {Number(selectedVariant.price).toLocaleString('vi-VN')}₫
+    </span>
+  ) : product.sale_price ? (
+    <span className="line-through text-gray-400">
+      {Number(product.price).toLocaleString('vi-VN')}₫
+    </span>
+  ) : null}
+</div>
 
             {/* Option A */}
             <div className="flex flex-col gap-2 mb-4 mt-4">
