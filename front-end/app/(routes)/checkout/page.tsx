@@ -9,7 +9,8 @@ import OrderSummary, { type CartItem as OSCartItem } from "@/app/components/chec
 import CartAndPayment, { type Voucher } from "@/app/components/checkout/CartAndPayment"
 
 import CheckoutForm, { type ManualAddress } from "@/app/components/checkout/CheckoutForm"
-
+import { API_BASE_URL } from "@/utils/api"
+import Cookies from "js-cookie";
 // Dùng alias nội bộ cho tiện
 type CartItem = OSCartItem
 
@@ -162,95 +163,61 @@ export default function CheckoutPage() {
   }, [])
 
   const handleVNPayPayment = useCallback(async () => {
-    if (!paymentInfo || !cartItems.length) {
-      console.error("[v0] Missing payment info or cart items")
-      return
-    }
+  if (!paymentInfo || !cartItems.length) return;
 
-    setIsProcessing(true)
+  setIsProcessing(true);
+  try {
+    // gom đúng payload cho checkout()
+    const payload: any = {
+      payment_method: "vnpay",
+      // 1 trong 2 cách chọn địa chỉ:
+      address_id: addressId || undefined,
+      address_manual: !addressId && manualAddressData ? {
+        full_name: manualAddressData.full_name,
+        address: manualAddressData.address,
+        city: manualAddressData.city,
+        phone: manualAddressData.phone,
+        email: manualAddressData.email,
+      } : undefined,
 
-    try {
-      const returnUrl = `${window.location.origin}/checkout/result`
+      // voucher: nếu giỏ có nhiều shop thì dùng voucher_codes [{shop_id, code}]
+      voucher_code: voucherCodeForSubmit || undefined,
+      voucher_codes: paymentInfo?.shopVouchers?.length ? paymentInfo.shopVouchers : undefined,
 
-      const paymentData = {
-        amount: paymentInfo.summary.total,
-        order_ids: cartItems.map((item) => item.id),
-        customer_info: {
-          address_id: addressId,
-          manual_address: manualAddressData,
-          save_address: saveAddress,
-        },
-        payment_info: paymentInfo,
-        voucher_code: voucherCodeForSubmit,
-        return_url: returnUrl,
-        order_desc: `Thanh toan don hang ${Date.now()}`,
-        ip_addr: await fetch("https://api.ipify.org?format=json")
-          .then((res) => res.json())
-          .then((data) => data.ip)
-          .catch(() => "127.0.0.1"),
-      }
+      // chỉ checkout các item người dùng đang chọn
+      cart_item_ids: cartItems.map(it => it.id).filter(Boolean),
+    };
+    const token = localStorage.getItem("token") || Cookies.get("authToken");
+    const res = await fetch(`${API_BASE_URL}/dathang`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+    console.log("dữ liệu", res);
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Checkout failed");
 
-      console.log("[v0] VNPay payment request:", {
-        ...paymentData,
-        return_url: returnUrl,
-        api_url: `${process.env.NEXT_PUBLIC_API_URL || "https://api.marketo.info.vn"}/api/vnpay/create`,
-      })
+    // BE sẽ trả redirect_url từ VnpayService::createPaymentUrl
+    const redirectUrl = data.redirect_url;
+    if (!redirectUrl) throw new Error("Missing VNPay redirect_url from checkout");
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://api.marketo.info.vn"}/api/vnpay/create`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Origin: window.location.origin,
-          },
-          body: JSON.stringify(paymentData),
-        },
-      )
+    // Lưu thông tin local nếu bạn muốn hiển thị lại sau khi quay về
+    localStorage.setItem("vnpay_order_info", JSON.stringify({
+      order_ids: data.order_ids,
+      total: paymentInfo.summary.total,
+      ts: Date.now(),
+    }));
 
-      const data = await response.json()
-      console.log("[v0] VNPay API response:", {
-        status: response.status,
-        ok: response.ok,
-        data: data,
-      })
+    window.location.href = redirectUrl; // chuyển sang VNPay
+  } catch (e: any) {
+    alert(e?.message || "Checkout error");
+  } finally {
+    setIsProcessing(false);
+  }
+}, [paymentInfo, cartItems, addressId, manualAddressData, voucherCodeForSubmit]);
 
-      if (response.ok && data.payment_url) {
-        const orderInfo = {
-          cartItems,
-          paymentInfo,
-          addressInfo: { addressId, manualAddressData, saveAddress },
-          timestamp: Date.now(),
-          txnRef: data.txn_ref || `PMT${Date.now()}`,
-          expectedReturnUrl: returnUrl,
-        }
-
-        localStorage.setItem("vnpay_order_info", JSON.stringify(orderInfo))
-
-        console.log("[v0] Stored order info and redirecting to VNPay:", {
-          payment_url: data.payment_url,
-          txn_ref: data.txn_ref,
-          return_url: returnUrl,
-        })
-
-        // Redirect to VNPay
-        window.location.href = data.payment_url
-      } else {
-        console.error("[v0] VNPay API error:", {
-          status: response.status,
-          statusText: response.statusText,
-          data: data,
-        })
-        throw new Error(data.message || data.error || "Failed to create payment")
-      }
-    } catch (error) {
-      console.error("[v0] VNPay payment error:", error)
-      alert(`Lỗi thanh toán VNPay: ${error instanceof Error ? error.message : "Unknown error"}`)
-    } finally {
-      setIsProcessing(false)
-    }
-  }, [paymentInfo, cartItems, addressId, manualAddressData, saveAddress, voucherCodeForSubmit])
 
   return (
     <div className="container my-10 px-4">
