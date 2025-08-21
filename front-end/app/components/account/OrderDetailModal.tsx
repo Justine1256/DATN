@@ -57,21 +57,14 @@ export default function OrderDetailModal({
     if (!isVisible || !order) return null
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50">
             <div className="bg-white rounded-xl max-w-6xl w-full h-[90vh] flex flex-col shadow-2xl">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-200 bg-gray-50">
+                <div className=" border-b border-gray-200 bg-gray-50">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gray-600 rounded-lg flex items-center justify-center">
-                                <Package className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-900">Chi tiết đơn hàng #{order.id}</h2>
-                                <p className="text-sm text-gray-600">
-                                    Đặt ngày {new Date(order.created_at).toLocaleDateString("vi-VN")}
-                                </p>
-                            </div>
+                         
+                           
                         </div>
                         <button
                             onClick={onClose}

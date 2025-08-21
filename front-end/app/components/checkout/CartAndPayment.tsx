@@ -864,20 +864,26 @@ const shopName = String(prod.shop?.name ?? raw.shop?.name ?? raw.shop_name ?? 'S
                             }
 
                           />
-                          <div style={{ textAlign: 'right', minWidth: 120 }}>
-                            {hasSale ? (
-                              <>
-                                <div>
-                                  <Text delete type="secondary">{VND(ori)}</Text>
-                                </div>
-                                <div>
-                                  <Text strong type="danger">{VND(total)}</Text>
-                                </div>
-                              </>
-                            ) : (
-                              <Text strong>{VND(total)}</Text>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 120 }}>
+                            {hasSale && (
+                              <Text delete style={{ color: '#999', fontSize: 13, marginBottom: 2 }}>
+                                {VND(ori)}
+                              </Text>
                             )}
+                            <Text
+                              strong
+                              type="danger"
+                              style={{
+                                color: '#d0302f',
+                                userSelect: 'text',
+                              }}
+                            >
+                              {VND(total)}
+                            </Text>
+
                           </div>
+
+
                         </List.Item>
                       );
                     }}
@@ -1014,16 +1020,25 @@ const shopName = String(prod.shop?.name ?? raw.shop?.name ?? raw.shop_name ?? 'S
                     }
                     description={<Text type="secondary">SL: {it.quantity}</Text>}
                   />
-                  <div style={{ textAlign: 'right', minWidth: 140 }}>
-                    {hasSale ? (
-                      <>
-                        <div><Text delete type="secondary">{VND(ori)}</Text></div>
-                        <div><Text strong type="danger">{VND(total)}</Text></div>
-                      </>
-                    ) : (
-                      <Text strong>{VND(total)}</Text>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 140 }}>
+                    {hasSale && (
+                      <Text delete style={{ color: '#999', fontSize: 13, marginBottom: 2 }}>
+                        {VND(ori)}
+                      </Text>
                     )}
+                    <Text
+                      strong
+                      type="danger"
+                      style={{
+                        color: '#d0302f',
+                        userSelect: 'text',
+                      }}
+                    >
+                      {VND(total)}
+                    </Text>
+
                   </div>
+
                 </List.Item>
               );
             }}
@@ -1154,6 +1169,11 @@ const shopName = String(prod.shop?.name ?? raw.shop?.name ?? raw.shop_name ?? 'S
           font-size: 16px; line-height: 1; color: #7c3aed; padding: 0 2px; border-radius: 6px;
         }
         .voucher-close:hover { background: rgba(124, 58, 237, 0.08); }
+        .ant-typography[style]::selection {
+  color: #fff !important;
+  background: #d0302f !important;
+}
+
       `}</style>
     </div>
   );
