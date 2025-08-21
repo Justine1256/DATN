@@ -89,7 +89,8 @@ public function checkout(Request $request)
     if (empty($validated['address_id']) && empty($validated['address_manual'])) {
         return response()->json(['message' => 'Phải chọn địa chỉ có sẵn hoặc nhập địa chỉ mới'], 422);
     }
-
+    $rawMethod = strtolower($validated['payment_method']);
+$method    = $rawMethod === 'cod' ? 'COD' : 'vnpay'; // CHUẨN HOÁ THEO ENUM
     // ===== 1) Lấy giỏ hàng (chỉ lấy các mục được chọn nếu có) =====
     $cartQuery = Cart::query()
         ->select(['id','product_id','variant_id','product_option','product_value','quantity'])
@@ -278,19 +279,23 @@ public function checkout(Request $request)
             $finalAmount       = max($shopTotalAmount - $shopDiscount, 0);
             $totalFinalAmount += $finalAmount;
 
-            $order = Order::create([
+            $baseOrderData = [
                 'user_id'          => $userId,
                 'shop_id'          => $shopId,
                 'voucher_id'       => $shopVoucher?->id,
                 'discount_amount'  => $shopDiscount,
                 'total_amount'     => $shopTotalAmount,
                 'final_amount'     => $finalAmount,
-                'payment_method'   => $validated['payment_method'], // cod|vnpay
+                'payment_method'   => $method,               // <-- ĐÃ CHUẨN HOÁ
                 'payment_status'   => 'Pending',
-                'order_status'     => 'Pending',
+                'order_status'     => 'Pending',             // enum bắt buộc, không default
                 'shipping_status'  => 'Pending',
-                'shipping_address' => $fullAddress,
-            ]);
+                'shipping_address' => $fullAddress,          // NOT NULL
+                // gợi ý set luôn cờ hiển thị ở admin:
+                'order_admin_status' => $method === 'COD' ? 'Unpaid' : 'Pending Processing',
+            ];
+
+            $order = Order::create($baseOrderData);
 
             // 3.4 Tạo order details (ghi option/value từ giỏ)
             foreach ($shopCarts as $cart) {
@@ -339,11 +344,9 @@ public function checkout(Request $request)
         }
 
 // ===== 6) Phân nhánh thanh toán =====
-if ($validated['payment_method'] === 'vnpay') {
-    // Tạo mã đơn hàng gộp các order_id để truyền sang VNPay
+if ($method === 'vnpay') {
     $combinedOrderId = 'ORD_' . implode('_', collect($orders)->pluck('id')->toArray());
 
-    // Gọi VnpayService mới
     $redirectUrl = ServicesVnpayService::createPaymentUrl(
         (int) $totalFinalAmount,
         $combinedOrderId,
@@ -358,6 +361,25 @@ if ($validated['payment_method'] === 'vnpay') {
         'redirect_url'   => $redirectUrl,
     ], 201);
 }
+
+// COD: đánh dấu đã xác nhận đơn để shop xử lý
+foreach ($orders as $od) {
+    $od->update([
+        'payment_status'     => 'Pending',
+        'order_status'       => 'order confirmation',
+        'confirmed_at'       => now(),           // BỔ SUNG: theo schema của bạn
+        'order_admin_status' => 'Unpaid',        // rõ nghĩa hơn cho admin
+    ]);
+}
+
+DB::commit();
+
+return response()->json([
+    'message'        => 'Đặt hàng (COD) thành công',
+    'order_ids'      => collect($orders)->pluck('id'),
+    'payment_method' => 'COD',
+], 201);
+
 
 
         // COD
