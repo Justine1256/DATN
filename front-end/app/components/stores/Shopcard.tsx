@@ -44,7 +44,7 @@ interface Shop {
     description: string;
     logo: string;
     phone: string;
-    rating: string;
+    rating: number | null;
     total_sales: number;
     created_at: string;
     status: 'activated' | 'pending' | 'suspended';
@@ -58,6 +58,9 @@ export default function ShopCard({ shop }: { shop: Shop }) {
     // ---- Follow state (giữ nguyên logic) ----
     const [followed, setFollowed] = useState<boolean>(!!shop?.is_following);
     useEffect(() => setFollowed(!!shop?.is_following), [shop?.id, shop?.is_following]);
+    const [followers, setFollowers] = useState<number>(shop.followers_count ?? 0);
+useEffect(() => setFollowers(shop.followers_count ?? 0), [shop.id, shop.followers_count]);
+
 
     const [pending, setPending] = useState(false);
     const [showPopup, setShowPopup] = useState(false);
@@ -86,6 +89,7 @@ export default function ShopCard({ shop }: { shop: Shop }) {
             const data = await res.json().catch(() => null);
             if (res.ok) {
                 setFollowed(true);
+                setFollowers(v => v + 1);
                 toast(data?.message || 'Đã theo dõi cửa hàng');
             } else {
                 if (data?.message?.toLowerCase?.().includes('đã theo dõi')) setFollowed(true);
@@ -110,6 +114,7 @@ export default function ShopCard({ shop }: { shop: Shop }) {
             const data = await res.json().catch(() => null);
             if (res.ok) {
                 setFollowed(false);
+                setFollowers(v => Math.max(0, v - 1));
                 toast(data?.message || 'Đã hủy theo dõi cửa hàng');
             } else {
                 if (data?.message?.toLowerCase?.().includes('chưa theo dõi')) setFollowed(false);
@@ -253,7 +258,7 @@ export default function ShopCard({ shop }: { shop: Shop }) {
                             <div>
                                 <Text type="secondary">Đánh giá</Text>
                                 <div className="font-semibold text-black">
-                                    {shop.rating && shop.rating !== '0.0' ? shop.rating : 'Chưa có đánh giá'}
+                                    {shop.rating !== null ? shop.rating : 'Chưa có đánh giá'}
                                 </div>
                             </div>
                         </Space>
@@ -275,7 +280,7 @@ export default function ShopCard({ shop }: { shop: Shop }) {
                             <div>
                                 <Text type="secondary">Người theo dõi</Text>
                                 <div className="font-semibold text-black">
-                                    {shop.followers_count ? shop.followers_count : 'Chưa có người theo dõi'}
+                                    {followers > 0 ? followers : 'Chưa có người theo dõi'}
                                 </div>
                             </div>
                         </Space>
