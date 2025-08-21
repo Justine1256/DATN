@@ -323,24 +323,24 @@ public function checkout(Request $request)
             }
 
             // ===== 6) Phân nhánh thanh toán =====
-            if ($validated['payment_method'] === 'vnpay') {
-                // Tạo URL thanh toán gom tiền tất cả orders
-                $redirectUrl = ServicesVnpayService::createPaymentUrl([
-                    'user_id'   => $userId,
-                    'order_ids' => collect($orders)->pluck('id')->toArray(),
-                    'amount'    => (int) $totalFinalAmount,
-                    'return_url'=> route('vnpay.return', [], true), // absolute
-                ]);
+            // if ($validated['payment_method'] === 'vnpay') {
+            //     // Tạo URL thanh toán gom tiền tất cả orders
+            //     $redirectUrl = ServicesVnpayService::createPaymentUrl([
+            //         'user_id'   => $userId,
+            //         'order_ids' => collect($orders)->pluck('id')->toArray(),
+            //         'amount'    => (int) $totalFinalAmount,
+            //         'return_url'=> route('vnpay.return', [], true), // absolute
+            //     ]);
 
-                DB::commit();
+            //     DB::commit();
 
-                return response()->json([
-                    'message'        => 'Tạo đơn hàng thành công. Chuyển hướng VNPAY.',
-                    'order_ids'      => collect($orders)->pluck('id'),
-                    'payment_method' => 'vnpay',
-                    'redirect_url'   => $redirectUrl,
-                ], 201);
-            }
+            //     return response()->json([
+            //         'message'        => 'Tạo đơn hàng thành công. Chuyển hướng VNPAY.',
+            //         'order_ids'      => collect($orders)->pluck('id'),
+            //         'payment_method' => 'vnpay',
+            //         'redirect_url'   => $redirectUrl,
+            //     ], 201);
+            // }
 
             // COD
             foreach ($orders as $od) {

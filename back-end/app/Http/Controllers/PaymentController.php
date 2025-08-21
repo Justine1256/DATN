@@ -20,39 +20,40 @@ class PaymentController extends Controller
             'orderInfo' => 'nullable|string',
         ]);
 
-        $url = VnpayService::createPaymentUrl([
-            'amount'    => (int)$data['amount'],
-            'orderId'   => $data['orderId'] ?? null,
-            'orderInfo' => $data['orderInfo'] ?? null,
-        ]);
+        $url = VnpayService::createPaymentUrl(
+            (int)$data['amount'],
+            $data['orderId'] ?? null,
+            $data['orderInfo'] ?? null
+        );
 
         return response()->json([
             'payment_url' => $url,
         ]);
     }
 
+    // GET /api/vnpay/return
     public function return(Request $req)
     {
-        $ok = VnpayService::verify($req->query());
+        $ok   = VnpayService::verify($req->query());
         $code = $req->query('vnp_ResponseCode');
-        $order = $req->query('vnp_TxnRef');
+        $txn  = $req->query('vnp_TxnRef');
 
+        // vnp_ResponseCode === '00' mới là thanh toán thành công
         return response()->json([
-            'success' => $ok && $code === '00',
             'verified' => $ok,
+            'success'  => $ok && $code === '00',
             'vnp_ResponseCode' => $code,
-            'order_id' => $order,
+            'order_id' => $txn,
         ], $ok ? 200 : 400);
     }
 
+    // POST /api/vnpay/ipn (tuỳ dùng)
     public function ipn(Request $req)
     {
         $ok = VnpayService::verify($req->all());
-        if (!$ok) {
-            return response()->json(['RspCode' => '97', 'Message' => 'Invalid Checksum']);
-        }
-
-        // TODO: xử lý idempotent theo $req->input('vnp_TxnRef'), 'vnp_ResponseCode'
-        return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
+        return response()->json([
+            'RspCode' => $ok ? '00' : '97',
+            'Message' => $ok ? 'Confirm Success' : 'Invalid Checksum',
+        ]);
     }
 }

@@ -7,11 +7,9 @@ const { Title, Text } = Typography;
 
 export default function VnpReturnPage() {
   const p = useSearchParams();
-
   const code = p.get("vnp_ResponseCode");
   const order = p.get("vnp_TxnRef");
   const hash = p.get("vnp_SecureHash");
-
   const success = code === "00";
 
   return (
