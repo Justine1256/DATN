@@ -9,120 +9,88 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Str;
 class PaymentController extends Controller
 {
-    public function createVnpayPayment(Request $request)
+    // POST /api/vnpay/create
+    public function create(Request $req)
     {
-        $request->validate([
-            'amount'      => 'required|numeric|min:1000',
-            'order_ids'   => 'required|array|min:1',
-            'order_ids.*' => 'integer',
-            'return_url'  => 'nullable|string', // Accept return_url from frontend
+        $data = $req->validate([
+            'amount'     => 'required|integer|min:1000',
+            'orderId'    => 'nullable|string',
+            'orderInfo'  => 'nullable|string',
         ]);
 
-        $returnUrl = $request->return_url ?? route('vnpay.return', [], true);
+        // generate orderId nếu không truyền
+        if (empty($data['orderId'])) {
+            $data['orderId'] = 'PMT' . now('Asia/Ho_Chi_Minh')->format('YmdHis') . Str::random(6);
+        }
 
-        $url = VnpayService::createPaymentUrl([
-            'user_id'   => Auth::id(),
-            'order_ids' => $request->order_ids,
-            'amount'    => (int)$request->amount,
-            'return_url'=> $returnUrl, // Use the determined return URL
-            'customer_name' => $request->customer_name,
-            'customer_email' => $request->customer_email,
-            'customer_phone' => $request->customer_phone,
-            'order_info' => $request->order_info ?? 'Thanh toan don hang',
+        $paymentUrl = VnpayService::createPaymentUrl([
+            'amount'    => (int)$data['amount'],
+            'orderId'   => $data['orderId'],
+            'orderInfo' => $data['orderInfo'] ?? ('Thanh toan don hang: ' . $data['orderId']),
         ]);
 
-        return response()->json(['payment_url' => $url]);
-    }
-
-    // User quay về từ VNPAY
-    public function vnpayReturn(Request $request)
-    {
-        Log::info('[VNP] return raw', ['qs' => $request->getQueryString()]);
-
-        $params = $request->all();
-
-        if (!VnpayService::verifyHash($params)) {
-            Log::warning('[VNP] return invalid hash');
-            return $this->redirectToFrontend([
-                'status' => 'failed',
-                'reason' => 'invalid_hash',
-                'vnp_ResponseCode' => $params['vnp_ResponseCode'] ?? '',
-                'vnp_TxnRef' => $params['vnp_TxnRef'] ?? '',
-            ]);
-        }
-
-        $txnRef = $params['vnp_TxnRef'] ?? null;
-        $resp   = $params['vnp_ResponseCode'] ?? null;
-        $map    = $txnRef ? Cache::get("vnp:{$txnRef}") : null;
-
-        if (!$map) {
-            Log::warning('[VNP] return mapping_not_found', ['ref' => $txnRef]);
-            return $this->redirectToFrontend([
-                'status' => 'failed',
-                'reason' => 'mapping_not_found',
-                'vnp_ResponseCode' => $resp,
-                'vnp_TxnRef' => $txnRef,
-            ]);
-        }
-
-        Log::info('[VNP] return verify', ['ok' => true, 'resp' => $resp, 'ref' => $txnRef]);
-
-        if ($resp === '00') {
-            try {
-                DB::transaction(function () use ($map, $params) {
-                    $orderIds = $map['order_ids'] ?? [];
-                    $payCode  = $params['vnp_TransactionNo'] ?? null;
-
-                    Order::whereIn('id', $orderIds)->update([
-                        'payment_status' => 'Completed',
-                        'transaction_id' => $payCode,
-                        'order_status'   => 'order confirmation',
-                    ]);
-                });
-            } catch (\Throwable $e) {
-                Log::error('VNPAY Return update error: '.$e->getMessage());
-                return $this->redirectToFrontend([
-                    'status' => 'failed',
-                    'reason' => 'db_error',
-                    'vnp_ResponseCode' => $resp,
-                    'vnp_TxnRef' => $txnRef,
-                ]);
-            }
-
-            Cache::forget("vnp:{$txnRef}");
-
-            return $this->redirectToFrontend([
-                'status'     => 'success',
-                'order_ids'  => implode(',', $map['order_ids'] ?? []),
-                'amount'     => (int)($map['amount'] ?? 0),
-                'vnp_TransactionNo' => $params['vnp_TransactionNo'] ?? '',
-                'vnp_ResponseCode' => $resp,
-                'vnp_TxnRef' => $txnRef,
-                'vnp_PayDate' => $params['vnp_PayDate'] ?? '',
-                'vnp_OrderInfo' => $params['vnp_OrderInfo'] ?? '',
-            ]);
-        }
-
-        return $this->redirectToFrontend([
-            'status' => 'failed',
-            'reason' => $resp,
-            'vnp_ResponseCode' => $resp,
-            'vnp_TxnRef' => $txnRef,
+        return response()->json([
+            'payment_url' => $paymentUrl,
+            'order_id'    => $data['orderId'],
         ]);
     }
 
-
-    private function redirectToFrontend(array $query)
+    // GET /api/vnpay/return
+    public function return(Request $req)
     {
-        $url = config('services.vnpay.frontend_return_url')
-            ?? env('FRONTEND_RESULT_URL')
-            ?? env('VNP_RETURNURL')
-            ?? 'http://localhost:3000/checkout/result'; // Default to frontend result page
+        $ok = VnpayService::verify($req->query());
 
-        $qs  = http_build_query($query);
-        return redirect()->away($url . (str_contains($url, '?') ? '&' : '?') . $qs);
+        // Tham chiếu thêm mã phản hồi từ VNP
+        $responseCode = $req->query('vnp_ResponseCode');
+        $txnRef       = $req->query('vnp_TxnRef');
+
+        if (!$ok) {
+            // Cho FE hiển thị lỗi
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid checksum',
+                'vnp_ResponseCode' => $responseCode,
+                'order_id' => $txnRef,
+            ], 400);
+        }
+
+        // Tuỳ nghiệp vụ: nếu vnp_ResponseCode === '00' coi là thanh toán thành công
+        $success = ($responseCode === '00');
+
+        // TODO: cập nhật đơn hàng, log giao dịch...
+        Log::info('[VNP] return verified', ['order_id' => $txnRef, 'resp' => $responseCode]);
+
+        return response()->json([
+            'success' => $success,
+            'message' => $success ? 'Payment success' : 'Payment not completed',
+            'vnp_ResponseCode' => $responseCode,
+            'order_id' => $txnRef,
+        ]);
+    }
+
+    // POST /api/vnpay/ipn
+    public function ipn(Request $req)
+    {
+        $ok = VnpayService::verify($req->all());
+        if (!$ok) {
+            return response()->json([
+                'RspCode' => '97', // checksum failed
+                'Message' => 'Invalid Checksum',
+            ]);
+        }
+
+        $responseCode = $req->input('vnp_ResponseCode');
+        $txnRef       = $req->input('vnp_TxnRef');
+
+        // TODO: idempotent update trạng thái đơn hàng tại đây
+        Log::info('[VNP] ipn verified', ['order_id' => $txnRef, 'resp' => $responseCode]);
+
+        return response()->json([
+            'RspCode' => '00',
+            'Message' => 'Confirm Success',
+        ]);
     }
 }
