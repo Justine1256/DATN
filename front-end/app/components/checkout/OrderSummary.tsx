@@ -134,8 +134,15 @@ export default function OrderSummary({
   const saveOnceRef = useRef(false)
 
   const num = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0)
-  const getPriceToUse = (item: CartItem) =>
-    num(item.variant?.sale_price ?? item.variant?.price ?? item.product.sale_price ?? item.product.price)
+  const getPriceToUse = (item: CartItem) => {
+  const cands = [item.variant?.sale_price, item.variant?.price, item.product.sale_price, item.product.price];
+  for (const v of cands) {
+    const n = num(v);
+    if (n > 0) return n;          // chỉ nhận giá > 0
+  }
+  return 0;
+};
+
   const getOriginalPrice = (item: CartItem) => num(item.variant?.price ?? item.product.price)
 
   // ======== Tính tiền local (fallback) =========
@@ -246,6 +253,10 @@ export default function OrderSummary({
       setShowPopup(true)
       return
     }
+    // Tạo mảng id cart từ danh sách đang checkout
+const cartItemIds = cartItems
+  .map((it) => Number(it.id))
+  .filter((n) => Number.isFinite(n) && n > 0);
 
     setLoading(true)
     setError("")
@@ -298,6 +309,7 @@ export default function OrderSummary({
         url = `${API_BASE_URL}/dathang`
         payload = {
           ...basePayload,
+          cart_item_ids: cartItemIds,
         }
 
         if (manualAddressData && Object.values(manualAddressData).some((v) => (v ?? "").toString().trim() !== "")) {
@@ -327,9 +339,12 @@ export default function OrderSummary({
         const redirectUrl = response.data.redirect_url || response.data.payment_url
         console.log("[v0] VNPay redirect URL:", redirectUrl)
 
-        localStorage.removeItem("cart")
-        setCartItems([])
-        window.dispatchEvent(new Event("cartUpdated"))
+const orderedSet = new Set(cartItems.map(it => String(it.id)));
+const raw = localStorage.getItem('cart');
+const current = raw ? JSON.parse(raw) : [];
+const remain = current.filter((it: any) => !orderedSet.has(String(it.id)));
+localStorage.setItem('cart', JSON.stringify(remain));
+
 
         // Add a small delay to ensure state updates are processed
         setTimeout(() => {
@@ -342,9 +357,22 @@ export default function OrderSummary({
       setPopupType("success")
       setShowPopup(true)
 
-      localStorage.removeItem("cart")
-      setCartItems([])
-      window.dispatchEvent(new Event("cartUpdated"))
+      // Với guest: chỉ loại bỏ những món đã đặt, giữ lại phần còn lại
+try {
+  const orderedSet = new Set(cartItems.map(it => String(it.id)));
+  const raw = localStorage.getItem("cart");
+  const current = raw ? JSON.parse(raw) : [];
+  const remain = current.filter((it: any) => !orderedSet.has(String(it.id)));
+  if (remain.length) {
+    localStorage.setItem("cart", JSON.stringify(remain));
+  } else {
+    localStorage.removeItem("cart");
+  }
+} catch { /* ignore parse errors */ }
+
+// Cập nhật UI
+setCartItems([]);
+window.dispatchEvent(new Event("cartUpdated"));
 
       redirectTimerRef.current = setTimeout(() => {
         window.location.href = "/"
@@ -409,7 +437,7 @@ export default function OrderSummary({
               : null
 
         const quantity = Number(it.quantity)
-        const price = num(it.variant?.sale_price ?? it.variant?.price ?? it.product?.sale_price ?? it.product?.price)
+const price = getPriceToUse(it);
 
         return { product_id, variant_id, quantity, price }
       })

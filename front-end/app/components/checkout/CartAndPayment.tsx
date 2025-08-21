@@ -225,13 +225,19 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
   };
 
   const unitPrice = useCallback((it: CartItem) => {
-    const p =
-      it.variant?.sale_price ??
-      it.variant?.price ??
-      it.product?.sale_price ??
-      it.product?.price;
-    return toNum(p, 0); // chặn NaN → 0
-  }, []);
+  const cands = [
+    it.variant?.sale_price,
+    it.variant?.price,
+    it.product?.sale_price,
+    it.product?.price,
+  ];
+  for (const v of cands) {
+    const n = Number(v);
+    if (Number.isFinite(n) && n > 0) return n;   // chỉ nhận số > 0
+  }
+  return 0;
+}, []);
+
   const perShopRaw = useMemo(
     () =>
       grouped.map((g) => ({
@@ -357,23 +363,27 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     const salePriceRaw =
       (raw.variant?.sale_price ?? raw.variant_sale_price ??
         prod.sale_price ?? raw.sale_price);
-    const salePrice = Number.isFinite(Number(salePriceRaw))
-      ? toNum(salePriceRaw, 0)
-      : null;
+    const sp = Number(salePriceRaw);
+    const salePrice = Number.isFinite(sp) && sp > 0 ? sp : null;
 
     const variantId =
       raw.variant?.id ?? raw.variant_id ?? null;
 
-    const variant = (raw.variant || raw.variant_id || raw.variant_price || raw.variant_sale_price)
-      ? {
-        id: variantId,
-        price: (raw.variant?.price != null) ? toNum(raw.variant.price, 0) : toNum(raw.variant_price, 0),
-        sale_price: (raw.variant?.sale_price != null) ? toNum(raw.variant.sale_price, 0) : toNum(raw.variant_sale_price, 0),
-      }
-      : null;
+const variant = (raw.variant || raw.variant_id || raw.variant_price || raw.variant_sale_price)
+  ? {
+      id: raw.variant?.id ?? raw.variant_id ?? null,
+      price: Number(raw.variant?.price ?? raw.variant_price ?? 0),
+      sale_price: (() => {
+        const v = Number(raw.variant?.sale_price ?? raw.variant_sale_price ?? 0);
+        return Number.isFinite(v) && v > 0 ? v : null;
+      })(),
+    }
+  : null;
 
-    const shopId = toNum(prod.shop?.id ?? prod.shop_id ?? raw.shop_id, 0);
-    const shopName = (prod.shop?.name ?? raw.shop_name ?? 'Shop') as string;
+
+const shopId   = Number(prod.shop?.id ?? raw.shop?.id ?? prod.shop_id ?? raw.shop_id ?? 0);
+const shopName = String(prod.shop?.name ?? raw.shop?.name ?? raw.shop_name ?? 'Shop');
+
 
     const id = String(raw.id ?? raw.cart_item_id ?? `guest-${productId}-${variantId ?? 'no-variant'}-${idx}`);
 
