@@ -60,8 +60,8 @@ export default function CategoryGrid({ activeSlug, noScroll = false }: CategoryG
   }, []);
 
   return (
-    <section className="bg-white py-10">
-      <div className="max-w-[1170px] mx-auto px-4">
+    <section className="bg-white pt-10 sm:py-10">
+      <div className="max-w-[1170px] mx-auto sm:px-4">
         <div className="border-t border-gray-200 mb-6" />
 
         <div className="mb-6 mt-10">
@@ -69,7 +69,7 @@ export default function CategoryGrid({ activeSlug, noScroll = false }: CategoryG
             <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
             <p className="text-brand font-semibold text-sm !translate-y-[1px]">Danh Mục</p>
           </div>
-          <h2 className="text-3xl font-bold text-black mt-4">Khám phá theo danh mục</h2>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black mt-1 sm:mt-4">Khám phá theo danh mục</h2>
         </div>
 
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 justify-center">

@@ -51,7 +51,7 @@ export default function Footer() {
 
             <Space direction="vertical" size={6} style={{ display: 'block' }}>
               <Text>Đăng ký nhận tin</Text>
-              <Text type="secondary">Nhận 10% giảm giá cho đơn hàng đầu tiên</Text>
+              <Text>Nhận 10% giảm giá cho đơn hàng đầu tiên</Text>
             </Space>
 
             <Form
@@ -74,7 +74,7 @@ export default function Footer() {
                 />
               </Form.Item>
               <Form.Item>
-                <Button type="default" htmlType="submit">
+                <Button type="default" htmlType="submit" className='bg-brand text-white border-brand'>
                   Đăng ký
                 </Button>
               </Form.Item>

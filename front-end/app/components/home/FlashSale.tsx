@@ -5,6 +5,7 @@ import ProductCard from '../product/ProductCard';
 import { Product } from '../product/ProductCard';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/utils/api';
+import React from 'react';
 
 export default function FlashSale() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -60,37 +61,37 @@ export default function FlashSale() {
   }, []);
 
   return (
-    <section className="bg-white py-10">
-      <div className="max-w-[1170px] mx-auto px-4">
-        <div className="w-full h-[1px] bg-gray-300 mb-6" />
+    <section className="bg-white pt-10 sm:py-10">
+      <div className="max-w-[1170px] mx-auto sm:px-4">
+        <div className="border-t border-gray-200 mb-6" />
 
         <div className="flex items-start justify-between gap-10 pb-8">
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col justify-center w-full">
             <div className="flex items-center gap-2">
               <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
               <p className="text-brand font-semibold text-sm">Hôm Nay</p>
             </div>
 
-            <div className="flex items-end gap-6 mt-2">
-              <h2 className="text-3xl font-bold text-black">Sale chớp nhoáng</h2>
-              <div className="relative flex items-end gap-6 text-black">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 sm:gap-6 mt-1 sm:mt-2">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black">Sale chớp nhoáng</h2>
+              <div className="flex items-end gap-6 text-black w-full sm:w-1/4 justify-between">
                 {[
                   { label: 'Ngày', value: timeLeft.days },
                   { label: 'Giờ', value: timeLeft.hours },
                   { label: 'Phút', value: timeLeft.minutes },
                   { label: 'Giây', value: timeLeft.seconds },
-                ].map((item, i) => (
-                  <div key={i} className="flex flex-col items-center w-14 relative">
-                    <span className="text-xs font-semibold text-gray-600 mb-1">{item.label}</span>
-                    <span className="text-2xl font-bold text-center">
-                      {String(item.value).padStart(2, '0')}
-                    </span>
-                    {i < 3 && (
-                      <div className="absolute top-[40%] -right-[14px] text-brand font-semibold text-xl">
-                        :
-                      </div>
+                ].map((item, i, arr) => (
+                  <React.Fragment key={i}>
+                    <div className="flex flex-col items-center w-14 relative">
+                      <span className="text-xs font-semibold text-gray-600 mb-1">{item.label}</span>
+                      <span className="text-xl sm:text-2xl md:text-3xl font-bold text-center">
+                        {String(item.value).padStart(2, '0')}
+                      </span>
+                    </div>
+                    {i < arr.length - 1 && (
+                      <div className="text-brand font-semibold text-xl">:</div>
                     )}
-                  </div>
+                  </React.Fragment>
                 ))}
               </div>
             </div>
@@ -112,12 +113,12 @@ export default function FlashSale() {
           >
             Xem tất cả sản phẩm
           </button>
-        
 
-         
+
+
         </div>
         <div className="pt-10">
-          <div className="w-full h-[1px] bg-gray-300 mb-6" />
+          <div className="border-t border-gray-200 mb-6" />
         </div>
       </div>
     </section>

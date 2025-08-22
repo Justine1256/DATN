@@ -13,25 +13,25 @@ export default function HomePage() {
   return (
     <main className="bg-white pb-10">
       {/* 🖼️ Slide giới thiệu đầu trang */}
-      <section className="max-w-screen-xl mx-auto px-4 pt-4">
+      <section className="max-w-screen-xl mx-auto md:px-4 pt-4">
         <LandingSlider />
       </section>
       {/* 🆕 Sản phẩm mới đăng */}
-      <section className="max-w-screen-xl mx-auto px-4">
+      <section className="max-w-screen-xl mx-auto md:px-4">
         <NewProducts />
       </section>
       {/* 🔥 Sản phẩm bán chạy */}
-      <section className="max-w-screen-xl mx-auto px-4">
+      <section className="max-w-screen-xl mx-auto md:px-4">
         <BestSelling />
       </section>
     
 
       {/* 📦 Danh mục sản phẩm dạng lưới */}
-      <section className="max-w-screen-xl mx-auto px-4">
+      <section className="max-w-screen-xl mx-auto md:px-4">
         <CategoryGrid />
       </section>
       {/* ⚡ Flash Sale (có đếm ngược + sản phẩm giảm giá) */}
-      <section className="max-w-screen-xl mx-auto px-4 ">
+      <section className="max-w-screen-xl mx-auto md:px-4">
         <FlashSale />
       </section>
   
@@ -45,7 +45,7 @@ export default function HomePage() {
       </section> */}
 
       {/* ✅ Banner dịch vụ cuối trang (giao hàng, hỗ trợ...) */}
-      <section className="max-w-screen-xl mx-auto px-4">
+      <section className="max-w-screen-xl mx-auto md:px-4">
         <ServiceBanner />
       </section>
     </main>

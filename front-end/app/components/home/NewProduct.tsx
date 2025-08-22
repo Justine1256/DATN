@@ -27,8 +27,8 @@ export default function NewProducts() {
 
 
   return (
-    <section className="bg-white py-10">
-      <div className="max-w-[1170px] mx-auto px-4">
+    <section className="bg-white pt-10 sm:py-10">
+      <div className="max-w-[1170px] mx-auto md:px-4">
         {/* 🔻 Đường kẻ xám đầu mỗi section */}
         <div className="w-full h-[1px] bg-gray-300 mb-6" />
 
@@ -40,7 +40,7 @@ export default function NewProducts() {
               Trong Tuần
             </p>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-black mt-4">Sản phẩm mới</h2>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black mt-1 sm:mt-4">Sản phẩm mới</h2>
         </div>
 
         {/* 🛒 Hiển thị sản phẩm hoặc loading */}

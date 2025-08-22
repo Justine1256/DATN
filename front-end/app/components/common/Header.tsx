@@ -82,6 +82,8 @@ const Header = () => {
   const [showVoucherPopup, setShowVoucherPopup] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(false);
+
   const { navigateToCart, prefetchRoute } = useOptimizedNavigation({
     user,
     cartItems,
@@ -201,6 +203,13 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640); // 640px is Tailwind's 'sm'
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const formatImageUrl = (img: string | string[]): string => {
     if (Array.isArray(img)) img = img[0];
     if (!img || !img.trim()) return `${STATIC_BASE_URL}/products/default-product.png`;
@@ -266,14 +275,14 @@ const Header = () => {
         <div className="grid grid-cols-12 items-center py-4 md:px-16 max-w-[1280px] mx-auto">
           {/* Logo */}
           <div className="col-span-6 sm:col-span-3 lg:col-span-2">
-            <Link href="/">
+            <Link href="/" className="w-fit block sm:w-auto sm:inline">
               <Image
-                src="/logo.png"
+                src={isMobile ? "/logo-mobile.png" : "/logo.png"}
                 alt="Logo"
-                width={140}
-                height={140}
+                width={isMobile ? 50 : 140}
+                height={isMobile ? 50 : 140}
                 className="rounded-full cursor-pointer"
-                style={{ width: "90%", height: "auto" }}
+                style={isMobile ? { width: "50px", height: "auto" } : {width: "90%", height: "auto" }}
                 priority
               />
             </Link>

@@ -24,7 +24,7 @@ export default function ServiceBanner() {
   ];
 
   return (
-    <section className="py-10 bg-white">
+    <section className="pt-10 sm:pt-0 pb-10 bg-white">
       <div className="max-w-[1170px] mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
         {services.map((s, idx) => (
           <div key={idx} className="flex flex-col items-center gap-3">

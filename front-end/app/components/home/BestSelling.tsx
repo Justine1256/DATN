@@ -38,22 +38,22 @@ export default function BestSelling() {
   if (!mounted) return null;
 
   return (
-    <section className="bg-white pt-10 pb-6">
-      <div className="max-w-[1170px] mx-auto px-4">
+    <section className="bg-white pt-10 sm:py-10">
+      <div className="max-w-[1170px] mx-auto sm:px-4">
         {/* 🔻 Header */}
         <div className="mb-6">
           {/* Gạch ngang trên cùng */}
           <div className="border-t border-gray-200 mb-6" />
 
           {/* Tiêu đề và nút */}
-          <div className="flex items-center justify-between gap-10 mb-6">
+          <div className="flex items-end justify-between sm:gap-10 mb-6">
             {/* Bên trái: tiêu đề + label */}
-            <div className="flex flex-col justify-center !mr-6">
+            <div className="flex flex-col justify-center sm:!mr-6 w-100">
               <div className="flex items-center gap-2">
                 <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
                 <p className="text-brand font-semibold text-sm">Trong Tháng </p>
               </div>
-              <h2 className="text-3xl font-bold text-black mt-2">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black mt-1 sm:mt-2">
                 Sản phẩm bán chạy nhất
               </h2>
             </div>
@@ -61,9 +61,9 @@ export default function BestSelling() {
             {/* Bên phải: nút xem tất cả */}
             <button
               onClick={() => router.push('/category')}
-              className="text-brand border border-brand hover:bg-brand hover:text-white font-medium text-sm py-2.5 px-4 rounded-md transition duration-300 w-fit ml-4 mt-4"
+              className="text-brand border border-brand hover:bg-brand hover:text-white font-medium text-sm py-1 px-2 sm:py-2.5 sm:px-4 rounded-md transition duration-300 w-fit mt-4"
             >
-              Xem tất cả sản phẩm
+              Xem tất cả
             </button>
           </div>
         </div>
