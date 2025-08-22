@@ -348,8 +348,11 @@ const handleSubmitRefund = async (refundData: { reason: string; images: File[] }
         <h2 className="text-xl font-semibold text-brand mb-4 text-center">Đơn mua của tôi</h2>
         <OrderFilterTabs activeTab={activeTab} onFilterChange={filterOrders} />
         {loading ? (
-          <p className="text-center text-gray-500">Đang tải đơn hàng...</p>
+          <div className="flex justify-center items-center h-[300px]">
+            <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
         ) : filteredOrders.length === 0 ? (
+
           <div className="flex flex-col items-center justify-center h-[400px] bg-gray-50 rounded-md">
             <p className="text-lg text-gray-500">Không có đơn hàng phù hợp.</p>
           </div>

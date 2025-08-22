@@ -239,11 +239,11 @@ export default function AccountPage() {
                 />
 
                 <div className="flex flex-col justify-between">
-                  <p className="font-bold text-lg">{user.name}</p>
-                  <p className="text-sm text-[#DB4444]">{user.username}</p>
-                  <p className="text-sm text-gray-700"><strong>Email:</strong> {user.email}</p>
-                  <p className="text-sm text-gray-700"><strong>Số điện thoại:</strong> {user.phone}</p>
-                  <p className="text-sm text-gray-700 capitalize"><strong>Vai trò:</strong> {user.role}</p>
+                  <p className="font-bold text-lg">{user?.name}</p>
+                  <p className="text-sm text-[#DB4444]">{user?.username}</p>
+                  <p className="text-sm text-gray-700"><strong>Email:</strong> {user?.email}</p>
+                  <p className="text-sm text-gray-700"><strong>Số điện thoại:</strong> {user?.phone}</p>
+                  <p className="text-sm text-gray-700 capitalize"><strong>Vai trò:</strong> {user?.role}</p>
                 </div>
               </div>
               <button
