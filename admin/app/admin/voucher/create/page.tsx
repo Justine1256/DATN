@@ -1,7 +1,18 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import {
-    Card, Form, Input, InputNumber, DatePicker, Select, Button, message, theme, Tooltip, Divider,
+    Card,
+    Form,
+    Input,
+    InputNumber,
+    DatePicker,
+    Select,
+    Button,
+    message,
+    theme,
+    Tooltip,
+    Divider,
+    Grid, // 👈 dùng để đọc breakpoint
 } from "antd";
 import { CheckCircleFilled, InfoCircleOutlined } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
@@ -19,7 +30,7 @@ type FormValues = {
     min_order_value?: number;
     max_discount_value?: number;
     usage_limit?: number;
-    created_by?: number; // NEW: optional for admin
+    created_by?: number; // optional for admin
 };
 
 export default function VoucherCreateForm() {
@@ -28,6 +39,11 @@ export default function VoucherCreateForm() {
     const [showPopup, setShowPopup] = useState(false);
     const [popupMessage, setPopupMessage] = useState("");
     const { token } = theme.useToken();
+
+    // 👇 responsive: đọc breakpoint
+    const screens = Grid.useBreakpoint();
+    const controlSize: "large" | "middle" = screens.xs ? "middle" : "large";
+    const cardPadding = screens.xs ? 16 : 24;
 
     // Cookie 'authToken' → 'token' → localStorage('token')
     const getAuthToken = (): string | null => {
@@ -60,7 +76,10 @@ export default function VoucherCreateForm() {
             }
 
             // percent ≤ 35 (khớp BE)
-            if (values.discount_type === "percent" && Number(values.discount_value) > 35) {
+            if (
+                values.discount_type === "percent" &&
+                Number(values.discount_value) > 35
+            ) {
                 message.error("Phần trăm giảm tối đa 35%.");
                 return;
             }
@@ -75,7 +94,10 @@ export default function VoucherCreateForm() {
             };
             if (values.min_order_value !== undefined && values.min_order_value !== null)
                 payload.min_order_value = Number(values.min_order_value);
-            if (values.max_discount_value !== undefined && values.max_discount_value !== null)
+            if (
+                values.max_discount_value !== undefined &&
+                values.max_discount_value !== null
+            )
                 payload.max_discount_value = Number(values.max_discount_value);
             if (values.usage_limit !== undefined && values.usage_limit !== null)
                 payload.usage_limit = Number(values.usage_limit);
@@ -110,7 +132,13 @@ export default function VoucherCreateForm() {
     };
 
     return (
-        <div className="max-w-3xl mx-auto p-4">
+        <div
+            className="mx-auto"
+            style={{
+                maxWidth: screens.md ? 880 : 600,
+                padding: screens.xs ? 12 : 16,
+            }}
+        >
             {showPopup && (
                 <div
                     className="fixed top-6 right-6 text-white px-5 py-3 rounded-2xl shadow-lg z-50 flex items-center gap-2 animate-slide-in"
@@ -128,7 +156,7 @@ export default function VoucherCreateForm() {
                 className="shadow-md"
                 styles={{
                     header: { padding: "16px 20px", fontWeight: 600 },
-                    body: { padding: 24 },
+                    body: { padding: cardPadding },
                 }}
                 style={{
                     borderRadius: token.borderRadiusLG,
@@ -136,7 +164,6 @@ export default function VoucherCreateForm() {
                     boxShadow: token.boxShadowTertiary,
                 }}
             >
-
                 <Form<FormValues>
                     form={form}
                     layout="vertical"
@@ -163,10 +190,16 @@ export default function VoucherCreateForm() {
                             { max: 50, message: "Tối đa 50 ký tự" },
                         ]}
                     >
-                        <Input placeholder="VD: SUMMER2025" allowClear maxLength={50} size="large" />
+                        <Input placeholder="VD: SUMMER2025" allowClear maxLength={50} size={controlSize} />
                     </Form.Item>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* 3 cột trên desktop, 1 cột trên mobile */}
+                    <div
+                        className="grid gap-4"
+                        style={{
+                            gridTemplateColumns: screens.md ? "repeat(3, 1fr)" : "repeat(1, 1fr)",
+                        }}
+                    >
                         {/* DISCOUNT TYPE */}
                         <Form.Item
                             name="discount_type"
@@ -174,7 +207,7 @@ export default function VoucherCreateForm() {
                             rules={[{ required: true, message: "Chọn loại giảm" }]}
                         >
                             <Select
-                                size="large"
+                                size={controlSize}
                                 options={[
                                     { value: "fixed", label: "Giảm số tiền cố định" },
                                     { value: "percent", label: "Giảm theo %" },
@@ -208,7 +241,7 @@ export default function VoucherCreateForm() {
                                         ]}
                                     >
                                         <InputNumber
-                                            size="large"
+                                            size={controlSize}
                                             min={0}
                                             max={isPercent ? 35 : 100000000}
                                             className="w-full"
@@ -235,13 +268,19 @@ export default function VoucherCreateForm() {
                                 }),
                             ]}
                         >
-                            <InputNumber size="large" min={0} className="w-full" />
+                            <InputNumber size={controlSize} min={0} className="w-full" />
                         </Form.Item>
                     </div>
 
                     <Divider style={{ margin: "8px 0 16px" }} />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 2 cột trên desktop, 1 cột trên mobile */}
+                    <div
+                        className="grid gap-4"
+                        style={{
+                            gridTemplateColumns: screens.md ? "repeat(2, 1fr)" : "repeat(1, 1fr)",
+                        }}
+                    >
                         {/* MIN ORDER (nullable, ≥0) */}
                         <Form.Item
                             name="min_order_value"
@@ -259,7 +298,7 @@ export default function VoucherCreateForm() {
                                 }),
                             ]}
                         >
-                            <InputNumber size="large" min={0} className="w-full" />
+                            <InputNumber size={controlSize} min={0} className="w-full" />
                         </Form.Item>
 
                         {/* MAX DISCOUNT (nullable, ≥0) */}
@@ -280,7 +319,7 @@ export default function VoucherCreateForm() {
                                 }),
                             ]}
                         >
-                            <InputNumber size="large" min={0} className="w-full" />
+                            <InputNumber size={controlSize} min={0} className="w-full" />
                         </Form.Item>
                     </div>
 
@@ -302,7 +341,7 @@ export default function VoucherCreateForm() {
                             }),
                         ]}
                     >
-                        <InputNumber size="large" min={1} className="w-full" />
+                        <InputNumber size={controlSize} min={1} className="w-full" />
                     </Form.Item>
 
                     {/* DATE RANGE (bắt buộc, end >= start) */}
@@ -312,9 +351,9 @@ export default function VoucherCreateForm() {
                         rules={[
                             { required: true, message: "Chọn khoảng thời gian" },
                             {
-                                validator: (_, value: [Dayjs, Dayjs]) => {
-                                    if (!value || !value[0] || !value[1]) return Promise.resolve();
-                                    if (value[1].isBefore(value[0], "day")) {
+                                validator: (_, { 0: start, 1: end }: any) => {
+                                    if (!start || !end) return Promise.resolve();
+                                    if (end.isBefore(start, "day")) {
                                         return Promise.reject(new Error("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu"));
                                     }
                                     return Promise.resolve();
@@ -324,18 +363,22 @@ export default function VoucherCreateForm() {
                     >
                         <DatePicker.RangePicker
                             className="w-full"
-                            size="large"
+                            size={controlSize}
                             format="YYYY-MM-DD"
                             disabledDate={disabledDate}
                             allowClear
                         />
                     </Form.Item>
 
-                    <div className="flex items-center gap-3">
-                        <Button type="primary" htmlType="submit" loading={submitting} size="large">
+                    {/* Actions */}
+                    <div
+                        className="flex items-center gap-3"
+                        style={{ flexWrap: "wrap" }}
+                    >
+                        <Button type="primary" htmlType="submit" loading={submitting} size={controlSize}>
                             Tạo voucher
                         </Button>
-                        <Button htmlType="button" onClick={() => form.resetFields()} disabled={submitting} size="large">
+                        <Button htmlType="button" onClick={() => form.resetFields()} disabled={submitting} size={controlSize}>
                             Làm mới
                         </Button>
                     </div>

@@ -20,9 +20,11 @@ import {
     Modal,
     Descriptions,
     message,
+    Grid,        // 👈 thêm Grid để responsive
 } from 'antd';
 import { DownloadOutlined, InfoCircleOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import Cookies from 'js-cookie';
+
 // ====== Config ======
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -81,6 +83,11 @@ const statusTag = (s: StatusFilter) => {
 
 // ====== Component ======
 export default function AdminVoucherList() {
+    // responsive
+    const screens = Grid.useBreakpoint();
+    const controlSize = screens.xs ? 'middle' : 'large';
+    const tableSize = screens.xs ? 'small' : 'middle';
+
     // server data
     const [data, setData] = useState<VoucherBE[]>([]);
     const [loading, setLoading] = useState(false);
@@ -90,7 +97,7 @@ export default function AdminVoucherList() {
 
     // filters (client)
     const [q, setQ] = useState('');
-    const [shopId, setShopId] = useState<number | undefined>(undefined);
+    const [shopId, setShopId] = useState<number | undefined>(undefined); // vẫn giữ state để không phá vỡ logic khác
     const [status, setStatus] = useState<StatusFilter>('all');
     const [type, setType] = useState<DiscountTypeBE | 'all'>('all');
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
@@ -107,8 +114,7 @@ export default function AdminVoucherList() {
         try {
             setLoading(true);
 
-            const token =
-                Cookies.get('authToken'); // lấy từ cookie nếu có
+            const token = Cookies.get('authToken'); // lấy từ cookie nếu có
 
             const res = await axios.get(`${API_BASE_URL}/vouchers/list/admin`, {
                 params: { page: p, per_page: pp },
@@ -132,8 +138,9 @@ export default function AdminVoucherList() {
         }
     };
 
-
-    useEffect(() => { fetchData(1, perPage); }, []); // initial
+    useEffect(() => {
+        fetchData(1, perPage);
+    }, []); // initial
 
     // client filter + sort
     const filtered = useMemo(() => {
@@ -142,26 +149,26 @@ export default function AdminVoucherList() {
         // text search: code (có thể mở rộng title/desc nếu BE có)
         if (q.trim()) {
             const kw = q.trim().toLowerCase();
-            rows = rows.filter(r => r.code.toLowerCase().includes(kw));
+            rows = rows.filter((r) => r.code.toLowerCase().includes(kw));
         }
 
-        // shop filter
+        // shop filter (giữ logic; UI cột shop đã bỏ)
         if (typeof shopId === 'number') {
-            rows = rows.filter(r => Number(r.shop_id ?? -1) === Number(shopId));
+            rows = rows.filter((r) => Number(r.shop_id ?? -1) === Number(shopId));
         }
 
         // type
         if (type !== 'all') {
-            rows = rows.filter(r => String(r.discount_type).toLowerCase() === String(type).toLowerCase());
+            rows = rows.filter((r) => String(r.discount_type).toLowerCase() === String(type).toLowerCase());
         }
 
         // status (dựa theo start_date / end_date)
         if (status !== 'all') {
-            rows = rows.filter(r => computeStatus(r) === status);
+            rows = rows.filter((r) => computeStatus(r) === status);
         }
 
         // min order range
-        rows = rows.filter(r => {
+        rows = rows.filter((r) => {
             const min = Number(r.min_order_value ?? 0);
             if (typeof minOrderFrom === 'number' && min < minOrderFrom) return false;
             if (typeof minOrderTo === 'number' && min > minOrderTo) return false;
@@ -171,7 +178,7 @@ export default function AdminVoucherList() {
         // date range (lọc giao với khoảng start/end)
         if (dateRange && (dateRange[0] || dateRange[1])) {
             const [from, to] = dateRange;
-            rows = rows.filter(r => {
+            rows = rows.filter((r) => {
                 const s = r.start_date ? dayjs(r.start_date) : null;
                 const e = r.end_date ? dayjs(r.end_date) : null;
                 // coi như voucher "có hiệu lực" trong [s, e]; kiểm tra giao nhau với [from, to]
@@ -217,7 +224,7 @@ export default function AdminVoucherList() {
             'created_at',
             'updated_at',
         ];
-        const rows = filtered.map(r => [
+        const rows = filtered.map((r) => [
             r.id,
             r.shop_id ?? '',
             r.code,
@@ -232,25 +239,28 @@ export default function AdminVoucherList() {
             r.created_at ?? '',
             r.updated_at ?? '',
         ]);
-        const csv = [header.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+        const csv = [header.join(','), ...rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))].join(
+            '\n'
+        );
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `vouchers_${dayjs().format('YYYYMMDD_HHmmss')}.csv`;
+        a.href = url;
+        a.download = `vouchers_${dayjs().format('YYYYMMDD_HHmmss')}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
     };
 
-    // table columns
+    // table columns (⚠️ ĐÃ BỎ CỘT "Shop")
     const columns = [
         {
             title: 'Mã',
             dataIndex: 'code',
             key: 'code',
-            width: 180,                 // tăng nhẹ để đủ chỗ icon
-            ellipsis: true,             // cắt bớt khi thiếu chỗ
+            width: 180, // tăng nhẹ để đủ chỗ icon
+            ellipsis: true, // cắt bớt khi thiếu chỗ
             sorter: true,
             // ép cell không xuống dòng
             onCell: () => ({ style: { whiteSpace: 'nowrap' } }),
@@ -266,21 +276,15 @@ export default function AdminVoucherList() {
                         <Button
                             size="small"
                             icon={<InfoCircleOutlined />}
-                            onClick={(e) => { e.stopPropagation(); setDetail(r); }}
-                            style={{ flexShrink: 0 }}   // tránh icon bị đẩy xuống dòng
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setDetail(r);
+                            }}
+                            style={{ flexShrink: 0 }} // tránh icon bị đẩy xuống dòng
                         />
                     </Tooltip>
                 </Space>
             ),
-        },
-
-        {
-            title: 'Shop',
-            dataIndex: 'shop_id',
-            key: 'shop_id',
-            width: 100,
-            render: (v: number | null) => (v == null ? <Tag>Toàn sàn</Tag> : <Tag color="purple">#{v}</Tag>),
-            sorter: true,
         },
         {
             title: 'Loại',
@@ -316,7 +320,7 @@ export default function AdminVoucherList() {
             width: 160,
             render: (_: any, r: VoucherBE) => (
                 <Text>
-                    {(r.usage_limit ?? '∞')} / {(r.usage_count ?? 0)}
+                    {r.usage_limit ?? '∞'} / {r.usage_count ?? 0}
                 </Text>
             ),
         },
@@ -346,20 +350,29 @@ export default function AdminVoucherList() {
     ];
 
     return (
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: 12 }}>
-            <Space align="center" style={{ width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Space size="middle">
-                    <Title level={4} style={{ margin: 0 }}>Danh sách mã giảm giá</Title>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: screens.xs ? 8 : 12 }}>
+            <Space
+                align="center"
+                style={{ width: '100%', justifyContent: 'space-between', marginBottom: screens.xs ? 8 : 12, gap: 8 }}
+            >
+                <Space size="middle" wrap>
+                    <Title level={screens.xs ? 5 : 4} style={{ margin: 0 }}>
+                        Danh sách mã giảm giá
+                    </Title>
                     <Tag color="blue">{total} mã</Tag>
                 </Space>
-                <Space>
-                    <Button icon={<ReloadOutlined />} onClick={() => fetchData(page, perPage)}>Tải lại</Button>
-                    <Button icon={<DownloadOutlined />} onClick={exportCSV}>Xuất CSV</Button>
+                <Space wrap>
+                    <Button icon={<ReloadOutlined />} onClick={() => fetchData(page, perPage)} size={controlSize as any}>
+                        Tải lại
+                    </Button>
+                    <Button icon={<DownloadOutlined />} onClick={exportCSV} size={controlSize as any}>
+                        Xuất CSV
+                    </Button>
                 </Space>
             </Space>
 
             {/* FILTER BAR */}
-            <Card styles={{ body: { padding: 12 } }} style={{ borderRadius: 10, marginBottom: 12 }}>
+            <Card styles={{ body: { padding: screens.xs ? 8 : 12 } }} style={{ borderRadius: 10, marginBottom: 12 }}>
                 <Row gutter={[12, 8]} align="middle">
                     <Col xs={24} md={8}>
                         <Input
@@ -368,9 +381,11 @@ export default function AdminVoucherList() {
                             placeholder="Tìm theo mã voucher…"
                             value={q}
                             onChange={(e) => setQ(e.target.value)}
+                            size={controlSize as any}
                         />
                     </Col>
 
+                    {/* Giữ filter Shop ID (dù đã bỏ cột), vì bạn có thể cần lọc theo shop */}
                     <Col xs={12} md={4}>
                         <InputNumber
                             style={{ width: '100%' }}
@@ -378,6 +393,7 @@ export default function AdminVoucherList() {
                             value={shopId}
                             min={0}
                             onChange={(v) => setShopId(typeof v === 'number' ? v : undefined)}
+                            size={controlSize as any}
                         />
                     </Col>
 
@@ -392,6 +408,7 @@ export default function AdminVoucherList() {
                                 { label: 'Giảm % (percent)', value: 'percent' },
                                 { label: 'Miễn phí VC', value: 'shipping' },
                             ]}
+                            size={controlSize as any}
                         />
                     </Col>
 
@@ -406,6 +423,7 @@ export default function AdminVoucherList() {
                                 { label: 'Sắp diễn ra', value: 'upcoming' },
                                 { label: 'Hết hạn', value: 'expired' },
                             ]}
+                            size={controlSize as any}
                         />
                     </Col>
 
@@ -416,6 +434,7 @@ export default function AdminVoucherList() {
                             value={dateRange as any}
                             onChange={(v) => setDateRange(v as any)}
                             format="DD/MM/YYYY"
+                            size={controlSize as any}
                         />
                     </Col>
 
@@ -426,6 +445,7 @@ export default function AdminVoucherList() {
                             min={0}
                             value={minOrderFrom}
                             onChange={(v) => setMinOrderFrom(typeof v === 'number' ? v : undefined)}
+                            size={controlSize as any}
                         />
                     </Col>
                     <Col xs={12} md={4}>
@@ -435,15 +455,29 @@ export default function AdminVoucherList() {
                             min={0}
                             value={minOrderTo}
                             onChange={(v) => setMinOrderTo(typeof v === 'number' ? v : undefined)}
+                            size={controlSize as any}
                         />
                     </Col>
 
                     <Col xs={24} md={5}>
-                        <Space>
-                            <Button onClick={() => { setQ(''); setShopId(undefined); setType('all'); setStatus('all'); setDateRange(null); setMinOrderFrom(undefined); setMinOrderTo(undefined); }}>
+                        <Space wrap>
+                            <Button
+                                onClick={() => {
+                                    setQ('');
+                                    setShopId(undefined);
+                                    setType('all');
+                                    setStatus('all');
+                                    setDateRange(null);
+                                    setMinOrderFrom(undefined);
+                                    setMinOrderTo(undefined);
+                                }}
+                                size={controlSize as any}
+                            >
                                 Xoá lọc
                             </Button>
-                            <Button type="primary" onClick={() => fetchData(1, perPage)}>Áp dụng</Button>
+                            <Button type="primary" onClick={() => fetchData(1, perPage)} size={controlSize as any}>
+                                Áp dụng
+                            </Button>
                         </Space>
                     </Col>
                 </Row>
@@ -456,6 +490,8 @@ export default function AdminVoucherList() {
                     rowKey="id"
                     columns={columns as any}
                     dataSource={filtered}
+                    size={tableSize as any}
+                    scroll={{ x: screens.xs ? 900 : 'max-content' }}
                     pagination={{
                         current: page,
                         pageSize: perPage,
@@ -466,6 +502,7 @@ export default function AdminVoucherList() {
                             fetchData(p, ps);
                         },
                         showSizeChanger: true,
+                        size: screens.xs ? 'small' : 'default',
                     }}
                     onChange={(_, __, sorterArg) => {
                         const s = Array.isArray(sorterArg) ? sorterArg[0] : sorterArg;
@@ -481,6 +518,7 @@ export default function AdminVoucherList() {
                 title="Chi tiết voucher"
                 footer={null}
                 styles={{ body: { paddingTop: 8 } }}
+                width={screens.lg ? 520 : screens.md ? 520 : '95%'}
             >
                 {detail && (
                     <Descriptions column={1} size="small" bordered>
@@ -488,7 +526,9 @@ export default function AdminVoucherList() {
                         <Descriptions.Item label="Shop">
                             {detail.shop_id == null ? <Tag>Toàn sàn</Tag> : <Tag color="purple">#{detail.shop_id}</Tag>}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Mã"><Text copyable>{detail.code}</Text></Descriptions.Item>
+                        <Descriptions.Item label="Mã">
+                            <Text copyable>{detail.code}</Text>
+                        </Descriptions.Item>
                         <Descriptions.Item label="Loại">{mapTypeBadge(detail.discount_type)}</Descriptions.Item>
                         <Descriptions.Item label="Giá trị">
                             {String(detail.discount_type).toLowerCase() === 'percent'
@@ -504,7 +544,7 @@ export default function AdminVoucherList() {
                             {detail.min_order_value ? VND(detail.min_order_value) : '—'}
                         </Descriptions.Item>
                         <Descriptions.Item label="Giới hạn / Đã dùng">
-                            {(detail.usage_limit ?? '∞')} / {(detail.usage_count ?? 0)}
+                            {detail.usage_limit ?? '∞'} / {detail.usage_count ?? 0}
                         </Descriptions.Item>
                         <Descriptions.Item label="Bắt đầu">
                             {detail.start_date ? dayjs(detail.start_date).format('DD/MM/YYYY HH:mm') : '—'}

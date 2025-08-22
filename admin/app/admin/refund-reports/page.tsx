@@ -152,7 +152,6 @@ export default function RefundReportsPage() {
                 signal: AbortSignal.timeout(30000), // 30 second timeout
             })
 
-
             if (!response.ok) {
                 const errorText = await response.text()
                 throw new Error(`HTTP ${response.status}: ${errorText || "Lỗi từ server"}`)
@@ -177,7 +176,6 @@ export default function RefundReportsPage() {
 
             showNotification("Đã tải dữ liệu thành công!", "success")
         } catch (err) {
-
             let errorMessage = "Có lỗi xảy ra khi tải dữ liệu"
 
             if (err instanceof Error) {
@@ -214,7 +212,6 @@ export default function RefundReportsPage() {
                     Authorization: `Bearer ${token}`,
                 },
             })
-
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
@@ -253,7 +250,6 @@ export default function RefundReportsPage() {
                 throw new Error("Không tìm thấy token xác thực")
             }
 
-
             const response = await fetch(
                 `https://api.marketo.info.vn/api/admin/orders/${selectedOrderForReject}/refund-report/reject`,
                 {
@@ -271,7 +267,6 @@ export default function RefundReportsPage() {
                 },
             )
 
-
             if (!response.ok) {
                 const errorText = await response.text()
                 throw new Error(`HTTP ${response.status}: ${errorText || "Lỗi từ server"}`)
@@ -288,7 +283,6 @@ export default function RefundReportsPage() {
 
             showNotification("Đã từ chối đơn khiếu nại!", "warning")
         } catch (err) {
-
             let errorMessage = "Có lỗi xảy ra khi từ chối đơn khiếu nại"
 
             if (err instanceof Error) {
@@ -321,7 +315,6 @@ export default function RefundReportsPage() {
                 throw new Error("Không tìm thấy token xác thực")
             }
 
-
             const response = await fetch(`https://api.marketo.info.vn/api/admin/orders/${orderId}/refund-report/approve`, {
                 method: "POST",
                 headers: {
@@ -336,14 +329,12 @@ export default function RefundReportsPage() {
                 signal: AbortSignal.timeout(30000), // 30 second timeout
             })
 
-
             if (!response.ok) {
                 const errorText = await response.text()
                 throw new Error(`HTTP ${response.status}: ${errorText || "Lỗi từ server"}`)
             }
 
             const data = await response.json()
-
 
             // Refresh data
             await fetchRefundReports()
@@ -352,7 +343,6 @@ export default function RefundReportsPage() {
 
             showNotification("Đã duyệt đơn khiếu nại thành công!", "success")
         } catch (err) {
-
             let errorMessage = "Có lỗi xảy ra khi duyệt đơn khiếu nại"
 
             if (err instanceof Error) {
@@ -492,7 +482,7 @@ export default function RefundReportsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4">
+        <div className="min-h-screen bg-gray-50 p-3 sm:p-4">
             {/* Compact Notification */}
             {showPopup && (
                 <div
@@ -517,38 +507,38 @@ export default function RefundReportsPage() {
                 </div>
             )}
 
-            <div className="max-w-7xl mx-auto space-y-4">
+            <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4">
                 {/* Compact Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Quản Lý Đơn Khiếu Nại</h1>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Quản Lý Đơn Khiếu Nại</h1>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">
                             Xem và xử lý các đơn khiếu nại hoàn tiền một cách chuyên nghiệp
                         </p>
                     </div>
                     <button
                         onClick={fetchRefundReports}
-                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium"
                     >
                         <RefreshCw className="w-4 h-4" />
                         <span>Làm mới dữ liệu</span>
                     </button>
                 </div>
 
-                {/* Đồng bộ giao diện 3 tab (thay thế phần tab filters): */}
+                {/* Tabs / Filters */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                    <div className="p-3">
+                    <div className="p-2 sm:p-3">
                         <div className="flex bg-gray-100 rounded-lg p-1">
                             <button
                                 onClick={() => handleFilterChange("all")}
-                                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${statusFilter === "all" ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:text-blue-600"
+                                className={`flex-1 px-2 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${statusFilter === "all" ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:text-blue-600"
                                     }`}
                             >
                                 <div className="flex items-center justify-center space-x-2">
                                     <FileText className="w-4 h-4" />
                                     <span>Tất cả</span>
                                     <span
-                                        className={`px-2 py-0.5 rounded-full text-xs ${statusFilter === "all" ? "bg-white/20 text-white" : "bg-blue-100 text-blue-700"
+                                        className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs ${statusFilter === "all" ? "bg-white/20 text-white" : "bg-blue-100 text-blue-700"
                                             }`}
                                     >
                                         {filterCounts.all}
@@ -558,14 +548,14 @@ export default function RefundReportsPage() {
 
                             <button
                                 onClick={() => handleFilterChange("Pending")}
-                                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${statusFilter === "Pending" ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:text-blue-600"
+                                className={`flex-1 px-2 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${statusFilter === "Pending" ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:text-blue-600"
                                     }`}
                             >
                                 <div className="flex items-center justify-center space-x-2">
                                     <Clock className="w-4 h-4" />
                                     <span>Chờ xử lý</span>
                                     <span
-                                        className={`px-2 py-0.5 rounded-full text-xs ${statusFilter === "Pending" ? "bg-white/20 text-white" : "bg-yellow-100 text-yellow-700"
+                                        className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs ${statusFilter === "Pending" ? "bg-white/20 text-white" : "bg-yellow-100 text-yellow-700"
                                             }`}
                                     >
                                         {filterCounts.pending}
@@ -575,14 +565,14 @@ export default function RefundReportsPage() {
 
                             <button
                                 onClick={() => handleFilterChange("Resolved")}
-                                className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${statusFilter === "Resolved" ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:text-blue-600"
+                                className={`flex-1 px-2 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${statusFilter === "Resolved" ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:text-blue-600"
                                     }`}
                             >
                                 <div className="flex items-center justify-center space-x-2">
                                     <CheckCircle className="w-4 h-4" />
                                     <span>Đã duyệt</span>
                                     <span
-                                        className={`px-2 py-0.5 rounded-full text-xs ${statusFilter === "Resolved" ? "bg-white/20 text-white" : "bg-green-100 text-green-700"
+                                        className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs ${statusFilter === "Resolved" ? "bg-white/20 text-white" : "bg-green-100 text-green-700"
                                             }`}
                                     >
                                         {filterCounts.resolved}
@@ -593,8 +583,8 @@ export default function RefundReportsPage() {
                     </div>
                 </div>
 
-                {/* Compact Search Bar */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                {/* Search Bar */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Search className="h-4 w-4 text-gray-400" />
@@ -604,7 +594,7 @@ export default function RefundReportsPage() {
                             placeholder="Tìm kiếm theo lý do khiếu nại, mã đơn hàng, tên khách hàng hoặc cửa hàng..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            className="block w-full pl-10 pr-10 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                         />
                         {searchTerm && (
                             <button onClick={() => setSearchTerm("")} className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -616,9 +606,9 @@ export default function RefundReportsPage() {
 
                 {/* Error Message */}
                 {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <div className="flex items-center">
-                            <AlertTriangle className="h-5 w-5 text-red-600 mr-3" />
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+                        <div className="flex items-start sm:items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5 sm:mt-0" />
                             <div>
                                 <h3 className="text-sm font-medium text-red-800">Có lỗi xảy ra</h3>
                                 <p className="text-sm text-red-700 mt-1">{error}</p>
@@ -627,7 +617,7 @@ export default function RefundReportsPage() {
                     </div>
                 )}
 
-                {/* Compact Reports Table */}
+                {/* Reports Table (responsive columns) */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
@@ -636,19 +626,19 @@ export default function RefundReportsPage() {
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Sản phẩm
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
                                         Khách hàng
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
                                         Cửa hàng
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
                                         Lý do khiếu nại
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Trạng thái
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden sm:table-cell">
                                         Ngày tạo
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -670,8 +660,9 @@ export default function RefundReportsPage() {
                                 ) : (
                                     filteredReports.map((report) => (
                                         <tr key={report.report_id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center">
+                                            {/* Sản phẩm + (mobile extra info) */}
+                                            <td className="px-4 py-3 align-top">
+                                                <div className="flex items-start">
                                                     <div className="flex-shrink-0 h-10 w-10 mr-3">
                                                         {getFirstProductImage(report.product_image) ? (
                                                             <img
@@ -688,10 +679,28 @@ export default function RefundReportsPage() {
                                                     <div className="min-w-0">
                                                         <div className="text-sm font-semibold text-gray-900">#{report.order_id}</div>
                                                         <div className="text-xs text-gray-500">Đơn khiếu nại</div>
+
+                                                        {/* Mobile-only extra info (khách hàng + cửa hàng) */}
+                                                        <div className="mt-2 space-y-1 md:hidden">
+                                                            <div className="flex items-center gap-2 text-xs text-gray-700">
+                                                                <User className="h-3.5 w-3.5 text-blue-600" />
+                                                                <span className="truncate">{report.user?.name || "N/A"}</span>
+                                                                <span className="text-gray-400">•</span>
+                                                                <span>ID: {report.user?.id || "N/A"}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-xs text-gray-700">
+                                                                <Store className="h-3.5 w-3.5 text-purple-600" />
+                                                                <span className="truncate">{report.shop?.name || "N/A"}</span>
+                                                                <span className="text-gray-400">•</span>
+                                                                <span>ID: {report.shop?.id || "N/A"}</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3">
+
+                                            {/* Khách hàng (>= md) */}
+                                            <td className="px-4 py-3 hidden md:table-cell align-top">
                                                 <div className="flex items-center">
                                                     <div className="flex-shrink-0 h-8 w-8 mr-3">
                                                         <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
@@ -706,7 +715,9 @@ export default function RefundReportsPage() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3">
+
+                                            {/* Cửa hàng (>= md) */}
+                                            <td className="px-4 py-3 hidden md:table-cell align-top">
                                                 <div className="flex items-center">
                                                     <div className="flex-shrink-0 h-8 w-8 mr-3">
                                                         <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
@@ -721,20 +732,29 @@ export default function RefundReportsPage() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3">
+
+                                            {/* Lý do (>= lg) */}
+                                            <td className="px-4 py-3 hidden lg:table-cell align-top">
                                                 <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
                                                     {report.reason || "N/A"}
                                                 </div>
                                             </td>
-                                            {/* Fix cột trạng thái không rớt dòng: */}
-                                            <td className="px-4 py-3 whitespace-nowrap">{getStatusBadge(report.status)}</td>
-                                            <td className="px-4 py-3">
+
+                                            {/* Trạng thái */}
+                                            <td className="px-4 py-3 whitespace-nowrap align-top">
+                                                {getStatusBadge(report.status)}
+                                            </td>
+
+                                            {/* Ngày tạo (>= sm) */}
+                                            <td className="px-4 py-3 hidden sm:table-cell align-top">
                                                 <div className="flex items-center text-sm text-gray-900">
                                                     <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                                                     {formatDate(report.created_at)}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3">
+
+                                            {/* Thao tác */}
+                                            <td className="px-4 py-3 align-top">
                                                 <button
                                                     onClick={() => fetchRefundReportDetail(report.order_id)}
                                                     disabled={detailLoading}
@@ -752,25 +772,25 @@ export default function RefundReportsPage() {
                     </div>
                 </div>
 
-                {/* Compact Detail Modal */}
+                {/* Detail Modal */}
                 {showDetailModal && selectedReport && (
                     <div className="fixed inset-0 z-50 overflow-y-auto">
                         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
-                        <div className="flex min-h-full items-center justify-center p-4">
-                            <div className="relative w-full max-w-6xl bg-white rounded-xl shadow-xl">
-                                {/* Compact Header */}
-                                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 rounded-t-xl">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-4">
+                        <div className="flex min-h-full items-center justify-center p-3 sm:p-4">
+                            <div className="relative w-full max-w-full sm:max-w-3xl lg:max-w-6xl bg-white rounded-xl shadow-xl">
+                                {/* Header */}
+                                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 sm:px-6 py-3 sm:py-4 rounded-t-xl">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center space-x-3 sm:space-x-4">
                                             <div className="p-2 bg-white/20 rounded-lg">
                                                 <FileText className="h-5 w-5 text-white" />
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-bold text-white">Chi Tiết Đơn Khiếu Nại</h3>
-                                                <p className="text-blue-100 text-sm">Mã đơn hàng: #{selectedReport.order_id}</p>
+                                                <h3 className="text-base sm:text-lg font-bold text-white">Chi Tiết Đơn Khiếu Nại</h3>
+                                                <p className="text-blue-100 text-xs sm:text-sm">Mã đơn hàng: #{selectedReport.order_id}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center space-x-3">
+                                        <div className="flex items-center space-x-2 sm:space-x-3">
                                             {getStatusBadge(selectedReport.status)}
                                             <button
                                                 onClick={() => setShowDetailModal(false)}
@@ -782,9 +802,9 @@ export default function RefundReportsPage() {
                                     </div>
                                 </div>
 
-                                {/* Compact Content */}
-                                <div className="p-6 max-h-[70vh] overflow-y-auto">
-                                    <div className="space-y-6">
+                                {/* Content */}
+                                <div className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto">
+                                    <div className="space-y-4 sm:space-y-6">
                                         {/* Info Grid */}
                                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                             {/* Order Info */}
@@ -794,17 +814,17 @@ export default function RefundReportsPage() {
                                                     <h4 className="font-semibold text-gray-900">Thông Tin Đơn Hàng</h4>
                                                 </div>
                                                 <div className="space-y-2 text-sm">
-                                                    <div className="flex justify-between">
+                                                    <div className="flex justify-between gap-2">
                                                         <span className="text-gray-600">Mã đơn hàng:</span>
                                                         <span className="font-medium">#{selectedReport.order_id}</span>
                                                     </div>
-                                                    <div className="flex justify-between">
+                                                    <div className="flex justify-between gap-2">
                                                         <span className="text-gray-600">Sản phẩm:</span>
-                                                        <span className="font-medium truncate max-w-32">
+                                                        <span className="font-medium truncate max-w-40 sm:max-w-52">
                                                             {getProductName(selectedReport.product_images)}
                                                         </span>
                                                     </div>
-                                                    <div className="flex justify-between">
+                                                    <div className="flex justify-between gap-2">
                                                         <span className="text-gray-600">Ngày tạo:</span>
                                                         <span className="font-medium">{formatDate(selectedReport.created_at)}</span>
                                                     </div>
@@ -885,7 +905,7 @@ export default function RefundReportsPage() {
                                                     <Package className="h-5 w-5 text-indigo-600 mr-2" />
                                                     <h4 className="font-semibold text-gray-900">Hình Ảnh Sản Phẩm</h4>
                                                 </div>
-                                                <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                                                     {getAllProductImages(selectedReport.product_images).map((image, index) => (
                                                         <img
                                                             key={index}
@@ -905,7 +925,7 @@ export default function RefundReportsPage() {
                                                     <FileText className="h-5 w-5 text-teal-600 mr-2" />
                                                     <h4 className="font-semibold text-gray-900">Ảnh Minh Chứng</h4>
                                                 </div>
-                                                <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                                                     {selectedReport.photos.map((photo, index) => (
                                                         <img
                                                             key={index}
@@ -933,14 +953,14 @@ export default function RefundReportsPage() {
                                     </div>
                                 </div>
 
-                                {/* Compact Actions Footer */}
+                                {/* Actions Footer */}
                                 {selectedReport.status === "Pending" && (
-                                    <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-xl">
-                                        <div className="flex justify-end space-x-3">
+                                    <div className="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 rounded-b-xl">
+                                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
                                             <button
                                                 onClick={() => openRejectModalFromDetail(selectedReport.order_id)}
                                                 disabled={actionLoading}
-                                                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2 transition-colors"
+                                                className="px-3 py-2 sm:px-4 sm:py-2 bg-red-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
                                             >
                                                 <XCircle className="w-4 h-4" />
                                                 <span>Từ chối khiếu nại</span>
@@ -949,7 +969,7 @@ export default function RefundReportsPage() {
                                             <button
                                                 onClick={() => approveRefundReport(selectedReport.order_id)}
                                                 disabled={actionLoading}
-                                                className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2 transition-colors"
+                                                className="px-3 py-2 sm:px-4 sm:py-2 bg-green-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
                                             >
                                                 {actionLoading ? (
                                                     <RefreshCw className="w-4 h-4 animate-spin" />
@@ -965,90 +985,90 @@ export default function RefundReportsPage() {
                         </div>
                     </div>
                 )}
+            </div>
 
-                {/* Reject Reason Modal */}
-                {showRejectModal && (
-                    <div className="fixed inset-0 z-70 overflow-y-auto">
-                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
-                        <div className="flex min-h-full items-center justify-center p-4">
-                            <div className="relative w-full max-w-md bg-white rounded-xl shadow-xl">
-                                {/* Header */}
-                                <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 rounded-t-xl">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="p-2 bg-white/20 rounded-lg">
-                                                <XCircle className="h-5 w-5 text-white" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-lg font-bold text-white">Từ Chối Khiếu Nại</h3>
-                                                <p className="text-red-100 text-sm">Nhập lý do từ chối</p>
-                                            </div>
+            {/* Reject Reason Modal */}
+            {showRejectModal && (
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+                    <div className="flex min-h-full items-center justify-center p-3 sm:p-4">
+                        <div className="relative w-full max-w-full sm:max-w-md bg-white rounded-xl shadow-xl">
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-red-600 to-rose-600 px-4 sm:px-6 py-3 sm:py-4 rounded-t-xl">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="p-2 bg-white/20 rounded-lg">
+                                            <XCircle className="h-5 w-5 text-white" />
                                         </div>
-                                        <button
-                                            onClick={() => setShowRejectModal(false)}
-                                            className="p-2 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"
-                                        >
-                                            <X className="h-5 w-5" />
-                                        </button>
+                                        <div>
+                                            <h3 className="text-base sm:text-lg font-bold text-white">Từ Chối Khiếu Nại</h3>
+                                            <p className="text-red-100 text-xs sm:text-sm">Nhập lý do từ chối</p>
+                                        </div>
                                     </div>
+                                    <button
+                                        onClick={() => setShowRejectModal(false)}
+                                        className="p-2 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-4 sm:p-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Lý do từ chối <span className="text-red-500">*</span>
+                                    </label>
+                                    <textarea
+                                        value={rejectionReason}
+                                        onChange={(e) => setRejectionReason(e.target.value)}
+                                        placeholder="Nhập lý do từ chối đơn khiếu nại..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm resize-none"
+                                        rows={4}
+                                        maxLength={500}
+                                    />
+                                    <div className="text-xs text-gray-500 mt-1">{rejectionReason.length}/500 ký tự</div>
                                 </div>
 
-                                {/* Content */}
-                                <div className="p-6 space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Lý do từ chối <span className="text-red-500">*</span>
-                                        </label>
-                                        <textarea
-                                            value={rejectionReason}
-                                            onChange={(e) => setRejectionReason(e.target.value)}
-                                            placeholder="Nhập lý do từ chối đơn khiếu nại..."
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm resize-none"
-                                            rows={4}
-                                            maxLength={500}
-                                        />
-                                        <div className="text-xs text-gray-500 mt-1">{rejectionReason.length}/500 ký tự</div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú admin (tùy chọn)</label>
-                                        <textarea
-                                            value={rejectionNote}
-                                            onChange={(e) => setRejectionNote(e.target.value)}
-                                            placeholder="Ghi chú thêm cho admin..."
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm resize-none"
-                                            rows={3}
-                                            maxLength={300}
-                                        />
-                                        <div className="text-xs text-gray-500 mt-1">{rejectionNote.length}/300 ký tự</div>
-                                    </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú admin (tùy chọn)</label>
+                                    <textarea
+                                        value={rejectionNote}
+                                        onChange={(e) => setRejectionNote(e.target.value)}
+                                        placeholder="Ghi chú thêm cho admin..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm resize-none"
+                                        rows={3}
+                                        maxLength={300}
+                                    />
+                                    <div className="text-xs text-gray-500 mt-1">{rejectionNote.length}/300 ký tự</div>
                                 </div>
+                            </div>
 
-                                {/* Actions */}
-                                <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-xl">
-                                    <div className="flex justify-end space-x-3">
-                                        <button
-                                            onClick={() => setShowRejectModal(false)}
-                                            disabled={actionLoading}
-                                            className="px-4 py-2 bg-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-400 disabled:opacity-50 transition-colors"
-                                        >
-                                            Hủy bỏ
-                                        </button>
-                                        <button
-                                            onClick={confirmRejectRefundReport}
-                                            disabled={actionLoading || !rejectionReason.trim()}
-                                            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2 transition-colors"
-                                        >
-                                            {actionLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                                            <span>Xác nhận từ chối</span>
-                                        </button>
-                                    </div>
+                            {/* Actions */}
+                            <div className="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 rounded-b-xl">
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
+                                    <button
+                                        onClick={() => setShowRejectModal(false)}
+                                        disabled={actionLoading}
+                                        className="px-3 py-2 sm:px-4 sm:py-2 bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-400 disabled:opacity-50 transition-colors"
+                                    >
+                                        Hủy bỏ
+                                    </button>
+                                    <button
+                                        onClick={confirmRejectRefundReport}
+                                        disabled={actionLoading || !rejectionReason.trim()}
+                                        className="px-3 py-2 sm:px-4 sm:py-2 bg-red-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                                    >
+                                        {actionLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                                        <span>Xác nhận từ chối</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     )
 }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table, Button, Space, Card, Modal, Form, Input, Upload, Switch,
-  DatePicker, message, Popconfirm, Tag, Image, Typography, Row, Col, Divider, Tooltip
+  DatePicker, message, Popconfirm, Tag, Image, Typography, Row, Col, Divider, Tooltip, Grid
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined,
@@ -32,6 +32,8 @@ interface Banner {
 }
 
 const BannerManagement = () => {
+  const screens = Grid.useBreakpoint();
+
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -119,14 +121,14 @@ const BannerManagement = () => {
   const handleSubmit = async (values: any) => {
     try {
       setLoading(true);
-const payload = {
-  title: values.title,
-  image: imageUrl, // Đây là đường dẫn ảnh vừa upload
-  link: values.link || null,
-  status: values.status ? 1 : 0,
-  start_date: values.dateRange ? values.dateRange[0].format('YYYY-MM-DD HH:mm:ss') : null,
-  end_date: values.dateRange ? values.dateRange[1].format('YYYY-MM-DD HH:mm:ss') : null,
-};
+      const payload = {
+        title: values.title,
+        image: imageUrl, // đường dẫn ảnh (đã upload)
+        link: values.link || null,
+        status: values.status ? 1 : 0,
+        start_date: values.dateRange ? values.dateRange[0].format('YYYY-MM-DD HH:mm:ss') : null,
+        end_date: values.dateRange ? values.dateRange[1].format('YYYY-MM-DD HH:mm:ss') : null,
+      };
 
       if (editingBanner) {
         await axios.put(`${API_BASE_URL}/banner/${editingBanner.id}`, payload);
@@ -160,34 +162,33 @@ const payload = {
       sorter: (a, b) => a.id - b.id,
       sortDirections: ['ascend', 'descend'],
       align: 'center',
+      // luôn hiển thị
+      responsive: ['xs', 'sm', 'md', 'lg', 'xl'],
     },
     {
       title: 'Ảnh',
       dataIndex: 'image',
       key: 'image',
-      width: 80,
+      width: 90,
       align: 'center',
       render: (image: string) => (
         <Image
           src={`${STATIC_BASE_URL}/${image}`}
           alt="banner"
-          width={60}
-          height={35}
+          width={screens.xs ? 56 : 60}
+          height={screens.xs ? 32 : 35}
           style={{ objectFit: 'cover', borderRadius: 4 }}
-          preview={{
-            mask: <EyeOutlined />
-          }}
+          preview={{ mask: <EyeOutlined /> }}
         />
       ),
+      responsive: ['xs', 'sm', 'md', 'lg', 'xl'],
     },
     {
       title: 'Tiêu đề',
       dataIndex: 'title',
       key: 'title',
-      width: 200,
-      ellipsis: {
-        showTitle: false,
-      },
+      width: 220,
+      ellipsis: { showTitle: false },
       sorter: (a, b) => a.title.localeCompare(b.title),
       sortDirections: ['ascend', 'descend'],
       render: (title: string) => (
@@ -195,35 +196,37 @@ const payload = {
           <span style={{ fontWeight: 500, fontSize: '13px' }}>{title}</span>
         </Tooltip>
       ),
+      responsive: ['xs', 'sm', 'md', 'lg', 'xl'],
     },
     {
       title: 'Link',
       dataIndex: 'link',
       key: 'link',
-      width: 160,
+      width: 200,
       ellipsis: true,
       render: (link: string | null) => (
         link ? (
           <Tooltip title={link}>
-            <a 
-              href={link} 
-              target="_blank" 
+            <a
+              href={link}
+              target="_blank"
               rel="noopener noreferrer"
               style={{ color: '#DB4444', fontSize: '12px' }}
             >
-              {link.length > 20 ? `${link.substring(0, 20)}...` : link}
+              {link.length > (screens.xs ? 18 : 24) ? `${link.substring(0, screens.xs ? 18 : 24)}...` : link}
             </a>
           </Tooltip>
         ) : (
           <span style={{ color: '#999', fontStyle: 'italic', fontSize: '12px' }}>-</span>
         )
       ),
+      responsive: ['sm', 'md', 'lg', 'xl'], // ẩn cột Link trên xs cho đỡ chật
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      width: 90,
+      width: 100,
       align: 'center',
       filters: [
         { text: 'Hoạt động', value: 1 },
@@ -234,17 +237,16 @@ const payload = {
         <Switch
           checked={status === 1}
           onChange={() => handleToggleStatus(record.id, status)}
-          size="small"
-          style={{
-    backgroundColor: status === 1 ? '#52c41a' : '#f5222d', // Xanh lá & đỏ
-  }}
+          size={screens.xs ? 'small' : 'default'}
+          style={{ backgroundColor: status === 1 ? '#52c41a' : '#f5222d' }}
         />
       ),
+      responsive: ['xs', 'sm', 'md', 'lg', 'xl'],
     },
     {
       title: 'Hiển thị',
       key: 'display_time',
-      width: 180,
+      width: 200,
       align: 'center',
       filters: [
         { text: 'Vĩnh viễn', value: 'permanent' },
@@ -252,33 +254,33 @@ const payload = {
         { text: 'Chờ', value: 'pending' },
         { text: 'Hết hạn', value: 'expired' },
       ],
-      onFilter: (value, record) => record.status === value,
+      // Giữ nguyên giao diện/logic hiển thị; filter này không động vào status số
+      onFilter: () => true,
       render: (record: Banner) => {
         if (!record.start_date && !record.end_date) {
           return <Tag color="blue" style={{ fontSize: '11px', padding: '2px 8px', margin: 0 }}>Vĩnh viễn</Tag>;
         }
-        
         const now = dayjs();
         const start = record.start_date ? dayjs(record.start_date) : null;
         const end = record.end_date ? dayjs(record.end_date) : null;
-        
-        let status = 'processing';
+
+        let color: 'processing' | 'default' | 'error' = 'processing';
         let text = 'Hoạt động';
-        
+
         if (start && now.isBefore(start)) {
-          status = 'default';
+          color = 'default';
           text = 'Chờ';
         } else if (end && now.isAfter(end)) {
-          status = 'error';
+          color = 'error';
           text = 'Hết hạn';
         }
-        
+
         return (
           <div style={{ textAlign: 'center' }}>
-            <Tag color={status} style={{ fontSize: '11px', padding: '2px 8px', margin: '0 0 4px 0' }}>
+            <Tag color={color} style={{ fontSize: '11px', padding: '2px 8px', margin: '0 0 4px 0' }}>
               {text}
             </Tag>
-            <div style={{ fontSize: '11px', color: '#666', lineHeight: '1.2' }}>
+            <div style={{ fontSize: '11px', color: '#666', lineHeight: 1.2 }}>
               {start && <div>{start.format('DD/MM/YYYY HH:mm')}</div>}
               {end && start && <div style={{ margin: '2px 0' }}>đến</div>}
               {end && <div>{end.format('DD/MM/YYYY HH:mm')}</div>}
@@ -286,12 +288,13 @@ const payload = {
           </div>
         );
       },
+      responsive: ['xs', 'sm', 'md', 'lg', 'xl'],
     },
     {
       title: 'Tạo',
       dataIndex: 'created_at',
       key: 'created_at',
-      width: 80,
+      width: 100,
       align: 'center',
       render: (date: string) => (
         <div style={{ fontSize: '12px' }}>
@@ -304,12 +307,13 @@ const payload = {
       sorter: (a, b) => dayjs(a.created_at).unix() - dayjs(b.created_at).unix(),
       sortDirections: ['ascend', 'descend'],
       defaultSortOrder: 'descend',
+      responsive: ['sm', 'md', 'lg', 'xl'], // ẩn trên xs
     },
     {
       title: 'Cập nhật',
       dataIndex: 'updated_at',
       key: 'updated_at',
-      width: 80,
+      width: 100,
       align: 'center',
       render: (date: string) => (
         <div style={{ fontSize: '12px' }}>
@@ -321,21 +325,22 @@ const payload = {
       ),
       sorter: (a, b) => dayjs(a.updated_at).unix() - dayjs(b.updated_at).unix(),
       sortDirections: ['ascend', 'descend'],
+      responsive: ['md', 'lg', 'xl'], // ẩn trên xs/sm
     },
     {
       title: 'Thao tác',
       key: 'action',
-      width: 80,
+      width: 100,
       align: 'center',
       render: (_, record: Banner) => (
-        <Space size={4}>
+        <Space size={screens.xs ? 2 : 4} wrap>
           <Tooltip title="Sửa">
             <Button
               type="text"
               icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
-              size="small"
-              style={{ color: '#DB4444', padding: '2px' }}
+              size={screens.xs ? 'small' : 'middle'}
+              style={{ color: '#DB4444', padding: screens.xs ? 0 : '2px' }}
             />
           </Tooltip>
           <Popconfirm
@@ -349,13 +354,14 @@ const payload = {
               <Button
                 type="text"
                 icon={<DeleteOutlined />}
-                size="small"
-                style={{ padding: '2px', color: '#DB4444' }}
+                size={screens.xs ? 'small' : 'middle'}
+                style={{ padding: screens.xs ? 0 : '2px', color: '#DB4444' }}
               />
             </Tooltip>
           </Popconfirm>
         </Space>
       ),
+      responsive: ['xs', 'sm', 'md', 'lg', 'xl'],
     },
   ];
 
@@ -366,46 +372,58 @@ const payload = {
     </div>
   );
 
+  // Responsive helpers
+  const containerPadding = screens.xs ? 8 : 12;
+  const titleLevel = screens.xs ? 4 : 3;
+  const searchWidth = screens.xs ? '100%' : 250;
+  const tablePaginationSize = screens.xs ? 'small' : 'default';
+  const tableScrollY = screens.xs ? 'calc(100vh - 320px)' : 'calc(100vh - 240px)';
+  const modalWidth = screens.xl ? 800 : screens.lg ? 720 : screens.md ? 640 : screens.sm ? 520 : '95%';
+
   return (
-    <div style={{ 
-      padding: '12px', 
-      width: '100%', 
-      height: '100vh',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <Card style={{ 
-        width: '100%', 
-        height: '100%',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    <div
+      style={{
+        padding: containerPadding,
+        width: '100%',
+        height: '100vh',
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column'
-      }} bodyStyle={{ padding: '12px', height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ 
-          marginBottom: '12px',
-          flexShrink: 0
-        }}>
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Title level={3} style={{ margin: 0 }}>
+      }}
+    >
+      <Card
+        style={{
+          width: '100%',
+          height: '100%',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+        bodyStyle={{ padding: containerPadding, height: '100%', display: 'flex', flexDirection: 'column' }}
+      >
+        <div style={{ marginBottom: 12, flexShrink: 0 }}>
+          <Row justify="space-between" align="middle" gutter={[8, 8]}>
+            <Col flex="none">
+              <Title level={titleLevel} style={{ margin: 0 }}>
                 Quản lý Banner
               </Title>
             </Col>
-            <Col>
-              <Space>
+            <Col flex="auto">
+              <Space align="center" wrap style={{ justifyContent: screens.xs ? 'flex-start' : 'flex-end', width: '100%' }}>
                 <Input.Search
                   placeholder="Tìm kiếm banner..."
                   allowClear
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 250 }}
+                  style={{ width: searchWidth }}
                   prefix={<SearchOutlined />}
+                  size={screens.xs ? 'middle' : 'large'}
                 />
                 <Button
                   icon={<ReloadOutlined />}
                   onClick={loadBanners}
                   loading={loading}
                   style={{ backgroundColor: '#fff', borderColor: '#DB4444', color: '#DB4444' }}
+                  size={screens.xs ? 'middle' : 'large'}
                 >
                   Làm mới
                 </Button>
@@ -414,6 +432,7 @@ const payload = {
                   icon={<PlusOutlined />}
                   onClick={handleAdd}
                   style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
+                  size={screens.xs ? 'middle' : 'large'}
                 >
                   Thêm banner
                 </Button>
@@ -422,12 +441,7 @@ const payload = {
           </Row>
         </div>
 
-        <div style={{ 
-          flex: 1,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <Table
             columns={columns}
             dataSource={filteredBanners}
@@ -443,15 +457,14 @@ const payload = {
               showTotal: (total, range) =>
                 `${range[0]}-${range[1]} của ${total} banner`,
               pageSizeOptions: ['10', '20', '50', '100'],
-              size: 'small',
+              size: tablePaginationSize,
             }}
-            scroll={{ 
-              y: 'calc(100vh - 240px)'
+            scroll={{
+              y: tableScrollY,
+              x: screens.xs ? 760 : undefined, // cho phép kéo ngang trên mobile nếu chật
             }}
-            style={{ 
-              width: '100%',
-              height: '100%'
-            }}
+            style={{ width: '100%', height: '100%' }}
+            sticky
           />
         </div>
       </Card>
@@ -466,7 +479,7 @@ const payload = {
           setImageUrl('');
         }}
         footer={null}
-        width={800}
+        width={modalWidth}
         destroyOnClose
       >
         <Form
@@ -504,40 +517,39 @@ const payload = {
                 ]}
               >
                 <Upload
-  name="file"
-  listType="picture-card"
-  showUploadList={false}
-  accept="image/*"
-  action={`${API_BASE_URL}/banner/upload-banner`}
-  onChange={(info) => {
-    if (info.file.status === 'uploading') {
-      message.loading({ content: 'Đang tải ảnh lên...', key: 'upload' });
-    }
-    if (info.file.status === 'done') {
-      const url = info.file.response.url;
-      setImageUrl(url); // lưu path (relative)
-      message.success({ content: 'Tải ảnh thành công', key: 'upload' });
-    }
-    if (info.file.status === 'error') {
-      message.error({ content: 'Tải ảnh thất bại', key: 'upload' });
-    }
-  }}
->
-  {imageUrl ? (
-    <img
-      src={`${STATIC_BASE_URL}/${imageUrl}`}
-      alt="banner"
-      style={{
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
-      }}
-    />
-  ) : (
-    uploadButton
-  )}
-</Upload>
-
+                  name="file"
+                  listType="picture-card"
+                  showUploadList={false}
+                  accept="image/*"
+                  action={`${API_BASE_URL}/banner/upload-banner`}
+                  onChange={(info) => {
+                    if (info.file.status === 'uploading') {
+                      message.loading({ content: 'Đang tải ảnh lên...', key: 'upload' });
+                    }
+                    if (info.file.status === 'done') {
+                      const url = (info.file as any).response?.url;
+                      setImageUrl(url);
+                      message.success({ content: 'Tải ảnh thành công', key: 'upload' });
+                    }
+                    if (info.file.status === 'error') {
+                      message.error({ content: 'Tải ảnh thất bại', key: 'upload' });
+                    }
+                  }}
+                >
+                  {imageUrl ? (
+                    <img
+                      src={`${STATIC_BASE_URL}/${imageUrl}`}
+                      alt="banner"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
+                  ) : (
+                    uploadButton
+                  )}
+                </Upload>
               </Form.Item>
             </Col>
 
@@ -545,14 +557,9 @@ const payload = {
               <Form.Item
                 label="Đường dẫn (Link)"
                 name="link"
-                rules={[
-                  { type: 'url', message: 'Vui lòng nhập URL hợp lệ!' }
-                ]}
+                rules={[{ type: 'url', message: 'Vui lòng nhập URL hợp lệ!' }]}
               >
-                <TextArea
-                  placeholder="https://example.com"
-                  rows={3}
-                />
+                <TextArea placeholder="https://example.com" rows={3} />
               </Form.Item>
 
               <Form.Item
@@ -560,21 +567,15 @@ const payload = {
                 name="status"
                 valuePropName="checked"
               >
-                <Switch
-                  checkedChildren="Hoạt động"
-                  unCheckedChildren="Tạm dừng"
-                />
+                <Switch checkedChildren="Hoạt động" unCheckedChildren="Tạm dừng" />
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item
-            label="Thời gian hiển thị"
-            name="dateRange"
-          >
+          <Form.Item label="Thời gian hiển thị" name="dateRange">
             <RangePicker
               showTime
-              format="DD/MM/YYYY HH:mm"
+              format={screens.xs ? 'DD/MM/YYYY HH:mm' : 'DD/MM/YYYY HH:mm'}
               placeholder={['Ngày bắt đầu', 'Ngày kết thúc']}
               style={{ width: '100%' }}
             />
@@ -583,8 +584,8 @@ const payload = {
           <Divider />
 
           <Row justify="end">
-            <Space>
-              <Button 
+            <Space wrap>
+              <Button
                 onClick={() => setModalVisible(false)}
                 style={{ backgroundColor: 'white', borderColor: '#DB4444', color: '#DB4444' }}
               >
