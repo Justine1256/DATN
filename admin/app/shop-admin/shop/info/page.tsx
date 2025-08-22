@@ -357,7 +357,7 @@ const ShopCard = () => {
                                 <div style={{ minWidth: 0, maxWidth: "100%" }}>
                                     <Text type="secondary">Email</Text>
                                     <div>
-                                        <Text strong copyable ellipsis={{ tooltip: shop.email }}>
+                                        <Text strong ellipsis={{ tooltip: shop.email }}>
                                             {shop.email}
                                         </Text>
                                     </div>

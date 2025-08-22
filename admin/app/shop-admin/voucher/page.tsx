@@ -20,9 +20,11 @@ import {
     Modal,
     Descriptions,
     message,
+    Grid,
 } from 'antd';
 import { DownloadOutlined, InfoCircleOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import Cookies from 'js-cookie';
+
 // ====== Config ======
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -81,6 +83,8 @@ const statusTag = (s: StatusFilter) => {
 
 // ====== Component ======
 export default function AdminVoucherList() {
+    const screens = Grid.useBreakpoint();
+
     // server data
     const [data, setData] = useState<VoucherBE[]>([]);
     const [loading, setLoading] = useState(false);
@@ -106,10 +110,7 @@ export default function AdminVoucherList() {
     const fetchData = async (p = page, pp = perPage) => {
         try {
             setLoading(true);
-
-            const token =
-                Cookies.get('authToken'); // lấy từ cookie nếu có
-
+            const token = Cookies.get('authToken');
             const res = await axios.get(`${API_BASE_URL}/vouchers/list/shop`, {
                 params: { page: p, per_page: pp },
                 headers: {
@@ -132,49 +133,36 @@ export default function AdminVoucherList() {
         }
     };
 
-
     useEffect(() => { fetchData(1, perPage); }, []); // initial
 
     // client filter + sort
     const filtered = useMemo(() => {
         let rows = [...data];
 
-        // text search: code (có thể mở rộng title/desc nếu BE có)
         if (q.trim()) {
             const kw = q.trim().toLowerCase();
             rows = rows.filter(r => r.code.toLowerCase().includes(kw));
         }
-
-        // shop filter
         if (typeof shopId === 'number') {
             rows = rows.filter(r => Number(r.shop_id ?? -1) === Number(shopId));
         }
-
-        // type
         if (type !== 'all') {
             rows = rows.filter(r => String(r.discount_type).toLowerCase() === String(type).toLowerCase());
         }
-
-        // status (dựa theo start_date / end_date)
         if (status !== 'all') {
             rows = rows.filter(r => computeStatus(r) === status);
         }
-
-        // min order range
         rows = rows.filter(r => {
             const min = Number(r.min_order_value ?? 0);
             if (typeof minOrderFrom === 'number' && min < minOrderFrom) return false;
             if (typeof minOrderTo === 'number' && min > minOrderTo) return false;
             return true;
         });
-
-        // date range (lọc giao với khoảng start/end)
         if (dateRange && (dateRange[0] || dateRange[1])) {
             const [from, to] = dateRange;
             rows = rows.filter(r => {
                 const s = r.start_date ? dayjs(r.start_date) : null;
                 const e = r.end_date ? dayjs(r.end_date) : null;
-                // coi như voucher "có hiệu lực" trong [s, e]; kiểm tra giao nhau với [from, to]
                 const rangeStart = s ?? dayjs('1970-01-01');
                 const rangeEnd = e ?? dayjs('2999-12-31');
                 const f = from ?? dayjs('1970-01-01');
@@ -182,8 +170,6 @@ export default function AdminVoucherList() {
                 return rangeStart.isBefore(t) && rangeEnd.isAfter(f);
             });
         }
-
-        // sort client
         if (sorter.field && sorter.order) {
             const dir = sorter.order === 'ascend' ? 1 : -1;
             rows.sort((a, b) => {
@@ -196,104 +182,54 @@ export default function AdminVoucherList() {
                 return String(fa).localeCompare(String(fb)) * dir;
             });
         }
-
         return rows;
     }, [data, q, shopId, type, status, dateRange, minOrderFrom, minOrderTo, sorter]);
 
     // export csv
     const exportCSV = () => {
         const header = [
-            'id',
-            'shop_id',
-            'code',
-            'discount_type',
-            'discount_value',
-            'max_discount_value',
-            'min_order_value',
-            'usage_limit',
-            'usage_count',
-            'start_date',
-            'end_date',
-            'created_at',
-            'updated_at',
+            'id', 'shop_id', 'code', 'discount_type', 'discount_value', 'max_discount_value', 'min_order_value', 'usage_limit', 'usage_count', 'start_date', 'end_date', 'created_at', 'updated_at',
         ];
         const rows = filtered.map(r => [
-            r.id,
-            r.shop_id ?? '',
-            r.code,
-            r.discount_type,
-            r.discount_value,
-            r.max_discount_value ?? '',
-            r.min_order_value ?? '',
-            r.usage_limit ?? '',
-            r.usage_count ?? '',
-            r.start_date ?? '',
-            r.end_date ?? '',
-            r.created_at ?? '',
-            r.updated_at ?? '',
+            r.id, r.shop_id ?? '', r.code, r.discount_type, r.discount_value, r.max_discount_value ?? '', r.min_order_value ?? '', r.usage_limit ?? '', r.usage_count ?? '', r.start_date ?? '', r.end_date ?? '', r.created_at ?? '', r.updated_at ?? '',
         ]);
         const csv = [header.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = `vouchers_${dayjs().format('YYYYMMDD_HHmmss')}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     };
 
-    // table columns
+    // ===== Responsive helpers =====
+    const controlSize = screens.xs ? 'middle' : 'large';
+    const tableSize = screens.xs ? 'small' : 'middle';
+
+    // table columns (thêm ellipsis + nowrap cho cell hẹp, và scroll ngang trên mobile)
     const columns = [
         {
             title: 'Mã',
             dataIndex: 'code',
             key: 'code',
             width: 180,
-            // ép cell không xuống dòng
             onCell: () => ({ style: { whiteSpace: 'nowrap' } }),
-            // hoặc dùng ellipsis nếu muốn cắt bớt khi thiếu chỗ
             ellipsis: true,
             sorter: true,
             render: (v: string, r: VoucherBE) => (
-                <Space size="small" /* ngăn Space tự wrap */
-                    wrap={false}
-                    style={{ display: 'inline-flex' }}>
-                    <Text
-                        strong
-                        style={{
-                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                            // giữ nguyên từ, không bẻ ký tự
-                            wordBreak: 'keep-all',
-                        }}
-                    >
-                        {v}
-                    </Text>
+                <Space size="small" wrap={false} style={{ display: 'inline-flex' }}>
+                    <Text strong style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', wordBreak: 'keep-all' }}>{v}</Text>
                     <Tooltip title="Thông tin">
-                        <Button
-                            size="small"
-                            icon={<InfoCircleOutlined />}
-                            onClick={(e) => { e.stopPropagation(); setDetail(r); }}
-                            // tránh nút bị co giãn làm wrap
-                            style={{ flexShrink: 0 }}
-                        />
+                        <Button size="small" icon={<InfoCircleOutlined />} onClick={(e) => { e.stopPropagation(); setDetail(r); }} style={{ flexShrink: 0 }} />
                     </Tooltip>
                 </Space>
             ),
+            fixed: screens.xs ? 'left' : undefined,
         },
-        // {
-        //     title: 'Shop',
-        //     dataIndex: 'shop_id',
-        //     key: 'shop_id',
-        //     width: 100,
-        //     render: (v: number | null) => (v == null ? <Tag>Toàn sàn</Tag> : <Tag color="purple">#{v}</Tag>),
-        //     sorter: true,
-        // },
         {
             title: 'Loại',
             dataIndex: 'discount_type',
             key: 'discount_type',
-            width: 140,
+            width: 130,
             render: (t: DiscountTypeBE) => mapTypeBadge(t),
         },
         {
@@ -321,22 +257,19 @@ export default function AdminVoucherList() {
             title: 'Giới hạn / Đã dùng',
             key: 'usage',
             width: 160,
-            render: (_: any, r: VoucherBE) => (
-                <Text>
-                    {(r.usage_limit ?? '∞')} / {(r.usage_count ?? 0)}
-                </Text>
-            ),
+            render: (_: any, r: VoucherBE) => <Text>{(r.usage_limit ?? '∞')} / {(r.usage_count ?? 0)}</Text>,
         },
         {
             title: 'Hiệu lực',
             key: 'date',
-            width: 240,
+            width: 220,
             render: (_: any, r: VoucherBE) => (
                 <Space direction="vertical" size={0}>
                     <Text type="secondary">Bắt đầu: {r.start_date ? dayjs(r.start_date).format('DD/MM/YYYY') : '—'}</Text>
                     <Text type="secondary">Kết thúc: {r.end_date ? dayjs(r.end_date).format('DD/MM/YYYY') : '—'}</Text>
                 </Space>
             ),
+            responsive: ['sm']
         },
         {
             title: 'Trạng thái',
@@ -354,19 +287,20 @@ export default function AdminVoucherList() {
 
     return (
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: 12 }}>
+            {/* Header */}
             <Space align="center" style={{ width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Space size="middle">
+                <Space size="middle" wrap>
                     <Title level={4} style={{ margin: 0 }}>Danh sách mã giảm giá</Title>
                     <Tag color="blue">{total} mã</Tag>
                 </Space>
-                <Space>
+                <Space wrap>
                     <Button icon={<ReloadOutlined />} onClick={() => fetchData(page, perPage)}>Tải lại</Button>
                     <Button icon={<DownloadOutlined />} onClick={exportCSV}>Xuất CSV</Button>
                 </Space>
             </Space>
 
             {/* FILTER BAR */}
-            <Card styles={{ body: { padding: 12 } }} style={{ borderRadius: 10, marginBottom: 12 }}>
+            <Card styles={{ body: { padding: screens.xs ? 8 : 12 } }} style={{ borderRadius: 10, marginBottom: 12 }}>
                 <Row gutter={[12, 8]} align="middle">
                     <Col xs={24} md={8}>
                         <Input
@@ -375,6 +309,7 @@ export default function AdminVoucherList() {
                             placeholder="Tìm theo mã voucher…"
                             value={q}
                             onChange={(e) => setQ(e.target.value)}
+                            size={controlSize as any}
                         />
                     </Col>
 
@@ -385,6 +320,7 @@ export default function AdminVoucherList() {
                             value={shopId}
                             min={0}
                             onChange={(v) => setShopId(typeof v === 'number' ? v : undefined)}
+                            size={controlSize as any}
                         />
                     </Col>
 
@@ -399,6 +335,7 @@ export default function AdminVoucherList() {
                                 { label: 'Giảm % (percent)', value: 'percent' },
                                 { label: 'Miễn phí VC', value: 'shipping' },
                             ]}
+                            size={controlSize as any}
                         />
                     </Col>
 
@@ -413,6 +350,7 @@ export default function AdminVoucherList() {
                                 { label: 'Sắp diễn ra', value: 'upcoming' },
                                 { label: 'Hết hạn', value: 'expired' },
                             ]}
+                            size={controlSize as any}
                         />
                     </Col>
 
@@ -423,6 +361,7 @@ export default function AdminVoucherList() {
                             value={dateRange as any}
                             onChange={(v) => setDateRange(v as any)}
                             format="DD/MM/YYYY"
+                            size={controlSize as any}
                         />
                     </Col>
 
@@ -433,6 +372,7 @@ export default function AdminVoucherList() {
                             min={0}
                             value={minOrderFrom}
                             onChange={(v) => setMinOrderFrom(typeof v === 'number' ? v : undefined)}
+                            size={controlSize as any}
                         />
                     </Col>
                     <Col xs={12} md={4}>
@@ -442,11 +382,12 @@ export default function AdminVoucherList() {
                             min={0}
                             value={minOrderTo}
                             onChange={(v) => setMinOrderTo(typeof v === 'number' ? v : undefined)}
+                            size={controlSize as any}
                         />
                     </Col>
 
                     <Col xs={24} md={5}>
-                        <Space>
+                        <Space wrap>
                             <Button onClick={() => { setQ(''); setShopId(undefined); setType('all'); setStatus('all'); setDateRange(null); setMinOrderFrom(undefined); setMinOrderTo(undefined); }}>
                                 Xoá lọc
                             </Button>
@@ -463,16 +404,15 @@ export default function AdminVoucherList() {
                     rowKey="id"
                     columns={columns as any}
                     dataSource={filtered}
+                    size={tableSize as any}
+                    scroll={{ x: screens.xs ? 900 : undefined }}
+                    sticky
                     pagination={{
                         current: page,
                         pageSize: perPage,
                         total,
-                        onChange: (p, ps) => {
-                            setPage(p);
-                            setPerPage(ps);
-                            fetchData(p, ps);
-                        },
                         showSizeChanger: true,
+                        onChange: (p, ps) => { setPage(p); setPerPage(ps); fetchData(p, ps); },
                     }}
                     onChange={(_, __, sorterArg) => {
                         const s = Array.isArray(sorterArg) ? sorterArg[0] : sorterArg;

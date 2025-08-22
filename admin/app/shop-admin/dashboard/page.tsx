@@ -1,9 +1,28 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import Cookies from "js-cookie"
-import { useState, useEffect, useRef } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import Cookies from "js-cookie";
+import {
+  ConfigProvider,
+  theme as antdTheme,
+  Row,
+  Col,
+  Card,
+  Statistic,
+  Progress,
+  Table,
+  Tag,
+  Typography,
+  Space,
+  Grid,
+  Skeleton,
+  Result,
+  Button,
+  Avatar,
+  Tooltip,
+  Divider,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   DollarSign,
   ShoppingCart,
@@ -13,595 +32,349 @@ import {
   TrendingUp,
   AlertTriangle,
   CheckCircle,
-  Loader2,
-} from "lucide-react"
+} from "lucide-react";
 
-// Type definitions based on API response
-interface TopSellingProduct {
-  id: number
-  name: string
-  sold: number
-  stock: number
-}
+const { Title, Text } = Typography;
 
-interface MonthlyRevenue {
-  month: string
-  revenue: string
-}
-
+/* ================= Types ================= */
+interface TopSellingProduct { id: number; name: string; sold: number; stock: number }
+interface MonthlyRevenue { month: string; revenue: string }
 interface DashboardData {
-  total_sales: string
-  total_orders: number
-  completed_orders: number
-  canceled_orders: number
-  total_products: number
-  low_stock_products: number
-  top_selling_products: TopSellingProduct[]
-  average_rating: number
-  total_reviews: number
-  total_followers: number
-  monthly_revenue: MonthlyRevenue[]
+  total_sales: string;
+  total_orders: number;
+  completed_orders: number;
+  canceled_orders: number;
+  total_products: number;
+  low_stock_products: number;
+  top_selling_products: TopSellingProduct[];
+  average_rating: number;
+  total_reviews: number;
+  total_followers: number;
+  monthly_revenue: MonthlyRevenue[];
 }
 
-// Custom CountUp Hook
-function useCountUp(end: number, duration = 2000, start = 0) {
-  const [count, setCount] = useState(start)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const frameRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
-
-  const startAnimation = () => {
-    if (isAnimating) return
-
-    setIsAnimating(true)
-    startTimeRef.current = Date.now()
-
-    const animate = () => {
-      const now = Date.now()
-      const elapsed = now - (startTimeRef.current || now)
-      const progress = Math.min(elapsed / duration, 1)
-
-      // Easing function for smooth animation
-      const easeOutQuart = 1 - Math.pow(1 - progress, 4)
-      const currentCount = start + (end - start) * easeOutQuart
-
-      setCount(currentCount)
-
-      if (progress < 1) {
-        frameRef.current = requestAnimationFrame(animate)
-      } else {
-        setIsAnimating(false)
-        setCount(end)
-      }
-    }
-
-    frameRef.current = requestAnimationFrame(animate)
-  }
+/* ================ CountUp hook ================ */
+function useCountUp(end: number, duration = 1500, start = 0) {
+  const [count, setCount] = useState(start);
+  const raf = useRef<number | null>(null);
+  const t0 = useRef<number | null>(null);
 
   useEffect(() => {
-    return () => {
-      if (frameRef.current) {
-        cancelAnimationFrame(frameRef.current)
-      }
-    }
-  }, [])
+    const ease = (t: number) => 1 - Math.pow(1 - t, 4);
+    const step = (now: number) => {
+      if (!t0.current) t0.current = now;
+      const p = Math.min((now - t0.current) / duration, 1);
+      setCount(start + (end - start) * ease(p));
+      if (p < 1) raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+    return () => { if (raf.current) cancelAnimationFrame(raf.current); };
+  }, [end, duration, start]);
 
-  return { count, startAnimation, isAnimating }
+  return Math.round(count * 100) / 100;
 }
 
-// CountUp Component for Numbers
-function CountUpNumber({
-  end,
-  duration = 2000,
-  formatter,
-  className = "",
-}: {
-  end: number
-  duration?: number
-  formatter?: (num: number) => string
-  className?: string
-}) {
-  const { count, startAnimation } = useCountUp(end, duration)
-  const [hasStarted, setHasStarted] = useState(false)
+/* ================ Animated display components (safe hooks) ================ */
+const VND = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
+const VN = new Intl.NumberFormat("vi-VN");
+
+const AnimatedInt: React.FC<{ value: number; duration?: number; className?: string }> = ({ value, duration = 1500, className }) => {
+  const n = useCountUp(value, duration);
+  return <span className={className}>{VN.format(Math.floor(n))}</span>;
+};
+
+const AnimatedCurrency: React.FC<{ value: number; duration?: number; className?: string }> = ({ value, duration = 1800, className }) => {
+  const n = useCountUp(value, duration);
+  return <span className={className}>{VND.format(n)}</span>;
+};
+
+const AnimatedDecimal: React.FC<{ value: number; duration?: number; digits?: number; className?: string }> = ({ value, duration = 1500, digits = 1, className }) => {
+  const n = useCountUp(value, duration);
+  return <span className={className}>{n.toFixed(digits)}</span>;
+};
+
+/* ================= Component ================= */
+export default function AdminDashboardAntD() {
+  const screens = Grid.useBreakpoint();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!hasStarted) {
-      const timer = setTimeout(() => {
-        startAnimation()
-        setHasStarted(true)
-      }, 300) // Small delay for better UX
-
-      return () => clearTimeout(timer)
-    }
-  }, [hasStarted, startAnimation])
-
-  const displayValue = formatter ? formatter(count) : Math.floor(count).toString()
-
-  return <span className={className}>{displayValue}</span>
-}
-
-// CountUp Component for Currency
-function CountUpCurrency({
-  end,
-  duration = 2500,
-  className = "",
-}: {
-  end: string
-  duration?: number
-  className?: string
-}) {
-  const numericEnd = Number.parseFloat(end)
-
-  const formatCurrency = (num: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(num)
-  }
-
-  return <CountUpNumber end={numericEnd} duration={duration} formatter={formatCurrency} className={className} />
-}
-
-// CountUp Component for Regular Numbers
-function CountUpRegular({
-  end,
-  duration = 2000,
-  className = "",
-}: {
-  end: number
-  duration?: number
-  className?: string
-}) {
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat("vi-VN").format(Math.floor(num))
-  }
-
-  return <CountUpNumber end={end} duration={duration} formatter={formatNumber} className={className} />
-}
-
-// CountUp Component for Decimal Numbers (like ratings)
-function CountUpDecimal({
-  end,
-  duration = 1500,
-  className = "",
-}: {
-  end: number
-  duration?: number
-  className?: string
-}) {
-  const formatDecimal = (num: number) => {
-    return num.toFixed(1)
-  }
-
-  return <CountUpNumber end={end} duration={duration} formatter={formatDecimal} className={className} />
-}
-
-function formatCurrency(amount: string) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(Number.parseFloat(amount))
-}
-
-function formatNumber(num: number) {
-  return new Intl.NumberFormat("vi-VN").format(num)
-}
-
-function truncateText(text: string, maxLength: number) {
-  return text.length > maxLength ? text.substring(0, maxLength) + "..." : text
-}
-
-// Custom Progress Bar Component
-function ProgressBar({ value, className = "" }: { value: number; className?: string }) {
-  return (
-    <div className={`w-full bg-gray-200 rounded-full h-2 ${className}`}>
-      <div
-        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-        style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
-      ></div>
-    </div>
-  )
-}
-
-// Custom Badge Component
-function CustomBadge({
-  children,
-  variant = "default",
-  className = "",
-}: {
-  children: React.ReactNode
-  variant?: "default" | "secondary" | "destructive" | "outline"
-  className?: string
-}) {
-  const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-
-  const variantClasses = {
-    default: "bg-blue-100 text-blue-800",
-    secondary: "bg-gray-100 text-gray-800",
-    destructive: "bg-red-100 text-red-800",
-    outline: "border border-gray-300 text-gray-700 bg-white",
-  }
-
-  return <span className={`${baseClasses} ${variantClasses[variant]} ${className}`}>{children}</span>
-}
-
-// Custom Card Components
-function CustomCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>{children}</div>
-}
-
-function CustomCardHeader({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>{children}</div>
-}
-
-function CustomCardContent({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`px-6 py-4 ${className}`}>{children}</div>
-}
-
-function CustomCardTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <h3 className={`text-lg font-semibold text-gray-900 ${className}`}>{children}</h3>
-}
-
-export default function Dashboard() {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchData = async () => {
       try {
-        setLoading(true)
-        setError(null)
+        setLoading(true);
+        setError(null);
+        const token = Cookies.get("authToken");
+        const res = await fetch("https://api.marketo.info.vn/api/shop/dashboard/stats", {
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = (await res.json()) as DashboardData;
+        setData(json);
+      } catch (e: any) {
+        setError(e?.message || "Không thể tải dữ liệu");
+      } finally { setLoading(false); }
+    };
+    fetchData();
+  }, []);
 
-        const token = Cookies.get("authToken")
-        const response = await fetch("https://api.marketo.info.vn/api/shop/dashboard/stats", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
+  const completionRate = useMemo(() => {
+    if (!data?.total_orders) return 0;
+    return (data.completed_orders / data.total_orders) * 100;
+  }, [data]);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
+  const cancellationRate = useMemo(() => {
+    if (!data?.total_orders) return 0;
+    return (data.canceled_orders / data.total_orders) * 100;
+  }, [data]);
 
-        const result = await response.json()
-        setData(result)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Có lỗi xảy ra khi tải dữ liệu")
-        console.error("Error fetching dashboard data:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
+  /* ============== Columns ============== */
+  const columns: ColumnsType<TopSellingProduct> = [
+    {
+      title: "#",
+      dataIndex: "id",
+      width: 64,
+      render: (_v, _r, i) => (
+        <Avatar shape="circle" size={28} style={{ background: "#e6f4ff", color: "#1677ff" }}>{i + 1}</Avatar>
+      ),
+      align: "center",
+      fixed: screens.xs ? undefined : "left",
+    },
+    {
+      title: "Tên sản phẩm",
+      dataIndex: "name",
+      ellipsis: true,
+      render: (t: string, r) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{t}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>ID: {r.id}</Text>
+        </Space>
+      ),
+    },
+    { title: "Đã bán", dataIndex: "sold", align: "center", render: (n: number) => <Text strong>{VN.format(n)}</Text> },
+    {
+      title: "Tồn kho",
+      dataIndex: "stock",
+      align: "center",
+      render: (n: number) => <Text>{VN.format(n)}</Text>,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "stock",
+      align: "center",
+      render: (n: number) =>
+        n > 1000 ? <Tag color="blue">Còn nhiều</Tag> : n > 500 ? <Tag color="gold">Còn ít</Tag> : <Tag color="red">Sắp hết</Tag>,
+    },
+  ];
 
-    fetchDashboardData()
-  }, [])
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-96">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-slate-700 mb-2">Đang tải dữ liệu...</h2>
-              <p className="text-slate-500">Vui lòng chờ trong giây lát</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-96">
-            <CustomCard className="w-full max-w-md">
-              <CustomCardHeader>
-                <CustomCardTitle className="text-red-600 flex items-center">
-                  <AlertTriangle className="h-5 w-5 mr-2" />
-                  Lỗi tải dữ liệu
-                </CustomCardTitle>
-              </CustomCardHeader>
-              <CustomCardContent>
-                <p className="text-slate-600 mb-4">{error}</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Thử lại
-                </button>
-              </CustomCardContent>
-            </CustomCard>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // No data state
-  if (!data) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-96">
-            <CustomCard className="w-full max-w-md">
-              <CustomCardContent className="text-center py-8">
-                <Package className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold text-slate-700 mb-2">Không có dữ liệu</h2>
-                <p className="text-slate-500">Không thể tải dữ liệu dashboard</p>
-              </CustomCardContent>
-            </CustomCard>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const completionRate = (data.completed_orders / data.total_orders) * 100
-  const cancellationRate = (data.canceled_orders / data.total_orders) * 100
+  /* ============== Theme ============== */
+  const palette = { primary: "#db4444", bg: "#f6f7fb" } as const;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Dashboard Quản Trị</h1>
-            <p className="text-slate-600 mt-1">Tổng quan hoạt động cửa hàng</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <CustomBadge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-              Hoạt động
-            </CustomBadge>
-            <CustomBadge variant="secondary" className="text-xs">
-              Cập nhật: {new Date().toLocaleString("vi-VN")}
-            </CustomBadge>
-          </div>
+    <ConfigProvider
+      theme={{
+        algorithm: antdTheme.defaultAlgorithm,
+        token: {
+          colorPrimary: palette.primary,
+          borderRadius: 14,
+          colorBgLayout: palette.bg,
+        },
+        components: {
+          Card: { headerFontSize: 16, paddingLG: 20 },
+          Statistic: { fontFamily: "Inter, system-ui, sans-serif" },
+        },
+      }}
+    >
+      <div style={{ minHeight: "100vh", background: "linear-gradient(135deg,#f9fafb 0%,#eef2ff 100%)", padding: 16 }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            {/* Header */}
+            <Space align="baseline" style={{ width: "100%", justifyContent: "space-between" }}>
+              <div>
+                <Title level={3} style={{ margin: 0 }}>Dashboard Quản Trị</Title>
+                <Text type="secondary">Tổng quan hoạt động cửa hàng</Text>
+              </div>
+              <Space>
+                <Tag color="green">Hoạt động</Tag>
+                <Tag> Cập nhật: {new Date().toLocaleString("vi-VN")} </Tag>
+              </Space>
+            </Space>
+
+            {/* Loading / Error */}
+            {loading && (
+              <Row gutter={[16, 16]}>
+                {new Array(4).fill(0).map((_, i) => (
+                  <Col key={i} xs={24} sm={12} lg={6} style={{ display: "flex" }}>
+                    <Card style={{ flex: 1 }}><Skeleton active /></Card>
+                  </Col>
+                ))}
+                <Col xs={24} lg={12} style={{ display: "flex" }}><Card style={{ flex: 1 }}><Skeleton active paragraph={{ rows: 6 }} /></Card></Col>
+                <Col xs={24} lg={12} style={{ display: "flex" }}><Card style={{ flex: 1 }}><Skeleton active paragraph={{ rows: 6 }} /></Card></Col>
+                <Col span={24} style={{ display: "flex" }}><Card style={{ flex: 1 }}><Skeleton active paragraph={{ rows: 8 }} /></Card></Col>
+              </Row>
+            )}
+
+            {!loading && error && (
+              <Result
+                status="error"
+                title="Lỗi tải dữ liệu"
+                subTitle={error}
+                extra={<Button type="primary" onClick={() => location.reload()}>Thử lại</Button>}
+              />
+            )}
+
+            {!loading && data && (
+              <>
+                {/* ===== KPI Cards (equal height) ===== */}
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={12} lg={6} style={{ display: "flex" }}>
+                    <Card
+                      hoverable
+                      style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { padding: 18, display: "flex", flexDirection: "column", gap: 8 } }}
+                      cover={<div style={{ height: 6, background: "linear-gradient(90deg,#60a5fa,#3b82f6)" }} />}
+                    >
+                      <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                        <Space>
+                          <Avatar style={{ background: "#e6f4ff", color: "#1677ff" }} icon={<DollarSign size={16} />} />
+                          <Text type="secondary">Tổng doanh thu</Text>
+                        </Space>
+                        <Tooltip title={data.monthly_revenue?.[0]?.month || "Tháng hiện tại"}>
+                          <TrendingUp size={16} />
+                        </Tooltip>
+                      </Space>
+                      <div style={{ marginTop: 4, marginBottom: 2 }}>
+                        <Title level={3} style={{ margin: 0 }}>
+                          <AnimatedCurrency value={parseFloat(data.total_sales)} duration={1800} />
+                        </Title>
+                      </div>
+                    </Card>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6} style={{ display: "flex" }}>
+                    <Card
+                      hoverable
+                      style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { padding: 18, display: "flex", flexDirection: "column", gap: 8 } }}
+                      cover={<div style={{ height: 6, background: "linear-gradient(90deg,#34d399,#10b981)" }} />}
+                    >
+                      <Space>
+                        <Avatar style={{ background: "#e8fff3", color: "#10b981" }} icon={<ShoppingCart size={16} />} />
+                        <Text type="secondary">Tổng đơn hàng</Text>
+                      </Space>
+                      <Title level={3} style={{ margin: 0 }}><AnimatedInt value={data.total_orders} duration={1500} /></Title>
+                      <Text type="secondary">
+                        <CheckCircle style={{ verticalAlign: -2 }} size={14} /> {VN.format(data.completed_orders)} hoàn thành
+                      </Text>
+                    </Card>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6} style={{ display: "flex" }}>
+                    <Card
+                      hoverable
+                      style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { padding: 18, display: "flex", flexDirection: "column", gap: 8 } }}
+                      cover={<div style={{ height: 6, background: "linear-gradient(90deg,#a78bfa,#7c3aed)" }} />}
+                    >
+                      <Space>
+                        <Avatar style={{ background: "#f3e8ff", color: "#7c3aed" }} icon={<Package size={16} />} />
+                        <Text type="secondary">Sản phẩm</Text>
+                      </Space>
+                      <Title level={3} style={{ margin: 0 }}><AnimatedInt value={data.total_products} duration={1500} /></Title>
+                      <Text type="secondary">
+                        <AlertTriangle style={{ verticalAlign: -2 }} size={14} /> {VN.format(data.low_stock_products)} sắp hết
+                      </Text>
+                    </Card>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6} style={{ display: "flex" }}>
+                    <Card
+                      hoverable
+                      style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { padding: 18, display: "flex", flexDirection: "column", gap: 8 } }}
+                      cover={<div style={{ height: 6, background: "linear-gradient(90deg,#fb923c,#f97316)" }} />}
+                    >
+                      <Space>
+                        <Avatar style={{ background: "#fff7ed", color: "#f97316" }} icon={<Users size={16} />} />
+                        <Text type="secondary">Người theo dõi</Text>
+                      </Space>
+                      <Title level={3} style={{ margin: 0 }}><AnimatedInt value={data.total_followers} duration={1500} /></Title>
+                      <Text type="secondary"><Star style={{ verticalAlign: -2 }} size={14} /> {data.average_rating.toFixed(1)}/5 đánh giá</Text>
+                    </Card>
+                  </Col>
+                </Row>
+
+                {/* ===== Order status & Reviews ===== */}
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} lg={12} style={{ display: "flex" }}>
+                    <Card
+                      hoverable
+                      title={<Space><ShoppingCart size={18} /> <span>Trạng thái đơn hàng</span></Space>}
+                      style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                      styles={{ body: { display: "flex", flexDirection: "column", gap: 12 } }}
+                    >
+                      <div>
+                        <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                          <Text strong>Hoàn thành</Text>
+                          <Text type="secondary">{VN.format(data.completed_orders)}/{VN.format(data.total_orders)}</Text>
+                        </Space>
+                        <Progress percent={Number(completionRate.toFixed(1))} status="active" />
+                        <Text type="secondary" style={{ fontSize: 12 }}>{completionRate.toFixed(1)}% đơn hàng hoàn thành</Text>
+                      </div>
+                      <Divider style={{ margin: "8px 0" }} />
+                      <div>
+                        <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                          <Text strong>Đã hủy</Text>
+                          <Text type="secondary">{VN.format(data.canceled_orders)}/{VN.format(data.total_orders)}</Text>
+                        </Space>
+                        <Progress percent={Number(cancellationRate.toFixed(1))} strokeColor="#ef4444" />
+                        <Text type="secondary" style={{ fontSize: 12 }}>{cancellationRate.toFixed(1)}% đơn hàng bị hủy</Text>
+                      </div>
+                    </Card>
+                  </Col>
+
+                  <Col xs={24} lg={12} style={{ display: "flex" }}>
+                    <Card
+                      hoverable
+                      title={<Space><Star size={18} /> <span>Đánh giá & phản hồi</span></Space>}
+                      style={{ flex: 1 }}
+                    >
+                      <Row gutter={[16, 16]}>
+                        <Col xs={12}>
+                          <Statistic title="Điểm trung bình" precision={1} value={data.average_rating} suffix="/5" />
+                          <Text type="secondary">{VN.format(data.total_reviews)} đánh giá</Text>
+                        </Col>
+                        <Col xs={12}>
+                          <Statistic
+                            title="Người theo dõi"
+                            valueRender={() => <AnimatedInt value={data.total_followers} duration={1400} />}
+                          />
+                          <Text type="secondary">Khách hàng quan tâm</Text>
+                        </Col>
+                      </Row>
+                    </Card>
+                  </Col>
+                </Row>
+
+                {/* ===== Top Selling ===== */}
+                <Card
+                  hoverable
+                  title={<Space><TrendingUp size={18} /> <span>Sản phẩm bán chạy nhất</span></Space>}
+                >
+                  <Table
+                    rowKey={(r) => String(r.id)}
+                    columns={columns}
+                    dataSource={data.top_selling_products}
+                    pagination={{ pageSize: 8, showSizeChanger: false }}
+                    scroll={{ x: 720 }}
+                  />
+                </Card>
+              </>
+            )}
+          </Space>
         </div>
-
-        {/* Key Metrics with CountUp Animation */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Total Sales Card */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium opacity-90">Tổng Doanh Thu</h3>
-              <DollarSign className="h-4 w-4 opacity-90" />
-            </div>
-            <div className="text-2xl font-bold">
-              <CountUpCurrency end={data.total_sales} duration={2500} />
-            </div>
-            <p className="text-xs opacity-90 mt-1">
-              <TrendingUp className="inline h-3 w-3 mr-1" />
-              {data.monthly_revenue[0]?.month || "Tháng hiện tại"}
-            </p>
-          </div>
-
-          {/* Total Orders Card */}
-          <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg shadow-lg p-6 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium opacity-90">Tổng Đơn Hàng</h3>
-              <ShoppingCart className="h-4 w-4 opacity-90" />
-            </div>
-            <div className="text-2xl font-bold">
-              <CountUpRegular end={data.total_orders} duration={2000} />
-            </div>
-            <p className="text-xs opacity-90 mt-1">
-              <CheckCircle className="inline h-3 w-3 mr-1" />
-              <CountUpRegular end={data.completed_orders} duration={1800} /> hoàn thành
-            </p>
-          </div>
-
-          {/* Total Products Card */}
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-6 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium opacity-90">Sản Phẩm</h3>
-              <Package className="h-4 w-4 opacity-90" />
-            </div>
-            <div className="text-2xl font-bold">
-              <CountUpRegular end={data.total_products} duration={1800} />
-            </div>
-            <p className="text-xs opacity-90 mt-1">
-              <AlertTriangle className="inline h-3 w-3 mr-1" />
-              <CountUpRegular end={data.low_stock_products} duration={1500} /> sắp hết hàng
-            </p>
-          </div>
-
-          {/* Followers Card */}
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg shadow-lg p-6 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium opacity-90">Người Theo Dõi</h3>
-              <Users className="h-4 w-4 opacity-90" />
-            </div>
-            <div className="text-2xl font-bold">
-              <CountUpRegular end={data.total_followers} duration={1600} />
-            </div>
-            <p className="text-xs opacity-90 mt-1">
-              <Star className="inline h-3 w-3 mr-1" />
-              <CountUpDecimal end={data.average_rating} duration={1500} />
-              /5 đánh giá
-            </p>
-          </div>
-        </div>
-
-        {/* Order Status & Reviews */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CustomCard className="shadow-lg">
-            <CustomCardHeader>
-              <CustomCardTitle className="flex items-center">
-                <ShoppingCart className="h-5 w-5 mr-2 text-blue-600" />
-                Trạng Thái Đơn Hàng
-              </CustomCardTitle>
-            </CustomCardHeader>
-            <CustomCardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-green-700">Hoàn thành</span>
-                  <span className="text-sm text-slate-600">
-                    <CountUpRegular end={data.completed_orders} duration={1500} />/{formatNumber(data.total_orders)}
-                  </span>
-                </div>
-                <ProgressBar value={completionRate} />
-                <p className="text-xs text-slate-500">{completionRate.toFixed(1)}% đơn hàng hoàn thành</p>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-red-700">Đã hủy</span>
-                  <span className="text-sm text-slate-600">
-                    <CountUpRegular end={data.canceled_orders} duration={1500} />/{formatNumber(data.total_orders)}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-red-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${cancellationRate}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs text-slate-500">{cancellationRate.toFixed(1)}% đơn hàng bị hủy</p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                <div className="text-center">
-                  <div className="text-lg font-bold text-green-600">
-                    <CountUpRegular end={data.completed_orders} duration={1500} />
-                  </div>
-                  <div className="text-xs text-slate-500">Hoàn thành</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-yellow-600">
-                    <CountUpRegular
-                      end={data.total_orders - data.completed_orders - data.canceled_orders}
-                      duration={1500}
-                    />
-                  </div>
-                  <div className="text-xs text-slate-500">Đang xử lý</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-red-600">
-                    <CountUpRegular end={data.canceled_orders} duration={1500} />
-                  </div>
-                  <div className="text-xs text-slate-500">Đã hủy</div>
-                </div>
-              </div>
-            </CustomCardContent>
-          </CustomCard>
-
-          <CustomCard className="shadow-lg">
-            <CustomCardHeader>
-              <CustomCardTitle className="flex items-center">
-                <Star className="h-5 w-5 mr-2 text-yellow-500" />
-                Đánh Giá & Phản Hồi
-              </CustomCardTitle>
-            </CustomCardHeader>
-            <CustomCardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-3xl font-bold text-slate-900">
-                      <CountUpDecimal end={data.average_rating} duration={1500} />
-                    </div>
-                    <div className="flex items-center mt-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${
-                            star <= data.average_rating ? "text-yellow-400 fill-current" : "text-slate-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-semibold text-slate-700">
-                      <CountUpRegular end={data.total_reviews} duration={1200} />
-                    </div>
-                    <div className="text-sm text-slate-500">Đánh giá</div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Người theo dõi</span>
-                    <Users className="h-4 w-4 text-slate-400" />
-                  </div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    <CountUpRegular end={data.total_followers} duration={1600} />
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">Khách hàng quan tâm</p>
-                </div>
-              </div>
-            </CustomCardContent>
-          </CustomCard>
-        </div>
-
-        {/* Top Selling Products */}
-        <CustomCard className="shadow-lg">
-          <CustomCardHeader>
-            <CustomCardTitle className="flex items-center">
-              <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
-              Sản Phẩm Bán Chạy Nhất
-            </CustomCardTitle>
-          </CustomCardHeader>
-          <CustomCardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">#</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Tên Sản Phẩm</th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-900">Đã Bán</th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-900">Tồn Kho</th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-900">Trạng Thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.top_selling_products.map((product, index) => (
-                    <tr key={product.id} className="border-b hover:bg-slate-50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-bold">
-                          {index + 1}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="max-w-md">
-                          <p className="font-medium text-slate-900 leading-tight">{truncateText(product.name, 80)}</p>
-                          <p className="text-xs text-slate-500 mt-1">ID: {product.id}</p>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="font-semibold text-green-600">
-                          <CountUpRegular end={product.sold} duration={2000 + index * 200} />
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="font-semibold text-blue-600">
-                          <CountUpRegular end={product.stock} duration={2200 + index * 200} />
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <CustomBadge
-                          variant={product.stock > 1000 ? "default" : product.stock > 500 ? "secondary" : "destructive"}
-                          className="text-xs"
-                        >
-                          {product.stock > 1000 ? "Còn nhiều" : product.stock > 500 ? "Còn ít" : "Sắp hết"}
-                        </CustomBadge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CustomCardContent>
-        </CustomCard>
       </div>
-    </div>
-  )
+    </ConfigProvider>
+  );
 }

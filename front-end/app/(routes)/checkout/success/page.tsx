@@ -1,12 +1,12 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { Card, Space, Typography, Button, Tag, Statistic } from "antd";
+import { Card, Space, Typography, Button, Tag } from "antd";
 import { CheckCircleOutlined, HomeOutlined, ShoppingOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "@/utils/api";
 
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 export default function CheckoutSuccessPage() {
     const p = useSearchParams();
@@ -40,6 +40,14 @@ export default function CheckoutSuccessPage() {
                         <Title level={2} style={{ margin: 0, color: "#52c41a" }}>
                             Đặt hàng thành công
                         </Title>
+
+                        {/* ✅ Hiển thị mã đơn hàng */}
+                        {orderId && (
+                            <Paragraph style={{ fontSize: 15, marginTop: 8 }}>
+                                Mã đơn hàng của bạn: <Text code>{orderId}</Text>
+                            </Paragraph>
+                        )}
+
                         <Paragraph style={{ fontSize: 16, marginTop: 8, color: "#666" }}>
                             Cảm ơn bạn đã mua sắm! Đơn hàng của bạn đã được ghi nhận.
                         </Paragraph>
@@ -47,8 +55,6 @@ export default function CheckoutSuccessPage() {
                             COD - Thanh toán khi nhận hàng
                         </Tag>
                     </Card>
-
-              
 
                     {/* Buttons */}
                     <Space size="middle" wrap style={{ justifyContent: "center" }}>

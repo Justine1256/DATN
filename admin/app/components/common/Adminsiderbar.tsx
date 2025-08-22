@@ -1,28 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaChevronRight } from "react-icons/fa";
 import {
-    Package,
-    Tags,
     Warehouse,
-    Truck,
-    Users,
     MessageSquare,
     LayoutDashboard,
     PlusCircle,
-    Menu, // ⬅️ thêm để dùng trên mobile
+    Menu as MenuIcon, // icon menu mobile
 } from "lucide-react";
 import { UserOutlined } from "@ant-design/icons";
 
+// ================== DATA ==================
 export const menu = [
-    {
-        label: "Bảng điều khiển",
-        href: "/admin/dashboard",
-        icon: <LayoutDashboard size={18} />,
-    },
+    { label: "Bảng điều khiển", href: "/admin/dashboard", icon: <LayoutDashboard size={18} /> },
     {
         label: "Quản lý người dùng",
         icon: <UserOutlined style={{ fontSize: 18 }} />,
@@ -51,26 +44,51 @@ export const menu = [
         icon: <MessageSquare size={18} />,
         children: [{ label: "Quản lý banner", href: "/admin/banner" }],
     },
-    // { label: "Tin nhắn", icon: <MessageSquare size={18} />, href: "/admin/chat" },
-];
+] as const;
 
 export default function ModernAdminSidebar() {
     const pathname = usePathname();
     const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    // Tự mở group khi route nằm trong group đó
+    // ==== Helpers ====
+    const closeMobile = useCallback(() => setMobileOpen(false), []);
+    const isActiveItem = (href?: string) => (href ? pathname === href : false);
+
+    // Mở group chứa route hiện tại + đóng drawer khi đổi route
     useEffect(() => {
         const opened = new Set<string>();
         menu.forEach((item) => {
-            if (item.children?.length) {
-                const isChildActive = item.children.some((c) => c.href === pathname);
-                if (isChildActive || item.href === pathname) opened.add(item.label);
+            const hasChildren = Array.isArray((item as any).children) && (item as any).children.length > 0;
+            if (hasChildren) {
+                const isChildActive = (item as any).children.some((c: any) => c.href === pathname);
+                if (isChildActive || (item as any).href === pathname) opened.add(item.label);
             }
         });
         setOpenDropdowns(opened);
-        setMobileOpen(false); // đóng drawer khi đổi route
+        setMobileOpen(false);
     }, [pathname]);
+
+    // ESC để đóng drawer
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") closeMobile();
+        };
+        if (mobileOpen) window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [mobileOpen, closeMobile]);
+
+    // Khóa scroll nền khi mở drawer
+    useEffect(() => {
+        if (mobileOpen) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [mobileOpen]);
 
     const toggleDropdown = (label: string) => {
         const next = new Set(openDropdowns);
@@ -78,6 +96,7 @@ export default function ModernAdminSidebar() {
         setOpenDropdowns(next);
     };
 
+    // ===== Sidebar markup (reused for desktop & mobile) =====
     const SidebarContent = (
         <div className="h-full w-72 bg-[#0f172a] text-[#e2e8f0] border-r border-[#334155]/70 flex flex-col shadow-xl lg:shadow-none">
             {/* Logo */}
@@ -96,29 +115,32 @@ export default function ModernAdminSidebar() {
 
             {/* Menu (ẩn scrollbar nhưng vẫn cuộn) */}
             <div className="flex-1 overflow-y-auto no-scrollbar overscroll-contain touch-pan-y">
-                <div className="px-4 py-6">
-                    <p className="text-[11px] font-semibold text-[#9ca3af] uppercase tracking-[0.08em] mb-4 px-3">
+                <div className="px-4 py-5">
+                    <p className="text-[11px] font-semibold text-[#9ca3af] uppercase tracking-[0.08em] mb-3 px-3">
                         Điều hướng
                     </p>
+
                     <nav className="space-y-1">
                         {menu.map((item) => {
-                            const isActive = pathname === item.href || item.children?.some((c) => pathname === c.href);
+                            const hasChildren = Array.isArray((item as any).children) && (item as any).children.length > 0;
                             const isOpen = openDropdowns.has(item.label);
-                            const hasChildren = !!item.children?.length;
+                            const isGroupActive =
+                                isActiveItem((item as any).href) ||
+                                (hasChildren && (item as any).children.some((c: any) => pathname === c.href));
 
                             return (
                                 <div key={item.label} className="relative">
                                     {hasChildren ? (
                                         <button
                                             onClick={() => toggleDropdown(item.label)}
-                                            className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#db4444]/40
-                      ${isOpen || isActive ? "bg-[#db4444] text-white" : "hover:bg-[#1e293b] hover:text-white"}`}
+                                            className={`w-full flex items-center justify-between px-3 py-3 text-[13px] font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#db4444]/40
+                      ${isOpen || isGroupActive ? "bg-[#db4444] text-white" : "hover:bg-[#1e293b] hover:text-white"}`}
                                             aria-expanded={isOpen}
                                             aria-controls={`group-${item.label}`}
                                         >
                                             <div className="flex items-center">
-                                                <span className={`text-lg mr-3 ${isOpen || isActive ? "text-white" : "text-[#9ca3af]"}`}>
-                                                    {item.icon}
+                                                <span className={`text-base mr-3 ${isOpen || isGroupActive ? "text-white" : "text-[#9ca3af]"}`}>
+                                                    {(item as any).icon}
                                                 </span>
                                                 <span>{item.label}</span>
                                             </div>
@@ -128,11 +150,14 @@ export default function ModernAdminSidebar() {
                                         </button>
                                     ) : (
                                         <Link
-                                            href={item.href || "#"}
-                                            className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#db4444]/40
-                      ${isActive ? "bg-[#db4444] text-white" : "hover:bg-[#1e293b] hover:text-white"}`}
+                                            href={(item as any).href || "#"}
+                                            onClick={closeMobile} // auto đóng khi click ở mobile
+                                            className={`w-full flex items-center px-3 py-3 text-[13px] font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#db4444]/40
+                      ${isGroupActive ? "bg-[#db4444] text-white" : "hover:bg-[#1e293b] hover:text-white"}`}
                                         >
-                                            <span className={`text-lg mr-3 ${isActive ? "text-white" : "text-[#9ca3af]"}`}>{item.icon}</span>
+                                            <span className={`text-base mr-3 ${isGroupActive ? "text-white" : "text-[#9ca3af]"}`}>
+                                                {(item as any).icon}
+                                            </span>
                                             <span>{item.label}</span>
                                         </Link>
                                     )}
@@ -142,22 +167,20 @@ export default function ModernAdminSidebar() {
                                             id={`group-${item.label}`}
                                             className={`${isOpen ? "block animate-slide-left" : "hidden"} mt-1 ml-4 pl-6 border-l-2 border-[#1f2937]`}
                                         >
-                                            {item.children!.map((child) => {
+                                            {(item as any).children.map((child: any) => {
                                                 const isChildActive = pathname === child.href;
                                                 return (
                                                     <Link
                                                         key={child.href}
                                                         href={child.href}
-                                                        className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 mt-1
+                                                        onClick={closeMobile} // auto đóng khi chọn child
+                                                        className={`w-full flex items-center px-3 py-2.5 text-[13px] font-medium rounded-lg transition-all duration-200 mt-1
                             ${isChildActive
                                                                 ? "bg-[#db4444]/20 text-[#db4444] border-l-2 border-[#db4444]"
                                                                 : "hover:bg-[#1e293b] hover:text-white"
                                                             } focus:outline-none focus:ring-2 focus:ring-[#db4444]/40`}
                                                     >
-                                                        <div
-                                                            className={`w-2 h-2 rounded-full mr-3 ${isChildActive ? "bg-[#db4444]" : "bg-[#94a3b8]"
-                                                                }`}
-                                                        />
+                                                        <div className={`w-2 h-2 rounded-full mr-3 ${isChildActive ? "bg-[#db4444]" : "bg-[#94a3b8]"}`} />
                                                         <span>{child.label}</span>
                                                     </Link>
                                                 );
@@ -184,11 +207,11 @@ export default function ModernAdminSidebar() {
             <div className="lg:hidden sticky top-0 z-[60] bg-[#0f172a] text-[#e2e8f0] border-b border-[#334155]/70">
                 <div className="h-12 flex items-center justify-between px-3">
                     <button
-                        className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 bg-[#0b1221] border border-[#334155]/70 active:scale-[.98]"
+                        className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 bg-[#0b1221] border border-[#334155]/70 active:scale-[.98] focus:outline-none"
                         onClick={() => setMobileOpen(true)}
                         aria-label="Mở menu quản trị"
                     >
-                        <Menu size={18} />
+                        <MenuIcon size={18} />
                         <span className="text-sm">Menu</span>
                     </button>
                     <Link href="/admin/dashboard" className="text-sm font-medium">
@@ -200,7 +223,7 @@ export default function ModernAdminSidebar() {
             {/* Desktop sidebar */}
             <div className="hidden lg:block h-screen sticky top-0 z-[50]">{SidebarContent}</div>
 
-            {/* Mobile drawer + bo góc + shadow */}
+            {/* Mobile drawer (responsive width, bo góc, shadow) */}
             <div
                 className={`lg:hidden fixed inset-y-0 left-0 z-[70] transform transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"
                     }`}
@@ -208,7 +231,8 @@ export default function ModernAdminSidebar() {
                 aria-modal="true"
                 aria-label="Thanh điều hướng quản trị"
             >
-                <div className="h-full w-[19rem] max-w-[85vw] bg-transparent">
+                {/* ✔ Width responsive: 82vw, tối đa 320px; trên màn lớn hơn chút thì 20rem */}
+                <div className="h-full w-[82vw] max-w-[320px] sm:w-80 bg-transparent">
                     <div className="h-full bg-[#0f172a] rounded-r-2xl shadow-2xl border border-[#334155]/60 overflow-hidden">
                         {SidebarContent}
                     </div>
@@ -219,7 +243,7 @@ export default function ModernAdminSidebar() {
             {mobileOpen && (
                 <button
                     className="lg:hidden fixed inset-0 z-[65] bg-black/45 backdrop-blur-[2px] animate-fade-in"
-                    onClick={() => setMobileOpen(false)}
+                    onClick={closeMobile}
                     aria-label="Đóng menu"
                 />
             )}
