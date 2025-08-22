@@ -2,7 +2,7 @@
 
 import axios from "axios"
 import Cookies from "js-cookie"
-import { useEffect, useRef, useState, useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import { API_BASE_URL } from "@/utils/api"
 
 /* ===================== Types ===================== */
@@ -39,27 +39,6 @@ export interface Voucher {
   min_order?: number
   expires_at?: string
   is_active?: boolean
-}
-
-interface OrderRequestBody {
-  payment_method: string
-  voucher_code: string | null
-  voucher_codes?: ShopVoucher[]
-  address_id?: number
-  cart_item_ids?: number[]
-  address_manual?: {
-    full_name: string
-    address: string
-    city: string
-    phone: string
-    email: string
-  }
-  cart_items: Array<{
-    product_id: number
-    variant_id: number | null
-    quantity: number
-    price: number
-  }>
 }
 
 interface Totals {
@@ -123,27 +102,26 @@ export default function OrderSummary({
 }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [successMessage, setSuccessMessage] = useState("")
-  const [showPopup, setShowPopup] = useState(false)
-  const [popupType, setPopupType] = useState<"success" | "error" | null>(null)
-  const popupRef = useRef<HTMLDivElement | null>(null)
-
-  const popupTimerRef = useRef<NodeJS.Timeout | null>(null)
   const redirectTimerRef = useRef<NodeJS.Timeout | null>(null)
-
   const saveOnceRef = useRef(false)
 
   const num = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0)
   const getPriceToUse = (item: CartItem) => {
-  const cands = [item.variant?.sale_price, item.variant?.price, item.product.sale_price, item.product.price];
-  for (const v of cands) {
-    const n = num(v);
-    if (n > 0) return n;          // chỉ nhận giá > 0
+    const cands = [
+      item.variant?.sale_price,
+      item.variant?.price,
+      item.product.sale_price,
+      item.product.price,
+    ]
+    for (const v of cands) {
+      const n = num(v)
+      if (n > 0) return n
+    }
+    return 0
   }
-  return 0;
-};
 
-  const getOriginalPrice = (item: CartItem) => num(item.variant?.price ?? item.product.price)
+  const getOriginalPrice = (item: CartItem) =>
+    num(item.variant?.price ?? item.product.price)
 
   // ======== Tính tiền local (fallback) =========
   const {
@@ -152,11 +130,20 @@ export default function OrderSummary({
     voucherDiscount: localVoucherDiscount,
     shipping: localShipping,
   } = useMemo(() => {
-    const subtotal = cartItems.reduce((s, it) => s + getOriginalPrice(it) * it.quantity, 0)
-    const discountedSubtotal = cartItems.reduce((s, it) => s + getPriceToUse(it) * it.quantity, 0)
+    const subtotal = cartItems.reduce(
+      (s, it) => s + getOriginalPrice(it) * it.quantity,
+      0
+    )
+    const discountedSubtotal = cartItems.reduce(
+      (s, it) => s + getPriceToUse(it) * it.quantity,
+      0
+    )
     const promotionDiscount = Math.max(0, subtotal - discountedSubtotal)
     const shippingBase = cartItems.length > 0 ? 20000 : 0
-    const voucherDiscount = typeof serverDiscount === "number" ? Math.max(0, Math.floor(serverDiscount)) : 0
+    const voucherDiscount =
+      typeof serverDiscount === "number"
+        ? Math.max(0, Math.floor(serverDiscount))
+        : 0
     const shipping = serverFreeShipping ? 0 : shippingBase
     return { subtotal, promotionDiscount, voucherDiscount, shipping }
   }, [cartItems, serverDiscount, serverFreeShipping])
@@ -166,79 +153,10 @@ export default function OrderSummary({
   const promotionDiscount = localPromo
   const voucherDiscount = totals?.voucherDiscount ?? localVoucherDiscount
   const shipping = totals?.shipping ?? localShipping
-  const finalTotal = Math.max(0, subtotal - promotionDiscount - voucherDiscount + shipping)
-
-  /** ===== Lưu địa chỉ (đăng nhập + nhập tay + tick + không chọn addressId) ===== */
-  const trySaveManualAddress = async () => {
-    const token = localStorage.getItem("token") || Cookies.get("authToken")
-    if (!token || !manualAddressData) return
-
-    const parts = (manualAddressData.city || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)
-
-    const ward = parts[0] || ""
-    const district = parts[1] || ""
-    const province = parts[2] || parts[1] || ""
-    const city = province
-
-    const ok =
-      manualAddressData.full_name &&
-      manualAddressData.phone &&
-      manualAddressData.address &&
-      ward &&
-      district &&
-      province
-
-    if (!ok) return
-
-    const me = await axios.get(`${API_BASE_URL}/user`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const user_id = me.data?.id
-
-    const payload = {
-      full_name: manualAddressData.full_name,
-      phone: manualAddressData.phone,
-      address: manualAddressData.address,
-      ward,
-      district,
-      province,
-      city,
-      note: "",
-      is_default: false,
-      type: "Nhà Riêng",
-      user_id,
-    }
-
-    await axios.post(`${API_BASE_URL}/addresses`, payload, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      withCredentials: true,
-    })
-  }
-
-  const maybeSaveManualAddress = async () => {
-    if (saveOnceRef.current) return
-    const token = localStorage.getItem("token") || Cookies.get("authToken")
-    const isGuest = !token
-    if (isGuest) return
-    if (!saveAddress) return
-    if (!!addressId) return
-    if (!manualAddressData) return
-
-    await trySaveManualAddress()
-    saveOnceRef.current = true
-  }
-
-  /* ============== Gộp mã voucher để gửi BE ============== */
-  const globalCode: string | null = voucherCode ?? appliedVoucher?.code ?? globalVoucherCode ?? null
-
-  const voucherCodesArray: ShopVoucher[] | undefined =
-    Array.isArray(shopVouchers) && shopVouchers.length ? shopVouchers : undefined
+  const finalTotal = Math.max(
+    0,
+    subtotal - promotionDiscount - voucherDiscount + shipping
+  )
 
   /* ============== Đặt hàng ============== */
   const handlePlaceOrder = async () => {
@@ -249,26 +167,22 @@ export default function OrderSummary({
 
     if (!addressId && !manualAddressData) {
       setError("Vui lòng chọn hoặc nhập địa chỉ giao hàng.")
-      setPopupType("error")
-      setShowPopup(true)
       return
     }
-    // Tạo mảng id cart từ danh sách đang checkout
-const cartItemIds = cartItems
-  .map((it) => Number(it.id))
-  .filter((n) => Number.isFinite(n) && n > 0);
+
+    const cartItemIds = cartItems
+      .map((it) => Number(it.id))
+      .filter((n) => Number.isFinite(n) && n > 0)
 
     setLoading(true)
     setError("")
-    setSuccessMessage("")
-    setShowPopup(false)
-    setPopupType(null)
 
     try {
       const token = localStorage.getItem("token") || Cookies.get("authToken")
       const isGuest = !token
 
-      const globalCode: string | null = voucherCode ?? appliedVoucher?.code ?? globalVoucherCode ?? null
+      const globalCode: string | null =
+        voucherCode ?? appliedVoucher?.code ?? globalVoucherCode ?? null
 
       const cart_items = buildCartItemsPayload(cartItems)
 
@@ -299,7 +213,9 @@ const cartItemIds = cartItems
             full_name: manualAddressData.full_name || "",
             address:
               `${manualAddressData.address || ""}` +
-              (manualAddressData.apartment ? `, ${manualAddressData.apartment}` : ""),
+              (manualAddressData.apartment
+                ? `, ${manualAddressData.apartment}`
+                : ""),
             city: manualAddressData.city || "",
             phone: manualAddressData.phone || "",
             email: manualAddressData.email || "",
@@ -312,11 +228,19 @@ const cartItemIds = cartItems
           cart_item_ids: cartItemIds,
         }
 
-        if (manualAddressData && Object.values(manualAddressData).some((v) => (v ?? "").toString().trim() !== "")) {
+        if (
+          manualAddressData &&
+          Object.values(manualAddressData).some(
+            (v) => (v ?? "").toString().trim() !== ""
+          )
+        ) {
           payload.address_manual = {
             full_name: manualAddressData.full_name,
             address:
-              `${manualAddressData.address}` + (manualAddressData.apartment ? `, ${manualAddressData.apartment}` : ""),
+              `${manualAddressData.address}` +
+              (manualAddressData.apartment
+                ? `, ${manualAddressData.apartment}`
+                : ""),
             city: manualAddressData.city,
             phone: manualAddressData.phone,
             email: manualAddressData.email,
@@ -331,103 +255,59 @@ const cartItemIds = cartItems
       const headers: any = { "Content-Type": "application/json" }
       if (!isGuest) headers.Authorization = `Bearer ${token}`
 
-      console.log("[v0] Sending order request:", { url, payload })
       const response = await axios.post(url, payload, { headers })
-      console.log("[v0] Order response:", response.data)
+      console.log("[Order] Response:", response.data)
 
       if (response.data?.redirect_url || response.data?.payment_url) {
-        const redirectUrl = response.data.redirect_url || response.data.payment_url
-        console.log("[v0] VNPay redirect URL:", redirectUrl)
+        const redirectUrl =
+          response.data.redirect_url || response.data.payment_url
 
-const orderedSet = new Set(cartItems.map(it => String(it.id)));
-const raw = localStorage.getItem('cart');
-const current = raw ? JSON.parse(raw) : [];
-const remain = current.filter((it: any) => !orderedSet.has(String(it.id)));
-localStorage.setItem('cart', JSON.stringify(remain));
+        // xoá sp đã đặt trong localStorage
+        const orderedSet = new Set(cartItems.map((it) => String(it.id)))
+        const raw = localStorage.getItem("cart")
+        const current = raw ? JSON.parse(raw) : []
+        const remain = current.filter(
+          (it: any) => !orderedSet.has(String(it.id))
+        )
+        localStorage.setItem("cart", JSON.stringify(remain))
 
-
-        // Add a small delay to ensure state updates are processed
         setTimeout(() => {
           window.location.href = redirectUrl
         }, 100)
         return
       }
 
-      setSuccessMessage("Đặt hàng thành công!")
-      setPopupType("success")
-      setShowPopup(true)
+      // COD thành công → redirect sang trang success
+      const orderId = response.data?.order_id || ""
+      const orderedSet = new Set(cartItems.map((it) => String(it.id)))
+      const raw = localStorage.getItem("cart")
+      const current = raw ? JSON.parse(raw) : []
+      const remain = current.filter((it: any) => !orderedSet.has(String(it.id)))
+      if (remain.length) {
+        localStorage.setItem("cart", JSON.stringify(remain))
+      } else {
+        localStorage.removeItem("cart")
+      }
 
-      // Với guest: chỉ loại bỏ những món đã đặt, giữ lại phần còn lại
-try {
-  const orderedSet = new Set(cartItems.map(it => String(it.id)));
-  const raw = localStorage.getItem("cart");
-  const current = raw ? JSON.parse(raw) : [];
-  const remain = current.filter((it: any) => !orderedSet.has(String(it.id)));
-  if (remain.length) {
-    localStorage.setItem("cart", JSON.stringify(remain));
-  } else {
-    localStorage.removeItem("cart");
-  }
-} catch { /* ignore parse errors */ }
-
-// Cập nhật UI
-setCartItems([]);
-window.dispatchEvent(new Event("cartUpdated"));
+      setCartItems([])
+      window.dispatchEvent(new Event("cartUpdated"))
 
       redirectTimerRef.current = setTimeout(() => {
-        window.location.href = "/"
-      }, 2500)
-
-      if (!isGuest) {
-        await maybeSaveManualAddress()
-      }
+        window.location.href = `/checkout/success?order_id=${orderId}`
+      }, 300)
     } catch (err: any) {
-      console.error("[v0] Order error:", err)
+      console.error("[Order] Error:", err)
       const msg = err.response?.data?.message || err.message || "Lỗi đặt hàng"
       setError(msg)
-      setPopupType("error")
-      setShowPopup(true)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    if (showPopup) {
-      // Clear any existing timer
-      if (popupTimerRef.current) {
-        clearTimeout(popupTimerRef.current)
-      }
-
-      popupTimerRef.current = setTimeout(() => {
-        setShowPopup(false)
-        setPopupType(null)
-      }, 4000)
-    }
-
-    return () => {
-      if (popupTimerRef.current) {
-        clearTimeout(popupTimerRef.current)
-      }
-    }
-  }, [showPopup])
-
-  useEffect(() => {
-    return () => {
-      if (popupTimerRef.current) {
-        clearTimeout(popupTimerRef.current)
-      }
-      if (redirectTimerRef.current) {
-        clearTimeout(redirectTimerRef.current)
-      }
-    }
-  }, [])
-
   const buildCartItemsPayload = (list: CartItem[]) => {
     return list
       .map((it) => {
         const product_id = Number(it.product?.id)
-
         const rawVarId = (it.variant?.id ?? null) as any
         const variant_id =
           rawVarId === null || rawVarId === undefined
@@ -435,13 +315,18 @@ window.dispatchEvent(new Event("cartUpdated"));
             : Number.isFinite(Number(rawVarId))
               ? Number(rawVarId)
               : null
-
         const quantity = Number(it.quantity)
-const price = getPriceToUse(it);
+        const price = getPriceToUse(it)
 
         return { product_id, variant_id, quantity, price }
       })
-      .filter((x) => Number.isFinite(x.product_id) && x.product_id > 0 && Number.isFinite(x.price) && x.quantity > 0)
+      .filter(
+        (x) =>
+          Number.isFinite(x.product_id) &&
+          x.product_id > 0 &&
+          Number.isFinite(x.price) &&
+          x.quantity > 0
+      )
   }
 
   /* ===================== UI ===================== */
@@ -459,12 +344,16 @@ const price = getPriceToUse(it);
 
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Khuyến mãi:</span>
-            <span className="text-green-700">-{promotionDiscount.toLocaleString("vi-VN")}đ</span>
+            <span className="text-green-700">
+              -{promotionDiscount.toLocaleString("vi-VN")}đ
+            </span>
           </div>
 
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span>Voucher:</span>
-            <span className="text-green-700">-{(voucherDiscount || 0).toLocaleString("vi-VN")}đ</span>
+            <span className="text-green-700">
+              -{(voucherDiscount || 0).toLocaleString("vi-VN")}đ
+            </span>
           </div>
 
           <div className="flex justify-between py-2 border-b border-gray-200">
@@ -478,7 +367,7 @@ const price = getPriceToUse(it);
           </div>
         </div>
 
-        <div className="mt-5 flex justify-end">
+        <div className="mt-5 flex flex-col items-end">
           <button
             onClick={handlePlaceOrder}
             disabled={isProcessing || loading}
@@ -490,54 +379,11 @@ const price = getPriceToUse(it);
                 : "Đang xử lý..."
               : "Đặt hàng"}
           </button>
+          {error && (
+            <p className="text-red-600 font-medium mt-3 text-right">{error}</p>
+          )}
         </div>
       </div>
-
-      {showPopup && (
-        <div className="fixed inset-0 z-[9999] flex justify-center items-center pointer-events-none">
-          <div
-            ref={popupRef}
-            className="bg-white rounded-lg p-6 w-80 flex flex-col items-center relative animate-scaleIn shadow-lg border pointer-events-auto"
-          >
-            <button
-              onClick={() => setShowPopup(false)}
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className={`h-16 w-16 mb-4 ${popupType === "success" ? "text-green-600" : "text-red-600"}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d={popupType === "success" ? "M5 13l4 4L19 7" : "M6 18L18 6M6 6l12 12"}
-              />
-            </svg>
-
-            <p
-              className={`text-base font-semibold text-center ${popupType === "success" ? "text-green-700" : "text-red-700"}`}
-            >
-              {popupType === "success" ? successMessage : error}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

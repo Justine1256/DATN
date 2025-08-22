@@ -221,48 +221,53 @@ export default function VnpReturnPage() {
             }
             style={{ border: "1px solid #e8e8e8" }}
           >
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
-              gap: 24 
-            }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)", // luôn 4 cột
+                gap: 24,
+              }}
+            >
               <Statistic
                 title="Số tiền thanh toán"
                 value={formatVND(amount)}
-                valueStyle={{ color: success ? "#52c41a" : "#faad14", fontSize: 24, fontWeight: "bold" }}
+                valueStyle={{
+                  color: success ? "#52c41a" : "#faad14",
+                  fontSize: 24,
+                  fontWeight: "bold",
+                  whiteSpace: "nowrap",   // 👈 không cho xuống dòng
+                }}
                 prefix={<BankOutlined />}
               />
-              
               <Statistic
                 title="Mã đơn hàng"
                 value={order || "—"}
-                valueStyle={{ fontSize: 18 }}
+                valueStyle={{ fontSize: 18, whiteSpace: "nowrap" }}
               />
-              
               <Statistic
                 title="Thời gian giao dịch"
                 value={
                   payDate
                     ? new Intl.DateTimeFormat("vi-VN", {
-                        day: "2-digit",
-                        month: "2-digit", 
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      }).format(payDate)
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(payDate)
                     : "—"
                 }
                 prefix={<ClockCircleOutlined />}
-                valueStyle={{ fontSize: 16 }}
+                valueStyle={{ fontSize: 16, whiteSpace: "nowrap" }}
               />
-              
               <Statistic
                 title="Ngân hàng"
                 value={bankCode || "VNPay"}
-                valueStyle={{ fontSize: 16 }}
+                valueStyle={{ fontSize: 16, whiteSpace: "nowrap" }}
                 prefix={<BankOutlined />}
               />
             </div>
+
             
             {orderInfo && (
               <>
@@ -274,55 +279,56 @@ export default function VnpReturnPage() {
                 </div>
               </>
             )}
-            <Space size="middle" wrap style={{ justifyContent: "center" }}>
-                {success ? (
-                  <>
-                    <Button
-                      type="primary"
-                      size="large"
-                      icon={<ShoppingOutlined />}
-                      onClick={() => router.push("/account?section=orders")}
-                      style={{ borderRadius: 6 }}
-                    >
-                      Xem đơn hàng của tôi
-                    </Button>
-                    <Button
-                      size="large"
-                      icon={<HomeOutlined />}
-                      onClick={() => router.push("/")}
-                      style={{ borderRadius: 6 }}
-                    >
-                      Về trang chủ
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      type="primary"
-                      size="large"
-                      onClick={() => router.push("/checkout")}
-                      style={{ borderRadius: 6 }}
-                    >
-                      Thử thanh toán lại
-                    </Button>
-                    <Button
-                      size="large"
-                      icon={<HomeOutlined />}
-                      onClick={() => router.push("/")}
-                      style={{ borderRadius: 6 }}
-                    >
-                      Về trang chủ
-                    </Button>
-                    <Button
-                      size="large"
-                      onClick={() => router.push("/help")}
-                      style={{ borderRadius: 6 }}
-                    >
-                      Liên hệ hỗ trợ
-                    </Button>
-                  </>
-                )}
-              </Space>
+            <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "nowrap" }}>
+              {success ? (
+                <>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<ShoppingOutlined />}
+                    onClick={() => router.push("/account?section=orders")}
+                    style={{ borderRadius: 6, background: "#db4444", borderColor: "#db4444" }}
+                  >
+                    Xem đơn hàng của tôi
+                  </Button>
+                  <Button
+                    size="large"
+                    icon={<HomeOutlined />}
+                    onClick={() => router.push("/")}
+                    style={{ borderRadius: 6, background: "#db4444", borderColor: "#db4444", color: "#fff" }}
+                  >
+                    Về trang chủ
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={() => router.push("/checkout")}
+                    style={{ borderRadius: 6, background: "#db4444", borderColor: "#db4444" }}
+                  >
+                    Thử thanh toán lại
+                  </Button>
+                  <Button
+                    size="large"
+                    icon={<HomeOutlined />}
+                    onClick={() => router.push("/")}
+                    style={{ borderRadius: 6, background: "#db4444", borderColor: "#db4444", color: "#fff" }}
+                  >
+                    Về trang chủ
+                  </Button>
+                  <Button
+                    size="large"
+                    onClick={() => router.push("/help")}
+                    style={{ borderRadius: 6, background: "#db4444", borderColor: "#db4444", color: "#fff" }}
+                  >
+                    Liên hệ hỗ trợ
+                  </Button>
+                </>
+              )}
+            </div>
+
           </Card>
 
 
