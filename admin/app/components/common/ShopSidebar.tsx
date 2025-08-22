@@ -81,18 +81,30 @@ const buildAntdItems = (pathname: string) => {
       return {
         key: item.label,
         icon: <span className="text-[#9ca3af]">{item.icon}</span>,
-        label: item.label,
+        label: <span className="text-[13px] font-medium">{item.label}</span>,
         children: item.children.map((c) => ({
           key: c.href,
-          icon: <div className="w-2 h-2 rounded-full bg-[#94a3b8]" />,
-          label: <Link href={c.href}>{c.label}</Link>,
+          icon: c.icon ? (
+            <span className="text-[#a3b1c8]">{c.icon}</span>
+          ) : (
+            <div className="w-1.5 h-1.5 rounded-full bg-[#94a3b8]" />
+          ),
+          label: (
+            <Link href={c.href} className="text-[13px]">
+              {c.label}
+            </Link>
+          ),
         })),
       };
     }
     return {
       key: (item as Extract<MenuRoot, { href: string }>).href,
       icon: <span className="text-[#9ca3af]">{item.icon}</span>,
-      label: <Link href={(item as Extract<MenuRoot, { href: string }>).href}>{item.label}</Link>,
+      label: (
+        <Link href={(item as Extract<MenuRoot, { href: string }>).href} className="text-[13px] font-medium">
+          {item.label}
+        </Link>
+      ),
     };
   });
 
@@ -106,6 +118,11 @@ const buildAntdItems = (pathname: string) => {
     }
   });
   return { items, selectedKeys, openKeys };
+};
+
+const getDrawerWidth = () => {
+  if (typeof window === "undefined") return 260;
+  return Math.min(320, Math.round(window.innerWidth * 0.82));
 };
 
 // ================== COMPONENT ==================
@@ -123,17 +140,30 @@ export default function ModernAdminSidebar() {
 
   const isDesktop = screens.lg;
 
+  // Chủ đạo giống admin
   const palette = {
-    bg: "#0f172a",
-    bgSoft: "#0b1221",
-    text: "#e2e8f0",
-    border: "#334155",
-    accent: "#db4444",
+    bg: "#0f172a",        // slate-900
+    bgSoft: "#0b1221",    // darker pane
+    text: "#e2e8f0",      // slate-200
+    border: "#334155",    // slate-600
+    accent: "#DB4444",    // admin red
+    hover: "#1e293b",     // slate-800
+    selectedSoft: "rgba(219,68,68,0.14)",
   } as const;
 
   const LogoBar = (
-    <div className="flex items-center justify-center px-6 py-5" style={{ borderBottom: `1px solid ${palette.border}B3`, background: palette.bgSoft }}>
-      <a href={typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:3000" : "https://marketo.info.vn"} className="inline-flex items-center gap-2">
+    <div
+      className="flex items-center justify-center px-6 py-5"
+      style={{ borderBottom: `1px solid ${palette.border}B3`, background: palette.bgSoft }}
+    >
+      <a
+        href={
+          typeof window !== "undefined" && window.location.hostname === "localhost"
+            ? "http://localhost:3000"
+            : "https://marketo.info.vn"
+        }
+        className="inline-flex items-center gap-2"
+      >
         <Image src="/logo.png" alt="MarketO Logo" width={128} height={40} priority />
         <span className="ml-2 text-xs text-[#9ca3af]">Quản trị</span>
       </a>
@@ -143,6 +173,8 @@ export default function ModernAdminSidebar() {
   const Nav = (
     <div className="h-full flex flex-col" style={{ color: palette.text }}>
       {LogoBar}
+
+      {/* NAV */}
       <div className="px-2 flex-1 overflow-y-auto no-scrollbar">
         <Menu
           mode="inline"
@@ -151,10 +183,15 @@ export default function ModernAdminSidebar() {
           openKeys={currentOpen}
           onOpenChange={(keys) => setCurrentOpen(keys as string[])}
           onClick={() => !isDesktop && setDrawerOpen(false)}
-          style={{ background: "transparent", borderRight: 0 }}
+          style={{ background: "transparent", borderRight: 0, padding: "8px 4px" }}
         />
       </div>
-      <div className="px-4 py-3 text-[11px]" style={{ color: "#94a3b8", background: palette.bgSoft, borderTop: `1px solid ${palette.border}B3` }}>
+
+      {/* FOOTER */}
+      <div
+        className="px-4 py-3 text-[11px]"
+        style={{ color: "#94a3b8", background: palette.bgSoft, borderTop: `1px solid ${palette.border}B3` }}
+      >
         © {new Date().getFullYear()} MarketO
       </div>
     </div>
@@ -164,15 +201,47 @@ export default function ModernAdminSidebar() {
     <ConfigProvider
       theme={{
         algorithm: antdTheme.darkAlgorithm,
-        token: { colorPrimary: palette.accent, colorBgBase: palette.bg, colorTextBase: palette.text, colorBorder: palette.border, borderRadius: 12 },
-        components: { Menu: { itemSelectedColor: "#fff", itemSelectedBg: palette.accent, itemHoverBg: "#1e293b" } },
+        token: {
+          colorPrimary: palette.accent,
+          colorBgBase: palette.bg,
+          colorTextBase: palette.text,
+          colorBorder: palette.border,
+          borderRadius: 12,
+          controlHeight: 36,
+          controlPaddingHorizontal: 10,
+        },
+        components: {
+          Menu: {
+            itemBorderRadius: 10,
+            itemMarginInline: 6,
+            itemMarginBlock: 4,
+            itemHeight: 40,
+            fontSize: 13,
+            itemColor: "#cbd5e1",
+            itemHoverColor: "#ffffff",
+            itemHoverBg: palette.hover,
+            itemSelectedColor: "#ffffff",
+            itemSelectedBg: palette.selectedSoft, // mềm hơn, giống admin
+            groupTitleColor: "#93a4b8",
+            subMenuItemBg: "transparent",
+            activeBarBorderWidth: 0,
+          },
+        },
       }}
     >
       {/* Topbar (mobile) */}
       {!isDesktop && (
-        <div className="lg:hidden sticky top-0 z-[60]" style={{ background: palette.bg, color: palette.text, borderBottom: `1px solid ${palette.border}B3` }}>
+        <div
+          className="lg:hidden sticky top-0 z-[60]"
+          style={{ background: palette.bg, color: palette.text, borderBottom: `1px solid ${palette.border}B3` }}
+        >
           <div className="h-12 flex items-center justify-between px-3">
-            <Button type="text" onClick={() => setDrawerOpen(true)} icon={<MenuIcon size={18} />} style={{ color: palette.text }}>
+            <Button
+              type="text"
+              onClick={() => setDrawerOpen(true)}
+              icon={<MenuIcon size={18} />}
+              style={{ color: palette.text }}
+            >
               Menu
             </Button>
             <Link href="/shop-admin/dashboard" className="text-sm font-medium">
@@ -183,7 +252,11 @@ export default function ModernAdminSidebar() {
       )}
 
       {/* Desktop sidebar */}
-      {isDesktop && <div className="h-screen sticky top-0 z-[50]" style={{ background: palette.bg }}>{Nav}</div>}
+      {isDesktop && (
+        <aside className="h-screen sticky top-0 z-[50]" style={{ background: palette.bg, width: 264 }}>
+          {Nav}
+        </aside>
+      )}
 
       {/* Mobile Drawer */}
       {!isDesktop && (
@@ -191,7 +264,7 @@ export default function ModernAdminSidebar() {
           placement="left"
           maskClosable
           destroyOnClose
-          width={typeof window !== "undefined" ? Math.min(320, Math.round(window.innerWidth * 0.8)) : 260}
+          width={getDrawerWidth()}
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
           closable={false}
@@ -201,6 +274,17 @@ export default function ModernAdminSidebar() {
           {Nav}
         </Drawer>
       )}
+
+      {/* Ẩn scrollbar cho khối menu (tuỳ tiện ích Tailwind của bạn) */}
+      <style jsx global>{`
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </ConfigProvider>
   );
 }
