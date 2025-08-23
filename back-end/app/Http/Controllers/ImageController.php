@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
 
 class ImageController extends Controller
 {
@@ -120,7 +119,7 @@ public function uploadShopLogo(Request $request)
 public function uploadRefundImage(Request $request)
 {
     $request->validate([
-        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:5120',
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
     ]);
 
     $file = $request->file('image');
