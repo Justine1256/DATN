@@ -2,7 +2,7 @@
 import { useState } from "react"
 import type React from "react"
 
-import { X, Upload, Trash2, AlertCircle } from "lucide-react"
+import { Upload, Trash2, AlertCircle } from "lucide-react"
 import type { Order } from "../../../types/oder"
 import { message } from "antd"
 
@@ -75,20 +75,6 @@ export default function RefundRequestModal({
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-          <div>
-
-          </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors pt-10"
-            disabled={isProcessing}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
         {/* Scrollable Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Warning Notice */}
