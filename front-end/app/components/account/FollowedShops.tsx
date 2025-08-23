@@ -218,14 +218,21 @@ export default function FollowedShopsSection() {
                                         background: `linear-gradient(180deg, ${BRAND}, #ff6b6b)`,
                                     }}
                                 />
-                                <Title level={3} style={{ margin: 0 }}>
-                                    Danh sách shop theo dõi
-                                </Title>
+                                <Title 
+  level={3} 
+  style={{ margin: 0, color: 'black', cursor: 'default' }}
+>
+  Danh sách shop theo dõi
+</Title>
+
                                 <Tag color={BRAND} style={{ borderRadius: 999 }}>
                                     {shops.length} shop
                                 </Tag>
                             </Space>
-                            <Text type="secondary">Quản lý & theo dõi các shop yêu thích</Text>
+                           <Text style={{ color: 'black' }}>
+  Quản lý & theo dõi các shop yêu thích
+</Text>
+
                         </Col>
 
                         <Col xs={24} md={10} lg={10}>
@@ -360,9 +367,14 @@ export default function FollowedShopsSection() {
                                                                 style={{ color: 'inherit' }}
                                                                 onClick={(e) => e.stopPropagation()}
                                                             >
-                                                                <Title level={5} style={{ margin: 0 }} ellipsis>
-                                                                    {shop.name}
-                                                                </Title>
+                                                               <Title 
+  level={5} 
+  style={{ margin: 0, color: 'black', cursor: 'default' }} 
+  ellipsis
+>
+  {shop.name}
+</Title>
+
                                                             </Link>
                                                            
                                                         </Space>
@@ -388,31 +400,36 @@ export default function FollowedShopsSection() {
                                                         flex: 1,
                                                     }}
                                                 >
-                                                    <Space size="small" align="center" wrap>
-                                                        <Rate
-                                                            allowHalf
-                                                            disabled
-                                                            value={
-                                                                shop.rating != null ? Number(shop.rating) : 0
-                                                            }
-                                                        />
-                                                        <Text strong>
-                                                            {shop.rating != null
-                                                                ? Number(shop.rating).toFixed(1)
-                                                                : 'N/A'}
-                                                        </Text>
-                                                        <Text type="secondary">điểm</Text>
-                                                    </Space>
+                                              <Space size="small" align="center" wrap>
+  {shop.rating != null && Number(shop.rating) > 0 ? (
+    <>
+      <Rate
+        allowHalf
+        disabled
+        value={Number(shop.rating)}
+      />
+      <Text strong style={{ color: 'black' }}>
+        {Number(shop.rating).toFixed(1)}
+      </Text>
+      <Text style={{ color: 'black' }}>điểm</Text>
+    </>
+  ) : (
+    <Text strong style={{ color: 'black' }}>
+      Chưa có đánh giá
+    </Text>
+  )}
+</Space>
+
 
                                                     {/* giữ chiều cao mô tả để các thẻ bằng nhau */}
                                                     <div style={{ minHeight: 44 }}>
-                                                        <Paragraph
-                                                            type="secondary"
-                                                            ellipsis={{ rows: 2 }}
-                                                            style={{ margin: 0 }}
-                                                        >
-                                                            {shop.description || 'Shop chưa có mô tả.'}
-                                                        </Paragraph>
+                                                       <Paragraph
+  ellipsis={{ rows: 2 }}
+  style={{ margin: 0, color: 'black' }}
+>
+  {shop.description || 'Shop chưa có mô tả.'}
+</Paragraph>
+
                                                     </div>
 
                                                     {/* footer (chỉ còn hủy theo dõi) */}

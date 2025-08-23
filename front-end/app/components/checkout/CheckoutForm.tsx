@@ -373,11 +373,12 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
               dropdownMatchSelectWidth={false}
               style={{ width: '100%' }}
             />
-            <Text type="secondary">
-              {manualMode
-                ? 'Bạn đang ở chế độ tự nhập bên dưới.'
-                : 'Hoặc chọn “+ Nhập địa chỉ mới” ở đầu danh sách.'}
-            </Text>
+         <Text style={{ color: 'black' }}>
+  {manualMode
+    ? 'Bạn đang ở chế độ tự nhập bên dưới.'
+    : 'Hoặc chọn “+ Nhập địa chỉ mới” ở đầu danh sách.'}
+</Text>
+
           </Form.Item>
 
           {/* ====== Manual form (mở khi chọn TỰ NHẬP) ====== */}
