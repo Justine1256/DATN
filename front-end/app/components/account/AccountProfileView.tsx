@@ -32,7 +32,6 @@ export default function AccountPage() {
   const [showPopup, setShowPopup] = useState(false);
 
   // ui states
-  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isRecalcLoading, setIsRecalcLoading] = useState(false);
 
@@ -45,7 +44,9 @@ export default function AccountPage() {
 
   // ===== helpers =====
   const formatVND = (n: number) =>
-    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n || 0);
+    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+      n || 0
+    );
 
   // 🟡 Xác định style nền + chữ theo rank
   const getRankStyle = (r: string) => {
@@ -62,7 +63,6 @@ export default function AccountPage() {
         return { bg: "bg-[#DDE9FF]", text: "text-[#517191]" };
     }
   };
-
 
   const getRankIcon = (r: string) => {
     switch (r) {
@@ -90,7 +90,7 @@ export default function AccountPage() {
             ? "#CD7F32"
             : "#80AAFA";
 
-  // ngưỡng chi tiêu theo logic bạn gửi
+  // ngưỡng chi tiêu theo logic của bạn
   const spendTargetByRank = (r: string) => {
     switch (r) {
       case "diamond":
@@ -102,7 +102,6 @@ export default function AccountPage() {
       case "bronze":
         return 5_000_000;
       default:
-        // member/khác
         return 0;
     }
   };
@@ -120,30 +119,7 @@ export default function AccountPage() {
     }
   }, [showPopup]);
 
-  // ===== data fetching =====
-  const fetchUser = useCallback(async () => {
-    const token = Cookies.get("authToken");
-    if (!token) return setLoading(false);
-    try {
-      const res = await axios.get(`${API_BASE_URL}/user`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUser(res.data);
-      // nếu /user có trả kèm số liệu thì nạp luôn (không bắt buộc)
-      if (res?.data?.delivered_orders != null) {
-        setDeliveredOrders(Number(res.data.delivered_orders) || 0);
-      }
-      if (res?.data?.total_spent != null) {
-        setTotalSpent(Number(res.data.total_spent) || 0);
-      }
-    } catch {
-      showPopupMessage("Không thể tải thông tin người dùng.", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [setUser, showPopupMessage]);
-
-  // gọi recalc để có số liệu ngay khi vào
+  // ===== ONLY useEffect: gọi recalc khi vào trang =====
   const fetchRankInfo = useCallback(async () => {
     const token = Cookies.get("authToken");
     if (!token) return;
@@ -174,12 +150,11 @@ export default function AccountPage() {
   }, [setUser]);
 
   useEffect(() => {
-    // load cả user + rank info
-    fetchUser();
+    // Chỉ gọi recalc để lấy rank + số liệu
     fetchRankInfo();
-  }, [fetchUser, fetchRankInfo]);
+  }, [fetchRankInfo]);
 
-  // ===== avatar handlers =====
+  // ===== avatar handlers (giữ nguyên) =====
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -224,8 +199,7 @@ export default function AccountPage() {
 
       showPopupMessage("Đã cập nhật thành công!", "success");
       setIsEditing(false);
-      fetchUser();
-      setPreviewAvatar("");
+      // Không cần refetch toàn bộ; để giữ nguyên yêu cầu “còn lại giữ nguyên”
     } catch (err: any) {
       showPopupMessage(err?.response?.data?.message || "Lỗi cập nhật!", "error");
     }
@@ -248,8 +222,6 @@ export default function AccountPage() {
 
       if (newRank) {
         setUser((prev: any) => (prev ? { ...prev, rank: newRank } : prev));
-      } else {
-        await fetchUser();
       }
 
       const delivered =
@@ -280,7 +252,7 @@ export default function AccountPage() {
       : "/default-avatar.jpg");
 
   // ===== progress & targets =====
-  const ORDER_TARGET = 75; // giữ mốc 75 đơn để tính bar
+  const ORDER_TARGET = 75; // mốc 75 đơn để tính bar
   const orderPercent = Math.min(
     ORDER_TARGET ? (deliveredOrders / ORDER_TARGET) * 100 : 0,
     100
@@ -291,6 +263,8 @@ export default function AccountPage() {
     spendTarget ? (totalSpent / spendTarget) * 100 : 0,
     100
   );
+
+  const { bg, text } = getRankStyle(rank);
 
   return (
     <div className="w-full flex justify-center py-10 text-[15px] text-gray-800">
@@ -443,9 +417,7 @@ export default function AccountPage() {
                 </button>
 
                 <div
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium  text-white ${getRankStyle(
-                    rank
-                  )}`}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${bg} ${text}`}
                 >
                   {getRankIcon(rank)}
                   <span className="capitalize">{rank}</span>
@@ -476,7 +448,7 @@ export default function AccountPage() {
                   <div
                     className="h-2 rounded-full"
                     style={{
-                      width: `${orderPercent}%`,
+                      width: `${Math.min((deliveredOrders / 75) * 100, 100)}%`,
                       backgroundColor: colorByRank(rank),
                       transition: "width .3s ease",
                     }}
@@ -489,15 +461,19 @@ export default function AccountPage() {
                 <p className="text-xs mb-1">Chi tiêu</p>
                 <p className="text-lg font-bold">
                   <span style={{ color: colorByRank(rank) }}>
-                    {formatVND(totalSpent)}{" "}
-                    {spendTarget > 0 ? ` / ${formatVND(spendTarget)}` : ""}
+                    {formatVND(totalSpent)} {spendTargetByRank(rank) > 0 ? ` / ${formatVND(spendTargetByRank(rank))}` : ""}
                   </span>
                 </p>
                 <div className="mt-2 w-full bg-[#DDDDDD] rounded-full h-2">
                   <div
                     className="h-2 rounded-full"
                     style={{
-                      width: `${spendPercent}%`,
+                      width: `${Math.min(
+                        spendTargetByRank(rank)
+                          ? (totalSpent / spendTargetByRank(rank)) * 100
+                          : 0,
+                        100
+                      )}%`,
                       backgroundColor: colorByRank(rank),
                       transition: "width .3s ease",
                     }}
@@ -505,7 +481,6 @@ export default function AccountPage() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
