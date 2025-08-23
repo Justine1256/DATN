@@ -384,22 +384,26 @@ export default function RefundReportsPage() {
     })
 
     // Get first product image for list view
-    const getFirstProductImage = (productImages: string[]) => {
-        if (!productImages || productImages.length === 0) return null
-        return formatImageUrl(productImages[0])
-    }
+    // Get first product image for list view
+    const getFirstProductImage = (productImages?: string[]) => {
+        if (!productImages || productImages.length === 0) {
+            return `${STATIC_BASE_URL}/products/default-product.png`; // ảnh fallback
+        }
+        return formatImageUrl(productImages[0]);
+    };
+
 
     // Get product name from detail data
-    const getProductName = (productImages: RefundReportDetail["product_images"]) => {
-        if (!productImages || productImages.length === 0) return "Sản phẩm"
-        return productImages[0]?.product_name || "Sản phẩm"
-    }
+  const getProductName = (productImages?: RefundReportDetail["product_images"]) => {
+  if (!productImages || productImages.length === 0) return "Sản phẩm đã xóa";
+  return productImages[0]?.product_name || "Sản phẩm";
+};
 
     // Get all product images from detail data
-    const getAllProductImages = (productImages: RefundReportDetail["product_images"]) => {
-        if (!productImages || productImages.length === 0) return []
-        return productImages[0]?.image || []
-    }
+  const getAllProductImages = (productImages?: RefundReportDetail["product_images"]) => {
+  if (!productImages || productImages.length === 0) return [];
+  return productImages[0]?.image || [];
+};
 
     // Format avatar URL
     const formatAvatarUrl = (avatar: string | null) => {
@@ -667,9 +671,10 @@ export default function RefundReportsPage() {
                                                         {getFirstProductImage(report.product_image) ? (
                                                             <img
                                                                 className="h-10 w-10 rounded-lg object-cover border border-gray-200"
-                                                                src={getFirstProductImage(report.product_image)! || "/placeholder.svg"}
+                                                                src={getFirstProductImage(report.product_image)}
                                                                 alt="Product"
                                                             />
+
                                                         ) : (
                                                             <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center border border-gray-200">
                                                                 <Package className="h-5 w-5 text-gray-400" />
@@ -820,9 +825,10 @@ export default function RefundReportsPage() {
                                                     </div>
                                                     <div className="flex justify-between gap-2">
                                                         <span className="text-gray-600">Sản phẩm:</span>
-                                                        <span className="font-medium truncate max-w-40 sm:max-w-52">
-                                                            {getProductName(selectedReport.product_images)}
-                                                        </span>
+                                                      <span className="font-medium truncate max-w-40 sm:max-w-52">
+  {getProductName(selectedReport.product_images)}
+</span>
+
                                                     </div>
                                                     <div className="flex justify-between gap-2">
                                                         <span className="text-gray-600">Ngày tạo:</span>
@@ -906,14 +912,15 @@ export default function RefundReportsPage() {
                                                     <h4 className="font-semibold text-gray-900">Hình Ảnh Sản Phẩm</h4>
                                                 </div>
                                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                                                    {getAllProductImages(selectedReport.product_images).map((image, index) => (
-                                                        <img
-                                                            key={index}
-                                                            src={formatImageUrl(image) || "/placeholder.svg"}
-                                                            alt={`Product ${index + 1}`}
-                                                            className="w-full h-20 object-cover rounded-lg border border-white shadow-sm hover:scale-105 transition-transform"
-                                                        />
-                                                    ))}
+                                                   {getAllProductImages(selectedReport.product_images).map((image, index) => (
+  <img
+    key={index}
+    src={formatImageUrl(image) || "/placeholder.svg"}
+    alt={`Product ${index + 1}`}
+    className="w-full h-20 object-cover rounded-lg border border-white shadow-sm hover:scale-105 transition-transform"
+/>
+))}
+
                                                 </div>
                                             </div>
                                         )}
