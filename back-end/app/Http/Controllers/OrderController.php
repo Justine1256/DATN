@@ -366,7 +366,7 @@ class OrderController extends Controller
             foreach ($orders as $od) {
                 $od->update([
                     'payment_status'     => 'Pending',
-                    'order_status'       => 'Pending Processing',
+                    'order_status'       => 'Pending',
                     'confirmed_at'       => now(),           // BỔ SUNG: theo schema của bạn
                     'order_admin_status' => 'Unpaid',        // rõ nghĩa hơn cho admin
                 ]);
@@ -386,7 +386,7 @@ class OrderController extends Controller
             foreach ($orders as $od) {
                 $od->update([
                     'payment_status' => 'Pending',
-                    'order_status'   => 'Pending Processing',
+                    'order_status'   => 'Pending',
                 ]);
             }
 
