@@ -15,17 +15,19 @@ interface User {
   id: number
   name: string
   avatar?: string | null
+  avatarNode?: React.ReactNode
   role?: string
   online?: boolean
   last_message?: string
   last_time?: string
   isBot?: boolean
   email?: string
-  // optional fields that appeared in fallbacks
   phone?: string | null
   address?: string | null
   created_at?: string
   updated_at?: string
+  // optional (nếu backend có)
+  last_conversation_id?: number | null
 }
 
 interface ChatbotResponse {
@@ -70,13 +72,14 @@ interface Message {
       logo: string
     }
   }>
-}
+}const byCreatedAtAsc = (a: Message, b: Message) =>
+  new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+
 
 interface NotificationMessage {
   id: number
   sender: User
   message: string
-  
   image?: string | null
 }
 
@@ -90,6 +93,8 @@ interface ChatSocketData {
 type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error"
 
 export default function EnhancedChatTools() {
+  const PAGE_SIZE = 15
+
   const [showList, setShowList] = useState(false)
   const [activeChat, setActiveChat] = useState(false)
   const [receiver, setReceiver] = useState<User | null>(null)
@@ -111,17 +116,29 @@ export default function EnhancedChatTools() {
   const [lastMessageCount, setLastMessageCount] = useState(0)
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [currentOffset, setCurrentOffset] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+
   const myId = useMemo(() => Number(currentUser?.id ?? -999), [currentUser])
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+
+  // Infinite scroll (sentinel & lock)
+  const topSentinelRef = useRef<HTMLDivElement>(null)
+  const isFetchingRef = useRef(false)
+
+  // Abort request & session key to avoid race
+  const fetchAbortRef = useRef<AbortController | null>(null)
+  const convoKeyRef = useRef<string>("") // "u:<myId>-r:<rid>-p:<page>"
+
   const [contactQuery, setContactQuery] = useState("")
-  const stickToBottomRef = useRef(true)
   const [isTyping, setIsTyping] = useState(false)
-  // gần các useState khác
   const [isBotTyping, setIsBotTyping] = useState(false)
+
+  const makeConvoKey = (rid: number | undefined, page: number) =>
+    `u:${myId}-r:${Number(rid)}-p:${page}`
 
   const scrollToBottom = (smooth = false) => {
     messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" })
@@ -148,11 +165,18 @@ export default function EnhancedChatTools() {
   // helper to resolve image URLs consistently
   const resolveImageUrl = (img?: string | null) => {
     if (!img) return null
-    if (img.startsWith("blob:") || img.startsWith("data:") || img.startsWith("http") || img.startsWith("/")) return img
+    if (
+      img.startsWith("blob:") ||
+      img.startsWith("data:") ||
+      img.startsWith("http") ||
+      img.startsWith("/")
+    )
+      return img
     return `${STATIC_BASE_URL}/${img}`
   }
 
-  const getSafeImg = (img?: string | null) => resolveImageUrl(img) || `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+  const getSafeImg = (img?: string | null) =>
+    resolveImageUrl(img) || `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
 
   const getShopLogoUrl = (logo?: string | null) => {
     const fallback = `${STATIC_BASE_URL}/shops/default-shop.jpg`
@@ -168,21 +192,20 @@ export default function EnhancedChatTools() {
       // không phải JSON -> bỏ qua
     }
 
-    // Dùng trực tiếp nếu là URL tuyệt đối hoặc data URI
-    if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:")) return raw
-
-    // Nếu bắt đầu bằng "/" -> nối trực tiếp sau STATIC_BASE_URL
+    if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:"))
+      return raw
     if (raw.startsWith("/")) return `${STATIC_BASE_URL}${raw}`
-
-    // Còn lại coi là path tương đối từ STATIC_BASE_URL
     return `${STATIC_BASE_URL}/${raw}`
   }
-
 
   const chatbotUser: User = {
     id: -1,
     name: "Chat Bot",
-    avatar: "/bot-avatar.png",
+    avatarNode: (
+      <div className="size-8 rounded-full bg-indigo-600 grid place-items-center">
+        <Bot size={18} className="text-white" />
+      </div>
+    ),
     role: "assistant",
     online: true,
     last_message: "Xin chào! Tôi có thể giúp gì cho bạn?",
@@ -218,53 +241,353 @@ export default function EnhancedChatTools() {
   const loadMessagesFromStorage = (storageKey: string): Message[] => {
     try {
       const saved = localStorage.getItem(storageKey)
-      return saved ? JSON.parse(saved) : []
+      return saved ? (JSON.parse(saved) as Message[]) : []
     } catch (error) {
       console.error("Failed to load messages from localStorage:", error)
       return []
     }
   }
 
+  // ===== Lưu/đọc "cuộc trò chuyện cuối" (local) =====
+  const lastRxKey = (uid: number | null) => `chat_last_receiver_${uid ?? "guest"}`
+  const setLastReceiver = (rid: number | null) => {
+    try {
+      localStorage.setItem(lastRxKey(currentUser?.id || null), String(rid ?? ""))
+    } catch {
+      // ignore
+    }
+  }
+  const getLastReceiver = (): number | null => {
+    try {
+      const v = localStorage.getItem(lastRxKey(currentUser?.id || null))
+      if (!v) return null
+      const n = Number(v)
+      return Number.isFinite(n) ? n : null
+    } catch {
+      return null
+    }
+  }
+
+  // Throttle fallback bằng rAF
+  const rafThrottle = <T extends (...args: any[]) => void>(fn: T) => {
+    let ticking = false
+    return (...args: Parameters<T>) => {
+      if (!ticking) {
+        ticking = true
+        requestAnimationFrame(() => {
+          fn(...args)
+          ticking = false
+        })
+      }
+    }
+  }
+
   useEffect(() => setMounted(true), [])
+
+  // ==== Auth (lấy user, có thể kèm last_conversation_id) ====
+  useEffect(() => {
+    const tk = localStorage.getItem("token") || Cookies.get("authToken")
+    if (tk) {
+      setToken(tk)
+      axios
+        .get(`${API_BASE_URL}/user`, { headers: { Authorization: `Bearer ${tk}` } })
+        .then((res) => setCurrentUser(res.data as User))
+        .catch((err) => {
+          console.error("❌ Lỗi auth:", err)
+        })
+    }
+  }, [])
+
+  // ==== Contacts (để render avatar/name nếu có) ====
+  const fetchRecentContacts = useCallback(async () => {
+    const tk = localStorage.getItem("token") || Cookies.get("authToken")
+    if (!tk) {
+      setRecentContacts([chatbotUser])
+      return
+    }
+
+    try {
+      const res = await axios.get(`${API_BASE_URL}/recent-contacts`, {
+        headers: { Authorization: { toString: () => `Bearer ${tk}` } as any },
+      })
+      const humans: User[] = (res.data || []).filter((u: User) => u.id !== -1)
+      setRecentContacts([chatbotUser, ...humans])
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách đã nhắn:", err)
+      setRecentContacts([chatbotUser])
+    }
+  }, [])
 
   useEffect(() => {
     if (showList) fetchRecentContacts()
-  }, [showList])
+  }, [showList, fetchRecentContacts])
 
+  // ======= LẮNG NGHE SỰ KIỆN MỞ CHAT TỪ BÊN NGOÀI =======
+  type OpenChatDetail = {
+    receiverId: number
+    receiverName?: string
+    avatar?: string | null
+  }
+
+  useEffect(() => {
+    const onOpenChat = (ev: Event) => {
+      const e = ev as CustomEvent<OpenChatDetail>
+      const rid = Number(e.detail?.receiverId)
+      if (!rid || Number.isNaN(rid)) return
+
+      setShowList(true)
+      setActiveChat(true)
+
+      setReceiver((prev) => {
+        if (prev?.id === rid) return prev
+        return {
+          id: rid,
+          name: e.detail?.receiverName || "Người dùng",
+          avatar: e.detail?.avatar ?? null,
+          isBot: false,
+        } as User
+      })
+
+      setIsInitialLoad(true)
+      setLastReceiver(rid)
+    }
+
+    window.addEventListener("open-chat-box", onOpenChat as EventListener)
+    return () => {
+      window.removeEventListener("open-chat-box", onOpenChat as EventListener)
+    }
+  }, [])
+
+  // ======= MỞ KHUNG CHAT: ƯU TIÊN API CHO CUỘC TRƯỚC (nếu đã đăng nhập) =======
+  useEffect(() => {
+    // Chỉ chạy khi mở panel và chưa chọn receiver
+    if (!showList || receiver) return
+
+    // Nếu chưa đăng nhập → mở Chat Bot + lịch sử local
+    const tk = token || localStorage.getItem("token") || Cookies.get("authToken")
+    if (!tk || !currentUser) {
+      setReceiver(chatbotUser)
+      setActiveChat(true)
+      setIsInitialLoad(true)
+      const savedBot = loadMessagesFromStorage(getChatbotStorageKey(null))
+      setMessages(savedBot)
+      setHasMoreMessages(false)
+      setCurrentPage(1)
+      return
+    }
+
+    // Đã đăng nhập → chọn cuộc trước để FETCH API
+    ;(async () => {
+      // 1) Ưu tiên server last_conversation_id
+      let targetId: number | null =
+        (typeof currentUser.last_conversation_id === "number"
+          ? currentUser.last_conversation_id
+          : null) ?? null
+
+      // 2) Nếu server không có → lấy lastReceiver từ local
+      if (targetId == null) {
+        targetId = getLastReceiver()
+      }
+
+      // 3) Nếu vẫn chưa có → thử lấy contact mới nhất từ API
+      if (targetId == null) {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/recent-contacts`, {
+            headers: { Authorization: { toString: () => `Bearer ${tk}` } as any },
+          })
+          const humans: User[] = (res.data || []).filter((u: User) => u.id !== -1)
+          if (humans.length > 0) {
+            targetId = humans[0].id
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (targetId != null && targetId !== -1) {
+        const found = recentContacts.find((u) => Number(u.id) === Number(targetId))
+        const target: User =
+          found || ({ id: targetId, name: "Người dùng", isBot: false } as User)
+
+        fetchAbortRef.current?.abort()
+        isFetchingRef.current = false
+        setLoading(false)
+        setLoadingMore(false)
+
+        setReceiver(target)
+        setLastReceiver(targetId)
+        setActiveChat(true)
+        setIsInitialLoad(true)
+        setMessages([]) // để hiện spinner + đảm bảo không lẫn local
+        setHasMoreMessages(true)
+        setCurrentPage(1)
+        return
+      }
+
+      // Không có cuộc trước → mở Chat Bot
+      setReceiver(chatbotUser)
+      setLastReceiver(-1)
+      setActiveChat(true)
+      setIsInitialLoad(true)
+      const savedBot = loadMessagesFromStorage(getChatbotStorageKey(currentUser?.id || null))
+      setMessages(savedBot)
+      setHasMoreMessages(false)
+      setCurrentPage(1)
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showList, receiver, currentUser, token, recentContacts])
+
+  // Mỗi lần đổi receiver → huỷ request đang chạy (tránh race)
+  useEffect(() => {
+    fetchAbortRef.current?.abort()
+    isFetchingRef.current = false
+    setLoading(false)
+    setLoadingMore(false)
+  }, [receiver?.id])
+
+  // ===== FETCH MESSAGES (ƯU TIÊN API CHO NGƯỜI THẬT, BOT DÙNG LOCAL) =====
+  const fetchMessages = useCallback(
+    async (reset = false) => {
+      if (!receiver?.id || receiver?.isBot) {
+        if (reset) {
+          setMessages([])
+          setHasMoreMessages(false)
+          setLoading(false)
+          setLoadingMore(false)
+          setCurrentPage(1)
+        }
+        return
+      }
+
+      if (isFetchingRef.current) return
+      isFetchingRef.current = true
+
+      const tk = localStorage.getItem("token") || Cookies.get("authToken")
+      if (!tk) {
+        isFetchingRef.current = false
+        return
+      }
+
+      if (reset) {
+        setLoading(true)
+        setMessages([]) // <== quan trọng: không dùng local
+        setHasMoreMessages(true)
+        setCurrentPage(1)
+      } else {
+        setLoadingMore(true)
+      }
+
+      try {
+        // huỷ request cũ & tạo request mới có signal
+        fetchAbortRef.current?.abort()
+        const controller = new AbortController()
+        fetchAbortRef.current = controller
+
+        const pageToFetch = reset ? 1 : currentPage + 1
+        const thisKey = makeConvoKey(receiver?.id, pageToFetch)
+        convoKeyRef.current = thisKey
+
+        const res = await axios.get(`${API_BASE_URL}/messages`, {
+          params: { user_id: receiver.id, page: pageToFetch, limit: PAGE_SIZE },
+          headers: { Authorization: `Bearer ${tk}` },
+          signal: controller.signal,
+        })
+
+        // Nếu đã chuyển hội thoại hoặc chuyển sang bot → bỏ qua
+        if (convoKeyRef.current !== thisKey || receiver?.isBot) return
+
+        const payload = res.data || {}
+        const list = Array.isArray(payload.data) ? payload.data : []
+
+        const batch: Message[] = list
+          .map((m: any) => ({
+            ...m,
+            sender_id: Number(m.sender_id),
+            receiver_id: Number(m.receiver_id),
+            image: resolveImageUrl(m.image ?? null) || undefined,
+          }))
+          .sort(byCreatedAtAsc)
+
+        if (reset) {
+          setMessages(batch)
+          setCurrentPage(1)
+          setIsInitialLoad(true)
+        } else {
+          const container = messagesContainerRef.current
+          const prevHeight = container?.scrollHeight || 0
+
+          setMessages((prev) => {
+            const merged = [...batch, ...prev]
+            const unique = merged.filter(
+              (msg, i, arr) => arr.findIndex((m) => String(m.id) === String(msg.id)) === i
+            )
+            return unique.sort(
+              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            )
+          })
+
+          setCurrentPage((p) => p + 1)
+
+          setTimeout(() => {
+            if (container) {
+              const newH = container.scrollHeight
+              container.scrollTop = newH - prevHeight
+            }
+          }, 0)
+        }
+
+        const hasMore =
+          typeof (payload as any).has_more === "boolean"
+            ? (payload as any).has_more
+            : ((payload as any).current_page ?? pageToFetch) <
+              ((payload as any).last_page ?? pageToFetch)
+
+        setHasMoreMessages(hasMore)
+      } catch (err: unknown) {
+        // bị huỷ do đổi hội thoại → im lặng
+        if (
+          (err as any)?.name === "CanceledError" ||
+          (err as any)?.name === "AbortError" ||
+          ((axios as any).isCancel && (axios as any).isCancel(err))
+        ) {
+          // no-op
+        } else {
+          console.error("❌ fetchMessages error:", err)
+          if (reset) setMessages([])
+        }
+      } finally {
+        if (!receiver?.isBot) {
+          setLoading(false)
+          setLoadingMore(false)
+        }
+        isFetchingRef.current = false
+      }
+    },
+    [receiver?.id, receiver?.isBot, currentPage]
+  )
+
+  // Khi đổi receiver:
+  // - BOT: nạp local bot
+  // - HUMAN: luôn FETCH API (không đọc local để ưu tiên dữ liệu mới)
   useEffect(() => {
     if (!receiver) return
 
-    let storageKey = ""
-    let savedMessages: Message[] = []
-
     if (receiver.id === -1) {
-      storageKey = getChatbotStorageKey(currentUser?.id || null)
-      savedMessages = loadMessagesFromStorage(storageKey)
-    } else if (currentUser) {
-      storageKey = getStorageKey(currentUser.id, receiver.id)
-      savedMessages = loadMessagesFromStorage(storageKey)
-    }
-
-    if (savedMessages.length > 0) {
+      const storageKey = getChatbotStorageKey(currentUser?.id || null)
+      const savedMessages = loadMessagesFromStorage(storageKey)
       setMessages(savedMessages)
-    } else {
-      setMessages([])
-      if (receiver.id !== -1 && currentUser) {
-        fetchMessages(true)
-      }
+      setHasMoreMessages(false)
+      setCurrentPage(1)
+      return
     }
-  }, [receiver, currentUser])
 
-  useEffect(() => {
-    if (activeChat && mounted && receiver?.id) {
-      setIsInitialLoad(true)
-      setLastMessageCount(0)
-      setCurrentOffset(0)
-      setHasMoreMessages(true)
+    if (currentUser) {
+      // Ưu tiên API
       fetchMessages(true)
     }
-  }, [activeChat, mounted, receiver?.id])
+  }, [receiver?.id, currentUser, fetchMessages])
 
+  // Cuộn cuối khi messages thay đổi
   useEffect(() => {
     if (messages.length > 0) {
       if (isInitialLoad) {
@@ -281,297 +604,177 @@ export default function EnhancedChatTools() {
     if (showList) setUnreadCount(0)
   }, [showList])
 
+  // Lưu vào local storage: CHỈ lưu lịch sử với BOT, KHÔNG lưu hội thoại người dùng
   useEffect(() => {
     if (!receiver || messages.length === 0) return
-
-    let storageKey = ""
-
     if (receiver.id === -1) {
-      storageKey = getChatbotStorageKey(currentUser?.id || null)
-    } else if (currentUser) {
-      storageKey = getStorageKey(currentUser.id, receiver.id)
-    } else {
-      return
+      const storageKey = getChatbotStorageKey(currentUser?.id || null)
+      saveMessagesToStorage(messages, storageKey)
     }
-
-    saveMessagesToStorage(messages, storageKey)
   }, [messages, receiver, currentUser])
-
-  const handleScroll = useCallback(() => {
-    const container = messagesContainerRef.current
-    if (!container || loadingMore || !hasMoreMessages) return
-    if (container.scrollTop <= 100) {
-      fetchMessages(false)  // gọi trực tiếp
-    }
-  }, [loadingMore, hasMoreMessages, receiver?.id]) // thêm deps cần thiết
-
-  useEffect(() => {
-    const container = messagesContainerRef.current
-    if (container) {
-      container.addEventListener("scroll", handleScroll)
-      return () => container.removeEventListener("scroll", handleScroll)
-    }
-  }, [handleScroll])
-
-  useEffect(() => {
-    const tk = localStorage.getItem("token") || Cookies.get("authToken")
-
-    if (tk) {
-      setToken(tk)
-      axios
-        .get(`${API_BASE_URL}/user`, {
-          headers: { Authorization: `Bearer ${tk}` },
-        })
-        .then((res) => {
-          setCurrentUser(res.data)
-        })
-        .catch((err) => {
-          console.error("❌ Lỗi auth:", err)
-          if (axios.isAxiosError(err)) {
-            console.error("📊 Auth error status:", err.response?.status)
-            console.error("📄 Auth error data:", err.response?.data)
-          }
-        })
-    }
-  }, [])
-
-  const fetchRecentContacts = useCallback(async () => {
-    const tk = localStorage.getItem("token") || Cookies.get("authToken")
-    if (!tk) {
-      setRecentContacts([chatbotUser])
-      return
-    }
-
-    try {
-      const res = await axios.get(`${API_BASE_URL}/recent-contacts`, {
-        headers: { Authorization: `Bearer ${tk}` },
-      })
-      setRecentContacts([chatbotUser, ...res.data])
-    } catch (err) {
-      console.error("Lỗi khi lấy danh sách đã nhắn:", err)
-      setRecentContacts([chatbotUser])
-    }
-  }, [])
-  function TypingIndicator() {
-    return (
-      <div className="flex items-center gap-1 p-2">
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-      </div>
-    )
-  }
-
-  const handleSocketData = useCallback(
-    (data: ChatSocketData) => {
-      if (data.type === "message" && data.message) {
-        const message = data.message
-
-        const isCurrentConversation =
-          receiver?.id &&
-          currentUser?.id &&
-          ((Number(message.sender_id) === Number(receiver.id) &&
-            Number(message.receiver_id) === Number(currentUser.id)) ||
-            (Number(message.sender_id) === Number(currentUser?.id) &&
-              Number(message.receiver_id) === Number(receiver.id)))
-
-        if (isCurrentConversation) {
-          setMessages((prev) => {
-            const messageExists = prev.some((msg) => {
-              if (String(msg.id).startsWith("temp-")) return false
-              return String(msg.id) === String(message.id)
-            })
-
-            if (messageExists) return prev
-
-            if (Number(message.sender_id) === Number(currentUser?.id)) {
-              return prev.map((msg) => {
-                if (
-                  String(msg.id).startsWith("temp-") &&
-                  msg.message === message.message &&
-                  Math.abs(new Date(msg.created_at).getTime() - new Date(message.created_at).getTime()) < 5000
-                ) {
-                  return {
-                    ...message,
-                    image: resolveImageUrl(message.image ?? null),
-                  }
-                }
-                return msg
-              })
-            }
-
-            const newMessages = [
-              ...prev,
-              {
-                ...message,
-                image: resolveImageUrl(message.image ?? null),
-              },
-            ]
-            return newMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-          })
-        }
-
-        if (
-          Number(message.sender_id) === Number(currentUser?.id) ||
-          Number(message.receiver_id) === Number(currentUser?.id)
-        ) {
-          setTimeout(() => {
-            fetchRecentContacts()
-          }, 200)
-        }
-
-        if (
-          Number(message.receiver_id) === Number(currentUser?.id) &&
-          Number(message.sender_id) !== Number(currentUser?.id)
-        ) {
-          if (!isCurrentConversation || !activeChat) {
-            setNotifications((prev) => {
-              const notificationExists = prev.some((n) => String(n.id) === String(message.id))
-              if (notificationExists) return prev
-
-              return [
-                ...prev,
-                {
-                  id: Number(message.id),
-                  sender: message.sender,
-                  message: message.message,
-                  image: resolveImageUrl(message.image ?? null),
-                },
-              ]
-            })
-            setUnreadCount((prev) => prev + 1)
-          }
-        }
-      } else if (data.type === "typing") {
-        if (data.user_id && Number(data.user_id) !== Number(currentUser?.id)) {
-          const isTyping = data.is_typing ?? false
-          setIsReceiverTyping(isTyping)
-          if (isTyping) {
-            setTimeout(() => setIsReceiverTyping(false), 3000)
-          }
-        }
-      }
-    },
-    [currentUser?.id, receiver?.id, activeChat, fetchRecentContacts]
-  )
-
-  const handleConnectionStatus = useCallback((status: ConnectionStatus) => {
-    setConnectionStatus(status)
-  }, [])
 
   const { sendTypingEvent } = usePusherChat(
     currentUser?.id,
     token || "",
     receiver?.id,
-    handleSocketData,
-    handleConnectionStatus
+    useCallback(
+      (data: ChatSocketData) => {
+        if (data.type === "message" && data.message) {
+          const message = data.message
+
+          const isCurrentConversation =
+            receiver?.id &&
+            currentUser?.id &&
+            ((Number(message.sender_id) === Number(receiver.id) &&
+              Number(message.receiver_id) === Number(currentUser.id)) ||
+              (Number(message.sender_id) === Number(currentUser?.id) &&
+                Number(message.receiver_id) === Number(receiver.id)))
+
+          if (isCurrentConversation) {
+            setMessages((prev) => {
+              const messageExists = prev.some((msg) => {
+                if (String(msg.id).startsWith("temp-")) return false
+                return String(msg.id) === String(message.id)
+              })
+
+              if (messageExists) return prev
+
+              if (Number(message.sender_id) === Number(currentUser?.id)) {
+                return prev.map((msg) => {
+                  if (
+                    String(msg.id).startsWith("temp-") &&
+                    msg.message === message.message &&
+                    Math.abs(
+                      new Date(msg.created_at).getTime() -
+                        new Date(message.created_at).getTime()
+                    ) < 5000
+                  ) {
+                    return {
+                      ...message,
+                      image: resolveImageUrl(message.image ?? null),
+                    }
+                  }
+                  return msg
+                })
+              }
+
+              const newMessages = [
+                ...prev,
+                {
+                  ...message,
+                  image: resolveImageUrl(message.image ?? null),
+                },
+              ]
+              return newMessages.sort(
+                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              )
+            })
+          }
+
+          if (
+            Number(message.sender_id) === Number(currentUser?.id) ||
+            Number(message.receiver_id) === Number(currentUser?.id)
+          ) {
+            setTimeout(() => {
+              fetchRecentContacts()
+            }, 200)
+          }
+
+          if (
+            Number(message.receiver_id) === Number(currentUser?.id) &&
+            Number(message.sender_id) !== Number(currentUser?.id)
+          ) {
+            if (!isCurrentConversation || !activeChat) {
+              setNotifications((prev) => {
+                const notificationExists = prev.some(
+                  (n) => String(n.id) === String(message.id)
+                )
+                if (notificationExists) return prev
+
+                return [
+                  ...prev,
+                  {
+                    id: Number(message.id),
+                    sender: message.sender,
+                    message: message.message,
+                    image: resolveImageUrl(message.image ?? null),
+                  },
+                ]
+              })
+              setUnreadCount((prev) => prev + 1)
+            }
+          }
+        } else if (data.type === "typing") {
+          if (data.user_id && Number(data.user_id) !== Number(currentUser?.id)) {
+            const typing = data.is_typing ?? false
+            setIsReceiverTyping(typing)
+            if (typing) {
+              setTimeout(() => setIsReceiverTyping(false), 3000)
+            }
+          }
+        }
+      },
+      [currentUser?.id, receiver?.id, activeChat, fetchRecentContacts]
+    ),
+    useCallback((status: ConnectionStatus) => {
+      setConnectionStatus(status)
+    }, [])
   )
 
-  const fetchMessages = async (reset = false) => {
-    if (!receiver?.id) return
+  // IntersectionObserver cho sentinel top (kéo lên để load thêm) — không bật cho bot
+  useEffect(() => {
+    if (receiver?.isBot) return
 
-    if (receiver.isBot) {
-      if (reset) {
-        setMessages([])
-        setLoading(false)
+    const root = messagesContainerRef.current
+    const target = topSentinelRef.current
+    if (!root || !target) return
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0]
+        // khi sentinel ló vào viewport (gần top), tải thêm
+        if (first.isIntersecting && hasMoreMessages && !isFetchingRef.current) {
+          fetchMessages(false) // sẽ tự tăng currentPage
+        }
+      },
+      {
+        root,
+        threshold: 0,
+        rootMargin: "0px 0px -90% 0px",
       }
-      return
-    }
+    )
 
-    const tk = localStorage.getItem("token") || Cookies.get("authToken")
-    if (!tk) return
+    io.observe(target)
+    return () => io.disconnect()
+  }, [receiver?.id, receiver?.isBot, hasMoreMessages, fetchMessages])
 
-    if (reset) {
-      setLoading(true)
-      setMessages([])
-    } else {
-      setLoadingMore(true)
-    }
+  // Fallback onScroll (throttle) — phòng khi IO không bắn (Safari, WebView)
+  const handleScroll = useMemo(
+    () =>
+      rafThrottle(() => {
+        const root = messagesContainerRef.current
+        if (!root || receiver?.isBot || isFetchingRef.current || !hasMoreMessages) return
+        if (root.scrollTop <= 40) {
+          fetchMessages(false)
+        }
+      }),
+    [receiver?.isBot, hasMoreMessages, fetchMessages]
+  )
 
-    try {
-      const offset = reset ? 0 : currentOffset
-      const res = await axios.get(`${API_BASE_URL}/messages`, {
-        params: {
-          user_id: receiver.id,
-          limit: 15,
-          offset,
-        },
-        headers: { Authorization: `Bearer ${tk}` },
-      })
+  useEffect(() => {
+    if (receiver?.isBot) return
+    const root = messagesContainerRef.current
+    if (!root) return
+    root.addEventListener("scroll", handleScroll, { passive: true })
+    return () => root.removeEventListener("scroll", handleScroll)
+  }, [receiver?.id, receiver?.isBot, handleScroll])
 
-      let messagesData = res.data
-
-      if (res.data && typeof res.data === "object" && (res.data as any).data && Array.isArray((res.data as any).data)) {
-        messagesData = (res.data as any).data
-      } else if (!Array.isArray(res.data)) {
-        console.error("❌ Response data is not an array:", res.data)
-        messagesData = []
-      }
-
-      // Normalize IDs and image once here
-      const normalized: Message[] = (messagesData as Message[]).map((m) => ({
-        ...m,
-        sender_id: Number(m.sender_id),
-        receiver_id: Number(m.receiver_id),
-        image: resolveImageUrl(m.image ?? null) || undefined,
-      }))
-
-      const sortedMessages = normalized.sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      )
-
-      if (reset) {
-        setMessages(sortedMessages)
-        setCurrentOffset(15)
-      } else {
-        const container = messagesContainerRef.current
-        const scrollHeight = container?.scrollHeight || 0
-
-        setMessages((prev) => {
-          const newMessages = [...sortedMessages, ...prev]
-          const uniqueMessages = newMessages.filter(
-            (msg, index, arr) => arr.findIndex((m) => String(m.id) === String(msg.id)) === index
-          )
-          return uniqueMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-        })
-
-        setCurrentOffset((prev) => prev + 15)
-
-        setTimeout(() => {
-          if (container) {
-            const newScrollHeight = container.scrollHeight
-            container.scrollTop = newScrollHeight - scrollHeight
-          }
-        }, 50)
-      }
-
-      setHasMoreMessages((messagesData as Message[]).length === 15)
-    } catch (error) {
-      console.error("❌ Lỗi khi lấy tin nhắn:", error)
-      if (axios.isAxiosError(error)) {
-        console.error("📊 Response status:", error.response?.status)
-        console.error("📄 Response data:", error.response?.data)
-        console.error("🔗 Request URL:", error.config?.url)
-      }
-      if (reset) {
-        setMessages([])
-      }
-    } finally {
-      setLoading(false)
-      setLoadingMore(false)
-    }
-  }
-
-  const loadMoreMessages = useCallback(async () => {
-    if (!receiver?.id || loadingMore || !hasMoreMessages) return
-    await fetchMessages(false)
-  }, [receiver?.id, loadingMore, hasMoreMessages])
-
-  // nhớ khai báo state ở trên cùng file (gần các useState khác):
-  // const [isBotTyping, setIsBotTyping] = useState(false);
-
+  // ===== Chatbot flow =====
   const sendChatbotMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim()) return
+
+    // ghi lại "cuộc trước" là bot
+    setLastReceiver(-1)
 
     // 1) Push tin nhắn của bạn vào UI ngay
     const userMessage: Message = {
@@ -588,22 +791,22 @@ export default function EnhancedChatTools() {
           role: "guest",
         },
       receiver: chatbotUser,
-    };
+    }
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage])
 
     // 2) Reset input + bật typing cho bot
-    const originalInput = input;
-    setInput("");
-    setIsBotTyping(true);
+    const originalInput = input
+    setInput("")
+    setIsBotTyping(true)
 
     try {
       // 3) Gọi API chatbot
       const response = await axios.post(`${API_BASE_URL}/chatbot`, {
         message: originalInput,
-      });
+      })
 
-      const data = response.data as ChatbotResponse;
+      const data = response.data as ChatbotResponse
 
       // 4) Push reply của bot
       const botResponse: Message = {
@@ -621,10 +824,10 @@ export default function EnhancedChatTools() {
             role: "guest",
           },
         products: data.products || [],
-      };
+      }
 
-      setMessages((prev) => [...prev, botResponse]);
-    } catch (e) {
+      setMessages((prev) => [...prev, botResponse])
+    } catch {
       // 5) Lỗi -> báo lỗi như bot
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
@@ -640,16 +843,15 @@ export default function EnhancedChatTools() {
             avatar: null,
             role: "guest",
           },
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      }
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
       // 6) Tắt typing
-      setIsBotTyping(false);
+      setIsBotTyping(false)
     }
-  };
+  }
 
-
-
+  // ===== Human-to-human flow =====
   const sendMessage = async () => {
     // 1) Nếu đang chat với bot → dùng flow chatbot
     if (receiver?.id === -1) return sendChatbotMessage()
@@ -665,7 +867,7 @@ export default function EnhancedChatTools() {
     const rid = Number(receiver?.id)
     if (!rid || (!input.trim() && images.length === 0)) return
 
-    // Giới hạn 1 ảnh/lần gửi (nếu bạn muốn nhiều ảnh thì bỏ check này)
+    // Giới hạn 1 ảnh/lần gửi
     if (images.length > 1) {
       alert("Chỉ có thể gửi 1 ảnh mỗi lần.")
       return
@@ -676,7 +878,6 @@ export default function EnhancedChatTools() {
     if (!messageText && images.length > 0) {
       messageText = "[Image]"
     } else if (!messageText) {
-      // vẫn cần có ký tự để backend không coi là rỗng
       messageText = " "
     }
 
@@ -698,7 +899,7 @@ export default function EnhancedChatTools() {
     const optimisticId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
     const optimisticMessage: Message = {
       id: optimisticId,
-      sender_id: Number(currentUser.id), // ép kiểu số để so sánh chuẩn
+      sender_id: Number(currentUser.id),
       receiver_id: rid,
       message: messageText,
       created_at: new Date().toISOString(),
@@ -706,6 +907,9 @@ export default function EnhancedChatTools() {
       receiver: receiver as User,
       image: previewUrl || undefined,
     }
+
+    // ghi lại "cuộc trước" là người này
+    setLastReceiver(rid)
 
     setMessages((prev) => [...prev, optimisticMessage])
 
@@ -738,7 +942,7 @@ export default function EnhancedChatTools() {
       setTimeout(() => {
         fetchRecentContacts()
       }, 400)
-    } catch (error) {
+    } catch (error: unknown) {
       // 7) Rollback nếu lỗi
       console.error("❌ Lỗi khi gửi tin nhắn:", error)
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
@@ -761,28 +965,28 @@ export default function EnhancedChatTools() {
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files)
+    const fls = e.target.files
+    if (!fls) return
+    const files = Array.from(fls)
 
-      if (files.length + images.length > 1) {
-        alert("Chỉ có thể gửi 1 ảnh mỗi lần.")
+    if (files.length + images.length > 1) {
+      alert("Chỉ có thể gửi 1 ảnh mỗi lần.")
+      return
+    }
+
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`File ${file.name} quá lớn (>5MB). Vui lòng chọn file nhỏ hơn.`)
         return
       }
-
-      for (const file of files) {
-        if (file.size > 5 * 1024 * 1024) {
-          alert(`File ${file.name} quá lớn (>5MB). Vui lòng chọn file nhỏ hơn.`)
-          return
-        }
-        if (!file.type.startsWith("image/")) {
-          alert(`File ${file.name} không phải ảnh. Vui lòng chọn file ảnh hợp lệ.`)
-          return
-        }
+      if (!file.type.startsWith("image/")) {
+        alert(`File ${file.name} không phải ảnh. Vui lòng chọn file ảnh hợp lệ.`)
+        return
       }
-
-      setImages((prev) => [...prev, ...files])
-      setImagePreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))])
     }
+
+    setImages((prev) => [...prev, ...files])
+    setImagePreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))])
   }
 
   const handleRemoveImage = (i: number) => {
@@ -793,18 +997,20 @@ export default function EnhancedChatTools() {
   const formatTime = (dateStr: string) =>
     mounted
       ? new Date(dateStr).toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+          hour: "2-digit",
+          minute: "2-digit",
+        })
       : ""
 
   const handleNotificationClick = (notification: NotificationMessage) => {
-    setReceiver({
+    const next: User = {
       id: notification.sender.id,
       name: notification.sender.name,
       avatar: notification.sender.avatar ?? null,
       role: notification.sender.role,
-    })
+    }
+    setReceiver(next)
+    setLastReceiver(notification.sender.id)
     setShowList(true)
     setActiveChat(true)
     setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
@@ -818,6 +1024,7 @@ export default function EnhancedChatTools() {
 
   const handleContactClick = (user: User) => {
     setReceiver(user)
+    setLastReceiver(user.id)
     setActiveChat(true)
     setIsInitialLoad(true)
   }
@@ -841,7 +1048,7 @@ export default function EnhancedChatTools() {
         <button
           onClick={() => {
             if (!showList) {
-              setReceiver(chatbotUser)
+              // KHÔNG setReceiver ở đây — để effect quyết định
               setActiveChat(true)
               setShowList(true)
               setUnreadCount(0)
@@ -899,7 +1106,8 @@ export default function EnhancedChatTools() {
 
                   <svg
                     className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
-                    viewBox="0 0 24 24" fill="currentColor"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
                   >
                     <path d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm8.707 1.293-3.761-3.76A10 10 0 1 0 12 22a9.95 9.95 0 0 0 5.533-1.647l3.761 3.76z" />
                   </svg>
@@ -924,7 +1132,9 @@ export default function EnhancedChatTools() {
                     type="button"
                     key={`contact-${user.id}`}
                     onClick={() => handleContactClick(user)}
-                    className={`w-full text-left flex items-center gap-3 px-3 py-3 border-b transition-colors hover:bg-white ${receiver?.id === user.id ? "bg-white/90 border-l-4 border-l-[#db4444]" : ""}`}
+                    className={`w-full text-left flex items-center gap-3 px-3 py-3 border-b transition-colors hover:bg-white ${
+                      receiver?.id === user.id ? "bg-white/90 border-l-4 border-l-[#db4444]" : ""
+                    }`}
                   >
                     <div className="relative">
                       {user.isBot ? (
@@ -937,8 +1147,8 @@ export default function EnhancedChatTools() {
                             user.avatar?.startsWith("http") || user.avatar?.startsWith("/")
                               ? (user.avatar as string)
                               : user.avatar
-                                ? `${STATIC_BASE_URL}/${user.avatar}`
-                                : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+                              ? `${STATIC_BASE_URL}/${user.avatar}`
+                              : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
                           }
                           alt={user.name}
                           width={40}
@@ -956,7 +1166,9 @@ export default function EnhancedChatTools() {
                         <p className="text-sm font-medium truncate">{user.name}</p>
                         {user.isBot && <Bot size={12} className="text-blue-500" />}
                       </div>
-                      <p className="text-[12px] text-gray-500 truncate">{user.last_message || "Chưa có tin nhắn"}</p>
+                      <p className="text-[12px] text-gray-500 truncate">
+                        {user.last_message || "Chưa có tin nhắn"}
+                      </p>
                       {user.last_time && (
                         <p className="text-[11px] text-gray-400">{formatTime(user.last_time)}</p>
                       )}
@@ -980,7 +1192,7 @@ export default function EnhancedChatTools() {
                       <Image
                         src={
                           receiver?.avatar
-                            ? (receiver.avatar.startsWith("http") || receiver.avatar.startsWith("/"))
+                            ? receiver.avatar.startsWith("http") || receiver.avatar.startsWith("/")
                               ? receiver.avatar
                               : `${STATIC_BASE_URL}/${receiver.avatar}`
                             : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
@@ -1004,14 +1216,14 @@ export default function EnhancedChatTools() {
                       {receiver?.isBot
                         ? "AI Assistant — Luôn sẵn sàng hỗ trợ"
                         : connectionStatus === "connected"
-                          ? isReceiverTyping
-                            ? `${receiver?.name} đang nhập…`
-                            : "Đang hoạt động"
-                          : connectionStatus === "connecting"
-                            ? "Đang kết nối WebSocket…"
-                            : connectionStatus === "error"
-                              ? "Lỗi WebSocket — dùng API"
-                              : "WebSocket mất kết nối"}
+                        ? isReceiverTyping
+                          ? `${receiver?.name} đang nhập…`
+                          : "Đang hoạt động"
+                        : connectionStatus === "connecting"
+                        ? "Đang kết nối WebSocket…"
+                        : connectionStatus === "error"
+                        ? "Lỗi WebSocket — dùng API"
+                        : "WebSocket mất kết nối"}
                     </p>
                   </div>
                 </div>
@@ -1039,7 +1251,10 @@ export default function EnhancedChatTools() {
                   <button className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center">
                     <MoreVertical size={16} />
                   </button>
-                  <button onClick={() => setShowList(false)} className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center">
+                  <button
+                    onClick={() => setShowList(false)}
+                    className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center"
+                  >
                     <X size={16} />
                   </button>
                 </div>
@@ -1049,38 +1264,46 @@ export default function EnhancedChatTools() {
               {!receiver?.isBot && (
                 <div className="flex items-center gap-2 text-[12px] text-gray-500 px-4 py-2">
                   <span
-                    className={`w-2 h-2 rounded-full ${connectionStatus === "connected"
-                      ? "bg-green-500"
-                      : connectionStatus === "connecting"
+                    className={`w-2 h-2 rounded-full ${
+                      connectionStatus === "connected"
+                        ? "bg-green-500"
+                        : connectionStatus === "connecting"
                         ? "bg-yellow-500 animate-pulse"
                         : "bg-red-500"
-                      }`}
+                    }`}
                   />
                   <span>
                     {connectionStatus === "connected"
                       ? "WebSocket đã kết nối"
                       : connectionStatus === "connecting"
-                        ? "Đang kết nối WebSocket…"
-                        : connectionStatus === "error"
-                          ? "Lỗi WebSocket — chỉ dùng API"
-                          : "WebSocket mất kết nối"}
+                      ? "Đang kết nối WebSocket…"
+                      : connectionStatus === "error"
+                      ? "Lỗi WebSocket — chỉ dùng API"
+                      : "WebSocket mất kết nối"}
                   </span>
                 </div>
               )}
 
               {/* Messages */}
-              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4"
+              >
+                {/* Sentinel top for load-more (human only) */}
+                {!receiver?.isBot && hasMoreMessages && (
+                  <div ref={topSentinelRef} className="h-24 w-full" />
+                )}
+
                 {!receiver?.id ? (
                   <div className="flex flex-col items-center justify-center h-full text-gray-500">
                     <MessageCircle size={48} className="mb-3 opacity-50" />
                     <p>Chọn người để bắt đầu trò chuyện</p>
                   </div>
-                ) : loading && !receiver?.isBot ? (   // << chỉ quay khi load hội thoại người thật
+                ) : loading && !receiver?.isBot ? ( // chỉ quay khi load hội thoại người thật
                   <div className="flex items-center justify-center h-full">
                     <div className="animate-spin w-8 h-8 border-b-2 border-[#db4444] rounded-full" />
                   </div>
                 ) : (
-
                   <>
                     {!receiver?.isBot && loadingMore && (
                       <div className="flex items-center justify-center py-3 text-sm text-gray-500">
@@ -1089,7 +1312,7 @@ export default function EnhancedChatTools() {
                       </div>
                     )}
 
-                    {!receiver?.isBot && !hasMoreMessages && messages.length > 15 && (
+                    {!receiver?.isBot && !hasMoreMessages && messages.length > PAGE_SIZE && (
                       <div className="flex items-center justify-center py-1">
                         <span className="text-[11px] text-gray-400 bg-gray-200/60 px-3 py-1 rounded-full">
                           Đã hiển thị tất cả tin nhắn
@@ -1099,203 +1322,236 @@ export default function EnhancedChatTools() {
 
                     {messages.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                            {receiver?.isBot
-                              ? (isBotTyping ? "Chat Bot đang nhập…" : "AI Assistant — Luôn sẵn sàng hỗ trợ")
-                              : connectionStatus === "connected"
-                                ? (isReceiverTyping ? `${receiver?.name} đang nhập…` : "Đang hoạt động")
-                                : connectionStatus === "connecting"
-                                  ? "Đang kết nối WebSocket…"
-                                  : connectionStatus === "error"
-                                    ? "Lỗi WebSocket — dùng API"
-                                    : "WebSocket mất kết nối"}
-
+                        {receiver?.isBot
+                          ? isBotTyping
+                            ? "Chat Bot đang nhập…"
+                            : "AI Assistant — Luôn sẵn sàng hỗ trợ"
+                          : connectionStatus === "connected"
+                          ? isReceiverTyping
+                            ? `${receiver?.name} đang nhập…`
+                            : "Đang hoạt động"
+                          : connectionStatus === "connecting"
+                          ? "Đang kết nối WebSocket…"
+                          : connectionStatus === "error"
+                          ? "Lỗi WebSocket — dùng API"
+                          : "WebSocket mất kết nối"}
                       </div>
-                        ) : (
-                          <>
-                              {messages.map((msg) => {
-                                const isCurrentUser = Number(msg.sender_id) === myId;
-                                const isBotMessage = Number(msg.sender_id) === -1;
+                    ) : (
+                      <>
+                        {messages.map((msg) => {
+                          const isCurrentUser = Number(msg.sender_id) === myId
+                          const isBotMessage = Number(msg.sender_id) === -1
 
-                                let avatarUrl = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
-                                let userName = "User";
-                                if (isCurrentUser) {
-                                  avatarUrl = getSafeImg(currentUser?.avatar ?? null);
-                                  userName = currentUser?.name || "You";
-                                } else if (isBotMessage) {
-                                  avatarUrl = "";
-                                  userName = "Chat Bot";
-                                } else {
-                                  avatarUrl = getSafeImg(receiver?.avatar ?? null);
-                                  userName = receiver?.name || "User";
-                                }
+                          let avatarUrl = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+                          let userName = "User"
+                          if (isCurrentUser) {
+                            avatarUrl = getSafeImg(currentUser?.avatar ?? null)
+                            userName = currentUser?.name || "You"
+                          } else if (isBotMessage) {
+                            avatarUrl = ""
+                            userName = "Chat Bot"
+                          } else {
+                            avatarUrl = getSafeImg(receiver?.avatar ?? null)
+                            userName = receiver?.name || "User"
+                          }
 
-                                return (
-                                  <div key={`message-${msg.id}`} className={`flex gap-2 ${isCurrentUser ? "justify-end" : "justify-start"}`}>
-                                    {!isCurrentUser && (
-                                      <>
-                                        {isBotMessage ? (
-                                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                                            <Bot size={16} className="text-white" />
-                                          </div>
-                                        ) : (
-                                          <img src={avatarUrl} alt={userName} className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-white" />
-                                        )}
-                                      </>
-                                    )}
+                          return (
+                            <div
+                              key={`message-${msg.id}`}
+                              className={`flex gap-2 ${isCurrentUser ? "justify-end" : "justify-start"}`}
+                            >
+                              {!isCurrentUser && (
+                                <>
+                                  {isBotMessage ? (
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                      <Bot size={16} className="text-white" />
+                                    </div>
+                                  ) : (
+                                    <img
+                                      src={avatarUrl}
+                                      alt={userName}
+                                      className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-white"
+                                    />
+                                  )}
+                                </>
+                              )}
 
-                                    <div className={`max-w-[85%] md:max-w-[70%] ${isCurrentUser ? "order-first" : ""}`}>
-                                      <div
-                                        className={[
-                                          "p-3 rounded-2xl shadow-sm",
-                                          isCurrentUser
-                                            ? "bg-rose-50 text-black border border-rose-200 rounded-br-md"
-                                            : isBotMessage
-                                              ? "bg-gradient-to-r from-blue-50 to-purple-50 text-gray-900 rounded-bl-md border border-blue-200/60"
-                                              : "bg-white text-gray-900 rounded-bl-md border border-gray-200/70",
-                                        ].join(" ")}
-                                      >
-                                        {!!msg.message && (
-                                          <div className="text-sm leading-relaxed break-words space-y-2 whitespace-pre-line">
-                                            {msg.message
-                                              .replace(/\*\*/g, "")          // bỏ dấu **
-                                              .replace(/(\d+\.\s)/g, "\n$1") // xuống dòng trước số thứ tự
-                                            }
-                                          </div>
-                                        )}
+                              <div
+                                className={`max-w-[85%] md:max-w-[70%] ${
+                                  isCurrentUser ? "order-first" : ""
+                                }`}
+                              >
+                                <div
+                                  className={[
+                                    "p-3 rounded-2xl shadow-sm",
+                                    isCurrentUser
+                                      ? "bg-rose-50 text-black border border-rose-200 rounded-br-md"
+                                      : isBotMessage
+                                      ? "bg-gradient-to-r from-blue-50 to-purple-50 text-gray-900 rounded-bl-md border border-blue-200/60"
+                                      : "bg-white text-gray-900 rounded-bl-md border border-gray-200/70",
+                                  ].join(" ")}
+                                >
+                                  {!!msg.message && (
+                                    <div className="text-sm leading-relaxed break-words space-y-2 whitespace-pre-line">
+                                      {msg.message
+                                        .replace(/\*\*/g, "")
+                                        .replace(/(\d+\.\s)/g, "\n$1")}
+                                    </div>
+                                  )}
 
-
-
-
-                                        {!!msg.products?.length && (
-                                          <div className="mt-3 space-y-2">
-                                            <div className="text-[12px] font-medium text-gray-600 mb-1">Sản phẩm gợi ý</div>
-
-                                            {msg.products.map((product) => {
-                                              const shopSlug = encodeURIComponent(product.shop.slug);
-                                              const productSlug = encodeURIComponent(product.slug);
-                                              const productUrl = `/shop/${shopSlug}/product/${productSlug}`;
-                                              const shopUrl = `/shop/${shopSlug}`;
-
-                                              return (
-                                                <div
-                                                  key={product.id}
-                                                  className="bg-white rounded-xl p-3 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group cursor-pointer"
-                                                  onClick={() => window.open(productUrl, "_blank")}
-                                                >
-                                                  <div className="flex gap-3">
-                                                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                                      {product.image?.length ? (
-                                                        <img
-                                                          src={`${STATIC_BASE_URL}/${product.image[0]}`}
-                                                          alt={product.name}
-                                                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                                          onError={(e) => ((e.target as HTMLImageElement).src = "/modern-tech-product.png")}
-                                                        />
-                                                      ) : (
-                                                        <div className="w-full h-full grid place-items-center text-gray-400">—</div>
-                                                      )}
-                                                    </div>
-
-                                                    <div className="flex-1 min-w-0">
-                                                      {/* Tên sản phẩm → /shop/<shopSlug>/product/<productSlug> */}
-                                                      <a
-                                                        href={productUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="font-medium text-sm text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors"
-                                                      >
-                                                        {product.name}
-                                                      </a>
-
-                                                      {/* Logo + tên shop → /shop/<shopSlug> */}
-                                                      <div className="mt-1 flex items-center gap-2">
-                                                        <a
-                                                          href={shopUrl}
-                                                          onClick={(e) => e.stopPropagation()}
-                                                          className="flex items-center gap-2"
-                                                          title={product.shop.name}
-                                                        >
-                                                          <img
-                                                            src={getShopLogoUrl(product.shop.logo)}
-                                                            alt={product.shop.name}
-                                                            className="w-5 h-5 rounded-full object-cover ring-1 ring-gray-200"
-                                                            onError={(e) => ((e.target as HTMLImageElement).src = `${STATIC_BASE_URL}/shops/default-shop.jpg`)}
-                                                          />
-
-                                                          <span className="text-[12px] text-gray-600 hover:text-gray-800 truncate">
-                                                            {product.shop.name}
-                                                          </span>
-                                                        </a>
-                                                      </div>
-
-                                                      <div className="flex items-center justify-between mt-1">
-                                                        <span className="text-blue-600 font-semibold text-sm">
-                                                          {Number.parseInt(product.price).toLocaleString("vi-VN")} VND
-                                                        </span>
-                                                        {typeof product.similarity === "number" && (
-                                                          <span className="text-[11px] text-red-600 bg-red-100 px-2 py-0.5 rounded">
-                                                            {Math.round(product.similarity * 100)}%
-                                                          </span>
-
-                                                        )}
-                                                      </div>
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-                                        )}
-
-                                        {!!msg.image && (
-                                          <img
-                                            src={resolveImageUrl(msg.image) || ""}
-                                            alt="Sent image"
-                                            className="mt-2 max-w-full rounded-lg cursor-pointer"
-                                            onClick={() => {
-                                              const url = resolveImageUrl(msg.image);
-                                              if (url) window.open(url, "_blank");
-                                            }}
-                                          />
-                                        )}
+                                  {!!msg.products?.length && (
+                                    <div className="mt-3 space-y-2">
+                                      <div className="text-[12px] font-medium text-gray-600 mb-1">
+                                        Sản phẩm gợi ý
                                       </div>
 
-                                      <p className={`text-[11px] text-gray-500 mt-1 ${isCurrentUser ? "text-right" : "text-left"}`}>
-                                        {isCurrentUser ? "Bạn" : userName} • {new Date(msg.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
-                                      </p>
+                                      {msg.products.map((product) => {
+                                        const shopSlug = encodeURIComponent(product.shop.slug)
+                                        const productSlug = encodeURIComponent(product.slug)
+                                        const productUrl = `/shop/${shopSlug}/product/${productSlug}`
+                                        const shopUrl = `/shop/${shopSlug}`
+                                        const priceNum = Number(product.price)
+                                        const priceLabel = Number.isFinite(priceNum)
+                                          ? `${priceNum.toLocaleString("vi-VN")} VND`
+                                          : product.price
+
+                                        return (
+                                          <div
+                                            key={product.id}
+                                            className="bg-white rounded-xl p-3 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group cursor-pointer"
+                                            onClick={() => window.open(productUrl, "_blank")}
+                                          >
+                                            <div className="flex gap-3">
+                                              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                                {product.image?.length ? (
+                                                  <img
+                                                    src={`${STATIC_BASE_URL}/${product.image[0]}`}
+                                                    alt={product.name}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                    onError={(e) =>
+                                                      ((e.target as HTMLImageElement).src =
+                                                        "/modern-tech-product.png")
+                                                    }
+                                                  />
+                                                ) : (
+                                                  <div className="w-full h-full grid place-items-center text-gray-400">
+                                                    —
+                                                  </div>
+                                                )}
+                                              </div>
+
+                                              <div className="flex-1 min-w-0">
+                                                {/* Tên sản phẩm → /shop/<shopSlug>/product/<productSlug> */}
+                                                <a
+                                                  href={productUrl}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  className="font-medium text-sm text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors"
+                                                >
+                                                  {product.name}
+                                                </a>
+
+                                                {/* Logo + tên shop → /shop/<shopSlug> */}
+                                                <div className="mt-1 flex items-center gap-2">
+                                                  <a
+                                                    href={shopUrl}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="flex items-center gap-2"
+                                                    title={product.shop.name}
+                                                  >
+                                                    <img
+                                                      src={getShopLogoUrl(product.shop.logo)}
+                                                      alt={product.shop.name}
+                                                      className="w-5 h-5 rounded-full object-cover ring-1 ring-gray-200"
+                                                      onError={(e) =>
+                                                        ((e.target as HTMLImageElement).src = `${STATIC_BASE_URL}/shops/default-shop.jpg`)
+                                                      }
+                                                    />
+
+                                                    <span className="text-[12px] text-gray-600 hover:text-gray-800 truncate">
+                                                      {product.shop.name}
+                                                    </span>
+                                                  </a>
+                                                </div>
+
+                                                <div className="flex items-center justify-between mt-1">
+                                                  <span className="text-blue-600 font-semibold text-sm">
+                                                    {priceLabel}
+                                                  </span>
+                                                  {typeof product.similarity === "number" && (
+                                                    <span className="text-[11px] text-red-600 bg-red-100 px-2 py-0.5 rounded">
+                                                      {Math.round(product.similarity * 100)}%
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )
+                                      })}
                                     </div>
+                                  )}
 
-                                    {isCurrentUser && (
-                                      <img src={avatarUrl} alt={userName} className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-white" />
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                  {!!msg.image && (
+                                    <img
+                                      src={resolveImageUrl(msg.image) || ""}
+                                      alt="Sent image"
+                                      className="mt-2 max-w-full rounded-lg cursor-pointer"
+                                      onClick={() => {
+                                        const url = resolveImageUrl(msg.image)
+                                        if (url) window.open(url, "_blank")
+                                      }}
+                                    />
+                                  )}
+                                </div>
 
-                          </>
-                        )
-                      }
-                        {receiver?.isBot && isBotTyping && (
-                          <div className="flex justify-start">
-                            <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/60">
-                              <div className="flex items-center gap-1">
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                                <p
+                                  className={`text-[11px] text-gray-500 mt-1 ${
+                                    isCurrentUser ? "text-right" : "text-left"
+                                  }`}
+                                >
+                                  {isCurrentUser ? "Bạn" : userName} •{" "}
+                                  {new Date(msg.created_at).toLocaleTimeString("vi-VN", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
                               </div>
+
+                              {isCurrentUser && (
+                                <img
+                                  src={avatarUrl}
+                                  alt={userName}
+                                  className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-white"
+                                />
+                              )}
                             </div>
-                          </div>
-                        )}
-
-                        {isReceiverTyping && (
-                          <div className="flex items-center gap-2 text-gray-500 text-sm">
-                            {/* typing indicator cho người thật */}
-                          </div>
-                        )}
-
-                        <div ref={messagesEndRef} />
+                          )
+                        })}
                       </>
+                    )}
+
+                    {receiver?.isBot && isBotTyping && (
+                      <div className="flex justify-start">
+                        <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/60">
+                          <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {isReceiverTyping && (
+                      <div className="flex items-center gap-2 text-gray-500 text-sm">
+                        {/* typing indicator cho người thật */}
+                      </div>
+                    )}
+
+                    <div ref={messagesEndRef} />
+                  </>
                 )}
               </div>
 
@@ -1305,7 +1561,13 @@ export default function EnhancedChatTools() {
                   <div className="flex gap-2 overflow-x-auto">
                     {imagePreviews.map((src, i) => (
                       <div key={i} className="relative w-16 h-16 flex-shrink-0">
-                        <Image src={src} alt="preview" width={64} height={64} className="rounded-lg object-cover w-full h-full" />
+                        <Image
+                          src={src}
+                          alt="preview"
+                          width={64}
+                          height={64}
+                          className="rounded-lg object-cover w-full h-full"
+                        />
                         <button
                           onClick={() => handleRemoveImage(i)}
                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] shadow"
@@ -1330,7 +1592,14 @@ export default function EnhancedChatTools() {
                       >
                         <Plus size={18} />
                       </button>
-                      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleImageChange}
+                      />
                     </>
                   )}
 
@@ -1342,10 +1611,12 @@ export default function EnhancedChatTools() {
                         if (!receiver?.isBot) {
                           setIsUserTyping(true)
                           if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-                          if (sendTypingEvent) sendTypingEvent(true, receiver?.id)
+                          if (typeof sendTypingEvent === "function")
+                            sendTypingEvent(true, receiver?.id)
                           typingTimeoutRef.current = setTimeout(() => {
                             setIsUserTyping(false)
-                            if (sendTypingEvent) sendTypingEvent(false, receiver?.id)
+                            if (typeof sendTypingEvent === "function")
+                              sendTypingEvent(false, receiver?.id)
                           }, 1000)
                         }
                       }}
@@ -1364,7 +1635,11 @@ export default function EnhancedChatTools() {
                   <button
                     onClick={sendMessage}
                     disabled={(!input.trim() && images.length === 0) || !receiver?.id}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${(!input.trim() && images.length === 0) || !receiver?.id ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105"}`}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                      (!input.trim() && images.length === 0) || !receiver?.id
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105"
+                    }`}
                     title="Gửi"
                   >
                     <Send size={16} />
