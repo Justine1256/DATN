@@ -1295,8 +1295,8 @@ class OrderController extends Controller
             return response()->json(['message' => 'Đơn hàng không hợp lệ để từ chối hoàn đơn'], 400);
         }
 
-        $order->order_admin_status = 'Return Requested';
-        $order->order_status = 'Return Requested';
+        $order->order_admin_status = 'Return Rejected';
+        $order->order_status = 'Return Rejected';
         $order->rejection_reason = $validated['rejection_reason'];
         $order->return_status = 'Rejected';
         $order->save();
