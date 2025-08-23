@@ -283,6 +283,7 @@ export default function RefundReportsPage() {
             }
 
             setSelectedReport(detailData)
+            console.log("Refund report detail:", detailData)
             setShowDetailModal(true)
         } catch (err: any) {
             showNotification(err?.message || "Có lỗi xảy ra khi tải chi tiết", "error")
@@ -812,6 +813,25 @@ export default function RefundReportsPage() {
                                                             key={idx}
                                                             src={formatImageUrl(img)}
                                                             alt={`Product ${idx + 1}`}
+                                                            className="w-full h-20 object-cover rounded-lg border border-white shadow-sm hover:scale-105 transition-transform"
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Evidence Photos */}
+                                        {Array.isArray(selectedReport.photos) && selectedReport.photos.length > 0 && (
+                                            <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
+                                                <div className="flex items-center mb-3">
+                                                    <FileText className="h-5 w-5 text-teal-600 mr-2" />
+                                                    <h4 className="font-semibold text-gray-900">Ảnh Minh Chứng</h4>
+                                                </div>
+                                                <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+                                                    {selectedReport.photos.map((img: string, idx: number) => (
+                                                        <img
+                                                            key={idx}
+                                                            src={formatImageUrl(img)}
+                                                            alt={`Evidence ${idx + 1}`}
                                                             className="w-full h-20 object-cover rounded-lg border border-white shadow-sm hover:scale-105 transition-transform"
                                                         />
                                                     ))}
