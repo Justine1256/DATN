@@ -272,7 +272,7 @@ export default function CategoryPageAntd() {
 
           {/* MAIN */}
           <Content>
-            <Card bordered={false} style={{ marginBottom: 12 }}>
+            <Card variant="borderless" style={{ marginBottom: 12 }}>
               <Row gutter={[8, 8]} align="middle">
                 <Col xs={24} md={6}>
                   <Space>

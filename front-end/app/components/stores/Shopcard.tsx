@@ -7,300 +7,354 @@ import ShopProductSlider from '../home/ShopProduct';
 import { API_BASE_URL } from '@/utils/api';
 import { User, MessageCircle, Star, Phone, Package, Calendar, Users } from 'lucide-react';
 import {
-    ConfigProvider,
-    Card,
-    Row,
-    Col,
-    Avatar,
-    Tag,
-    Button,
-    Tooltip,
-    Typography,
-    Divider,
-    Space,
+  ConfigProvider,
+  Card,
+  Row,
+  Col,
+  Avatar,
+  Tag,
+  Button,
+  Tooltip,
+  Typography,
+  Divider,
+  Space,
 } from 'antd';
 
 const { Text, Title } = Typography;
 
+// ---- Typings for custom “open chat” event (for TypeScript safety) ----
+declare global {
+  interface WindowEventMap {
+    'open-chat-with-user': CustomEvent<{
+      id: number;
+      name: string;
+      avatar?: string | null;
+      role?: string;
+      isBot?: boolean;
+    }>;
+  }
+}
+
+// Helper: dispatch event to open global chatbox with a receiver
+function openChatWith(user: {
+  id: number;
+  name: string;
+  avatar?: string | null;
+  role?: string;
+  isBot?: boolean;
+}) {
+  if (typeof window !== 'undefined') {
+    const ev = new CustomEvent('open-chat-with-user', { detail: user });
+    window.dispatchEvent(ev);
+  }
+}
+
 const formatTimeAgo = (dateString: string): string => {
-    const now = new Date();
-    const past = new Date(dateString);
-    const diffInMinutes = Math.floor((now.getTime() - past.getTime()) / (1000 * 60));
-    if (diffInMinutes < 1) return 'Vừa xong';
-    if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours} giờ trước`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 30) return `${diffInDays} ngày trước`;
-    const diffInMonths = Math.floor(diffInDays / 30);
-    if (diffInMonths < 12) return `${diffInMonths} tháng trước`;
-    const diffInYears = Math.floor(diffInMonths / 12);
-    return `${diffInYears} năm trước`;
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffInMinutes = Math.floor((now.getTime() - past.getTime()) / (1000 * 60));
+  if (diffInMinutes < 1) return 'Vừa xong';
+  if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} giờ trước`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) return `${diffInDays} ngày trước`;
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) return `${diffInMonths} tháng trước`;
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return `${diffInYears} năm trước`;
 };
 
 interface Shop {
-    id: number;
-    name: string;
-    description: string;
-    logo: string;
-    phone: string;
-    rating: number | null;
-    total_sales: number;
-    created_at: string;
-    status: 'activated' | 'pending' | 'suspended';
-    email: string;
-    slug: string;
-    followers_count: number;
-    is_following?: boolean;
+  id: number;
+  name: string;
+  description: string;
+  logo: string;
+  phone: string;
+  rating: number | null;
+  total_sales: number;
+  created_at: string;
+  status: 'activated' | 'pending' | 'suspended';
+  email: string;
+  slug: string;
+  followers_count: number;
+  is_following?: boolean;
+
+  /** Nếu backend có user id đại diện shop, thêm 2 field optional này để lấy đúng receiver id */
+  user_id?: number | null;
+  owner_user_id?: number | null;
 }
 
 export default function ShopCard({ shop }: { shop: Shop }) {
-    // ---- Follow state (giữ nguyên logic) ----
-    const [followed, setFollowed] = useState<boolean>(!!shop?.is_following);
-    useEffect(() => setFollowed(!!shop?.is_following), [shop?.id, shop?.is_following]);
-    const [followers, setFollowers] = useState<number>(shop.followers_count ?? 0);
-useEffect(() => setFollowers(shop.followers_count ?? 0), [shop.id, shop.followers_count]);
+  // ---- Follow state (giữ nguyên logic) ----
+  const [followed, setFollowed] = useState<boolean>(!!shop?.is_following);
+  useEffect(() => setFollowed(!!shop?.is_following), [shop?.id, shop?.is_following]);
 
+  const [followers, setFollowers] = useState<number>(shop.followers_count ?? 0);
+  useEffect(() => setFollowers(shop.followers_count ?? 0), [shop.id, shop.followers_count]);
 
-    const [pending, setPending] = useState(false);
-    const [showPopup, setShowPopup] = useState(false);
-    const [popupText, setPopupText] = useState('');
+  const [pending, setPending] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupText, setPopupText] = useState('');
 
-    useEffect(() => {
-        if (!showPopup) return;
-        const t = setTimeout(() => setShowPopup(false), 1800);
-        return () => clearTimeout(t);
-    }, [showPopup]);
+  useEffect(() => {
+    if (!showPopup) return;
+    const t = setTimeout(() => setShowPopup(false), 1800);
+    return () => clearTimeout(t);
+  }, [showPopup]);
 
-    const toast = (msg: string) => {
-        setPopupText(msg);
-        setShowPopup(true);
-    };
+  const toast = (msg: string) => {
+    setPopupText(msg);
+    setShowPopup(true);
+  };
 
-    const followShop = async () => {
-        const token = Cookies.get('authToken') || localStorage.getItem('token');
-        if (!token) return toast('Vui lòng đăng nhập để theo dõi cửa hàng');
-        setPending(true);
-        try {
-            const res = await fetch(`${API_BASE_URL}/shops/${shop.id}/follow`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-            });
-            const data = await res.json().catch(() => null);
-            if (res.ok) {
-                setFollowed(true);
-                setFollowers(v => v + 1);
-                toast(data?.message || 'Đã theo dõi cửa hàng');
-            } else {
-                if (data?.message?.toLowerCase?.().includes('đã theo dõi')) setFollowed(true);
-                toast(data?.message || 'Theo dõi thất bại. Vui lòng thử lại!');
-            }
-        } catch {
-            toast('Có lỗi xảy ra. Vui lòng thử lại!');
-        } finally {
-            setPending(false);
-        }
-    };
+  const followShop = async () => {
+    const token = Cookies.get('authToken') || localStorage.getItem('token');
+    if (!token) return toast('Vui lòng đăng nhập để theo dõi cửa hàng');
+    setPending(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/shops/${shop.id}/follow`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        setFollowed(true);
+        setFollowers((v) => v + 1);
+        toast(data?.message || 'Đã theo dõi cửa hàng');
+      } else {
+        if (data?.message?.toLowerCase?.().includes('đã theo dõi')) setFollowed(true);
+        toast(data?.message || 'Theo dõi thất bại. Vui lòng thử lại!');
+      }
+    } catch {
+      toast('Có lỗi xảy ra. Vui lòng thử lại!');
+    } finally {
+      setPending(false);
+    }
+  };
 
-    const unfollowShop = async () => {
-        const token = Cookies.get('authToken') || localStorage.getItem('token');
-        if (!token) return toast('Vui lòng đăng nhập để hủy theo dõi');
-        setPending(true);
-        try {
-            const res = await fetch(`${API_BASE_URL}/shops/${shop.id}/unfollow`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-            });
-            const data = await res.json().catch(() => null);
-            if (res.ok) {
-                setFollowed(false);
-                setFollowers(v => Math.max(0, v - 1));
-                toast(data?.message || 'Đã hủy theo dõi cửa hàng');
-            } else {
-                if (data?.message?.toLowerCase?.().includes('chưa theo dõi')) setFollowed(false);
-                toast(data?.message || 'Hủy theo dõi thất bại. Vui lòng thử lại!');
-            }
-        } catch {
-            toast('Có lỗi xảy ra. Vui lòng thử lại!');
-        } finally {
-            setPending(false);
-        }
-    };
+  const unfollowShop = async () => {
+    const token = Cookies.get('authToken') || localStorage.getItem('token');
+    if (!token) return toast('Vui lòng đăng nhập để hủy theo dõi');
+    setPending(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/shops/${shop.id}/unfollow`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        setFollowed(false);
+        setFollowers((v) => Math.max(0, v - 1));
+        toast(data?.message || 'Đã hủy theo dõi cửa hàng');
+      } else {
+        if (data?.message?.toLowerCase?.().includes('chưa theo dõi')) setFollowed(false);
+        toast(data?.message || 'Hủy theo dõi thất bại. Vui lòng thử lại!');
+      }
+    } catch {
+      toast('Có lỗi xảy ra. Vui lòng thử lại!');
+    } finally {
+      setPending(false);
+    }
+  };
+const handleOpenChat = () => {
+  if (!shop) return;
 
-    const toggleFollow = useCallback(() => (followed ? unfollowShop() : followShop()), [followed]);
+  // Ưu tiên id user của chủ shop
+  const receiverId = Number(
+    shop.id
+  );
 
-    // ---- UI (Ant Design), gọn gàng, avatar không đè, card KHÔNG overlay ảnh ----
-    return (
-        <ConfigProvider
-            theme={{
-                token: {
-                    colorPrimary: '#db4444',
-                    colorInfo: '#db4444',
-                    borderRadiusLG: 14,
-                    fontSize: 14,
-                },
-                components: {
-                    Button: { controlHeight: 34, paddingInline: 12 },
-                    Card: { paddingLG: 16 },
-                    Tag: { defaultBg: '#eef6ee' },
-                },
-            }}
-        >
-            {/* COVER — độc lập, không bị che */}
-            <div className="rounded-2xl overflow-hidden">
-                <Image
-                    src="/shop_cover.jpg"
-                    alt="Shop Cover"
-                    width={1440}
-                    height={280}
-                    className="w-full h-[220px] md:h-[280px] object-cover"
-                    priority
-                />
-            </div>
+  if (!Number.isFinite(receiverId)) {
+    console.warn("Lỗi không nhận được id.");
+    return;
+  }
 
-            {/* INFO — card tách rời, dưới cover */}
-            <Card className="mt-4" bordered styles={{ body: { paddingTop: 12, paddingBottom: 12 } }}>
-                <Row gutter={[16, 16]} align="middle" wrap>
-                    {/* Avatar + Name */}
-                    <Col xs={24} md={12} lg={10}>
-                        <Space align="center" size={12} wrap>
-                            <Avatar
-                                size={72}
-                                src={`${API_BASE_URL}/image/${shop.logo}`}
-                                style={{
-                                    border: '3px solid #fff',
-                                    boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
-                                    backgroundColor: '#fafafa',
-                                }}
-                            />
-                            <div>
-                                <Space size={8} align="center" wrap>
-                                    <Title level={4} style={{ margin: 0 }}>
-                                        {shop.name}
-                                    </Title>
-                                    <Tag color={shop.status === 'activated' ? 'success' : 'default'}>
-                                        {shop.status === 'activated' ? 'Đã kích hoạt' : 'Chưa kích hoạt'}
-                                    </Tag>
-                                </Space>
-                                <div className="mt-1">
-                                    <Tooltip title={shop.email}>
-                                        <Text
-                                            type="secondary"
-                                            ellipsis={{ tooltip: false }}
-                                            style={{ maxWidth: 260, display: 'inline-block' }}
-                                        >
-                                            {shop.email}
-                                        </Text>
-                                    </Tooltip>
-                                </div>
-                            </div>
-                        </Space>
-                    </Col>
+  // avatar nên là URL đầy đủ để Chat hiển thị ngay
+  const avatarUrl = shop.logo ? `${API_BASE_URL}/image/${shop.logo}` : undefined;
 
-                    {/* Actions */}
-                    <Col xs={24} md={12} lg={14}>
-                        <Row justify="end" gutter={8} wrap>
-                            <Col>
-                                <Button
-                                    onClick={toggleFollow}
-                                    loading={pending}
-                                    type={followed ? 'default' : 'primary'}
-                                    ghost={followed}
-                                    icon={<User size={16} />}
-                                >
-                                    {followed ? 'Đã theo dõi' : 'Theo dõi'}
-                                </Button>
-                            </Col>
-                            <Col>
-                                <Button
-                                    icon={<MessageCircle size={16} />}
-                                    onClick={() => {
-                                        setPopupText('Tính năng chat sẽ sớm có nhé!');
-                                        setShowPopup(true);
-                                    }}
-                                >
-                                    Chat
-                                </Button>
-                            </Col>
-                        </Row>
-                    </Col>
-                </Row>
+  window.dispatchEvent(
+    new CustomEvent("open-chat-box", {
+      detail: {
+        receiverId,
+        receiverName: shop.name,
+        avatar: avatarUrl,
+      },
+    })
+  );
+};
 
-                <Divider style={{ margin: '12px 0' }} />
+  const toggleFollow = useCallback(() => (followed ? unfollowShop() : followShop()), [followed]);
 
-                {/* Stats Grid */}
-                <Row gutter={[16, 16]}>
-                    <Col xs={24} sm={12} lg={8}>
-                        <Space>
-                            <Phone size={16} className="text-[#db4444]" />
-                            <div>
-                                <Text type="secondary">Điện thoại</Text>
-                                <div className="font-semibold text-black">{shop.phone}</div>
-                            </div>
-                        </Space>
-                    </Col>
+  // ---- UI (Ant Design), gọn gàng, avatar không đè, card KHÔNG overlay ảnh ----
+  return (
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#db4444',
+          colorInfo: '#db4444',
+          borderRadiusLG: 14,
+          fontSize: 14,
+        },
+        components: {
+          Button: { controlHeight: 34, paddingInline: 12 },
+          Card: { paddingLG: 16 },
+          Tag: { defaultBg: '#eef6ee' },
+        },
+      }}
+    >
+      {/* COVER — độc lập, không bị che */}
+      <div className="rounded-2xl overflow-hidden">
+        <Image
+          src="/shop_cover.jpg"
+          alt="Shop Cover"
+          width={1440}
+          height={280}
+          className="w-full h-[220px] md:h-[280px] object-cover"
+          priority
+        />
+      </div>
 
-                    <Col xs={24} sm={12} lg={8}>
-                        <Space>
-                            <Package size={16} className="text-[#db4444]" />
-                            <div>
-                                <Text type="secondary">Đã bán</Text>
-                                <div className="font-semibold text-black">
-                                    {shop.total_sales ? shop.total_sales : 'Chưa có lượt bán'}
-                                </div>
-                            </div>
-                        </Space>
-                    </Col>
-
-                    <Col xs={24} sm={12} lg={8}>
-                        <Space>
-                            <Star size={16} className="text-[#db4444]" />
-                            <div>
-                                <Text type="secondary">Đánh giá</Text>
-                                <div className="font-semibold text-black">
-                                    {shop.rating !== null ? shop.rating : 'Chưa có đánh giá'}
-                                </div>
-                            </div>
-                        </Space>
-                    </Col>
-
-                    <Col xs={24} sm={12} lg={8}>
-                        <Space>
-                            <Calendar size={16} className="text-[#db4444]" />
-                            <div>
-                                <Text type="secondary">Tham gia</Text>
-                                <div className="font-semibold text-black">{formatTimeAgo(shop.created_at)}</div>
-                            </div>
-                        </Space>
-                    </Col>
-
-                    <Col xs={24} sm={12} lg={8}>
-                        <Space>
-                            <Users size={16} className="text-[#db4444]" />
-                            <div>
-                                <Text type="secondary">Người theo dõi</Text>
-                                <div className="font-semibold text-black">
-                                    {followers > 0 ? followers : 'Chưa có người theo dõi'}
-                                </div>
-                            </div>
-                        </Space>
-                    </Col>
-                </Row>
-            </Card>
-
-            {/* Sản phẩm của shop — tách riêng, không bọc chung card */}
-            {shop.slug && (
-                <div className="w-full max-w-screen-xl mx-auto mt-6">
-                    <ShopProductSlider shopSlug={shop.slug} />
+      {/* INFO — card tách rời, dưới cover */}
+      <Card className="mt-4" variant="outlined" styles={{ body: { paddingTop: 12, paddingBottom: 12 } }}>
+        <Row gutter={[16, 16]} align="middle" wrap>
+          {/* Avatar + Name */}
+          <Col xs={24} md={12} lg={10}>
+            <Space align="center" size={12} wrap>
+              <Avatar
+                size={72}
+                src={`${API_BASE_URL}/image/${shop.logo}`}
+                style={{
+                  border: '3px solid #fff',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+                  backgroundColor: '#fafafa',
+                }}
+              />
+              <div>
+                <Space size={8} align="center" wrap>
+                  <Title level={4} style={{ margin: 0 }}>
+                    {shop.name}
+                  </Title>
+                  <Tag color={shop.status === 'activated' ? 'success' : 'default'}>
+                    {shop.status === 'activated' ? 'Đã kích hoạt' : 'Chưa kích hoạt'}
+                  </Tag>
+                </Space>
+                <div className="mt-1">
+                  <Tooltip title={shop.email}>
+                    <Text
+                      type="secondary"
+                      ellipsis={{ tooltip: false }}
+                      style={{ maxWidth: 260, display: 'inline-block' }}
+                    >
+                      {shop.email}
+                    </Text>
+                  </Tooltip>
                 </div>
-            )}
+              </div>
+            </Space>
+          </Col>
 
-            {/* Toast nhẹ */}
-            {showPopup && (
-                <div className="fixed top-[120px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500">
-                    {popupText}
+          {/* Actions */}
+          <Col xs={24} md={12} lg={14}>
+            <Row justify="end" gutter={8} wrap>
+              <Col>
+                <Button
+                  onClick={toggleFollow}
+                  loading={pending}
+                  type={followed ? 'default' : 'primary'}
+                  ghost={followed}
+                  icon={<User size={16} />}
+                >
+                  {followed ? 'Đã theo dõi' : 'Theo dõi'}
+                </Button>
+              </Col>
+              <Col>
+                <Button
+                  icon={<MessageCircle size={16} />}
+                  onClick={handleOpenChat}
+                >
+                  Chat
+                </Button>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+
+        <Divider style={{ margin: '12px 0' }} />
+
+        {/* Stats Grid */}
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} lg={8}>
+            <Space>
+              <Phone size={16} className="text-[#db4444]" />
+              <div>
+                <Text type="secondary">Điện thoại</Text>
+                <div className="font-semibold text-black">{shop.phone}</div>
+              </div>
+            </Space>
+          </Col>
+
+          <Col xs={24} sm={12} lg={8}>
+            <Space>
+              <Package size={16} className="text-[#db4444]" />
+              <div>
+                <Text type="secondary">Đã bán</Text>
+                <div className="font-semibold text-black">
+                  {shop.total_sales ? shop.total_sales : 'Chưa có lượt bán'}
                 </div>
-            )}
-        </ConfigProvider>
-    );
+              </div>
+            </Space>
+          </Col>
+
+          <Col xs={24} sm={12} lg={8}>
+            <Space>
+              <Star size={16} className="text-[#db4444]" />
+              <div>
+                <Text type="secondary">Đánh giá</Text>
+                <div className="font-semibold text-black">
+                  {shop.rating !== null ? shop.rating : 'Chưa có đánh giá'}
+                </div>
+              </div>
+            </Space>
+          </Col>
+
+          <Col xs={24} sm={12} lg={8}>
+            <Space>
+              <Calendar size={16} className="text-[#db4444]" />
+              <div>
+                <Text type="secondary">Tham gia</Text>
+                <div className="font-semibold text-black">{formatTimeAgo(shop.created_at)}</div>
+              </div>
+            </Space>
+          </Col>
+
+          <Col xs={24} sm={12} lg={8}>
+            <Space>
+              <Users size={16} className="text-[#db4444]" />
+              <div>
+                <Text type="secondary">Người theo dõi</Text>
+                <div className="font-semibold text-black">
+                  {followers > 0 ? followers : 'Chưa có người theo dõi'}
+                </div>
+              </div>
+            </Space>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Sản phẩm của shop — tách riêng, không bọc chung card */}
+      {shop.slug && (
+        <div className="w-full max-w-screen-xl mx-auto mt-6">
+          <ShopProductSlider shopSlug={shop.slug} />
+        </div>
+      )}
+
+      {/* Toast nhẹ */}
+      {showPopup && (
+        <div className="fixed top-[120px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500">
+          {popupText}
+        </div>
+      )}
+    </ConfigProvider>
+  );
 }
