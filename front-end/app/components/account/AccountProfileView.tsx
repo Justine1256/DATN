@@ -4,11 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { useUser } from "../../context/UserContext";
-import Image from "next/image"; 
+import Image from "next/image";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
-import { Crown, Gem, Medal, User } from "lucide-react"; 
+import { Crown, Gem, Medal, User, RotateCw } from "lucide-react";
 
-// 🟢 Kiểu dữ liệu user từ server
+// (Optional) Kiểu dữ liệu user từ server
 interface user {
   name: string;
   username: string;
@@ -22,116 +22,169 @@ interface user {
 export default function AccountPage() {
   const { user, setUser } = useUser();
 
-  // 🟢 Quản lý avatar preview và file chọn mới
+  // preview avatar
   const [previewAvatar, setPreviewAvatar] = useState<string>("");
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
 
-  // 🟢 Quản lý popup hiển thị thông báo
+  // popup
   const [popupMessage, setPopupMessage] = useState("");
   const [popupType, setPopupType] = useState<"success" | "error">("success");
   const [showPopup, setShowPopup] = useState(false);
 
-  // 🟢 Trạng thái loading & chỉnh sửa
-  const [loading, setLoading] = useState(true);
+  // ui states
   const [isEditing, setIsEditing] = useState(false);
+  const [isRecalcLoading, setIsRecalcLoading] = useState(false);
 
-  // 🟡 Xác định màu nền theo rank
-  const getRankBg = (rank: string) => {
-    switch (rank) {
-      case "bronze": return "bg-[#CD7F32]";
-      case "silver": return "bg-[#8BA0B7]";
-      case "gold": return "bg-[#C9A602]";
-      case "diamond": return "bg-[#FFFFFF] text-[#4283FF]";
-      default: return "bg-[#DDE9FF] text-[#517191]";
+  // số liệu thẻ thành viên
+  const [deliveredOrders, setDeliveredOrders] = useState<number>(0);
+  const [totalSpent, setTotalSpent] = useState<number>(0);
+
+  // rank an toàn
+  const rank = user?.rank ?? "bronze";
+
+  // ===== helpers =====
+  const formatVND = (n: number) =>
+    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+      n || 0
+    );
+
+  // 🟡 Xác định style nền + chữ theo rank
+  const getRankStyle = (r: string) => {
+    switch (r) {
+      case "bronze":
+        return { bg: "bg-[#CD7F32]", text: "text-white" };
+      case "silver":
+        return { bg: "bg-[#8BA0B7]", text: "text-white" };
+      case "gold":
+        return { bg: "bg-[#C9A602]", text: "text-white" };
+      case "diamond":
+        return { bg: "bg-[#FFFFFF]", text: "text-[#4283FF]" }; // nền trắng, chữ xanh
+      default:
+        return { bg: "bg-[#DDE9FF]", text: "text-[#517191]" };
     }
   };
 
-  // 🟡 Lấy icon tương ứng với rank
-  const getRankIcon = (rank: string) => {
-    switch (rank) {
-      case "bronze": return <Medal className="w-3 h-3" />;
-      case "silver": return <Medal className="w-3 h-3" />;
-      case "gold": return <Crown className="w-3 h-3" />;
-      case "diamond": return <Gem className="w-3 h-3" />;
-      default: return <User className="w-3 h-3" />;
+  const getRankIcon = (r: string) => {
+    switch (r) {
+      case "bronze":
+        return <Medal className="w-3 h-3" />;
+      case "silver":
+        return <Medal className="w-3 h-3" />;
+      case "gold":
+        return <Crown className="w-3 h-3" />;
+      case "diamond":
+        return <Gem className="w-3 h-3" />;
+      default:
+        return <User className="w-3 h-3" />;
     }
   };
 
-  // 🟢 Hiển thị popup message
+  const colorByRank = (r: string) =>
+    r === "diamond"
+      ? "#80AAFA"
+      : r === "gold"
+        ? "#C9A602"
+        : r === "silver"
+          ? "#8BA0B7"
+          : r === "bronze"
+            ? "#CD7F32"
+            : "#80AAFA";
+
+  // ngưỡng chi tiêu theo logic của bạn
+  const spendTargetByRank = (r: string) => {
+    switch (r) {
+      case "diamond":
+        return 50_000_000;
+      case "gold":
+        return 20_000_000;
+      case "silver":
+        return 10_000_000;
+      case "bronze":
+        return 5_000_000;
+      default:
+        return 0;
+    }
+  };
+
   const showPopupMessage = useCallback((msg: string, type: "success" | "error") => {
     setPopupMessage(msg);
     setPopupType(type);
     setShowPopup(true);
   }, []);
 
-  // 🟢 Tự ẩn popup sau 2 giây
   useEffect(() => {
     if (showPopup) {
-      const timer = setTimeout(() => setShowPopup(false), 2000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setShowPopup(false), 2000);
+      return () => clearTimeout(t);
     }
   }, [showPopup]);
 
-  // 🟢 Gọi API để lấy thông tin người dùng
-  const fetchUser = useCallback(async () => {
+  // ===== ONLY useEffect: gọi recalc khi vào trang =====
+  const fetchRankInfo = useCallback(async () => {
     const token = Cookies.get("authToken");
-    if (!token) return setLoading(false);
-
+    if (!token) return;
     try {
-      const res = await axios.get(`${API_BASE_URL}/user`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUser(res.data);
-    } catch {
-      showPopupMessage("Không thể tải thông tin người dùng.", "error");
-    } finally {
-      setLoading(false);
+      const url = `${API_BASE_URL}/me/recalculate-rank`;
+      const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+      const newRank =
+        res?.data?.rank ||
+        res?.data?.data?.rank ||
+        res?.data?.user?.rank ||
+        res?.data?.payload?.rank;
+
+      if (newRank) {
+        setUser((prev: any) => (prev ? { ...prev, rank: newRank } : prev));
+      }
+
+      const delivered =
+        res?.data?.delivered_orders ?? res?.data?.data?.delivered_orders ?? 0;
+      const spent = res?.data?.total_spent ?? res?.data?.data?.total_spent ?? 0;
+
+      setDeliveredOrders(Number(delivered) || 0);
+      setTotalSpent(Number(spent) || 0);
+    } catch (err) {
+      // silent log
+      console.error("recalculate-rank failed:", err);
     }
-  }, [showPopupMessage]);
+  }, [setUser]);
 
-  // 🟢 Gọi fetch khi component mount
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    // Chỉ gọi recalc để lấy rank + số liệu
+    fetchRankInfo();
+  }, [fetchRankInfo]);
 
-  // 🟢 Chọn file ảnh mới
+  // ===== avatar handlers (giữ nguyên) =====
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (file.size > 1024 * 1024) {
       return showPopupMessage("File vượt quá 1MB!", "error");
     }
-
     const reader = new FileReader();
     reader.onload = () => setPreviewAvatar(reader.result as string);
     reader.readAsDataURL(file);
     setSelectedAvatarFile(file);
   };
 
-  // 🟢 Gửi thông tin cập nhật hồ sơ
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = Cookies.get("authToken");
     if (!token) return showPopupMessage("Chưa xác thực.", "error");
 
-    if (!user.name.trim()) return showPopupMessage("Vui lòng nhập tên.", "error");
-
+    if (!user?.name?.trim()) return showPopupMessage("Vui lòng nhập tên.", "error");
     const phoneRegex = /^(0|\+84)[1-9][0-9]{8}$/;
-    if (!phoneRegex.test(user.phone.trim())) {
+    if (!user?.phone || !phoneRegex.test(user.phone.trim())) {
       return showPopupMessage("Số điện thoại không hợp lệ.", "error");
     }
 
     try {
-      // 🟢 Cập nhật tên + số điện thoại
-      await axios.put(`${API_BASE_URL}/user`, {
-        name: user.name,
-        phone: user.phone,
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.put(
+        `${API_BASE_URL}/user`,
+        { name: user.name, phone: user.phone },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      // 🟢 Nếu có file ảnh thì upload thêm
       if (selectedAvatarFile) {
         const formData = new FormData();
         formData.append("avatar", selectedAvatarFile);
@@ -146,14 +199,50 @@ export default function AccountPage() {
 
       showPopupMessage("Đã cập nhật thành công!", "success");
       setIsEditing(false);
-      fetchUser();
-      setPreviewAvatar("");
+      // Không cần refetch toàn bộ; để giữ nguyên yêu cầu “còn lại giữ nguyên”
     } catch (err: any) {
       showPopupMessage(err?.response?.data?.message || "Lỗi cập nhật!", "error");
     }
   };
 
-  // 🟢 Lấy URL ảnh đại diện (ưu tiên preview trước)
+  const handleRecalculateRank = async () => {
+    const token = Cookies.get("authToken");
+    if (!token) return showPopupMessage("Chưa xác thực.", "error");
+
+    try {
+      setIsRecalcLoading(true);
+      const url = `${API_BASE_URL}/me/recalculate-rank`;
+      const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+      const newRank =
+        res?.data?.rank ||
+        res?.data?.data?.rank ||
+        res?.data?.user?.rank ||
+        res?.data?.payload?.rank;
+
+      if (newRank) {
+        setUser((prev: any) => (prev ? { ...prev, rank: newRank } : prev));
+      }
+
+      const delivered =
+        res?.data?.delivered_orders ?? res?.data?.data?.delivered_orders ?? 0;
+      const spent = res?.data?.total_spent ?? res?.data?.data?.total_spent ?? 0;
+
+      setDeliveredOrders(Number(delivered) || 0);
+      setTotalSpent(Number(spent) || 0);
+
+      showPopupMessage("Đã cập nhật lại thứ hạng!", "success");
+    } catch (err: any) {
+      showPopupMessage(
+        err?.response?.data?.message || "Không thể cập nhật thứ hạng!",
+        "error"
+      );
+    } finally {
+      setIsRecalcLoading(false);
+    }
+  };
+
+  // avatar url (giữ như cũ)
   const avatarUrl =
     previewAvatar ||
     (user?.avatar
@@ -162,8 +251,20 @@ export default function AccountPage() {
         : `${STATIC_BASE_URL}${user.avatar.startsWith("/") ? "" : "/"}${user.avatar}`
       : "/default-avatar.jpg");
 
+  // ===== progress & targets =====
+  const ORDER_TARGET = 75; // mốc 75 đơn để tính bar
+  const orderPercent = Math.min(
+    ORDER_TARGET ? (deliveredOrders / ORDER_TARGET) * 100 : 0,
+    100
+  );
 
+  const spendTarget = spendTargetByRank(rank);
+  const spendPercent = Math.min(
+    spendTarget ? (totalSpent / spendTarget) * 100 : 0,
+    100
+  );
 
+  const { bg, text } = getRankStyle(rank);
 
   return (
     <div className="w-full flex justify-center py-10 text-[15px] text-gray-800">
@@ -191,37 +292,48 @@ export default function AccountPage() {
                 <input
                   type="text"
                   placeholder="Tên"
-                  value={user.name}
-                  onChange={(e) => setUser({ ...user, name: e.target.value })}
+                  value={user?.name ?? ""}
+                  onChange={(e) =>
+                    setUser({ ...(user ?? ({} as any)), name: e.target.value })
+                  }
                   className="p-3 border rounded text-sm"
                 />
                 <input
                   type="text"
                   placeholder="Số điện thoại"
-                  value={user.phone}
-                  onChange={(e) => setUser({ ...user, phone: e.target.value })}
+                  value={user?.phone ?? ""}
+                  onChange={(e) =>
+                    setUser({ ...(user ?? ({} as any)), phone: e.target.value })
+                  }
                   className="p-3 border rounded text-sm"
                 />
                 <input
                   type="text"
                   disabled
                   placeholder="Email"
-                  value={user.email}
+                  value={user?.email ?? ""}
                   className="p-3 border rounded text-sm bg-gray-50 text-gray-500"
                 />
                 <input
                   type="text"
                   disabled
                   placeholder="Tên đăng nhập"
-                  value={user.username}
+                  value={user?.username ?? ""}
                   className="p-3 border rounded text-sm bg-gray-50 text-gray-500"
                 />
               </div>
               <div className="flex justify-between">
-                <button type="button" onClick={() => setIsEditing(false)} className="text-gray-600">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="text-gray-600"
+                >
                   Hủy
                 </button>
-                <button type="submit" className="bg-[#DB4444] text-white px-5 py-2 rounded hover:opacity-80">
+                <button
+                  type="submit"
+                  className="bg-[#DB4444] text-white px-5 py-2 rounded hover:opacity-80"
+                >
                   Lưu thay đổi
                 </button>
               </div>
@@ -241,9 +353,15 @@ export default function AccountPage() {
                 <div className="flex flex-col justify-between">
                   <p className="font-bold text-lg">{user?.name}</p>
                   <p className="text-sm text-[#DB4444]">{user?.username}</p>
-                  <p className="text-sm text-gray-700"><strong>Email:</strong> {user?.email}</p>
-                  <p className="text-sm text-gray-700"><strong>Số điện thoại:</strong> {user?.phone}</p>
-                  <p className="text-sm text-gray-700 capitalize"><strong>Vai trò:</strong> {user?.role}</p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Email:</strong> {user?.email}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Số điện thoại:</strong> {user?.phone}
+                  </p>
+                  <p className="text-sm text-gray-700 capitalize">
+                    <strong>Vai trò:</strong> {user?.role}
+                  </p>
                 </div>
               </div>
               <button
@@ -260,123 +378,119 @@ export default function AccountPage() {
             className="relative rounded-xl p-5 overflow-hidden"
             style={{
               background:
-                user.rank === 'diamond'
+                rank === "diamond"
                   ? "url(/platinum-card-bg.jpg)"
-                  : user.rank === 'gold'
+                  : rank === "gold"
                     ? "url(/gold-card-bg.jpg)"
-                    : user.rank === 'silver'
+                    : rank === "silver"
                       ? "url(/silver-card-bg.jpg)"
-                      : user.rank === 'bronze'
+                      : rank === "bronze"
                         ? "url(/bronze-card-bg.jpg)"
                         : "url(/default-card-bg.jpg)",
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              color: '#CCCCCC',
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              color: "#CCCCCC",
             }}
           >
             <div className="relative z-10 flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-white">Thẻ thành viên</h3>
-              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium  text-white ${getRankBg(user.rank)}`}>
-                {getRankIcon(user.rank)}
-                <span className="capitalize">{user.rank}</span>
+
+              {/* Nhãn rank + Nút cập nhật hạng */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRecalculateRank}
+                  disabled={isRecalcLoading}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded border ${isRecalcLoading
+                      ? "opacity-60 cursor-not-allowed"
+                      : "hover:bg-white/90 hover:text-[#DB4444]"
+                    }`}
+                  style={{
+                    color: "#ffffff",
+                    borderColor: "#ffffff",
+                    backgroundColor: "rgba(255,255,255,0.12)",
+                    transition: "all .15s ease",
+                  }}
+                  title="Cập nhật lại thứ hạng"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 ${isRecalcLoading ? "animate-spin" : ""}`} />
+                  {isRecalcLoading ? "Đang cập nhật..." : "Cập nhật hạng"}
+                </button>
+
+                <div
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${bg} ${text}`}
+                >
+                  {getRankIcon(rank)}
+                  <span className="capitalize">{rank}</span>
+                </div>
               </div>
             </div>
 
-            {/* progress */}
+            {/* Khu hiển thị số + progress bar */}
             <div
-              className={`relative z-10 flex divide-x text-center ${user.rank === 'diamond'
-                ? 'divide-[#CCCCCC]'
-                : user.rank === 'gold'
-                  ? 'divide-[#C9A602]'
-                  : user.rank === 'silver'
-                    ? 'divide-[#A9B8C9]'
-                    : user.rank === 'bronze'
-                      ? 'divide-[#CD7F32]'
-                      : 'divide-[#80AAFA]'
-                }`}>
+              className={`relative z-10 flex divide-x text-center ${rank === "diamond"
+                  ? "divide-[#CCCCCC]"
+                  : rank === "gold"
+                    ? "divide-[#C9A602]"
+                    : rank === "silver"
+                      ? "divide-[#A9B8C9]"
+                      : rank === "bronze"
+                        ? "divide-[#CD7F32]"
+                        : "divide-[#80AAFA]"
+                }`}
+            >
+              {/* Đơn hàng: chỉ số, KHÔNG có "/" nhưng vẫn có progress */}
               <div className="flex-1 px-4">
                 <p className="text-xs mb-1">Đơn hàng</p>
                 <p className="text-lg font-bold">
-                  <span style={{
-                    color:
-                      user.rank === 'diamond'
-                        ? "#80AAFA"
-                        : user.rank === 'gold'
-                          ? "#C9A602"
-                          : user.rank === 'silver'
-                            ? "#8BA0B7"
-                            : user.rank === 'bronze'
-                              ? "#CD7F32"
-                              : "#80AAFA",
-                  }}>0</span><span className="text-sm">/75</span>
+                  <span style={{ color: colorByRank(rank) }}>{deliveredOrders}</span>
                 </p>
                 <div className="mt-2 w-full bg-[#DDDDDD] rounded-full h-2">
-                  <div className="bg-[#d4a94e] h-2 rounded-full"
+                  <div
+                    className="h-2 rounded-full"
                     style={{
-                      width: "0%",
-                      backgroundColor:
-                        user.rank === 'diamond'
-                          ? "#80AAFA"
-                          : user.rank === 'gold'
-                            ? "#C9A602"
-                            : user.rank === 'silver'
-                              ? "#8BA0B7"
-                              : user.rank === 'bronze'
-                                ? "#CD7F32"
-                                : "#80AAFA",
-                    }}></div>
+                      width: `${Math.min((deliveredOrders / 75) * 100, 100)}%`,
+                      backgroundColor: colorByRank(rank),
+                      transition: "width .3s ease",
+                    }}
+                  />
                 </div>
               </div>
+
+              {/* Chi tiêu: hiển thị "đã chi / ngưỡng theo rank" + progress */}
               <div className="flex-1 px-4">
                 <p className="text-xs mb-1">Chi tiêu</p>
                 <p className="text-lg font-bold">
-                  <span style={{
-                    color:
-                      user.rank === 'diamond'
-                        ? "#80AAFA"
-                        : user.rank === 'gold'
-                          ? "#C9A602"
-                          : user.rank === 'silver'
-                            ? "#8BA0B7"
-                            : user.rank === 'bronze'
-                              ? "#CD7F32"
-                              : "#80AAFA",
-                  }}>0đ</span><span className="text-sm">/15tr</span>
+                  <span style={{ color: colorByRank(rank) }}>
+                    {formatVND(totalSpent)} {spendTargetByRank(rank) > 0 ? ` / ${formatVND(spendTargetByRank(rank))}` : ""}
+                  </span>
                 </p>
                 <div className="mt-2 w-full bg-[#DDDDDD] rounded-full h-2">
-                  <div className="bg-[#DDDDDD] h-2 rounded-full" style={{
-                    width: "50%", backgroundColor:
-                      user.rank === 'diamond'
-                        ? "#80AAFA"
-                        : user.rank === 'gold'
-                          ? "#C9A602"
-                          : user.rank === 'silver'
-                            ? "#8BA0B7"
-                            : user.rank === 'bronze'
-                              ? "#CD7F32"
-                              : "#80AAFA",
-                  }}></div>
+                  <div
+                    className="h-2 rounded-full"
+                    style={{
+                      width: `${Math.min(
+                        spendTargetByRank(rank)
+                          ? (totalSpent / spendTargetByRank(rank)) * 100
+                          : 0,
+                        100
+                      )}%`,
+                      backgroundColor: colorByRank(rank),
+                      transition: "width .3s ease",
+                    }}
+                  />
                 </div>
               </div>
             </div>
-
-            <div className="mt-4 text-xs text-center relative z-10">
-              Thứ hạng sẽ được cập nhật lại sau 31/12/2025
-            </div>
           </div>
-
-
-
-
         </div>
 
         {showPopup && (
           <div
-            className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-fadeIn
-              ${popupType === 'success'
-                ? 'bg-white text-black border-green-500'
-                : 'bg-white text-red-600 border-red-500'
-              }`}>
+            className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-fadeIn ${popupType === "success"
+                ? "bg-white text-black border-green-500"
+                : "bg-white text-red-600 border-red-500"
+              }`}
+          >
             {popupMessage}
           </div>
         )}
