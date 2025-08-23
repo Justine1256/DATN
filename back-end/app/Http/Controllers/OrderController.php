@@ -386,7 +386,7 @@ return response()->json([
         foreach ($orders as $od) {
             $od->update([
                 'payment_status' => 'Pending',
-                'order_status'   => 'order confirmation',
+                'order_status'   => 'Pending Processing',
             ]);
         }
 
