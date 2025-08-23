@@ -3,6 +3,8 @@
 import { useState } from "react";
 import axios from "axios";
 import Image from "next/image";
+import type { UploadFile } from "antd";
+import { Modal, Rate, Input, Upload, Button, message, Divider } from "antd";
 import { Order } from "../../../types/oder";
 import { formatImageUrl } from "../../../types/utils";
 import { API_BASE_URL } from "@/utils/api";
@@ -23,250 +25,225 @@ interface ReviewState {
 
 export default function ReviewModal({ order, isVisible, onClose }: ReviewModalProps) {
     const [reviews, setReviews] = useState<Record<number, ReviewState>>({});
-    const [popup, setPopup] = useState<{ type: "success" | "error", message: string } | null>(null);
-    const [lightbox, setLightbox] = useState<{ images: File[], index: number } | null>(null);
-
-    if (!isVisible) return null;
+    const [preview, setPreview] = useState<{ open: boolean; src?: string; title?: string }>(
+        { open: false }
+    );
 
     const handleChange = (orderDetailId: number, field: keyof ReviewState, value: any) => {
-        setReviews(prev => ({
-            ...prev,
-            [orderDetailId]: {
-                ...prev[orderDetailId],
-                [field]: value
-            }
-        }));
+        setReviews((prev) => {
+            const existing: ReviewState = prev[orderDetailId] ?? {
+                rating: 0,
+                comment: "",
+                images: [],
+                submitting: false,
+            };
+
+            return {
+                ...prev,
+                [orderDetailId]: {
+                    ...existing,
+                    [field]: value,
+                },
+            };
+        });
     };
 
-    const handleRemoveImage = (orderDetailId: number, idx: number) => {
-        const images = reviews[orderDetailId]?.images ?? [];
-        const newImages = images.filter((_, i) => i !== idx);
-        handleChange(orderDetailId, "images", newImages);
-    };
+    const uploadImages = async (files: File[], token: string) => {
+        const urls: string[] = [];
+        for (const file of files) {
+            const formData = new FormData();
+            formData.append("image", file);
 
-const uploadImages = async (files: File[], token: string) => {
-    const urls: string[] = [];
-    for (const file of files) {
-        const formData = new FormData();
-        formData.append("image", file);
-
-        const res = await axios.post(
-            `${API_BASE_URL}/upload-review-image`,
-            formData,
-            {
+            const res = await axios.post(`${API_BASE_URL}/upload-review-image`, formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "multipart/form-data",
-                }
-            }
-        );
+                },
+            });
 
-        urls.push(...res.data.images);
-    }
-    return urls;
-};
+            urls.push(...res.data.images);
+        }
+        return urls;
+    };
 
-const handleSubmit = async (orderDetailId: number) => {
-    const review = reviews[orderDetailId];
-    if (!review?.rating || review?.rating < 1) {
-        showPopup("error", "Vui lòng chọn ít nhất 1 sao.");
-        return;
-    }
-    if (!review?.comment || review?.comment.length < 10) {
-        showPopup("error", "Vui lòng nhập ít nhất 10 ký tự.");
-        return;
-    }
-
-    handleChange(orderDetailId, "submitting", true);
-
-    try {
-        const token = Cookies.get("authToken");
-        if (!token) {
-            showPopup("error", "Bạn chưa đăng nhập.");
+    const handleSubmit = async (orderDetailId: number) => {
+        const review = reviews[orderDetailId];
+        if (!review?.rating || review.rating < 1) {
+            message.error("Vui lòng chọn ít nhất 1 sao.");
+            return;
+        }
+        if (!review?.comment || review.comment.trim().length < 10) {
+            message.error("Vui lòng nhập ít nhất 10 ký tự.");
             return;
         }
 
-        let imageUrls: string[] = [];
-        if (review.images && review.images.length > 0) {
-            imageUrls = await uploadImages(review.images, token);
-        }
+        handleChange(orderDetailId, "submitting", true);
 
-        await axios.post(`${API_BASE_URL}/reviews`, {
-            order_detail_id: orderDetailId,
-            rating: review.rating,
-            comment: review.comment,
-            images: imageUrls
-        }, {
-            headers: {
-                Authorization: `Bearer ${token}`
+        try {
+            const token = Cookies.get("authToken");
+            if (!token) {
+                message.error("Bạn chưa đăng nhập.");
+                return;
             }
-        });
 
-        showPopup("success", "Đánh giá thành công!");
+            let imageUrls: string[] = [];
+            if (review.images && review.images.length > 0) {
+                imageUrls = await uploadImages(review.images, token);
+            }
 
-        setReviews(prev => ({
-            ...prev,
-            [orderDetailId]: { rating: 0, comment: "", images: [], submitting: false }
+            await axios.post(
+                `${API_BASE_URL}/reviews`,
+                {
+                    order_detail_id: orderDetailId,
+                    rating: review.rating,
+                    comment: review.comment,
+                    images: imageUrls,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            message.success("Đánh giá thành công!");
+
+            // Reset form state for this item
+            setReviews((prev) => ({
+                ...prev,
+                [orderDetailId]: { rating: 0, comment: "", images: [], submitting: false },
+            }));
+
+            // Tự đóng modal sau khi đánh giá thành công
+            onClose();
+        } catch (err: any) {
+            // eslint-disable-next-line no-console
+            console.error("❌", err);
+            message.error(err?.response?.data?.message || "Lỗi gửi đánh giá.");
+        } finally {
+            handleChange(orderDetailId, "submitting", false);
+        }
+    };
+
+    // Helpers for Ant Design Upload (controlled fileList)
+    const toUploadList = (files: File[] = []): UploadFile[] => {
+        return files.map((f, idx) => ({
+            uid: `${idx}-${f.name}-${f.size}`,
+            name: f.name,
+            status: "done",
+            url: URL.createObjectURL(f),
+            originFileObj: f as any,
         }));
+    };
 
-    } catch (err: any) {
-        console.error("❌", err);
-        showPopup("error", err?.response?.data?.message || "Lỗi gửi đánh giá.");
-    } finally {
-        handleChange(orderDetailId, "submitting", false);
-    }
-};
-
-
-    const showPopup = (type: "success" | "error", message: string) => {
-        setPopup({ type, message });
-        setTimeout(() => setPopup(null), 3000);
+    const fromUploadList = (fileList: UploadFile[]): File[] => {
+        return fileList
+            .map((f) => (f.originFileObj as File) || undefined)
+            .filter(Boolean) as File[];
     };
 
     return (
-        <>
-            <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex justify-center items-center p-4 overflow-y-auto">
-                <div className="bg-white mt-20 p-8 rounded-2xl shadow-xl max-w-xl w-full">
-                    <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">Đánh Giá Sản Phẩm</h2>
+        <Modal
+            title={<span className="font-semibold">Đánh Giá Sản Phẩm</span>}
+            open={isVisible}
+            onCancel={onClose}
+            footer={null}
+            width={760}
+            bodyStyle={{ padding: 0 }}
+            destroyOnClose
+        >
+            {/* Scroll container to ensure 2-3 sản phẩm (hoặc nhiều hơn) đều xem được */}
+            <div className="max-h-[72vh] overflow-y-auto px-6 py-6">
+                {order.order_details.map((detail, i) => {
+                    const review = reviews[detail.id] || {
+                        rating: 0,
+                        comment: "",
+                        images: [],
+                        submitting: false,
+                    };
 
-                    {order.order_details.map(detail => {
-                        const review = reviews[detail.id] || { rating: 0, comment: "", images: [], submitting: false };
-
-                        return (
-                            <div key={detail.id} className="border rounded-lg p-5 mb-8 shadow-sm hover:shadow transition">
-                                <div className="flex items-center gap-4 mb-4">
-                                    <Image
-                                        src={formatImageUrl(detail.product.image)}
-                                        alt={detail.product.name}
-                                        width={70}
-                                        height={70}
-                                        className="rounded-lg border"
-                                    />
-                                    <div>
-                                        <h4 className="font-semibold text-lg">{detail.product.name}</h4>
-                                        <p className="text-sm text-gray-500">{detail.product.value1} {detail.product.value2}</p>
-                                    </div>
-                                </div>
-
-                                <div className="mb-4">
-                                    <p className="font-medium text-gray-700 mb-1">Đánh giá chất lượng:</p>
-                                    <div>
-                                        {[1, 2, 3, 4, 5].map(star => (
-                                            <button
-                                                key={star}
-                                                onClick={() => handleChange(detail.id, "rating", star)}
-                                                className={`text-3xl mx-0.5 ${star <= review.rating ? "text-yellow-400" : "text-gray-300"} transition-colors`}
-                                            >★</button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <textarea
-                                    rows={3}
-                                    className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-gray-800 transition"
-                                    placeholder="Nhận xét của bạn..."
-                                    value={review.comment}
-                                    onChange={(e) => handleChange(detail.id, "comment", e.target.value)}
+                    return (
+                        <div key={detail.id} className="border rounded-lg p-4 mb-6">
+                            <div className="flex items-center gap-4 mb-3">
+                                <Image
+                                    src={formatImageUrl(detail.product.image)}
+                                    alt={detail.product.name}
+                                    width={70}
+                                    height={70}
+                                    className="rounded-md border"
                                 />
-
-                                <div className="flex flex-wrap items-center gap-3 mt-4">
-                                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 border rounded-lg hover:bg-gray-50 transition">
-                                        + Ảnh
-                                        <input
-                                            type="file"
-                                            multiple
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={(e) => {
-                                                if (e.target.files) {
-                                                    handleChange(detail.id, "images", Array.from(e.target.files));
-                                                }
-                                            }}
-                                        />
-                                    </label>
-
-                                    {(review.images ?? []).length > 0 && (
-                                        <div className="flex gap-2 flex-wrap mt-2">
-                                            {(review.images ?? []).map((img, idx) => (
-                                                <div key={idx} className="relative w-16 h-16 group">
-                                                    <img
-                                                        src={URL.createObjectURL(img)}
-                                                        alt={`selected-${idx}`}
-                                                        className="object-cover w-full h-full rounded border cursor-pointer"
-                                                        onClick={() => setLightbox({ images: review.images ?? [], index: idx })}
-                                                    />
-                                                    <button
-                                                        onClick={() => handleRemoveImage(detail.id, idx)}
-                                                        className="absolute top-0 right-0 bg-black bg-opacity-60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition"
-                                                    >×</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex justify-end gap-3 mt-6">
-                                    <button
-                                        onClick={onClose}
-                                        className="px-6 py-3 rounded-lg bg-gray-200 hover:bg-gray-300 transition w-auto"
-                                    >
-                                        Đóng
-                                    </button>
-                                    <button
-                                        onClick={() => handleSubmit(detail.id)}
-                                        disabled={review.submitting}
-                                        className={`px-6 py-3 rounded-lg text-white transition w-auto
-                                            ${review.submitting ? "bg-gray-400 cursor-not-allowed" : "bg-[#db4444] hover:bg-[#c53737]"}`}
-                                    >
-                                        {review.submitting ? "Đang gửi..." : "Gửi đánh giá"}
-                                    </button>
+                                <div>
+                                    <div className="font-medium text-base">{detail.product.name}</div>
+                                    <div className="text-xs text-gray-500">
+                                        {detail.product.value1} {detail.product.value2}
+                                    </div>
                                 </div>
                             </div>
-                        );
-                    })}
-                </div>
+
+                            <div className="mb-3">
+                                <div className="text-sm mb-1">Đánh giá chất lượng</div>
+                                <Rate
+                                    value={review.rating}
+                                    onChange={(v) => handleChange(detail.id, "rating", v)}
+                                />
+                            </div>
+
+                            <Input.TextArea
+                                rows={3}
+                                placeholder="Nhận xét của bạn..."
+                                value={review.comment}
+                                onChange={(e) => handleChange(detail.id, "comment", e.target.value)}
+                            />
+
+                            <div className="mt-3">
+                                <Upload
+                                    multiple
+                                    listType="picture-card"
+                                    fileList={toUploadList(review.images)}
+                                    beforeUpload={() => false} // không upload tự động, giữ nguyên luồng gọi API hiện tại
+                                    onChange={({ fileList }) => {
+                                        const files = fromUploadList(fileList);
+                                        handleChange(detail.id, "images", files);
+                                    }}
+                                    onPreview={(file) => {
+                                        const src = (file.url as string) || (file.thumbUrl as string);
+                                        setPreview({ open: true, src, title: file.name });
+                                    }}
+                                >
+                                    <div className="text-sm">+ Ảnh</div>
+                                </Upload>
+                            </div>
+
+                            <div className="flex justify-end gap-2 mt-4">
+                                <Button onClick={onClose}>Đóng</Button>
+                                <Button
+                                    type="primary"
+                                    loading={review.submitting}
+                                    onClick={() => handleSubmit(detail.id)}
+                                    style={{ backgroundColor: "#db4444", borderColor: "#db4444" }}
+                                >
+                                    {review.submitting ? "Đang gửi..." : "Gửi đánh giá"}
+                                </Button>
+                            </div>
+
+                            {i < order.order_details.length - 1 && <Divider className="!my-5" />}
+                        </div>
+                    );
+                })}
             </div>
 
-            {popup && (
-                <div
-                    className={`fixed top-20 right-5 z-[9999] px-4 py-3 rounded-lg shadow-lg border-l-4 text-sm animate-fadeIn
-                        ${popup.type === 'success'
-                            ? 'bg-white text-black border-green-500'
-                            : 'bg-white text-red-600 border-red-500'}`}
-                >
-                    {popup.message}
-                </div>
-            )}
-
-            {lightbox && (
-                <div className="fixed inset-0 z-[9999] bg-black bg-opacity-90 flex items-center justify-center p-4">
-                    <div className="relative max-w-lg w-full">
-                        <img
-                            src={URL.createObjectURL(lightbox.images[lightbox.index])}
-                            alt="preview"
-                            className="w-full h-auto rounded shadow"
-                        />
-                        <button
-                            className="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full px-2 py-1 hover:bg-opacity-80"
-                            onClick={() => setLightbox(null)}
-                        >
-                            ×
-                        </button>
-                        {lightbox.index > 0 && (
-                            <button
-                                className="absolute left-2 top-1/2 transform -translate-y-1/2 text-white text-2xl"
-                                onClick={() => setLightbox({ ...lightbox, index: lightbox.index - 1 })}
-                            >‹</button>
-                        )}
-                        {lightbox.index < lightbox.images.length - 1 && (
-                            <button
-                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white text-2xl"
-                                onClick={() => setLightbox({ ...lightbox, index: lightbox.index + 1 })}
-                            >›</button>
-                        )}
-                    </div>
-                </div>
-            )}
-        </>
+            {/* Preview ảnh */}
+            <Modal
+                open={preview.open}
+                title={preview.title}
+                footer={null}
+                onCancel={() => setPreview({ open: false })}
+            >
+                {preview.src && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img alt="preview" style={{ width: "100%" }} src={preview.src} />
+                )}
+            </Modal>
+        </Modal>
     );
 }
