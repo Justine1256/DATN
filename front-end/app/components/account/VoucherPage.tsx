@@ -114,7 +114,6 @@ export default function MyVouchersPage() {
         const safe: SafeVoucherUser[] = raw
           .map((item: any): SafeVoucherUser | null => {
             if (item?.voucher) {
-              // nested
               const v: Voucher = item.voucher;
               return {
                 id: item.id ?? v.id,
@@ -123,7 +122,6 @@ export default function MyVouchersPage() {
               };
             }
             if (item?.code) {
-              // flat
               const v: Voucher = {
                 id: item.id,
                 code: item.code,
@@ -149,8 +147,6 @@ export default function MyVouchersPage() {
           })
           .filter((x): x is SafeVoucherUser => !!x && !!x.voucher?.code);
 
-        // ===== SẮP XẾP ƯU TIÊN CÒN HẠN TRƯỚC =====
-        // Nhóm: 0 = còn hạn & còn lượt, 1 = còn hạn nhưng hết lượt, 2 = hết hạn
         const sorted = safe.sort((a, b) => {
           const va = a.voucher;
           const vb = b.voucher;
@@ -164,7 +160,6 @@ export default function MyVouchersPage() {
 
           if (scoreA !== scoreB) return scoreA - scoreB;
 
-          // Trong cùng nhóm, sắp theo ngày hết hạn gần nhất
           const dateA = new Date(va.end_date).getTime();
           const dateB = new Date(vb.end_date).getTime();
           return dateA - dateB;
@@ -192,11 +187,9 @@ export default function MyVouchersPage() {
     }
   };
 
-  // Phân nhóm theo shop_id
   const adminList = voucherUsers.filter((vu) => isAdminVoucher(vu.voucher));
   const shopList = voucherUsers.filter((vu) => !isAdminVoucher(vu.voucher));
 
-  // Card renderer (compact, chống tràn, chiều cao bằng nhau)
   const renderVoucherCard = (vu: SafeVoucherUser, kind: 'admin' | 'shop') => {
     const v = vu.voucher;
     const expired = isExpired(v.end_date);
@@ -220,10 +213,10 @@ export default function MyVouchersPage() {
           borderColor,
           background: bgStripe,
           opacity: isValid ? 1 : 0.6,
-          overflow: 'hidden',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
+          transition: 'box-shadow .2s ease',
         }}
         bodyStyle={{
           padding: 10,
@@ -232,19 +225,15 @@ export default function MyVouchersPage() {
           minHeight: 180,
         }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)';
-          (e.currentTarget as HTMLDivElement).style.transition = 'transform .15s ease';
+          (e.currentTarget as HTMLDivElement).style.boxShadow =
+            '0 4px 12px rgba(0,0,0,0.12)';
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0px)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
         }}
       >
-        {/* TOP */}
         <Space align="start" style={{ width: '100%' }}>
-          <Badge
-            offset={[0, 0]}
-            count={isValid ? <SafetyCertificateOutlined style={{ color: headerColor }} /> : null}
-          >
+          <Badge count={isValid ? <SafetyCertificateOutlined style={{ color: headerColor }} /> : null}>
             <div
               style={{
                 width: 32,
@@ -266,113 +255,41 @@ export default function MyVouchersPage() {
           </Badge>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Header nhỏ gọn */}
             <Space style={{ width: '100%', justifyContent: 'space-between' }} align="start">
               <Space size={6} align="center" wrap>
-                <Tag color={kind === 'admin' ? '#db4444' : 'green'} style={{ borderRadius: 999, fontSize: 10, lineHeight: '16px' }}>
-                  {kind === 'admin' ? 'Admin (Sàn)' : 'Shop'}
-                </Tag>
+                <Tag color={kind === 'admin' ? '#db4444' : 'green'} style={{ borderRadius: 999, fontSize: 10, lineHeight: '16px' }}>{kind === 'admin' ? 'Admin (Sàn)' : 'Shop'}</Tag>
                 {v.is_free_shipping === 1 && (
                   <Tag color="blue" style={{ borderRadius: 999, fontSize: 10, lineHeight: '16px' }}>
-                    <Space size={4}>
-                      <TruckOutlined />
-                      <Text ellipsis style={{ fontSize: 10 }}>Freeship</Text>
-                    </Space>
+                    <Space size={4}><TruckOutlined /><Text ellipsis style={{ fontSize: 10 }}>Freeship</Text></Space>
                   </Tag>
                 )}
                 {v.discount_type === 'percent' ? (
                   <Tag color="gold" style={{ borderRadius: 999, fontSize: 10, lineHeight: '16px', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    <Space size={4}>
-                      <PercentageOutlined />
-                      <Text
-                        ellipsis={{ tooltip: true }}
-                        style={{ fontSize: 10, color: '#000' }}   // hoặc 'rgba(0,0,0,0.88)'
-                      >
-                        {toNumber(v.discount_value)}% tối đa {v.max_discount_value ? formatCurrency(v.max_discount_value) : '—'}
-                      </Text>
-
-                    </Space>
+                    <Space size={4}><PercentageOutlined /><Text ellipsis={{ tooltip: true }} style={{ fontSize: 10, color: '#000' }}>{toNumber(v.discount_value)}% tối đa {v.max_discount_value ? formatCurrency(v.max_discount_value) : '—'}</Text></Space>
                   </Tag>
                 ) : (
                   <Tag color="purple" style={{ borderRadius: 999, fontSize: 10, lineHeight: '16px', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    <Space size={4}>
-                      <GiftOutlined />
-                        <Text
-                          ellipsis={{ tooltip: `Giảm ${formatCurrency(v.discount_value)}` }}
-                          style={{ fontSize: 10, color: '#000' }}
-                        >
-                          Giảm {formatCurrency(v.discount_value)}
-                        </Text>
-
-                    </Space>
+                    <Space size={4}><GiftOutlined /><Text ellipsis={{ tooltip: `Giảm ${formatCurrency(v.discount_value)}` }} style={{ fontSize: 10, color: '#000' }}>Giảm {formatCurrency(v.discount_value)}</Text></Space>
                   </Tag>
                 )}
               </Space>
-
-              <Tag color={isValid ? 'green' : 'default'} style={{ borderRadius: 999, fontSize: 10, lineHeight: '16px' }}>
-                {expired ? 'Hết hạn' : usedUp ? 'Hết lượt' : 'Còn hạn'}
-              </Tag>
+              <Tag color={isValid ? 'green' : 'default'} style={{ borderRadius: 999, fontSize: 10, lineHeight: '16px' }}>{expired ? 'Hết hạn' : usedUp ? 'Hết lượt' : 'Còn hạn'}</Tag>
             </Space>
 
-            {/* Code + copy */}
             <Space style={{ width: '100%', marginTop: 6, justifyContent: 'space-between' }}>
-              <div
-                style={{
-                  display: 'inline-block',
-                  padding: '3px 6px',
-                  borderRadius: 6,
-                  border: `1px dashed ${headerColor}`,
-                  background: '#fff',
-                  maxWidth: 'calc(100% - 26px)',
-                }}
-              >
-                <Text strong style={{ color: headerColor, letterSpacing: 0.4, fontSize: 12 }} ellipsis>
-                  {v.code}
-                </Text>
+              <div style={{ display: 'inline-block', padding: '3px 6px', borderRadius: 6, border: `1px dashed ${headerColor}`, background: '#fff', maxWidth: 'calc(100% - 26px)' }}>
+                <Text strong style={{ color: headerColor, letterSpacing: 0.4, fontSize: 12 }} ellipsis>{v.code}</Text>
               </div>
-
               <Tooltip title="Sao chép mã">
-                <Button
-                  type="text"
-                  size="small"
-                  onClick={() => handleCopy(v.code, vu.id)}
-                  icon={
-                    copiedId === vu.id ? (
-                      <CheckOutlined style={{ color: '#52c41a' }} />
-                    ) : (
-                      <CopyOutlined />
-                    )
-                  }
-                  style={{ padding: 0, width: 20, height: 20, minWidth: 20 }}
-                />
+                <Button type="text" size="small" onClick={() => handleCopy(v.code, vu.id)} icon={copiedId === vu.id ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined />} style={{ padding: 0, width: 20, height: 20, minWidth: 20 }} />
               </Tooltip>
             </Space>
 
-            {/* Meta info (flex:1 để căn đều chiều cao) */}
-            <div style={{ marginTop: 6, flex: 1, display: 'flex', flexDirection: 'column', gap: 4, overflow: 'hidden' }}>
-              <Space size={6} wrap>
-                <FieldTimeOutlined />
-                <Text type="secondary" style={{ fontSize: 12 }} ellipsis>
-                  HSD: {formatDate(v.end_date)}
-                </Text>
-              </Space>
-
-              <Space size={6} wrap>
-                <FieldTimeOutlined />
-                <Text type="secondary" style={{ fontSize: 12 }} ellipsis>
-                  Đã lưu: {formatDate(vu.created_at)}
-                </Text>
-              </Space>
-
-              <Text type="secondary" style={{ fontSize: 12 }} ellipsis>
-                Đơn tối thiểu: <Text strong>{formatCurrency(v.min_order_value)}</Text>
-              </Text>
-
-              <Text type="secondary" style={{ fontSize: 12 }} ellipsis>
-                {toNumber(v.usage_count) >= toNumber(v.usage_limit)
-                  ? <>Đã dùng {toNumber(v.usage_count)}/{toNumber(v.usage_limit)}</>
-                  : <>Còn {toNumber(v.usage_limit) - toNumber(v.usage_count)} lượt</>}
-              </Text>
+            <div style={{ marginTop: 6, flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <Space size={6} wrap><FieldTimeOutlined /><Text type="secondary" style={{ fontSize: 12 }} ellipsis>HSD: {formatDate(v.end_date)}</Text></Space>
+              <Space size={6} wrap><FieldTimeOutlined /><Text type="secondary" style={{ fontSize: 12 }} ellipsis>Đã lưu: {formatDate(vu.created_at)}</Text></Space>
+              <Text type="secondary" style={{ fontSize: 12 }} ellipsis>Đơn tối thiểu: <Text strong>{formatCurrency(v.min_order_value)}</Text></Text>
+              <Text type="secondary" style={{ fontSize: 12 }} ellipsis>{toNumber(v.usage_count) >= toNumber(v.usage_limit) ? <>Đã dùng {toNumber(v.usage_count)}/{toNumber(v.usage_limit)}</> : <>Còn {toNumber(v.usage_limit) - toNumber(v.usage_count)} lượt</>}</Text>
             </div>
           </div>
         </Space>
@@ -384,93 +301,33 @@ export default function MyVouchersPage() {
     if (loading) {
       return (
         <div style={{ padding: 14 }}>
-          <List
-            grid={{ gutter: 18, xs: 1, sm: 1, md: 2, lg: 3, xl: 3, xxl: 3 }}
-            dataSource={[1, 2, 3, 4, 5, 6]}
-            renderItem={(i) => (
-              <List.Item key={i} style={{ height: '100%' }}>
-                <Card style={{ borderRadius: 10, minHeight: 180 }}>
-                  <Skeleton active title paragraph={{ rows: 3 }} />
-                </Card>
-              </List.Item>
-            )}
-          />
+          <List grid={{ gutter: 18, xs: 1, sm: 1, md: 2, lg: 3, xl: 3, xxl: 3 }} dataSource={[1, 2, 3, 4, 5, 6]} renderItem={(i) => (<List.Item key={i} style={{ height: '100%' }}><Card style={{ borderRadius: 10, minHeight: 180 }}><Skeleton active title paragraph={{ rows: 3 }} /></Card></List.Item>)} />
         </div>
       );
     }
-
     if (!list.length) {
       return (
         <div style={{ padding: 18 }}>
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <>
-                <Title level={5} style={{ marginBottom: 0 }}>
-                  Chưa có voucher {kind === 'admin' ? 'Admin' : 'Shop'}
-                </Title>
-                <Text type="secondary">Khi có, chúng sẽ xuất hiện tại đây</Text>
-              </>
-            }
-          />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<><Title level={5} style={{ marginBottom: 0 }}>Chưa có voucher {kind === 'admin' ? 'Admin' : 'Shop'}</Title><Text type="secondary">Khi có, chúng sẽ xuất hiện tại đây</Text></>} />
         </div>
       );
     }
-
     return (
       <div style={{ padding: 14 }}>
-        <List
-          grid={{ gutter: 18, xs: 1, sm: 1, md: 2, lg: 3, xl: 3, xxl: 3 }}
-          pagination={{ pageSize: 9, showSizeChanger: false, style: { padding: '8px 4px 4px' } }}
-          dataSource={list}
-          renderItem={(vu) => (
-            <List.Item style={{ height: '100%' }}>
-              <div style={{ height: '100%' }}>{renderVoucherCard(vu, kind)}</div>
-            </List.Item>
-          )}
-        />
+        <List grid={{ gutter: 18, xs: 1, sm: 1, md: 2, lg: 3, xl: 3, xxl: 3 }} pagination={{ pageSize: 9, showSizeChanger: false, style: { padding: '8px 4px 4px' } }} dataSource={list} renderItem={(vu) => (<List.Item style={{ height: '100%' }}><div style={{ height: '100%' }}>{renderVoucherCard(vu, kind)}</div></List.Item>)} />
       </div>
     );
   };
 
   return (
-    <ConfigProvider
-      theme={{
-        token: { colorPrimary: '#db4444', colorInfo: '#db4444', borderRadius: 10 },
-        components: {
-          Tag: { colorError: '#db4444' },
-          Badge: { colorError: '#db4444' },
-          Card: { borderRadiusLG: 10 },
-          Tabs: { inkBarColor: '#db4444' },
-        },
-      }}
-    >
+    <ConfigProvider theme={{ token: { colorPrimary: '#db4444', colorInfo: '#db4444', borderRadius: 10 }, components: { Tag: { colorError: '#db4444' }, Badge: { colorError: '#db4444' }, Card: { borderRadiusLG: 10 }, Tabs: { inkBarColor: '#db4444' }, }, }}>
       <div style={{ minHeight: '100vh', padding: 12 }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          {/* Header */}
-          <Card
-            style={{
-              marginBottom: 10,
-              borderRadius: 10,
-              background:
-                'linear-gradient(90deg, rgba(219,68,68,0.06), rgba(219,68,68,0.02) 45%, rgba(255,255,255,1))',
-            }}
-            bodyStyle={{ padding: 12 }}
-          >
+          <Card style={{ marginBottom: 10, borderRadius: 10, background: 'linear-gradient(90deg, rgba(219,68,68,0.06), rgba(219,68,68,0.02) 45%, rgba(255,255,255,1))' }} bodyStyle={{ padding: 12 }}>
             <Space align="center" size={10} style={{ width: '100%', justifyContent: 'space-between' }}>
               <Space align="center" size={10}>
                 <Badge count={voucherUsers.length} color="#db4444">
-                  <div
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 10,
-                      display: 'grid',
-                      placeItems: 'center',
-                      background: 'linear-gradient(135deg, #db4444 0%, #f06a6a 100%)',
-                      color: '#fff',
-                    }}
-                  >
+                  <div style={{ width: 38, height: 38, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, #db4444 0%, #f06a6a 100%)', color: '#fff' }}>
                     <GiftOutlined />
                   </div>
                 </Badge>
@@ -490,7 +347,6 @@ export default function MyVouchersPage() {
             <Alert type="error" message={errorMsg} showIcon style={{ marginBottom: 10, borderRadius: 10 }} />
           )}
 
-          {/* Tabs Admin / Shop */}
           <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 10, overflow: 'hidden' }}>
             <Tabs
               items={[
