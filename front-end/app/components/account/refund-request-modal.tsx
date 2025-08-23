@@ -9,7 +9,7 @@ interface RefundRequestModalProps {
   order: Order
   isVisible: boolean
   onClose: () => void
-  onSubmit: (data: { reason: string; images: File[] }) => void
+  onSubmit: (data: { reason: string; images: File[] }) => Promise<void> | void
   isProcessing: boolean
 }
 
@@ -55,7 +55,7 @@ export default function RefundRequestModal({
     setImagePreviews(newPreviews)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!reason.trim()) {
       alert("Vui lòng nhập lý do hoàn đơn")
@@ -65,14 +65,16 @@ export default function RefundRequestModal({
       alert("Vui lòng tải lên ít nhất 1 hình ảnh minh chứng")
       return
     }
-    onSubmit({ reason: reason.trim(), images })
+    await onSubmit({ reason: reason.trim(), images })
+    // tự đóng modal sau khi gửi thành công
+    onClose()
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div>
             <h3 className="text-xl font-bold text-gray-900">Yêu cầu hoàn đơn</h3>
             <p className="text-sm text-gray-600">Đơn hàng #{order.id}</p>
@@ -86,8 +88,8 @@ export default function RefundRequestModal({
           </button>
         </div>
 
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        {/* Scrollable Content */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Warning Notice */}
           <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
@@ -169,7 +171,7 @@ export default function RefundRequestModal({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-4 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
