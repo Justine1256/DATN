@@ -78,12 +78,11 @@ export default function RefundRequestModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div>
-            <h3 className="text-xl font-bold text-gray-900">Yêu cầu hoàn đơn</h3>
-            <p className="text-sm text-gray-600">Đơn hàng #{order.id}</p>
+
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors pt-10"
             disabled={isProcessing}
           >
             <X className="w-5 h-5" />
