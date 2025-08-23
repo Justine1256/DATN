@@ -4,6 +4,7 @@ import type React from "react"
 
 import { X, Upload, Trash2, AlertCircle } from "lucide-react"
 import type { Order } from "../../../types/oder"
+import { message } from "antd"
 
 interface RefundRequestModalProps {
   order: Order
@@ -29,7 +30,7 @@ export default function RefundRequestModal({
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length + images.length > 5) {
-      alert("Chỉ được tải lên tối đa 5 hình ảnh")
+      message.error("Chỉ được tải lên tối đa 5 hình ảnh")
       return
     }
 
@@ -58,14 +59,15 @@ export default function RefundRequestModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!reason.trim()) {
-      alert("Vui lòng nhập lý do hoàn đơn")
+      message.error("Vui lòng nhập lý do hoàn đơn")
       return
     }
     if (images.length === 0) {
-      alert("Vui lòng tải lên ít nhất 1 hình ảnh minh chứng")
+      message.error("Vui lòng tải lên ít nhất 1 hình ảnh minh chứng")
       return
     }
     await onSubmit({ reason: reason.trim(), images })
+    message.success("Gửi yêu cầu hoàn đơn thành công!")
     // tự đóng modal sau khi gửi thành công
     onClose()
   }
