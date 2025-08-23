@@ -107,15 +107,30 @@ public function uploadRefundImage(Request $request)
         'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
     ]);
 
-    $path = $request->file('image')->store('refund_photos', 'public'); // nên để chữ thường
-    // đúng chuẩn dựa vào config/filesystems.php
-    $url = config('filesystems.disks.public.url').'/'.$path;
+    $file = $request->file('image');
+    $path = $file->store('Refund_photos', 'public');
+     $url = asset('storage/' . $path);
 
     return response()->json([
         'message' => 'Tải ảnh hoàn đơn thành công',
-        'images'  => [$url],
+        'images' => [$url]
     ], 201);
 }
+public function uploadReviewImage(Request $request)
+{
+    $request->validate([
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
+    ]);
 
+    $file = $request->file('image');
+    $path = $file->store('reviews', 'public'); // lưu vào storage/app/public/reviews
+
+    $url = asset('storage/' . $path); // ✅ public path
+
+    return response()->json([
+        'message' => 'Tải ảnh review thành công',
+        'images' => [$url]
+    ], 201);
+}
 
 }
