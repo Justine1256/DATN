@@ -117,14 +117,21 @@ public function uploadShopLogo(Request $request)
         'logo' => [$url] // trả về mảng
     ], 201);
 }
-public function uploadRefundImage(Request $request) {
-  $request->validate([
-    'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:5120', // 5MB khớp UI
-  ]);
-  $path = $request->file('image')->store('Refund_photos', 'public');
-  $url  = Storage::url($path); // -> /storage/Refund_photos/xxx.jpg
+public function uploadRefundImage(Request $request)
+{
+    $request->validate([
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:5120',
+    ]);
 
-  return response()->json(['image' => $url], 201);
+    $file = $request->file('image');
+    $path = $file->store('Refund_photos', 'public');
+
+    $url = asset('storage/' . $path);
+
+    return response()->json([
+        'message' => 'Tải ảnh hoàn đơn thành công',
+        'images' => [$url]
+    ], 201);
 }
 
 }
