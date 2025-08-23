@@ -135,6 +135,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // User
     // Route::get('/user', [UserController::class, 'show']);
+    Route::post('/me/recalculate-rank', [UserController::class, 'recalculateMyRank']);
     Route::put('/user', [UserController::class, 'update']);
     Route::delete('/user', [UserController::class, 'destroy']);
     Route::post('/user/avatar', [UserController::class, 'updateAvatar']);
