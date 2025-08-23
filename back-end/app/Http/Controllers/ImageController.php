@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+
 
 class ImageController extends Controller
 {
@@ -119,17 +122,20 @@ public function uploadShopLogo(Request $request)
 public function uploadRefundImage(Request $request)
 {
     $request->validate([
-        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:5120',
     ]);
 
-    $file = $request->file('image');
-    $path = $file->store('Refund_photos', 'public');
+    $path = $request->file('image')->store('Refund_photos', 'public'); // Refund_photos/abc.jpg
+    if (!$path) return response()->json(['message' => 'Lưu file thất bại'], 500);
 
-    $url = asset('storage/' . $path);
+    $url = Storage::url($path); // ✅ ra /storage/Refund_photos/abc.jpg
+
+    Log::info('uploadRefundImage', ['path'=>$path,'url'=>$url]); // tiện debug
 
     return response()->json([
         'message' => 'Tải ảnh hoàn đơn thành công',
-        'images' => [$url]
+        'image'   => $url,   // ✅ một key rõ ràng
+        'path'    => $path,  // để bạn kiểm tra nếu cần
     ], 201);
 }
 
