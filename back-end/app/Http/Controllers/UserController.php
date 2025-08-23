@@ -566,20 +566,24 @@ class UserController extends Controller
     }
     public function recalculateMyRank(Request $request)
     {
-        // Lấy user từ token (đã qua middleware auth)
-        $user = $request->user(); // hoặc Auth::user()
+        // Lấy user từ token
+        $user = $request->user();
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
         $id = $user->id;
 
-        // Tổng chi của các đơn hợp lệ
-        $total = DB::table('orders')
+        // 1 query lấy cả tổng tiền và tổng số đơn Delivered hợp lệ
+        $agg = DB::table('orders')
             ->where('user_id', $id)
             ->where('order_status', 'Delivered')
             ->whereIn('return_status', ['None', 'Rejected'])
             ->whereNull('deleted_at')
-            ->sum(DB::raw('COALESCE(final_amount, total_amount)'));
+            ->selectRaw('COUNT(*) AS delivered_orders, SUM(COALESCE(final_amount, total_amount)) AS total_spent')
+            ->first();
+
+        $total     = (float) ($agg->total_spent ?? 0);
+        $delivered = (int)   ($agg->delivered_orders ?? 0);
 
         // Suy ra rank
         $rank = match (true) {
@@ -590,10 +594,9 @@ class UserController extends Controller
             default               => 'member',
         };
 
-        // Chỉ update nếu khác để tránh ghi DB không cần thiết
+        // Chỉ update khi thay đổi
         $current = DB::table('users')->where('id', $id)->value('rank');
         $updated = false;
-
         if ($current !== $rank) {
             DB::table('users')->where('id', $id)->update([
                 'rank'       => $rank,
@@ -603,10 +606,11 @@ class UserController extends Controller
         }
 
         return response()->json([
-            'user_id'     => $id,
-            'total_spent' => (float) $total,
-            'rank'        => $rank,
-            'updated'     => $updated,
+            'user_id'         => $id,
+            'total_spent'     => $total,
+            'delivered_orders' => $delivered,   // <- tổng đơn đã giao
+            'rank'            => $rank,
+            'updated'         => $updated,
         ]);
     }
 }
