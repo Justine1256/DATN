@@ -81,27 +81,27 @@ export default function Footer() {
             </Form>
           </Col>
 
-          {/* Hỗ trợ (md: 4/24 ~ 2/12) */}
-          <Col xs={24} sm={12} md={4}>
-            <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>Hỗ trợ</Title>
-            <Space direction="vertical" size={4}>
-              <Text>Fpoly Hồ Chí Minh</Text>
-              <Text>Marketo.gmail.com</Text>
-              <Text>0978740071</Text>
-            </Space>
-          </Col>
+            {/* Hỗ trợ (md: 4/24 ~ 2/12) */}
+            <Col xs={24} sm={12} md={4}>
+              <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>Hỗ trợ</Title>
+              <Space direction="vertical" size={4}>
+                <Text>Fpoly Hồ Chí Minh</Text>
+                <Text>Marketo.gmail.com</Text>
+                <Text>0978740071</Text>
+              </Space>
+            </Col>
 
-          {/* Tài khoản (md: 4/24 ~ 2/12) */}
-          <Col xs={24} sm={12} md={4}>
-            <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>Tài khoản</Title>
-            <Space direction="vertical" size={6}>
-              <Link href="/account" className="ant-typography">Tài khoản của tôi</Link>
-              <Link href="/login" className="ant-typography">Đăng nhập / Đăng ký</Link>
-              <Link href="/cart" className="ant-typography">Giỏ hàng</Link>
-              <Link href="/wishlist" className="ant-typography">Danh sách yêu thích</Link>
-              <Link href="/category" className="ant-typography">Mua sắm</Link>
-            </Space>
-          </Col>
+            {/* Tài khoản (md: 4/24 ~ 2/12) */}
+            <Col xs={24} sm={12} md={4}>
+              <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>Tài khoản</Title>
+              <Space direction="vertical" size={6}>
+                <Link href="/account" className="ant-typography">Tài khoản của tôi</Link>
+                <Link href="/login" className="ant-typography">Đăng nhập / Đăng ký</Link>
+                <Link href="/cart" className="ant-typography">Giỏ hàng</Link>
+                <Link href="/wishlist" className="ant-typography">Danh sách yêu thích</Link>
+                <Link href="/category" className="ant-typography">Mua sắm</Link>
+              </Space>
+            </Col>
 
           {/* Liên kết nhanh (md: 4/24 ~ 2/12) */}
           <Col xs={24} sm={12} md={4}>

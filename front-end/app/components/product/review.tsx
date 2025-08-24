@@ -113,7 +113,7 @@ export default function ProductReviews({ productId }: { productId: number }) {
 
             {/* Rating Overview + Filter */}
             {stats.total > 0 && (
-                <div className="bg-white rounded-lg p-6 mb-6">
+                <div className="bg-white rounded-lg md:p-6 mb-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 flex-wrap">
                         {/* Trung bình sao */}
                         <div className="flex items-center gap-3">
