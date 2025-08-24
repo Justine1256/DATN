@@ -50,6 +50,16 @@ interface PaginationInfo {
   to: number;
 }
 
+type NormalizedProduct = Omit<
+  Product,
+  "price" | "sale_price" | "rating_avg" | "createdAt"
+> & {
+  price: number;
+  sale_price?: number;
+  rating_avg?: number;
+  createdAt: number;
+};
+
 const PRICE_MIN = 0;
 const PRICE_MAX = 50_000_000;
 
@@ -90,7 +100,7 @@ export default function CategoryPageAntd() {
         const res = await fetch(`${API_BASE_URL}/category`);
         const data = await res.json();
         setCategories(data || []);
-      } catch { }
+      } catch { /* ignore */ }
     })();
   }, []);
 
@@ -147,6 +157,7 @@ export default function CategoryPageAntd() {
 
   useEffect(() => {
     fetchProducts(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategorySlug, appliedRange, selectedSort, selectedPriceSort, selectedDiscountSort, selectedNameSort]);
 
   const formatVND = (v: number) =>
@@ -158,6 +169,19 @@ export default function CategoryPageAntd() {
   );
 
   const isInitialLoading = loading && products.length === 0;
+
+  // Chuẩn hoá product giống trang kia (ép kiểu số để tránh lỗi type)
+  const processedProducts: NormalizedProduct[] = useMemo(
+    () =>
+      products.map((p) => ({
+        ...p,
+        price: Number(p.price) || 0,
+        sale_price: p.sale_price != null ? Number(p.sale_price) : undefined,
+        rating_avg: p.rating_avg != null ? Number(p.rating_avg) : undefined,
+        createdAt: p.createdAt ?? 0,
+      })),
+    [products]
+  );
 
   // ----------- Filter Content (dùng chung cho Sidebar & Modal) -----------
   const renderFilterContent = () => {
@@ -233,7 +257,6 @@ export default function CategoryPageAntd() {
         </div>
 
         {/* Giá */}
-        {/* Giá */}
         <div>
           <Text strong>
             Giá <Text type="secondary">(VNĐ)</Text>
@@ -253,10 +276,13 @@ export default function CategoryPageAntd() {
             <Text>{formatVND(tempRange[1])}</Text>
           </Row>
           <Space style={{ marginTop: 12 }}>
-            <Button type="primary" onClick={() => {
-              setAppliedRange(tempRange);
-              setFilterOpen(false);
-            }}>
+            <Button
+              type="primary"
+              onClick={() => {
+                setAppliedRange(tempRange);
+                setFilterOpen(false);
+              }}
+            >
               Áp dụng
             </Button>
             <Button
@@ -277,7 +303,6 @@ export default function CategoryPageAntd() {
             </Button>
           </Space>
         </div>
-
       </Space>
     );
   };
@@ -349,11 +374,7 @@ export default function CategoryPageAntd() {
               <Row gutter={[8, 8]} align="middle">
                 {!screens.lg && (
                   <Col xs={24}>
-                    <Button
-                      icon={<MenuOutlined />}
-                      onClick={() => setFilterOpen(true)}
-                      block
-                    >
+                    <Button icon={<MenuOutlined />} onClick={() => setFilterOpen(true)} block>
                       Bộ lọc
                     </Button>
                   </Col>
@@ -453,7 +474,7 @@ export default function CategoryPageAntd() {
                     </Col>
                   ))}
                 </Row>
-              ) : products.length === 0 ? (
+              ) : processedProducts.length === 0 ? (
                 <Empty description="Không có sản phẩm nào" />
               ) : (
                 <>
@@ -464,17 +485,10 @@ export default function CategoryPageAntd() {
                   )}
                   <List
                     grid={{ gutter: 16, column: 3, xs: 1, sm: 2, md: 3 }}
-                    dataSource={products}
-                    renderItem={(product: Product, idx: number) => (
+                    dataSource={processedProducts}
+                    renderItem={(product, idx) => (
                       <List.Item key={`${product.id}-${idx}`}>
-                        <ProductCardcate
-                          product={{
-                            ...product,
-                            price: Number(product.price) || 0,
-                            sale_price: product.sale_price ? Number(product.sale_price) : undefined,
-                            rating_avg: product.rating_avg ? Number(product.rating_avg) : undefined,
-                          }}
-                        />
+                        <ProductCardcate product={product} />
                       </List.Item>
                     )}
                   />
@@ -501,21 +515,28 @@ export default function CategoryPageAntd() {
       </div>
 
       {/* Modal Filter chỉ hiện trên mobile */}
+      {/* Modal Filter chỉ hiện trên mobile */}
       {!screens.lg && (
         <Modal
-          title="Bộ lọc"
+          title={<Space><FilterOutlined /> Bộ lọc</Space>}
           open={filterOpen}
           onCancel={() => setFilterOpen(false)}
           footer={null}
-          width="90%"
+          width={420}             // vừa phải, không quá rộng
           centered
-          style={{ top: "20%" }}
-          bodyStyle={{ maxHeight: "60vh", overflowY: "auto", paddingBottom: 16 }}
+          bodyStyle={{
+            maxHeight: "70vh",   // không cao quá, tránh che toàn màn hình
+            overflowY: "auto",
+            overflowX: "hidden", // chặn cuộn ngang
+            padding: 16,
+          }}
         >
-          {renderFilterContent()}
+          <div style={{ width: "100%" }}>
+            {renderFilterContent()}
+          </div>
         </Modal>
-
       )}
+
     </ConfigProvider>
   );
 }
