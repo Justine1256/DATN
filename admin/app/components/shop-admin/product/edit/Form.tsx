@@ -5,9 +5,14 @@ import Cookies from "js-cookie";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
 import { Product } from "@/types/product";
-import { CKEditor } from "@ckeditor/ckeditor5-react";
-import { useCKEditorConfig } from "@/app/components/ckeditor/CKEditorWrapper";
 
+import { useCKEditorConfig } from "@/app/components/ckeditor/CKEditorWrapper";
+ import dynamic from "next/dynamic";
+
+  const CKEditor = dynamic(
+       () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
+         { ssr: false }
+       );
 interface ProductFormProps {
   images: { id: string; url: string }[];
   defaultValues?: Product;
