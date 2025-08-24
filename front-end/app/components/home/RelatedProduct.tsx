@@ -75,19 +75,19 @@ export default function BestSellingSlider() {
                 {/* Header */}
                 <div className="mb-6">
                     <div className="border-t border-gray-200 mb-6" />
-                    <div className="flex items-center justify-between gap-10 mb-6">
+                    <div className="flex items-center justify-between gap-2 md:gap-10 mb-6">
                         <div className="flex flex-col justify-center !mr-6">
                             <div className="flex items-center gap-2">
                                 <div className="w-[10px] h-[22px] bg-brand rounded-tl-sm rounded-bl-sm" />
-                                <p className="text-brand font-semibold text-sm">GỢI Ý CHO BẠN</p>
+                                <p className="text-brand font-semibold text-sm">Gợi ý cho bạn</p>
                             </div>
-                            <h2 className="text-3xl font-bold text-black mt-2">Sản phẩm liên quan</h2>
+                            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black mt-1 sm:mt-2">Sản phẩm liên quan</h2>
                         </div>
                         <button
                             onClick={() => router.push("/category")}
-                            className="text-brand border border-brand hover:bg-brand hover:text-white font-medium text-sm py-2.5 px-4 rounded-md transition duration-300 w-fit ml-4 mt-4"
+                            className="text-brand border border-brand hover:bg-brand hover:text-white font-medium text-sm py-1 px-2 sm:py-2.5 sm:px-4 rounded-md transition duration-300 w-fit mt-4"
                         >
-                            Xem tất cả sản phẩm
+                            Xem tất cả
                         </button>
                     </div>
                 </div>
@@ -137,4 +137,5 @@ export default function BestSellingSlider() {
                 </div>
             </div>
         </section>
-    );}
+    );
+}

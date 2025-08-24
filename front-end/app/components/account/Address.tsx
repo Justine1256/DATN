@@ -314,7 +314,7 @@ export default function AddressComponent({ userId }: AddressComponentProps) {
 
   /** ===== Render ===== */
   return (
-  <div ref={mainRef} className="address-page" style={{ minHeight: '100vh', padding: 24 }}>
+  <div ref={mainRef} className="address-page min-h-screen md:p-6">
       <Card bordered style={{ marginBottom: 16 }}>
         <Row justify="space-between" align="middle" gutter={12}>
           <Col>

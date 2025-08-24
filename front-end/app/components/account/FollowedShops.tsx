@@ -195,7 +195,8 @@ export default function FollowedShopsSection() {
             )}
 
             <div
-                style={{ width: '100%', maxWidth: 1200, padding: '0 8px', marginTop: 72 }}
+            className='md:mt-[72px] '
+                style={{ width: '100%', maxWidth: 1200, padding: '0 8px'}}
             >
                 {/* TOOLBAR – bỏ bộ lọc chữ, chỉ search + sort */}
                 <Card

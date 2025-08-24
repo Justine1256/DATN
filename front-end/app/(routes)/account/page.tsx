@@ -64,8 +64,8 @@ export default function AccountRoute() {
   }
 
   return (
-    <div className="min-h-screen bg-white pt-20 pb-10">
-      <div className="max-w-[1200px] mx-auto px-4">
+    <div className="md:min-h-screen bg-white md:pt-20 pb-10">
+      <div className="max-w-[1200px] mx-auto md:px-4">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           {/* 🔹 Sidebar trái */}
           <div className="md:col-span-3">

@@ -732,7 +732,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         : [`${STATIC_BASE_URL}/products/default-product.png`]);
 
   return (
-    <div className="max-w-screen-xl mx-auto px-3 sm:px-4 pt-[72px] sm:pt-[80px] pb-8 sm:pb-10 relative">
+    <div className="max-w-screen-xl mx-auto md:px-3 sm:px-4 sm:pt-[80px] pb-8 sm:pb-10 relative">
       <div className="mb-6 sm:mb-8">
         <Breadcrumb
           items={[
@@ -744,7 +744,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
         />
       </div>
 
-      <div className="rounded-xl border shadow-sm bg-white p-4 sm:p-6 md:p-8 lg:p-10">
+      <div className="rounded-xl md:border shadow-sm bg-white sm:p-6 md:p-8 lg:p-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 lg:gap-10 items-start">
           {/* Gallery & like */}
           <div className="md:col-span-6 flex flex-col gap-4 relative">
@@ -766,9 +766,6 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
           {/* Info */}
           <div className="md:col-span-6 space-y-4">
             <h1 className="text-[1.5rem] md:text-[1.7rem] font-bold text-gray-900">{safeProduct.name}</h1>
-
-            
-
 
             {/* Rating, stock */}
             <div className="flex items-center gap-3 text-sm">
@@ -844,14 +841,14 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
 
 
             {/* Option A */}
-            <div className="flex flex-col gap-2 mb-4 mt-4">
-              <p className="font-medium text-gray-700 text-lg">{safeProduct.option1 || ''}</p>
+            <div className="flex md:flex-col gap-2 mb-4 mt-4">
+              <p className="w-1/5 md:w-full md:font-medium text-gray-700 md:text-lg">{safeProduct.option1 || ''}</p>
               <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
                 {optsA.map(a => (
                   <button
                     key={a}
                     onClick={() => handleSelectA(a)}
-                    className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedA === a
+                    className={`relative px-2 md:px-4 py-1 md:py-2 rounded-lg text-sm font-semibold border transition-all md:min-w-[80px] ${selectedA === a
                       ? 'border-red-600 text-black bg-white'
                       : 'border-gray-300 text-black bg-white hover:border-red-500'
                       } ${!hasCombination(a, selectedB) ? 'opacity-50' : ''}`}
@@ -871,14 +868,14 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
             </div>
 
             {/* Option B */}
-            <div className="flex flex-col gap-2 mb-4 mt-4">
-              <p className="font-medium text-gray-700 text-lg">{safeProduct.option2 || ''}</p>
+            <div className="flex md:flex-col gap-2 mb-4 mt-4">
+              <p className="w-1/5 md:w-full md:font-medium text-gray-700 md:text-lg">{safeProduct.option2 || ''}</p>
               <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[500px]">
                 {optsB.map(b => (
                   <button
                     key={b}
                     onClick={() => handleSelectB(b)}
-                    className={`relative px-4 py-2 rounded-lg text-sm font-semibold border transition-all min-w-[80px] ${selectedB === b
+                    className={`relative px-2 md:px-4 py-1 md:py-2 rounded-lg text-sm font-semibold border transition-all md:min-w-[80px] ${selectedB === b
                       ? 'border-red-600 text-black bg-white'
                       : 'border-gray-300 text-black bg-white hover:border-red-500'
                       } ${!hasCombination(selectedA, b) ? 'opacity-50' : ''}`}
@@ -904,51 +901,54 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
             {/* Quantity & actions */}
             {!isOwner && (
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4 w-full">
-                <div className="flex flex-col items-start gap-1 w-full sm:w-auto">
-                  <div className="flex border rounded overflow-hidden h-[44px] w-full sm:w-[165px]">
-                    <button
-                      onClick={handleDecrease}
-                      disabled={isQuantityUpdating || quantity <= 1}
-                      className={`w-[55px] text-2xl font-extrabold transition ${quantity <= 1 || isQuantityUpdating
-                        ? 'text-gray-400 cursor-not-allowed'
-                        : 'text-black hover:bg-brand hover:text-white'
-                        }`}
-                    >
-                      −
-                    </button>
 
-                    <input
-                      type="number"
-                      value={quantity}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        const stock = getStock();
-                        if (!isNaN(val)) {
-                          if (val < 1) setQuantity(1);
-                          else if (val > stock) setQuantity(stock);
-                          else setQuantity(val);
-                        }
-                      }}
-                      onBlur={(e) => {
-                        const val = parseInt(e.target.value);
-                        if (!val || val < 1) setQuantity(1);
-                      }}
-                      className="w-[55px] text-center font-extrabold text-black focus:outline-none hide-arrows"
-                    />
+                {/* quantity and "buy now" */}
+                <div className="flex md:block gap-4">
+                  <div className="flex flex-col items-start gap-1 w-1/3 sm:w-auto">
+                    <div className="flex border rounded overflow-hidden h-[44px] w-fit md:w-full sm:w-[165px]">
+                      <button
+                        onClick={handleDecrease}
+                        disabled={isQuantityUpdating || quantity <= 1}
+                        className={`w-1/3 md:w-[55px] md:text-2xl font-extrabold transition ${quantity <= 1 || isQuantityUpdating
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-black hover:bg-brand hover:text-white'
+                          }`}
+                      >
+                        −
+                      </button>
 
-                    <button
-                      onClick={handleIncrease}
-                      disabled={isQuantityUpdating || quantity >= getStock()}
-                      className={`w-[55px] text-2xl font-extrabold transition ${quantity >= getStock() || isQuantityUpdating
-                        ? 'text-gray-400 cursor-not-allowed'
-                        : 'text-black hover:bg-brand hover:text-white'
-                        }`}
-                    >
-                      +
-                    </button>
-                  </div>
+                      <input
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          const stock = getStock();
+                          if (!isNaN(val)) {
+                            if (val < 1) setQuantity(1);
+                            else if (val > stock) setQuantity(stock);
+                            else setQuantity(val);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (!val || val < 1) setQuantity(1);
+                        }}
+                        className="w-1/3 md:w-[55px] text-center font-extrabold text-black focus:outline-none hide-arrows"
+                      />
 
-                  <style jsx>{`
+                      <button
+                        onClick={handleIncrease}
+                        disabled={isQuantityUpdating || quantity >= getStock()}
+                        className={`w-1/3 md:w-[55px] md:text-2xl font-extrabold transition ${quantity >= getStock() || isQuantityUpdating
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-black hover:bg-brand hover:text-white'
+                          }`}
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <style jsx>{`
                     input[type='number']::-webkit-inner-spin-button,
                     input[type='number']::-webkit-outer-spin-button {
                       -webkit-appearance: none;
@@ -956,15 +956,16 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
                     }
                     input[type='number'] { -moz-appearance: textfield; }
                   `}</style>
-                </div>
+                  </div>
 
-                <button
-                  onClick={handleBuyNow}
-                  disabled={isBuyingNow || isOutOfStock()}
-                  className={`w-full sm:w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded transition font-medium hover:bg-red-600 ${(isBuyingNow || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''}`}
-                >
-                  Mua Ngay
-                </button>
+                  <button
+                    onClick={handleBuyNow}
+                    disabled={isBuyingNow || isOutOfStock()}
+                    className={`w-full sm:w-[165px] h-[44px] bg-brand text-white text-sm md:text-base rounded transition font-medium hover:bg-red-600 ${(isBuyingNow || isOutOfStock()) ? 'pointer-events-none opacity-50' : ''}`}
+                  >
+                    Mua Ngay
+                  </button>
+                </div>
 
                 <button
                   onClick={handleAddToCart}
