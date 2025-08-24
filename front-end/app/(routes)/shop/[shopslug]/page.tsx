@@ -348,6 +348,106 @@ export default function ShopPageAntd() {
     </Space>
   );
 
+  // ---- Skeleton blocks (viết lại “đầy đủ” như bản cũ) ----
+  const ShopBannerSkeleton = (
+    <Card
+      bordered
+      style={{ borderRadius: 12, overflow: "hidden" }}
+      cover={
+        <Skeleton.Image
+          active
+          style={{ width: "100%", height: 220, borderRadius: 0 }}
+        />
+      }
+    >
+      <Skeleton
+        active
+        title={{ width: "40%" }}
+        paragraph={{ rows: 2, width: ["60%", "30%"] }}
+      />
+    </Card>
+  );
+
+  const FilterSidebarSkeleton = (
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      {/* Nút tất cả */}
+      <Skeleton.Button active block style={{ height: 40, borderRadius: 8 }} />
+      <Divider style={{ margin: "12px 0" }} />
+      {/* 6 danh mục giả */}
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton.Button
+          key={i}
+          active
+          block
+          style={{ height: 36, marginBottom: 8, borderRadius: 8 }}
+        />
+      ))}
+      <Divider />
+      {/* Nhãn giá + slider giả */}
+      <Skeleton.Button active style={{ width: 120, height: 24, borderRadius: 6 }} />
+      <div style={{ marginTop: 8 }}>
+        <Skeleton.Input active block style={{ height: 10 }} />
+        <Skeleton.Input active block style={{ height: 10, marginTop: 8 }} />
+      </div>
+      {/* Nút áp dụng/đặt lại */}
+      <div style={{ display: "flex", gap: 8 }}>
+        <Skeleton.Button active style={{ width: 100, height: 36, borderRadius: 8 }} />
+        <Skeleton.Button active style={{ width: 100, height: 36, borderRadius: 8 }} />
+      </div>
+    </Space>
+  );
+
+  const ProductsGridSkeleton = (
+    <Row gutter={[16, 16]}>
+      {Array.from({ length: 12 }).map((_, i) => (
+        <Col key={i} xs={12} sm={8} md={6} lg={6}>
+          <Card
+            hoverable
+            bordered
+            style={{
+              borderRadius: 12,
+              overflow: "hidden",
+              height: "100%",
+            }}
+            cover={
+              <div
+                style={{
+                  width: "100%",
+                  aspectRatio: "1 / 1",
+                  background: "#f5f5f5",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Skeleton.Image
+                  active
+                  style={{
+                    width: "80%",
+                    height: "80%",
+                    borderRadius: 8,
+                  }}
+                />
+              </div>
+            }
+          >
+            <Skeleton
+              active
+              title={false}
+              paragraph={{
+                rows: 2,
+                width: ["90%", "60%"],
+              }}
+            />
+            <div style={{ marginTop: 8 }}>
+              <Skeleton.Button active size="small" style={{ width: "60%" }} />
+            </div>
+          </Card>
+        </Col>
+      ))}
+    </Row>
+  );
+
   // ---- Render ----
   if (error) {
     return (
@@ -378,13 +478,8 @@ export default function ShopPageAntd() {
         <Content style={{ background: "transparent" }}>
           <Card variant="borderless" style={{ marginTop: 16, marginBottom: 16 }}>
             {showShopSkeleton ? (
-              <Card bordered style={{ borderRadius: 12, overflow: "hidden" }}>
-                <Skeleton
-                  active
-                  title={{ width: "40%" }}
-                  paragraph={{ rows: 2, width: ["60%", "30%"] }}
-                />
-              </Card>
+              // ---- Shop banner skeleton (đã viết lại) ----
+              ShopBannerSkeleton
             ) : (
               <ShopCard shop={shopForCard!} />
             )}
@@ -400,7 +495,12 @@ export default function ShopPageAntd() {
               className="hidden lg:block"
             >
               <Card title={<Space><FilterOutlined />Bộ lọc</Space>}>
-                {showCatsSkeleton ? <Skeleton active /> : FilterContent}
+                {showCatsSkeleton ? (
+                  // ---- Sidebar skeleton (đã viết lại) ----
+                  FilterSidebarSkeleton
+                ) : (
+                  FilterContent
+                )}
               </Card>
             </Sider>
 
@@ -522,34 +622,36 @@ export default function ShopPageAntd() {
 
               <Card>
                 {isLoadingProducts ? (
-                  <Skeleton active />
+                  // ---- Grid skeleton (đã viết lại) ----
+                  ProductsGridSkeleton
                 ) : processedProducts.length === 0 ? (
                   <Empty description="Không có sản phẩm nào" />
                 ) : (
-                  <List
-                    grid={{ gutter: 16, column: 3, xs: 1, sm: 2, md: 3, lg: 3, xl: 3, xxl: 3 }}
-                    dataSource={processedProducts}
-                    renderItem={(product) => (
-                      <List.Item key={`product-${product.id}`}>
-                        {/* product đã là NormalizedProduct, sale_price: number | undefined */}
-                        <ProductCardCate product={product} />
-                      </List.Item>
-                    )}
-                  />
+                  <>
+                    <List
+                      grid={{ gutter: 16, column: 3, xs: 1, sm: 2, md: 3, lg: 3, xl: 3, xxl: 3 }}
+                      dataSource={processedProducts}
+                      renderItem={(product) => (
+                        <List.Item key={`product-${product.id}`}>
+                          <ProductCardCate product={product} />
+                        </List.Item>
+                      )}
+                    />
+                    {/* Pagination */}
+                    <Row justify="center" style={{ marginTop: 16 }}>
+                      <Pagination
+                        current={pagination.current_page}
+                        total={pagination.total}
+                        pageSize={pagination.per_page}
+                        showSizeChanger={false}
+                        onChange={(page) => {
+                          setCurrentPage(page);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      />
+                    </Row>
+                  </>
                 )}
-                {/* Pagination */}
-                <Row justify="center" style={{ marginTop: 16 }}>
-                  <Pagination
-                    current={pagination.current_page}
-                    total={pagination.total}
-                    pageSize={pagination.per_page}
-                    showSizeChanger={false}
-                    onChange={(page) => {
-                      setCurrentPage(page);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                  />
-                </Row>
               </Card>
             </Content>
           </Layout>
@@ -570,7 +672,12 @@ export default function ShopPageAntd() {
         cancelText="Đóng"
         destroyOnClose
       >
-        {showCatsSkeleton ? <Skeleton active /> : FilterContent}
+        {showCatsSkeleton ? (
+          // ---- Skeleton trong modal cũng chi tiết như sidebar ----
+          FilterSidebarSkeleton
+        ) : (
+          FilterContent
+        )}
       </Modal>
     </ConfigProvider>
   );

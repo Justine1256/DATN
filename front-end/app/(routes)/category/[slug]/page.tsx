@@ -183,33 +183,98 @@ export default function CategoryPageAntd() {
     [products]
   );
 
+  // ---------------- SKELETONS (đồng bộ như trang Shop) ----------------
+  const BannerSkeleton = (
+    <Card style={{ borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+      <div
+        style={{
+          width: "100%",
+          aspectRatio: "16 / 6",
+          background: "#f5f5f5",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Skeleton.Image active style={{ width: "95%", height: "90%", borderRadius: 12 }} />
+      </div>
+    </Card>
+  );
+
+  const CategoryPillsSkeleton = (
+    <Card style={{ marginBottom: 16 }}>
+      <Row gutter={[8, 8]} wrap>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Col key={i}>
+            <Skeleton.Button active style={{ width: 140, height: 48, borderRadius: 12 }} />
+          </Col>
+        ))}
+      </Row>
+    </Card>
+  );
+
+  const FilterSidebarSkeleton = (
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      <Skeleton.Button active block style={{ height: 40, borderRadius: 8 }} />
+      <Divider style={{ margin: "12px 0" }} />
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton.Button
+          key={i}
+          active
+          block
+          style={{ height: 36, marginBottom: 8, borderRadius: 8 }}
+        />
+      ))}
+      <Divider />
+      <Skeleton.Button active style={{ width: 120, height: 24, borderRadius: 6 }} />
+      <div style={{ marginTop: 8 }}>
+        <Skeleton.Input active block style={{ height: 10 }} />
+        <Skeleton.Input active block style={{ height: 10, marginTop: 8 }} />
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <Skeleton.Button active style={{ width: 100, height: 36, borderRadius: 8 }} />
+        <Skeleton.Button active style={{ width: 100, height: 36, borderRadius: 8 }} />
+      </div>
+    </Space>
+  );
+
+  const ProductsGridSkeleton = (
+    <Row gutter={[16, 16]}>
+      {Array.from({ length: 12 }).map((_, i) => (
+        <Col key={i} xs={24} sm={12} md={8}>
+          <Card
+            hoverable
+            bordered
+            style={{ borderRadius: 12, overflow: "hidden", height: "100%" }}
+            cover={
+              <div
+                style={{
+                  width: "100%",
+                  aspectRatio: "1 / 1",
+                  background: "#f5f5f5",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Skeleton.Image active style={{ width: "80%", height: "80%", borderRadius: 8 }} />
+              </div>
+            }
+          >
+            <Skeleton active title={false} paragraph={{ rows: 2, width: ["90%", "60%"] }} />
+            <div style={{ marginTop: 8 }}>
+              <Skeleton.Button active size="small" style={{ width: "60%" }} />
+            </div>
+          </Card>
+        </Col>
+      ))}
+    </Row>
+  );
+
   // ----------- Filter Content (dùng chung cho Sidebar & Modal) -----------
   const renderFilterContent = () => {
     if (isInitialLoading && categories.length === 0) {
-      return (
-        <Space direction="vertical" size="large" style={{ width: "100%" }}>
-          <Skeleton.Button active style={{ width: "60%", height: 36 }} />
-          <div>
-            <Space direction="vertical" size="small" style={{ width: "100%" }}>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton.Button
-                  key={i}
-                  active
-                  style={{ width: "100%", height: 40, borderRadius: 8 }}
-                />
-              ))}
-            </Space>
-          </div>
-          <Divider style={{ margin: "12px 0" }} />
-          <Skeleton.Button active style={{ width: 120, height: 24 }} />
-          <Skeleton.Input active style={{ width: "100%", height: 8 }} />
-          <Skeleton.Input active style={{ width: "100%", height: 8, marginTop: 8 }} />
-          <Space>
-            <Skeleton.Button active style={{ width: 90, height: 32 }} />
-            <Skeleton.Button active style={{ width: 90, height: 32 }} />
-          </Space>
-        </Space>
-      );
+      return FilterSidebarSkeleton;
     }
 
     return (
@@ -321,29 +386,8 @@ export default function CategoryPageAntd() {
         {/* Banner + category pills */}
         {isInitialLoading ? (
           <>
-            <Card style={{ borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
-              <div
-                style={{
-                  width: "100%",
-                  aspectRatio: "16 / 6",
-                  background: "#f5f5f5",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Skeleton.Image active style={{ width: "95%", height: "90%", borderRadius: 12 }} />
-              </div>
-            </Card>
-            <Card style={{ marginBottom: 16 }}>
-              <Row gutter={[8, 8]} wrap>
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <Col key={i}>
-                    <Skeleton.Button active style={{ width: 140, height: 48, borderRadius: 12 }} />
-                  </Col>
-                ))}
-              </Row>
-            </Card>
+            {BannerSkeleton}
+            {CategoryPillsSkeleton}
           </>
         ) : (
           <>
@@ -464,16 +508,7 @@ export default function CategoryPageAntd() {
               {error ? (
                 <Alert type="error" showIcon message={error} />
               ) : loading ? (
-                <Row gutter={[16, 16]}>
-                  {Array.from({ length: 12 }).map((_, i) => (
-                    <Col key={i} xs={24} sm={12} md={8}>
-                      <Card hoverable bordered style={{ borderRadius: 12, overflow: "hidden", height: "100%" }}>
-                        <Skeleton.Image active style={{ width: "100%", height: 200, borderRadius: 8 }} />
-                        <Skeleton active paragraph={{ rows: 2 }} />
-                      </Card>
-                    </Col>
-                  ))}
-                </Row>
+                ProductsGridSkeleton
               ) : processedProducts.length === 0 ? (
                 <Empty description="Không có sản phẩm nào" />
               ) : (
@@ -515,24 +550,23 @@ export default function CategoryPageAntd() {
       </div>
 
       {/* Modal Filter chỉ hiện trên mobile */}
-      {/* Modal Filter chỉ hiện trên mobile */}
       {!screens.lg && (
         <Modal
           title={<Space><FilterOutlined /> Bộ lọc</Space>}
           open={filterOpen}
           onCancel={() => setFilterOpen(false)}
           footer={null}
-          width={420}             // vừa phải, không quá rộng
+          width={420}
           centered
           bodyStyle={{
-            maxHeight: "70vh",   // không cao quá, tránh che toàn màn hình
+            maxHeight: "70vh",
             overflowY: "auto",
-            overflowX: "hidden", // chặn cuộn ngang
+            overflowX: "hidden",
             padding: 16,
           }}
         >
           <div style={{ width: "100%" }}>
-            {renderFilterContent()}
+            {isInitialLoading && categories.length === 0 ? FilterSidebarSkeleton : renderFilterContent()}
           </div>
         </Modal>
       )}
