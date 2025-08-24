@@ -170,7 +170,7 @@ export default function CategoryPageAntd() {
         },
       }}
     >
-      <div className="max-w-[1170px] mx-auto px-4 pt-16 pb-10">
+      <div className="max-w-[1170px] mx-auto px-4 md:pt-16 pb-10">
         {/* Banner + category pills: skeleton khi tải lần đầu */}
         {isInitialLoading ? (
           <>
