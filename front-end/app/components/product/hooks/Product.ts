@@ -1,12 +1,12 @@
 export interface Variant {
   id: number;
   product_id: number;
-  option1?: string;  // thêm
-  option2?: string;  // thêm
+  option1?: string;
+  option2?: string;
   value1: string;
   value2: string;
-  price: string;           // vì API trả về "33000000.00" → string
-  sale_price?: string;
+  price: string;                 // API trả "33000000.00"
+  sale_price?: string | null;
   stock: number;
   image: string[];
   created_at: string;
@@ -15,17 +15,24 @@ export interface Variant {
 }
 
 export interface Product {
- 
   id: number;
   category_id: number;
   shop_id: number;
+
   name: string;
   slug: string;
   description: string;
-  price: string;          // từ API → string
-  sale_price?: string;
+
+  price: string;                 // API → string
+  sale_price?: string | null;
+
+  // ⬇️ Thêm 2 trường thời gian sale
+  sale_starts_at?: string | null;
+  sale_ends_at?: string | null;
+
   stock: number;
   sold: number;
+
   image: string[] | string | null;
   oldPrice?: number;
 
@@ -33,13 +40,16 @@ export interface Product {
   value1?: string;
   option2?: string;
   value2?: string;
+
   rating: string;
-  rating_avg?: number;     // 👈 thêm
-  review_count?: number;   // 👈 thường đi kèm
+  rating_avg?: number;           // dùng khi hiển thị sao
+  review_count?: number;
+
   status: 'activated' | 'pending' | 'suspended';
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+
   shop: {
     id: number;
     user_id: number;
@@ -56,6 +66,7 @@ export interface Product {
     updated_at: string;
     deleted_at: string | null;
   };
+
   category: {
     id: number;
     shop_id: number;
@@ -82,9 +93,9 @@ export interface Product {
       deleted_at: string | null;
     };
   };
+
   variants: Variant[];
 }
-
 
 export interface ProductDetailProps {
   shopslug: string;
@@ -97,7 +108,7 @@ export interface Shop {
   name: string;
   slug: string;
   description: string;
-  logo: string | null;  // Allow logo to be null
+  logo: string | null;
   phone: string;
   email: string;
   total_sales: number;

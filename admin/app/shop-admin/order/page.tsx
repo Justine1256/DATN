@@ -69,6 +69,16 @@ interface APIShop {
   id: number
   name: string
 }
+type APIShippingAddress = {
+  full_name?: string;
+  address?: string;
+  ward?: string;
+  district?: string;
+  province?: string;
+  city?: string;      // phòng khi backend dùng "city"
+  phone?: string;
+  email?: string;
+};
 
 interface APIOrder {
   id: number
@@ -80,7 +90,7 @@ interface APIOrder {
   order_status: string
   order_admin_status: string
   shipping_status: string
-  shipping_address: string
+  shipping_address: string | APIShippingAddress;
   transaction_id: string | null
   canceled_by: string | null
   reconciliation_status: string
@@ -202,6 +212,66 @@ interface CancelOrderData {
   cancel_reason: string
   cancel_type: "Seller" | "Payment Gateway" | "Customer Refused Delivery" | "System"
 }
+const parseShippingAddress = (
+  raw: string | APIShippingAddress | null | undefined,
+) => {
+  const empty = {
+    fullName: "",
+    phone: "",
+    address: "",
+    ward: "",
+    district: "",
+    province: "",
+    email: "",
+  };
+
+  if (!raw) return empty;
+
+  // Trường hợp backend gửi object
+  if (typeof raw === "object") {
+    const a = raw as APIShippingAddress;
+    return {
+      fullName: a.full_name ?? "",
+      phone: a.phone ?? "",
+      address: a.address ?? "",
+      ward: a.ward ?? "",
+      district: a.district ?? "",
+      province: a.province ?? a.city ?? "",
+      email: a.email ?? "",
+    };
+  }
+
+  // Trường hợp backend gửi JSON string
+  const s = raw.trim();
+  if (s.startsWith("{") && s.endsWith("}")) {
+    try {
+      const a = JSON.parse(s) as APIShippingAddress;
+      return {
+        fullName: a.full_name ?? "",
+        phone: a.phone ?? "",
+        address: a.address ?? "",
+        ward: a.ward ?? "",
+        district: a.district ?? "",
+        province: a.province ?? a.city ?? "",
+        email: a.email ?? "",
+      };
+    } catch {
+      // rơi xuống fallback bên dưới
+    }
+  }
+
+  // Fallback: chuỗi "địa chỉ, phường, quận, tỉnh"
+  const parts = s.split(",").map((p) => p.trim());
+  return {
+    fullName: "",
+    phone: "",
+    address: parts[0] || "",
+    ward: parts[1] || "",
+    district: parts[2] || "",
+    province: parts[3] || "",
+    email: "",
+  };
+};
 
 // API Service
 const orderService = {
@@ -350,64 +420,49 @@ const generateMockItems = (totalProducts: number, totalAmount: number, orderId: 
   }
   return items
 }
+const formatAddress = (a: ShippingAddress) =>
+  [a.address, a.ward, a.district, a.province].filter(Boolean).join(", ");
 
 // Conversion functions
 const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
-  const addressParts = apiOrder.shipping_address.split(", ")
-  const address = addressParts[0] || ""
-  const ward = addressParts[1] || ""
-  const district = addressParts[2] || ""
-  const province = addressParts[3] || ""
+  // ✅ chuẩn hoá địa chỉ từ API (JSON string / object / chuỗi thường)
+  const addr = parseShippingAddress(apiOrder.shipping_address as any);
 
   const convertStatus = (status: string): OrderData["status"] => {
     switch (status.toLowerCase()) {
-      case "pending":
-        return "pending"
-      case "order confirmation":
-        return "confirmed"
-      case "shipped":
-        return "shipping"
-      case "delivered":
-        return "delivered"
-      case "canceled":
-        return "cancelled"
+      case "pending": return "pending";
+      case "order confirmation": return "confirmed";
+      case "shipped": return "shipping";
+      case "delivered": return "delivered";
+      case "canceled": return "cancelled";
       case "return requested":
       case "returning":
-      case "refunded":
-        return "returned"
-      default:
-        return "pending"
+      case "refunded": return "returned";
+      default: return "pending";
     }
-  }
+  };
 
   const convertPaymentMethod = (method: string): OrderData["paymentMethod"] => {
     switch (method.toLowerCase()) {
-      case "cod":
-        return "cod"
-      case "vnpay":
-        return "e_wallet"
-      default:
-        return "cod"
+      case "cod": return "cod";
+      case "vnpay": return "e_wallet";
+      default: return "cod";
     }
-  }
+  };
 
   const convertPaymentStatus = (paymentStatus: string, orderStatus: string): OrderData["paymentStatus"] => {
     switch (paymentStatus.toLowerCase()) {
-      case "completed":
-        return "paid"
-      case "failed":
-        return "failed"
-      case "pending":
-        return orderStatus.toLowerCase() === "canceled" ? "failed" : "pending"
-      default:
-        return "pending"
+      case "completed": return "paid";
+      case "failed": return "failed";
+      case "pending": return orderStatus.toLowerCase() === "canceled" ? "failed" : "pending";
+      default: return "pending";
     }
-  }
+  };
 
-  const totalAmount = Number.parseFloat(apiOrder.final_amount)
-  const items = generateMockItems(apiOrder.total_products, totalAmount, apiOrder.id)
-  const subtotal = items.reduce((sum, item) => sum + item.total, 0)
-  const shippingFee = Math.max(0, totalAmount - subtotal)
+  const totalAmount = Number.parseFloat(apiOrder.final_amount);
+  const items = generateMockItems(apiOrder.total_products, totalAmount, apiOrder.id);
+  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+  const shippingFee = Math.max(0, totalAmount - subtotal);
 
   return {
     id: `ORDER${apiOrder.id}`,
@@ -423,12 +478,12 @@ const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
     paymentStatus: convertPaymentStatus(apiOrder.payment_status, apiOrder.order_status),
     paymentMethod: convertPaymentMethod(apiOrder.payment_method),
     shippingAddress: {
-      fullName: apiOrder.buyer.name,
-      phone: apiOrder.buyer.phone,
-      address,
-      ward,
-      district,
-      province,
+      fullName: addr.fullName || apiOrder.buyer.name,
+      phone: addr.phone || apiOrder.buyer.phone,
+      address: addr.address,
+      ward: addr.ward,
+      district: addr.district,
+      province: addr.province,
     },
     shippingFee,
     discount: 0,
@@ -442,8 +497,9 @@ const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
     shopName: apiOrder.shop.name,
     shopId: `SHOP${apiOrder.shop.id}`,
     originalData: apiOrder,
-  }
-}
+  };
+};
+
 
 export default function OrderManagementPage() {
   const [allOrders, setAllOrders] = useState<OrderData[]>([])
@@ -984,20 +1040,29 @@ export default function OrderManagementPage() {
       title: "Địa chỉ",
       key: "address",
       width: 120,
-      render: (_, record) => (
-        <div>
-          <div style={{ fontSize: "12px", fontWeight: 500, marginBottom: 2 }}>{record.shippingAddress.fullName}</div>
-          <div style={{ fontSize: "11px", color: "#666" }}>
-            <EnvironmentOutlined style={{ marginRight: 4 }} />
-            <Tooltip
-              title={`${record.shippingAddress.address}, ${record.shippingAddress.ward}, ${record.shippingAddress.district}, ${record.shippingAddress.province}`}
-            >
-              {record.shippingAddress.province}
-            </Tooltip>
+      render: (_, record) => {
+        const full = formatAddress(record.shippingAddress);
+        // text ngắn hiển thị: ưu tiên tỉnh -> quận -> phường -> địa chỉ
+        const short =
+          record.shippingAddress.province ||
+          record.shippingAddress.district ||
+          record.shippingAddress.ward ||
+          record.shippingAddress.address || "-";
+
+        return (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 2 }}>
+              {record.shippingAddress.fullName}
+            </div>
+            <div style={{ fontSize: 11, color: "#666" }}>
+              <EnvironmentOutlined style={{ marginRight: 4 }} />
+              <Tooltip title={full}>{short}</Tooltip>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
+
     {
       title: "Thao tác",
       key: "action",
