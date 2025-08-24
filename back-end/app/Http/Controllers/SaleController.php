@@ -29,35 +29,60 @@ public function flashSale(Request $req)
         $sort
     );
 
-    // Flash sale thay đổi theo thời gian -> TTL ngắn (1-2 phút)
+    // TTL ngắn vì flash sale thay đổi nhanh
     $payload = Cache::store('redis')->remember($cacheKey, now()->addMinutes(2), function () use (
         $limit, $shopId, $minDiscount, $sort
     ) {
+        // Subquery tính trung bình & số lượng review/ product_id (chỉ review approved)
+        $ratingAgg = DB::table('reviews')
+            ->join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
+            ->where('reviews.status', 'approved')
+            ->groupBy('order_details.product_id')
+            ->select(
+                'order_details.product_id as product_id',
+                DB::raw('AVG(reviews.rating)  as avg_rating'),
+                DB::raw('COUNT(reviews.id)    as total_reviews')
+            );
+
         $query = Product::query()
+            // kéo thêm 2 cột từ subquery: rating_avg, review_count
+            ->leftJoinSub($ratingAgg, 'rv', function ($join) {
+                $join->on('rv.product_id', '=', 'products.id');
+            })
             ->select([
-                'id', 'shop_id', 'name', 'slug', 'image',
-                'price', 'sale_price', 'sale_starts_at', 'sale_ends_at',
-                'sold', 'rating',
+                'products.id',
+                'products.shop_id',
+                'products.name',
+                'products.slug',
+                'products.image',
+                'products.price',
+                'products.sale_price',
+                'products.sale_starts_at',
+                'products.sale_ends_at',
+                'products.sold',
+                // nếu bạn còn dùng cột rating cũ trong bảng products có thể bỏ qua
+                DB::raw('COALESCE(rv.avg_rating, 0)   as rating_avg'),
+                DB::raw('COALESCE(rv.total_reviews,0) as review_count'),
             ])
-            ->with(['shop:id,slug,logo,name'])     // ⬅️ lấy thông tin shop
-            ->activeSale();                        // scope: đang trong thời gian sale & hợp lệ
+            ->with(['shop:id,slug,logo,name'])   // lấy thông tin shop
+            ->activeSale();                      // scope: đang/đúng khung giờ sale hợp lệ
 
         if ($shopId) {
-            $query->where('shop_id', $shopId);
+            $query->where('products.shop_id', $shopId);
         }
 
         if ($minDiscount > 0) {
             // (price - sale_price) / price >= minDiscount%
-            $query->whereRaw('(price - sale_price) / price >= ?', [$minDiscount / 100]);
+            $query->whereRaw('(products.price - products.sale_price) / products.price >= ?', [$minDiscount / 100]);
         }
 
         if ($sort === 'best_discount') {
-            $query->orderByRaw('(price - sale_price) / price DESC')
-                  ->orderBy('sale_ends_at', 'asc');
+            $query->orderByRaw('(products.price - products.sale_price) / products.price DESC')
+                  ->orderBy('products.sale_ends_at', 'asc');
         } else {
-            $query->orderByRaw('sale_ends_at IS NULL') // NULL xuống cuối
-                  ->orderBy('sale_ends_at', 'asc')
-                  ->orderByRaw('(price - sale_price) / price DESC');
+            $query->orderByRaw('products.sale_ends_at IS NULL') // NULL xuống cuối
+                  ->orderBy('products.sale_ends_at', 'asc')
+                  ->orderByRaw('(products.price - products.sale_price) / products.price DESC');
         }
 
         $items = $query->limit($limit)->get()->map(function (Product $p) {
@@ -65,8 +90,8 @@ public function flashSale(Request $req)
                 ? (int) round(100 * (1 - ($p->sale_price / $p->price)))
                 : 0;
 
-            // giống newProducts: bơm thông tin shop ra field phẳng
             $shop = $p->shop;
+
             return [
                 'id'               => $p->id,
                 'name'             => $p->name,
@@ -78,9 +103,15 @@ public function flashSale(Request $req)
                 'sale_starts_at'   => optional($p->sale_starts_at)->toIso8601String(),
                 'sale_ends_at'     => optional($p->sale_ends_at)->toIso8601String(),
                 'sold'             => (int) $p->sold,
-                'rating'           => (float) $p->rating,
 
-                // ⬇️ info shop
+                // ⭐ rating từ reviews
+                'rating_avg'       => round((float) ($p->rating_avg ?? 0), 1),
+                'review_count'     => (int) ($p->review_count ?? 0),
+
+                // (tuỳ chọn) nếu FE còn xài field 'rating' cũ:
+                'rating'           => round((float) ($p->rating_avg ?? 0), 1),
+
+                // info shop phẳng
                 'shop_slug'        => $shop->slug ?? null,
                 'shop_logo'        => $shop->logo ?? null,
                 'shop_name'        => $shop->name ?? null,
