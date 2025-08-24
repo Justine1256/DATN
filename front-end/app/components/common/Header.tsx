@@ -8,7 +8,7 @@ import { TbBuildingStore } from "react-icons/tb";
 import Image from "next/image";
 import axios from "axios";
 import Cookies from "js-cookie";
-
+import Wishlist from "../wishlist/Wishlist";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import SearchBar from "./SearchBar";
 import NotificationDropdown from "./NotificationDropdown";
@@ -419,6 +419,7 @@ const Header = () => {
           </nav>
 
           {/* Right */}
+          {/* Right */}
           <div className="col-span-6 sm:col-span-9 lg:col-span-4 flex justify-end items-center space-x-4">
             {/* Mobile search toggle */}
             <button
@@ -439,6 +440,7 @@ const Header = () => {
               onNotificationClick={handleNotificationClick}
             />
 
+            {/* CART */}
             <div className="relative" onClick={navigateToCart} onMouseEnter={() => prefetchRoute("/cart")}>
               <CartDropdown key={cartItems.length} cartItems={cartItems} formatImageUrl={formatImageUrl} />
               {cartCount > 0 && (
@@ -448,14 +450,23 @@ const Header = () => {
               )}
             </div>
 
-            <Link href="/wishlist" className="hidden md: block relative w-5 h-5 block" onMouseEnter={() => router.prefetch("/wishlist")}>
-              <AiOutlineHeart className="w-5 h-5 text-neutral-700 hover:text-[#DB4444] transition-colors duration-300" />
+            {/* WISHLIST (đặt ngay cạnh giỏ hàng) */}
+            <button
+              type="button"
+              aria-label="Yêu thích"
+              className="relative flex items-center justify-center hover:text-[#DB4444] transition-colors"
+              onClick={() => router.push("/wishlist")}
+              onMouseEnter={() => prefetchRoute("/wishlist")}
+            >
+              <AiOutlineHeart className="w-6 h-6" />   {/* tăng từ w-5 h-5 → w-6 h-6 */}
               {wishlistItems.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                <span className="absolute -top-1.5 -right-1.5 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
                   {wishlistItems.length}
                 </span>
               )}
-            </Link>
+
+            </button>
+
 
             {user && (
               <div className="relative" ref={dropdownRef}>
@@ -475,11 +486,11 @@ const Header = () => {
                 {userDropdownOpen && (
                   <div
                     className="
-      absolute right-0 mt-3 w-56
-      rounded-xl bg-[rgba(30,30,30,0.80)] backdrop-blur
-      shadow-2xl p-3 z-50
-      ring-1 ring-white/10
-    "
+            absolute right-0 mt-3 w-56
+            rounded-xl bg-[rgba(30,30,30,0.80)] backdrop-blur
+            shadow-2xl p-3 z-50
+            ring-1 ring-white/10
+          "
                   >
                     <ul className="text-white space-y-1 text-sm">
                       <li>
@@ -533,7 +544,6 @@ const Header = () => {
                     </ul>
                   </div>
                 )}
-
               </div>
             )}
 
@@ -545,6 +555,7 @@ const Header = () => {
               />
             )}
           </div>
+
         </div>
 
         {/* Ô tìm kiếm cho mobile */}
