@@ -11,6 +11,7 @@ use App\Models\Review;
 use App\Models\Address;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class AutoOrderAndReview extends Command
@@ -59,11 +60,7 @@ class AutoOrderAndReview extends Command
             if (!$u) { $this->error("User {$fixedUser} không tồn tại"); return Command::FAILURE; }
             $usersPool->push($u);
         } else {
-            // lấy vài user thường; nếu ít quá sẽ tự tạo mới
             $usersPool = User::query()
-                ->when(method_exists(User::class, 'isAdmin'), fn($q) => $q->where(function($qq){
-                    // nếu bạn có cột/role admin thì loại ra ở đây
-                }))
                 ->limit(5)
                 ->get();
         }
@@ -74,33 +71,21 @@ class AutoOrderAndReview extends Command
         for ($i = 1; $i <= $count; $i++) {
             DB::beginTransaction();
             try {
-                // 1) Chọn user
                 /** @var User $user */
                 $user = $usersPool->isNotEmpty()
                     ? $usersPool[($i - 1) % $usersPool->count()]
                     : $this->createFakeUser();
 
-                // 2) Đảm bảo user có 1 địa chỉ
-                $address = Address::where('user_id', $user->id)->first();
-                if (!$address) {
-                    $address = Address::create([
-                        'user_id'   => $user->id,
-                        'full_name' => $user->name ?? 'Test User',
-                        'address'   => 'Số 1, Đường Test',
-                        'city'      => 'Hà Nội',
-                        'phone'     => '0900000000',
-                        'email'     => $user->email ?? 'no-reply@example.com',
-                    ]);
-                }
+                // ✅ Địa chỉ: tự tạo đủ cột theo schema nếu chưa có
+                $address = $this->getOrCreateAddress($user);
 
-                // 3) Khóa kho, tính giá tại thời điểm đặt
+                // Khóa kho, tính giá tại thời điểm đặt
                 $lockedProduct = Product::query()
                     ->select('id','name','price','sale_price','stock','shop_id','category_id')
                     ->lockForUpdate()
                     ->findOrFail($product->id);
 
                 $variant = null;
-                // nếu bạn muốn dùng biến thể, lấy biến thể có stock > 0
                 if (class_exists(ProductVariant::class)) {
                     $variant = ProductVariant::query()
                         ->select('id','price','sale_price','stock')
@@ -114,22 +99,19 @@ class AutoOrderAndReview extends Command
                     ? ($variant->sale_price ?? $variant->price)
                     : ($lockedProduct->sale_price ?? $lockedProduct->price);
 
-                // 4) Kiểm kho đủ
+                // Kiểm kho
                 if ($variant) {
-                    if ($variant->stock < $qty) {
-                        throw new \RuntimeException("Biến thể không đủ kho");
-                    }
+                    if ($variant->stock < $qty) throw new \RuntimeException("Biến thể không đủ kho");
                     $variant->decrement('stock', $qty);
                 } else {
-                    if ($lockedProduct->stock < $qty) {
-                        throw new \RuntimeException("Sản phẩm không đủ kho");
-                    }
+                    if ($lockedProduct->stock < $qty) throw new \RuntimeException("Sản phẩm không đủ kho");
                     $lockedProduct->decrement('stock', $qty);
                 }
 
-                // 5) Tạo order (mặc định COD)
-                $subtotal   = $qty * $priceAtTime;
-                $final      = $subtotal; // không voucher
+                // Tạo order (COD, Delivered để hợp lệ review)
+                $subtotal = $qty * $priceAtTime;
+                $final    = $subtotal;
+
                 $order = Order::create([
                     'user_id'          => $user->id,
                     'shop_id'          => $lockedProduct->shop_id,
@@ -137,24 +119,24 @@ class AutoOrderAndReview extends Command
                     'discount_amount'  => 0,
                     'total_amount'     => $subtotal,
                     'final_amount'     => $final,
-                    'payment_method'   => 'COD',       // enum của bạn: COD|vnpay
-                    'payment_status'   => 'Paid',      // hoặc Pending tuỳ bạn
-                    'order_status'     => 'Delivered', // ĐỂ REVIEW HỢP LỆ
+                    'payment_method'   => 'COD',
+                    'payment_status'   => 'Completed',
+                    'order_status'     => 'Delivered',
                     'shipping_status'  => 'Delivered',
                     'shipping_address' => json_encode([
                         'full_name' => $address->full_name,
                         'address'   => $address->address,
                         'city'      => $address->city,
                         'phone'     => $address->phone,
-                        'email'     => $address->email,
+                        'email'     => $address->email ?? 'no-reply@example.com',
                     ], JSON_UNESCAPED_UNICODE),
-                    'confirmed_at'     => now(),
-                    'shipped_at'       => now(),
-                    'delivered_at'     => now(),
-                    'order_admin_status' => 'Paid',
+                    'confirmed_at'       => now(),
+                    'shipped_at'         => now(),
+                    'delivered_at'       => now(),
+                    'order_admin_status' => 'Delivered',
                 ]);
 
-                // 6) Tạo order detail
+                // Order detail
                 $detail = OrderDetail::create([
                     'order_id'       => $order->id,
                     'product_id'     => $lockedProduct->id,
@@ -166,22 +148,21 @@ class AutoOrderAndReview extends Command
                     'subtotal'       => $subtotal,
                 ]);
 
-                // 7) Tăng sold
+                // tăng sold
                 Product::whereKey($lockedProduct->id)->increment('sold', $qty);
 
-                // 8) Tạo review (random sao, image=null)
-                $rating = random_int($minStar, $maxStar);
+                // Review (random sao, image = null)
+                $rating  = random_int($minStar, $maxStar);
                 $comment = "Auto review {$i}/{$count} - rating {$rating}★";
 
-                // tránh trùng lặp review cho cùng order_detail
                 if (!Review::where('order_detail_id', $detail->id)->exists()) {
                     Review::create([
                         'user_id'         => $user->id,
                         'order_detail_id' => $detail->id,
                         'rating'          => $rating,
                         'comment'         => $comment,
-                        'image'           => null,       // yêu cầu: image null
-                        'status'          => 'approved', // hoặc 'pending' tùy flow
+                        'image'           => null,
+                        'status'          => 'approved',
                     ]);
                 }
 
@@ -190,7 +171,6 @@ class AutoOrderAndReview extends Command
             } catch (\Throwable $e) {
                 DB::rollBack();
                 $this->error("\n[Lỗi vòng {$i}]: " . $e->getMessage());
-                // tiếp tục vòng tiếp theo
             }
         }
 
@@ -208,7 +188,40 @@ class AutoOrderAndReview extends Command
         return User::create([
             'name'     => 'Auto Reviewer',
             'email'    => $email,
-            'password' => bcrypt('secret123'), // chỉ để test
+            'password' => bcrypt('secret123'),
         ]);
+    }
+
+    /** ✅ Tạo/đảm bảo địa chỉ với đủ cột theo schema hiện tại (fix lỗi ward không có default) */
+    protected function getOrCreateAddress(User $user): Address
+    {
+        $existing = Address::where('user_id', $user->id)->first();
+        if ($existing) return $existing;
+
+        $table = (new Address())->getTable(); // 'addresses'
+        $cols  = Schema::getColumnListing($table);
+
+        $payload = [
+            'user_id'    => $user->id,
+            'full_name'  => $user->name ?? 'Auto Reviewer',
+            'address'    => 'Số 1, Đường Test',
+            // 'city'       => 'Hà Nội',
+            'phone'      => '0900000000',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        // set thêm nếu tồn tại cột
+        if (in_array('email', $cols))     $payload['email']    = $user->email ?? 'no-reply@example.com';
+        if (in_array('province', $cols))  $payload['province'] = 'Hà Nội';
+        // if (in_array('district', $cols))  $payload['district'] = 'Quận Hoàn Kiếm';
+        if (in_array('ward', $cols))      $payload['ward']     = 'Phường Hàng Trống';
+        if (in_array('country', $cols))   $payload['country']  = 'VN';
+        if (in_array('postcode', $cols))  $payload['postcode'] = '100000';
+        if (in_array('zip_code', $cols))  $payload['zip_code'] = '100000';
+
+        $id = DB::table($table)->insertGetId($payload);
+
+        return Address::findOrFail($id);
     }
 }
