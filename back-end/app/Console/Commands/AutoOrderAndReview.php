@@ -120,7 +120,7 @@ class AutoOrderAndReview extends Command
                     'total_amount'     => $subtotal,
                     'final_amount'     => $final,
                     'payment_method'   => 'COD',
-                    'payment_status'   => 'Paid',
+                    'payment_status'   => 'Completed',
                     'order_status'     => 'Delivered',
                     'shipping_status'  => 'Delivered',
                     'shipping_address' => json_encode([
