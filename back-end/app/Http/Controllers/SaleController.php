@@ -13,7 +13,7 @@ class SaleController extends Controller
     // Trả danh sách sản phẩm đang sale + mốc đếm ngược gần nhất
     public function flashSale(Request $req)
     {
-        $limit        = (int) $req->query('limit', 24);
+        $limit = min((int) $req->query('limit', 8), 8);
         $shopId       = $req->query('shop_id');
         $minDiscount  = (int) $req->query('min_discount', 0); // %
         $sort         = $req->query('sort', 'ending_first');  // ending_first | best_discount
