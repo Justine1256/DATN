@@ -35,10 +35,6 @@ class AutoOrderAndReview extends Command
         $fixedUser = $this->option('user_id') ? (int) $this->option('user_id') : null;
         $qty       = max(1, (int) $this->option('qty'));
 
-        if ($count <= 0) {
-            $this->error('count phải > 0');
-            return Command::FAILURE;
-        }
         if (!in_array($minStar, [1,2,3,4,5]) || !in_array($maxStar, [1,2,3,4,5]) || $minStar > $maxStar) {
             $this->error('Khoảng sao không hợp lệ. Dùng --min=1..5, --max=1..5 và min<=max');
             return Command::FAILURE;
@@ -51,6 +47,40 @@ class AutoOrderAndReview extends Command
             return Command::FAILURE;
         }
 
+        // ===== Nếu sản phẩm CHƯA có review nào -> tự tính count = 20%..60% theo stock =====
+        $hasAnyReview = Review::join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
+            ->where('order_details.product_id', $productId)
+            ->exists();
+
+        if (!$hasAnyReview) {
+            // tổng tồn: ưu tiên product->stock, nếu =0 thử cộng stock biến thể
+            $stockBase = (int) ($product->stock ?? 0);
+            if ($stockBase <= 0 && class_exists(ProductVariant::class)) {
+                $stockBase = (int) ProductVariant::where('product_id', $productId)->sum('stock');
+            }
+
+            // tỉ lệ ngẫu nhiên 20%..60%
+            $ratio     = random_int(20, 60) / 100;
+            $autoCount = max(1, (int) floor($stockBase * $ratio));
+
+            // chặn theo tồn kho thực tế mỗi đơn mua "qty" sp
+            if ($stockBase > 0) {
+                $autoCount = min($autoCount, (int) floor($stockBase / $qty));
+            }
+
+            if ($autoCount <= 0) {
+                $autoCount = 1;
+            }
+
+            $this->info("Sản phẩm chưa có đánh giá → tự tính số lượt: {$autoCount} (≈ ".round($ratio*100)."%) từ stock {$stockBase}, qty={$qty}");
+            $count = $autoCount;
+        } else {
+            if ($count <= 0) {
+                $this->error('count phải > 0 (sp đã có review nên không dùng tự tính)');
+                return Command::FAILURE;
+            }
+        }
+
         $this->info(">>> Bắt đầu tạo {$count} đơn+đánh giá cho sản phẩm #{$product->id} - {$product->name}");
 
         // ===== Pool user =====
@@ -59,7 +89,6 @@ class AutoOrderAndReview extends Command
         } else {
             $usersPool = $this->buildUsersPool();
             if ($usersPool->isEmpty()) {
-                // không có user -> tạo tạm 1 user
                 $tmp = $this->createFakeUser();
                 $usersPool = collect([$tmp]);
             }
@@ -72,26 +101,26 @@ class AutoOrderAndReview extends Command
             DB::beginTransaction();
             try {
                 /** @var User $user */
-                $user = $fixedUser
-                    ? $usersPool->first()
-                    : $usersPool->random(); // ✅ random 1 user cho mỗi vòng
+                $user = $fixedUser ? $usersPool->first() : $usersPool->random();
 
-                // Địa chỉ đầy đủ cột theo schema
+                // Địa chỉ
                 $address = $this->getOrCreateAddress($user);
 
-                // Khóa kho, tính giá tại thời điểm đặt
+                // Lock sản phẩm
                 $lockedProduct = Product::query()
                     ->select('id','name','price','sale_price','stock','shop_id','category_id')
                     ->lockForUpdate()
                     ->findOrFail($product->id);
 
+                // Mỗi vòng: chọn biến thể còn stock (nếu có)
                 $variant = null;
                 if (class_exists(ProductVariant::class)) {
                     $variant = ProductVariant::query()
                         ->select('id','price','sale_price','stock')
                         ->where('product_id', $lockedProduct->id)
                         ->where('stock', '>=', $qty)
-                        ->orderBy('id')
+                        ->inRandomOrder()
+                        ->lockForUpdate()
                         ->first();
                 }
 
@@ -99,16 +128,16 @@ class AutoOrderAndReview extends Command
                     ? ($variant->sale_price ?? $variant->price)
                     : ($lockedProduct->sale_price ?? $lockedProduct->price);
 
-                // Kiểm kho
+                // Kiểm kho & trừ
                 if ($variant) {
                     if ($variant->stock < $qty) throw new \RuntimeException("Biến thể không đủ kho");
                     $variant->decrement('stock', $qty);
                 } else {
-                    if ($lockedProduct->stock < $qty) throw new \RuntimeException("Sản phẩm không đủ kho");
+                    if ((int) $lockedProduct->stock < $qty) throw new \RuntimeException("Sản phẩm không đủ kho");
                     $lockedProduct->decrement('stock', $qty);
                 }
 
-                // Tạo order (COD). Chọn status an toàn với enum phổ biến.
+                // Tạo order (COD)
                 $subtotal = $qty * $priceAtTime;
                 $final    = $subtotal;
 
@@ -119,9 +148,9 @@ class AutoOrderAndReview extends Command
                     'discount_amount'  => 0,
                     'total_amount'     => $subtotal,
                     'final_amount'     => $final,
-                    'payment_method'   => 'COD',       // enum thường: COD|vnpay
-                    'payment_status'   => 'Pending',   // tránh lỗi enum
-                    'order_status'     => 'Delivered', // để ReviewController hợp lệ
+                    'payment_method'   => 'COD',
+                    'payment_status'   => 'Pending',     // an toàn enum
+                    'order_status'     => 'Delivered',   // để ReviewController hợp lệ
                     'shipping_status'  => 'Delivered',
                     'shipping_address' => json_encode([
                         'full_name' => $address->full_name,
@@ -136,10 +165,9 @@ class AutoOrderAndReview extends Command
                     'confirmed_at'       => now(),
                     'shipped_at'         => now(),
                     'delivered_at'       => now(),
-                    'order_admin_status' => 'Unpaid',  // an toàn cho COD
+                    'order_admin_status' => 'Unpaid',
                 ]);
 
-                // Order detail
                 $detail = OrderDetail::create([
                     'order_id'       => $order->id,
                     'product_id'     => $lockedProduct->id,
@@ -151,10 +179,9 @@ class AutoOrderAndReview extends Command
                     'subtotal'       => $subtotal,
                 ]);
 
-                // tăng sold
                 Product::whereKey($lockedProduct->id)->increment('sold', $qty);
 
-                // Review (random sao & câu)
+                // Random sao & câu
                 $rating  = random_int($minStar, $maxStar);
                 $comment = $this->randomCommentForRating($rating, $product->name);
 
@@ -208,7 +235,7 @@ class AutoOrderAndReview extends Command
             $q->where('status', '!=', 'banned');
         }
 
-        // lấy đủ để random trong memory
+        // đủ để random trong memory
         return $q->select('id','name','email')->get();
     }
 
@@ -223,13 +250,13 @@ class AutoOrderAndReview extends Command
         ]);
     }
 
-    /** Tạo/đảm bảo địa chỉ với đủ cột theo schema hiện tại (fix lỗi ward không có default) */
+    /** Tạo/đảm bảo địa chỉ với đủ cột theo schema hiện tại */
     protected function getOrCreateAddress(User $user): Address
     {
         $existing = Address::where('user_id', $user->id)->first();
         if ($existing) return $existing;
 
-        $table = (new Address())->getTable(); // 'addresses'
+        $table = (new Address())->getTable();
         $cols  = Schema::getColumnListing($table);
 
         $payload = [
@@ -242,79 +269,77 @@ class AutoOrderAndReview extends Command
             'updated_at' => now(),
         ];
 
-        // set thêm nếu tồn tại cột
         if (in_array('email', $cols))     $payload['email']    = $user->email ?? 'no-reply@example.com';
         if (in_array('province', $cols))  $payload['province'] = 'Hà Nội';
         if (in_array('district', $cols))  $payload['district'] = 'Quận Hoàn Kiếm';
         if (in_array('ward', $cols))      $payload['ward']     = 'Phường Hàng Trống';
         if (in_array('country', $cols))   $payload['country']  = 'VN';
         if (in_array('postcode', $cols))  $payload['postcode'] = '100000';
-        if (in_array('zip_code', $cols))  $payload['zip_code'] = '100000';
+        if (in_array('zip_code', $cols))   $payload['zip_code'] = '100000';
 
         $id = DB::table($table)->insertGetId($payload);
 
         return Address::findOrFail($id);
     }
 
-    /** Random comment theo số sao với ~20 mẫu câu tiếng Việt */
+    /** Random comment theo số sao */
     protected function randomCommentForRating(int $rating, string $productName): string
     {
         $positives = [
-    "Sản phẩm {name} đúng mô tả, sử dụng yên tâm.",
-    "Chất lượng tốt, hoàn thiện gọn gàng, đáng tiền.",
-    "Đóng gói chắc chắn, giao hàng cẩn thận.",
-    "Mua về dùng thấy ổn định, hài lòng.",
-    "Giá hợp lý so với chất lượng mang lại.",
-    "Thiết kế đẹp mắt, cảm giác sử dụng tốt.",
-    "Phù hợp nhu cầu hằng ngày, recommend.",
-    "Trải nghiệm mượt mà, không gặp vấn đề.",
-    "Hàng mới, nguyên seal, đầy đủ phụ kiện.",
-    "Tư vấn nhiệt tình, hỗ trợ nhanh.",
-    "Sản phẩm hoạt động như kỳ vọng.",
-    "Đáp ứng tốt nhu cầu công việc và cá nhân.",
-    "Độ hoàn thiện ổn, cầm nắm chắc tay.",
-    "Màu sắc/kiểu dáng như hình, rất ưng.",
-    "Tổng thể vượt mong đợi trong tầm giá.",
-    "Rất đáng tiền, sẽ ủng hộ shop lần sau.",
-    "Dễ sử dụng, hướng dẫn rõ ràng.",
-    "Giao hàng đúng hẹn, dịch vụ tốt.",
-    "Tỉ lệ giá/hiệu quả quá ổn.",
-    "Sản phẩm dùng ổn, chưa thấy lỗi.",
-    "Hàng chất lượng, đáng để trải nghiệm.",
-    "Đúng size/qui cách mô tả, không sai lệch.",
-    "Sản phẩm {name} vận hành ổn định.",
-    "Hoàn toàn hài lòng từ khâu đóng gói đến sản phẩm.",
-    "Mua dùng thử và kết quả ngoài mong đợi.",
-];
+            "Sản phẩm {name} đúng mô tả, sử dụng yên tâm.",
+            "Chất lượng tốt, hoàn thiện gọn gàng, đáng tiền.",
+            "Đóng gói chắc chắn, giao hàng cẩn thận.",
+            "Mua về dùng thấy ổn định, hài lòng.",
+            "Giá hợp lý so với chất lượng mang lại.",
+            "Thiết kế đẹp mắt, cảm giác sử dụng tốt.",
+            "Phù hợp nhu cầu hằng ngày, recommend.",
+            "Trải nghiệm mượt mà, không gặp vấn đề.",
+            "Hàng mới, nguyên seal, đầy đủ phụ kiện.",
+            "Tư vấn nhiệt tình, hỗ trợ nhanh.",
+            "Sản phẩm hoạt động như kỳ vọng.",
+            "Đáp ứng tốt nhu cầu công việc và cá nhân.",
+            "Độ hoàn thiện ổn, cầm nắm chắc tay.",
+            "Màu sắc/kiểu dáng như hình, rất ưng.",
+            "Tổng thể vượt mong đợi trong tầm giá.",
+            "Rất đáng tiền, sẽ ủng hộ shop lần sau.",
+            "Dễ sử dụng, hướng dẫn rõ ràng.",
+            "Giao hàng đúng hẹn, dịch vụ tốt.",
+            "Tỉ lệ giá/hiệu quả quá ổn.",
+            "Sản phẩm dùng ổn, chưa thấy lỗi.",
+            "Hàng chất lượng, đáng để trải nghiệm.",
+            "Đúng size/qui cách mô tả, không sai lệch.",
+            "Sản phẩm {name} vận hành ổn định.",
+            "Hoàn toàn hài lòng từ khâu đóng gói đến sản phẩm.",
+            "Mua dùng thử và kết quả ngoài mong đợi.",
+        ];
 
-$neutrals = [
-    "Sản phẩm đúng mô tả nhưng trải nghiệm ở mức ổn.",
-    "Tạm ổn, cần cải thiện thêm một vài chi tiết.",
-    "Giá hơi cao so với kỳ vọng cá nhân.",
-    "Giao hơi chậm một chút, còn lại ổn.",
-    "Đóng gói ổn nhưng vỏ hộp có vết móp nhẹ.",
-    "Thiết kế bình thường, công năng đủ dùng.",
-    "Chất lượng hợp lý tầm giá, chưa nổi bật.",
-    "Hướng dẫn nên chi tiết hơn cho người mới.",
-    "Màu sắc thực tế hơi khác ảnh một chút.",
-    "Kích thước/qui cách ổn, chưa có điểm đặc biệt.",
-    "Sản phẩm {name} dùng tạm được, cần thêm thời gian đánh giá.",
-    "Phù hợp nhu cầu cơ bản, không quá khác biệt.",
-    "Shop phản hồi hơi chậm nhưng vẫn hỗ trợ.",
-    "Chất liệu/hoàn thiện ở mức trung bình.",
-    "Đúng hàng đặt, trải nghiệm cần tối ưu thêm.",
-    "Cần cải thiện khâu kiểm tra trước khi gửi.",
-    "Một vài chi tiết hoàn thiện chưa đều.",
-    "Tổng thể ổn, mong có phiên bản tốt hơn.",
-    "Sản phẩm hoạt động bình thường, chưa thấy điểm trừ lớn.",
-    "Đáp ứng mức sử dụng thông thường, tạm ổn.",
-    "Đổi trả/CSKH nên nhanh hơn sẽ tuyệt.",
-    "Tính thực dụng ổn, chưa thấy khác biệt lớn.",
-    "Mua thử để trải nghiệm, nhìn chung ổn.",
-    "Đúng như quảng cáo, nhưng chưa thật sự ấn tượng.",
-    "Chưa dùng lâu nên chưa nhận xét được độ bền.",
-];
-
+        $neutrals = [
+            "Sản phẩm đúng mô tả nhưng trải nghiệm ở mức ổn.",
+            "Tạm ổn, cần cải thiện thêm một vài chi tiết.",
+            "Giá hơi cao so với kỳ vọng cá nhân.",
+            "Giao hơi chậm một chút, còn lại ổn.",
+            "Đóng gói ổn nhưng vỏ hộp có vết móp nhẹ.",
+            "Thiết kế bình thường, công năng đủ dùng.",
+            "Chất lượng hợp lý tầm giá, chưa nổi bật.",
+            "Hướng dẫn nên chi tiết hơn cho người mới.",
+            "Màu sắc thực tế hơi khác ảnh một chút.",
+            "Kích thước/qui cách ổn, chưa có điểm đặc biệt.",
+            "Sản phẩm {name} dùng tạm được, cần thêm thời gian đánh giá.",
+            "Phù hợp nhu cầu cơ bản, không quá khác biệt.",
+            "Shop phản hồi hơi chậm nhưng vẫn hỗ trợ.",
+            "Chất liệu/hoàn thiện ở mức trung bình.",
+            "Đúng hàng đặt, trải nghiệm cần tối ưu thêm.",
+            "Cần cải thiện khâu kiểm tra trước khi gửi.",
+            "Một vài chi tiết hoàn thiện chưa đều.",
+            "Tổng thể ổn, mong có phiên bản tốt hơn.",
+            "Sản phẩm hoạt động bình thường, chưa thấy điểm trừ lớn.",
+            "Đáp ứng mức sử dụng thông thường, tạm ổn.",
+            "Đổi trả/CSKH nên nhanh hơn sẽ tuyệt.",
+            "Tính thực dụng ổn, chưa thấy khác biệt lớn.",
+            "Mua thử để trải nghiệm, nhìn chung ổn.",
+            "Đúng như quảng cáo, nhưng chưa thật sự ấn tượng.",
+            "Chưa dùng lâu nên chưa nhận xét được độ bền.",
+        ];
 
         $pool = ($rating >= 4) ? $positives : $neutrals;
         $tpl  = $pool[array_rand($pool)];
