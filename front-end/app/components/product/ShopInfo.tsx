@@ -3,10 +3,11 @@
 import Image from "next/image"
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { API_BASE_URL, STATIC_BASE_URL, apiRequest } from "@/utils/api"
+import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
 import Link from "next/link"
 import { User, Loader2 } from "lucide-react"
-import Cookies from "js-cookie";
+import Cookies from "js-cookie"
+import axios from "axios"
 
 interface Shop {
   id: number
@@ -35,16 +36,49 @@ const formatImageUrl = (img: unknown): string => {
   if (typeof img !== "string" || !img.trim()) {
     return `${STATIC_BASE_URL}/products/default-product.png`
   }
-  if (img.startsWith("http")) return img
-  return img.startsWith("/") ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`
+  if ((img as string).startsWith("http")) return img as string
+  return (img as string).startsWith("/") ? `${STATIC_BASE_URL}${img}` : `${STATIC_BASE_URL}/${img}`
 }
 
 export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFollow }: ShopInfoProps) {
   const [popupText, setPopupText] = useState("")
   const [showPopup, setShowPopup] = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
+  const [meId, setMeId] = useState<number | null>(null)
+
   const router = useRouter()
 
+  // --- LOGIN / OWNER CHECK ---
+  const token = Cookies.get("authToken")
+  const isLoggedIn = Boolean(token)
+  // đang xem shop của chính user?
+  const isViewingOwnShop = Boolean(shop && meId && meId === shop.user_id)
+  // hiện Chat khi: đã đăng nhập và không phải shop của mình
+  const canShowChatButton = isLoggedIn && !isViewingOwnShop
+
+  // --- Lấy user từ API /user để có meId ---
+  useEffect(() => {
+    let ignore = false
+    if (!token) {
+      setMeId(null)
+      return
+    }
+    axios
+      .get(`${API_BASE_URL}/user`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      })
+      .then((res) => {
+        if (!ignore) setMeId(res.data?.id ?? null)
+      })
+      .catch(() => {
+        Cookies.remove("authToken")
+        setMeId(null)
+      })
+    return () => {
+      ignore = true
+    }
+  }, [token])
 
   const handleToggleFollow = useCallback(async () => {
     if (!shop?.id) return
@@ -53,7 +87,7 @@ export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFol
       await onFollowToggle()
       setPopupText(!followed ? "Đã theo dõi shop" : "Đã bỏ theo dõi shop")
       setShowPopup(true)
-    } catch (err) {
+    } catch {
       setPopupText("Có lỗi xảy ra, vui lòng thử lại")
       setShowPopup(true)
     } finally {
@@ -99,14 +133,14 @@ export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFol
   return (
     <div className="mt-12 border rounded-lg bg-white p-4 sm:p-6 md:p-8 relative">
       <div className="flex flex-col md:flex-row md:justify-between gap-6">
-        {/* Left - desktop*/}
+        {/* Left - desktop */}
         <div className="hidden md:flex gap-4 flex-shrink-0">
           <div className="relative w-[60px] h-[60px] rounded-full overflow-hidden cursor-pointer">
             <Link href={`/shop/${shop.slug}`}>
               <Image
                 src={
                   shop.logo
-                    ? shop.logo.startsWith("http") || shop.logo.startsWith("/")
+                    ? (shop.logo.startsWith("http") || shop.logo.startsWith("/"))
                       ? shop.logo
                       : formatImageUrl(shop.logo)
                     : `${STATIC_BASE_URL}/avatars/default-avatar.png`
@@ -133,10 +167,10 @@ export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFol
 
             <p
               className={`font-medium text-sm ${shop.status === "activated"
-                ? "text-green-600"
-                : shop.status === "pending"
-                  ? "text-yellow-500"
-                  : "text-gray-500"
+                  ? "text-green-600"
+                  : shop.status === "pending"
+                    ? "text-yellow-500"
+                    : "text-gray-500"
                 }`}
             >
               {shop.status === "activated" && "Đang hoạt động"}
@@ -145,20 +179,15 @@ export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFol
             </p>
 
             <div className="flex flex-wrap gap-2 mt-2">
-
               {/* Follow Button */}
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleToggleFollow()
-                }}
+                onClick={(e) => { e.stopPropagation(); handleToggleFollow() }}
                 disabled={followLoading || isCheckingFollow}
                 className={`flex items-center justify-center gap-2 px-3 py-1 rounded border text-sm transition w-full sm:w-auto
-                      ${followed
+                  ${followed
                     ? "bg-[#db4444] text-white border-[#db4444] hover:opacity-90"
-                    : "bg-white text-[#db4444] border-[#db4444] hover:bg-[#db4444] hover:text-white"
-                  }
-                   disabled:opacity-60 disabled:cursor-not-allowed`}
+                    : "bg-white text-[#db4444] border-[#db4444] hover:bg-[#db4444] hover:text-white"}
+                  disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 {followLoading || isCheckingFollow ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -166,27 +195,25 @@ export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFol
                   <User size={16} />
                 )}
                 <span>
-                  {isCheckingFollow
-                    ? "Kiểm tra..."
-                    : followLoading
-                      ? "Đang tải..."
-                      : followed
-                        ? "Đã theo dõi"
-                        : "Theo Dõi"}
+                  {isCheckingFollow ? "Kiểm tra..." :
+                    followLoading ? "Đang tải..." :
+                      followed ? "Đã theo dõi" : "Theo Dõi"}
                 </span>
               </button>
 
-              {/* Chat Button */}
-              <button
-                onClick={handleOpenChat}
-                className="flex items-center justify-center gap-2 px-3 py-1 rounded-lg border border-[#db4444] bg-white text-[#db4444] text-sm transition-colors
+              {/* Chat Button (desktop) */}
+              {canShowChatButton && (
+                <button
+                  onClick={handleOpenChat}
+                  className="flex items-center justify-center gap-2 px-3 py-1 rounded-lg border border-[#db4444] bg-white text-[#db4444] text-sm transition-colors
                            hover:bg-[#db4444] hover:text-white"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M2 3v18l4-4h14V3H2zm2 2h14v10H6l-2 2V5z" />
-                </svg>
-                Chat Ngay
-              </button>
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M2 3v18l4-4h14V3H2zm2 2h14v10H6l-2 2V5z" />
+                  </svg>
+                  Chat Ngay
+                </button>
+              )}
 
               {/* View Shop Button */}
               <button
@@ -204,14 +231,14 @@ export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFol
         </div>
 
         {/* Left - mobile */}
-        <div className="flex md:hidden flex-col gap-2">
-          <div className="flex md:hidden gap-4 flex-shrink-0">
+        <div className="flex flex-col gap-2 md:hidden">
+          <div className="flex gap-4 flex-shrink-0">
             <div className="relative w-[60px] h-[60px] rounded-full overflow-hidden cursor-pointer">
               <Link href={`/shop/${shop.slug}`}>
                 <Image
                   src={
                     shop.logo
-                      ? shop.logo.startsWith("http") || shop.logo.startsWith("/")
+                      ? (shop.logo.startsWith("http") || shop.logo.startsWith("/"))
                         ? shop.logo
                         : formatImageUrl(shop.logo)
                       : `${STATIC_BASE_URL}/avatars/default-avatar.png`
@@ -237,10 +264,10 @@ export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFol
 
               <p
                 className={`font-medium text-sm ${shop.status === "activated"
-                  ? "text-green-600"
-                  : shop.status === "pending"
-                    ? "text-yellow-500"
-                    : "text-gray-500"
+                    ? "text-green-600"
+                    : shop.status === "pending"
+                      ? "text-yellow-500"
+                      : "text-gray-500"
                   }`}
               >
                 {shop.status === "activated" && "Đang hoạt động"}
@@ -254,17 +281,13 @@ export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFol
           <div className="flex flex-wrap gap-2 mt-2">
             {/* Follow Button */}
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleToggleFollow()
-              }}
+              onClick={(e) => { e.stopPropagation(); handleToggleFollow() }}
               disabled={followLoading || isCheckingFollow}
               className={`flex items-center justify-center gap-2 px-3 py-1 rounded border text-sm transition w-full sm:w-auto
-                      ${followed
+                ${followed
                   ? "bg-[#db4444] text-white border-[#db4444] hover:opacity-90"
-                  : "bg-white text-[#db4444] border-[#db4444] hover:bg-[#db4444] hover:text-white"
-                }
-                   disabled:opacity-60 disabled:cursor-not-allowed`}
+                  : "bg-white text-[#db4444] border-[#db4444] hover:bg-[#db4444] hover:text-white"}
+                disabled:opacity-60 disabled:cursor-not-allowed`}
             >
               {followLoading || isCheckingFollow ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -272,28 +295,26 @@ export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFol
                 <User size={16} />
               )}
               <span>
-                {isCheckingFollow
-                  ? "Kiểm tra..."
-                  : followLoading
-                    ? "Đang tải..."
-                    : followed
-                      ? "Đã theo dõi"
-                      : "Theo Dõi"}
+                {isCheckingFollow ? "Kiểm tra..." :
+                  followLoading ? "Đang tải..." :
+                    followed ? "Đã theo dõi" : "Theo Dõi"}
               </span>
             </button>
 
             <div className="w-full flex gap-2">
-              {/* Chat Button */}
-              <button
-                onClick={handleOpenChat}
-                className="w-full flex items-center justify-center gap-2 px-3 py-1 rounded border border-[#db4444] bg-white text-[#db4444] text-sm transition-colors
+              {/* Chat Button (mobile) */}
+              {canShowChatButton && (
+                <button
+                  onClick={handleOpenChat}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-1 rounded border border-[#db4444] bg-white text-[#db4444] text-sm transition-colors
                            hover:bg-[#db4444] hover:text-white"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M2 3v18l4-4h14V3H2zm2 2h14v10H6l-2 2V5z" />
-                </svg>
-                Chat Ngay
-              </button>
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M2 3v18l4-4h14V3H2zm2 2h14v10H6l-2 2V5z" />
+                  </svg>
+                  Chat Ngay
+                </button>
+              )}
 
               {/* View Shop Button */}
               <button
