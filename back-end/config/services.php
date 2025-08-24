@@ -45,5 +45,8 @@ return [
 //         'hash_secret' => env('VNP_HASH_SECRET', ''),
 //         'return_url'  => env('VNP_RETURNURL', 'http://localhost:3000/checkout'),
 //     ],
+    'ghtk' => [
+    'token' => env('GHTK_TOKEN', null),
+],
 
 ];

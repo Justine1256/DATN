@@ -1,4 +1,5 @@
 "use client";
+import { API_BASE_URL } from "@/utils/api";
 import { useState } from "react";
 
 export default function GHTKDebugPage() {
@@ -12,7 +13,7 @@ export default function GHTKDebugPage() {
     setResult(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/ghtk/fee", {
+      const res = await fetch(`${API_BASE_URL}/ghtk/fee`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

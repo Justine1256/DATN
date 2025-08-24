@@ -9,7 +9,7 @@ class ShippingController extends Controller
 {
     public function calculateFee(Request $request)
     {
-        $token = env('GHTK_TOKEN');
+        $token = config('services.ghtk.token');
         if (!$token) {
             return response()->json([
                 'success' => false,
