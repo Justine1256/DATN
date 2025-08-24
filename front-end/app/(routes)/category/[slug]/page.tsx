@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   Layout, Card, Row, Col, Typography, Select, Slider, Button, Space,
-  Divider, List, Skeleton, Alert, Empty, Tag, Pagination, Tooltip, ConfigProvider,
+  Divider, List, Skeleton, Alert, Empty, Tag, Pagination, Tooltip, ConfigProvider, Modal, Grid,
 } from "antd";
-import { FilterOutlined, ReloadOutlined, AppstoreOutlined } from "@ant-design/icons";
+import { FilterOutlined, ReloadOutlined, AppstoreOutlined, MenuOutlined } from "@ant-design/icons";
 import LandingSlider from "@/app/components/home/LandingSlider";
 import CategoryGrid from "@/app/components/home/CategoryGrid";
 import ProductCardcate from "@/app/components/product/ProductCardCate";
@@ -14,6 +14,7 @@ import { API_BASE_URL } from "@/utils/api";
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 interface Product {
   id: number;
@@ -52,32 +53,35 @@ interface PaginationInfo {
 const PRICE_MIN = 0;
 const PRICE_MAX = 50_000_000;
 
-// cắt bớt chữ phía sau
 const truncate = (s: string, n: number) => (s.length <= n ? s : s.slice(0, n) + "…");
 
 export default function CategoryPageAntd() {
   const { slug } = useParams() as { slug?: string };
+  const screens = useBreakpoint();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // bộ lọc
+  // filter
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(slug || null);
   const [tempRange, setTempRange] = useState<[number, number]>([PRICE_MIN, PRICE_MAX]);
   const [appliedRange, setAppliedRange] = useState<[number, number]>([PRICE_MIN, PRICE_MAX]);
 
-  // sắp xếp
+  // sort
   const [selectedSort, setSelectedSort] = useState<string>("Phổ Biến");
   const [selectedPriceSort, setSelectedPriceSort] = useState<string | null>(null);
   const [selectedDiscountSort, setSelectedDiscountSort] = useState<string | null>(null);
   const [selectedNameSort, setSelectedNameSort] = useState<string | null>(null);
 
-  // phân trang
+  // pagination
   const [page, setPage] = useState(1);
   const [pageInfo, setPageInfo] = useState<PaginationInfo | null>(null);
   const itemsPerPage = 15;
+
+  // modal filter
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // fetch categories
   useEffect(() => {
@@ -86,23 +90,19 @@ export default function CategoryPageAntd() {
         const res = await fetch(`${API_BASE_URL}/category`);
         const data = await res.json();
         setCategories(data || []);
-      } catch {
-        // bỏ qua
-      }
+      } catch { }
     })();
   }, []);
 
-  // hàm build sorting param
   const getSortingParam = () => {
     if (selectedNameSort) return selectedNameSort === "asc" ? "name_asc" : "name_desc";
     if (selectedPriceSort) return selectedPriceSort === "asc" ? "price_asc" : "price_desc";
     if (selectedDiscountSort) return "discount_desc";
     if (selectedSort === "Bán Chạy") return "sold_desc";
     if (selectedSort === "Mới Nhất") return "latest";
-    return "rating_desc"; // Phổ Biến
+    return "rating_desc";
   };
 
-  // fetch products
   const fetchProducts = async (p: number) => {
     setLoading(true);
     setError(null);
@@ -145,10 +145,8 @@ export default function CategoryPageAntd() {
     }
   };
 
-  // refetch khi filter/sort thay đổi
   useEffect(() => {
     fetchProducts(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategorySlug, appliedRange, selectedSort, selectedPriceSort, selectedDiscountSort, selectedNameSort]);
 
   const formatVND = (v: number) =>
@@ -161,6 +159,130 @@ export default function CategoryPageAntd() {
 
   const isInitialLoading = loading && products.length === 0;
 
+  // ----------- Filter Content (dùng chung cho Sidebar & Modal) -----------
+  const renderFilterContent = () => {
+    if (isInitialLoading && categories.length === 0) {
+      return (
+        <Space direction="vertical" size="large" style={{ width: "100%" }}>
+          <Skeleton.Button active style={{ width: "60%", height: 36 }} />
+          <div>
+            <Space direction="vertical" size="small" style={{ width: "100%" }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton.Button
+                  key={i}
+                  active
+                  style={{ width: "100%", height: 40, borderRadius: 8 }}
+                />
+              ))}
+            </Space>
+          </div>
+          <Divider style={{ margin: "12px 0" }} />
+          <Skeleton.Button active style={{ width: 120, height: 24 }} />
+          <Skeleton.Input active style={{ width: "100%", height: 8 }} />
+          <Skeleton.Input active style={{ width: "100%", height: 8, marginTop: 8 }} />
+          <Space>
+            <Skeleton.Button active style={{ width: 90, height: 32 }} />
+            <Skeleton.Button active style={{ width: 90, height: 32 }} />
+          </Space>
+        </Space>
+      );
+    }
+
+    return (
+      <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        {/* Danh mục */}
+        <div>
+          <Text strong>Danh mục</Text>
+          <div style={{ marginTop: 12 }}>
+            <Button
+              type={!selectedCategorySlug ? "primary" : "default"}
+              block
+              onClick={() => {
+                setSelectedCategorySlug(null);
+                history.pushState({}, "", "/category");
+                setFilterOpen(false);
+              }}
+            >
+              Tất Cả Sản Phẩm
+            </Button>
+            <Divider style={{ margin: "12px 0" }} />
+            {categories.map((cat) => (
+              <Tooltip key={cat.id} title={cat.name}>
+                <Button
+                  block
+                  style={{ marginBottom: 8, textAlign: "left" }}
+                  type={selectedCategorySlug === cat.slug ? "primary" : "default"}
+                  onClick={() => {
+                    setSelectedCategorySlug(cat.slug);
+                    history.pushState({}, "", `/category/${cat.slug}`);
+                    setFilterOpen(false);
+                  }}
+                >
+                  {truncate(cat.name, 28)}
+                </Button>
+              </Tooltip>
+            ))}
+            {selectedCategorySlug && (
+              <div style={{ marginTop: 8 }}>
+                <Tag color="red">
+                  Đang lọc: {truncate(selectedCategoryName || selectedCategorySlug, 32)}
+                </Tag>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Giá */}
+        {/* Giá */}
+        <div>
+          <Text strong>
+            Giá <Text type="secondary">(VNĐ)</Text>
+          </Text>
+          <Slider
+            range
+            min={PRICE_MIN}
+            max={PRICE_MAX}
+            step={100_000}
+            value={tempRange}
+            onChange={(v) => setTempRange(v as [number, number])}
+            tooltip={{ formatter: (v) => formatVND(Number(v)) }}
+            style={{ width: "100%" }}
+          />
+          <Row justify="space-between">
+            <Text>{formatVND(tempRange[0])}</Text>
+            <Text>{formatVND(tempRange[1])}</Text>
+          </Row>
+          <Space style={{ marginTop: 12 }}>
+            <Button type="primary" onClick={() => {
+              setAppliedRange(tempRange);
+              setFilterOpen(false);
+            }}>
+              Áp dụng
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => {
+                setSelectedCategorySlug(null);
+                setTempRange([PRICE_MIN, PRICE_MAX]);
+                setAppliedRange([PRICE_MIN, PRICE_MAX]);
+                setSelectedSort("Phổ Biến");
+                setSelectedPriceSort(null);
+                setSelectedDiscountSort(null);
+                setSelectedNameSort(null);
+                history.pushState({}, "", "/category");
+                setFilterOpen(false);
+              }}
+            >
+              Đặt lại
+            </Button>
+          </Space>
+        </div>
+
+      </Space>
+    );
+  };
+
+  // ------------------- UI -------------------
   return (
     <ConfigProvider
       theme={{
@@ -170,8 +292,13 @@ export default function CategoryPageAntd() {
         },
       }}
     >
+<<<<<<< Updated upstream
       <div className="max-w-[1170px] mx-auto px-4 md:pt-16 pb-10">
         {/* Banner + category pills: skeleton khi tải lần đầu */}
+=======
+      <div className="max-w-[1170px] mx-auto px-4 pt-16 pb-10">
+        {/* Banner + category pills */}
+>>>>>>> Stashed changes
         {isInitialLoading ? (
           <>
             <Card style={{ borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
@@ -206,282 +333,127 @@ export default function CategoryPageAntd() {
         )}
 
         <Layout style={{ background: "transparent" }}>
-          {/* SIDEBAR */}
-          <Sider
-            width={280}
-            breakpoint="lg"
-            collapsedWidth={0}
-            style={{ background: "transparent", paddingRight: 16 }}
-          >
-            <Card className="filter-card" title={<Space><FilterOutlined />Bộ lọc</Space>}>
-              {isInitialLoading && categories.length === 0 ? (
-                // Skeleton cho sidebar filter
-                <Space direction="vertical" size="large" style={{ width: "100%" }}>
-                  <Skeleton.Button active style={{ width: "60%", height: 36 }} />
-                  <div>
-                    <Space direction="vertical" size="small" style={{ width: "100%" }}>
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <Skeleton.Button
-                          key={i}
-                          active
-                          style={{ width: "100%", height: 40, borderRadius: 8 }}
-                        />
-                      ))}
-                    </Space>
-                  </div>
-                  <Divider style={{ margin: "12px 0" }} />
-                  <Skeleton.Button active style={{ width: 120, height: 24 }} />
-                  <Skeleton.Input active style={{ width: "100%", height: 8 }} />
-                  <Skeleton.Input active style={{ width: "100%", height: 8, marginTop: 8 }} />
-                  <Space>
-                    <Skeleton.Button active style={{ width: 90, height: 32 }} />
-                    <Skeleton.Button active style={{ width: 90, height: 32 }} />
-                  </Space>
-                </Space>
-              ) : (
-                <Space direction="vertical" size="large" style={{ width: "100%" }}>
-                  {/* Danh mục */}
-                  <div>
-                    <Text strong>Danh mục</Text>
-                    <div style={{ marginTop: 12 }}>
-                      <Button
-                        type={!selectedCategorySlug ? "primary" : "default"}
-                        block
-                        onClick={() => {
-                          setSelectedCategorySlug(null);
-                          history.pushState({}, "", "/category");
-                        }}
-                      >
-                        Tất Cả Sản Phẩm
-                      </Button>
-                      <Divider style={{ margin: "12px 0" }} />
-                      {categories.map((cat) => (
-                        <Tooltip key={cat.id} title={cat.name}>
-                          <Button
-                            block
-                            style={{ marginBottom: 8, textAlign: "left" }}
-                            type={selectedCategorySlug === cat.slug ? "primary" : "default"}
-                            onClick={() => {
-                              setSelectedCategorySlug(cat.slug);
-                              history.pushState({}, "", `/category/${cat.slug}`);
-                            }}
-                          >
-                            {truncate(cat.name, 28)}
-                          </Button>
-                        </Tooltip>
-                      ))}
-
-                      {selectedCategorySlug && (
-                        <div style={{ marginTop: 8 }}>
-                          <Tag color="red">
-                            Đang lọc: {truncate(selectedCategoryName || selectedCategorySlug, 32)}
-                          </Tag>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Giá */}
-                  <div>
-                    <Text strong>
-                      Giá <Text type="secondary">(VNĐ)</Text>
-                    </Text>
-                    <Row justify="space-between" style={{ marginTop: 8 }}>
-                      <Text>{formatVND(tempRange[0])}</Text>
-                      <Text>{formatVND(tempRange[1])}</Text>
-                    </Row>
-                    <Slider
-                      range
-                      min={PRICE_MIN}
-                      max={PRICE_MAX}
-                      step={100_000}
-                      value={tempRange}
-                      onChange={(v) => setTempRange(v as [number, number])}
-                      tooltip={{ formatter: (v) => formatVND(Number(v)) }}
-                    />
-                    <Space>
-                      <Button type="primary" onClick={() => setAppliedRange(tempRange)}>
-                        Áp dụng
-                      </Button>
-                      <Button
-                        icon={<ReloadOutlined />}
-                        onClick={() => {
-                          setSelectedCategorySlug(null);
-                          setTempRange([PRICE_MIN, PRICE_MAX]);
-                          setAppliedRange([PRICE_MIN, PRICE_MAX]);
-                          setSelectedSort("Phổ Biến");
-                          setSelectedPriceSort(null);
-                          setSelectedDiscountSort(null);
-                          setSelectedNameSort(null);
-                          history.pushState({}, "", "/category");
-                        }}
-                      >
-                        Đặt lại
-                      </Button>
-                    </Space>
-                  </div>
-                </Space>
-              )}
-            </Card>
-          </Sider>
+          {/* Sidebar chỉ hiện khi màn hình >= lg */}
+          {screens.lg && (
+            <Sider
+              width={280}
+              style={{ background: "transparent", paddingRight: 16 }}
+              trigger={null}
+              collapsible={false}
+            >
+              <Card className="filter-card" title={<Space><FilterOutlined />Bộ lọc</Space>}>
+                {renderFilterContent()}
+              </Card>
+            </Sider>
+          )}
 
           {/* MAIN */}
           <Content>
+            {/* Toolbar */}
             <Card variant="borderless" style={{ marginBottom: 12 }}>
-              {isInitialLoading ? (
-                // Skeleton cho thanh công cụ sắp xếp
-                <Row gutter={[8, 8]} align="middle">
-                  <Col xs={24} md={6}>
-                    <Skeleton.Input active style={{ width: 180, height: 24 }} />
-                  </Col>
-                  <Col xs={24} md={6}>
-                    <Skeleton.Button active style={{ width: "100%", height: 40 }} />
-                  </Col>
-                  <Col xs={24} md={4}>
-                    <Skeleton.Button active style={{ width: "100%", height: 40 }} />
-                  </Col>
-                  <Col xs={24} md={4}>
-                    <Skeleton.Button active style={{ width: "100%", height: 40 }} />
-                  </Col>
-                  <Col xs={24} md={4}>
-                    <Skeleton.Button active style={{ width: "100%", height: 40 }} />
-                  </Col>
-                </Row>
-              ) : (
-                <Row gutter={[8, 8]} align="middle">
-                  <Col xs={24} md={6}>
-                    <Space>
-                      <Text strong style={{ color: '#1f1f1f' }}>Sắp xếp theo:</Text>
-                      <AppstoreOutlined />
-                    </Space>
-                  </Col>
-                  <Col xs={24} md={6}>
-                    <Select
-                      style={{ width: "100%" }}
-                      value={selectedSort}
-                      onChange={(v) => {
-                        setSelectedSort(v);
-                        setSelectedPriceSort(null);
-                        setSelectedDiscountSort(null);
-                        setSelectedNameSort(null);
-                      }}
-                      options={[
-                        { label: "Phổ Biến", value: "Phổ Biến" },
-                        { label: "Mới Nhất", value: "Mới Nhất" },
-                        { label: "Bán Chạy", value: "Bán Chạy" },
-                      ]}
-                    />
-                  </Col>
-                  <Col xs={24} md={4}>
-                    <Select
-                      style={{ width: "100%" }}
-                      value={selectedPriceSort || undefined}
-                      placeholder="Giá"
-                      onChange={(v) => {
-                        setSelectedPriceSort(v ?? null);
-                        if (v) {
-                          setSelectedDiscountSort(null);
-                          setSelectedNameSort(null);
-                        }
-                      }}
-                      allowClear
-                      options={[
-                        { label: "Thấp đến cao", value: "asc" },
-                        { label: "Cao đến thấp", value: "desc" },
-                      ]}
-                    />
-                  </Col>
-                  <Col xs={24} md={4}>
-                    <Select
-                      style={{ width: "100%" }}
-                      value={selectedDiscountSort || undefined}
-                      placeholder="Khuyến mãi"
-                      onChange={(v) => {
-                        setSelectedDiscountSort(v ?? null);
-                        if (v) {
-                          setSelectedPriceSort(null);
-                          setSelectedNameSort(null);
-                        }
-                      }}
-                      allowClear
-                      options={[{ label: "Cao đến thấp", value: "desc" }]}
-                    />
-                  </Col>
-                  <Col xs={24} md={4}>
-                    <Select
-                      style={{ width: "100%" }}
-                      value={selectedNameSort || undefined}
-                      placeholder="Tên"
-                      onChange={(v) => {
-                        setSelectedNameSort(v ?? null);
-                        if (v) {
-                          setSelectedPriceSort(null);
-                          setSelectedDiscountSort(null);
-                        }
-                      }}
-                      allowClear
-                      options={[
-                        { label: "A đến Z", value: "asc" },
-                        { label: "Z đến A", value: "desc" },
-                      ]}
-                    />
-                  </Col>
-                  <Col xs={24} md={4}>
+              <Row gutter={[8, 8]} align="middle">
+                {!screens.lg && (
+                  <Col xs={24}>
                     <Button
+                      icon={<MenuOutlined />}
+                      onClick={() => setFilterOpen(true)}
                       block
-                      icon={<ReloadOutlined />}
-                      onClick={() => {
-                        setSelectedSort("Phổ Biến");
-                        setSelectedPriceSort(null);
-                        setSelectedDiscountSort(null);
-                        setSelectedNameSort(null);
-                      }}
                     >
-                      Đặt lại
+                      Bộ lọc
                     </Button>
                   </Col>
-                </Row>
-              )}
+                )}
+                <Col xs={24} md={6}>
+                  <Space>
+                    <Text strong style={{ color: '#1f1f1f' }}>Sắp xếp theo:</Text>
+                    <AppstoreOutlined />
+                  </Space>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Select
+                    style={{ width: "100%" }}
+                    value={selectedSort}
+                    onChange={(v) => {
+                      setSelectedSort(v);
+                      setSelectedPriceSort(null);
+                      setSelectedDiscountSort(null);
+                      setSelectedNameSort(null);
+                    }}
+                    options={[
+                      { label: "Phổ Biến", value: "Phổ Biến" },
+                      { label: "Mới Nhất", value: "Mới Nhất" },
+                      { label: "Bán Chạy", value: "Bán Chạy" },
+                    ]}
+                  />
+                </Col>
+                <Col xs={24} md={4}>
+                  <Select
+                    style={{ width: "100%" }}
+                    value={selectedPriceSort || undefined}
+                    placeholder="Giá"
+                    onChange={(v) => {
+                      setSelectedPriceSort(v ?? null);
+                      if (v) {
+                        setSelectedDiscountSort(null);
+                        setSelectedNameSort(null);
+                      }
+                    }}
+                    allowClear
+                    options={[
+                      { label: "Thấp đến cao", value: "asc" },
+                      { label: "Cao đến thấp", value: "desc" },
+                    ]}
+                  />
+                </Col>
+                <Col xs={24} md={4}>
+                  <Select
+                    style={{ width: "100%" }}
+                    value={selectedDiscountSort || undefined}
+                    placeholder="Khuyến mãi"
+                    onChange={(v) => {
+                      setSelectedDiscountSort(v ?? null);
+                      if (v) {
+                        setSelectedPriceSort(null);
+                        setSelectedNameSort(null);
+                      }
+                    }}
+                    allowClear
+                    options={[{ label: "Cao đến thấp", value: "desc" }]}
+                  />
+                </Col>
+                <Col xs={24} md={4}>
+                  <Select
+                    style={{ width: "100%" }}
+                    value={selectedNameSort || undefined}
+                    placeholder="Tên"
+                    onChange={(v) => {
+                      setSelectedNameSort(v ?? null);
+                      if (v) {
+                        setSelectedPriceSort(null);
+                        setSelectedDiscountSort(null);
+                      }
+                    }}
+                    allowClear
+                    options={[
+                      { label: "A đến Z", value: "asc" },
+                      { label: "Z đến A", value: "desc" },
+                    ]}
+                  />
+                </Col>
+              </Row>
             </Card>
 
+            {/* Products */}
             <Card>
               {error ? (
                 <Alert type="error" showIcon message={error} />
               ) : loading ? (
-                // Grid skeleton ô vuông cho từng card (không che giao diện khác)
                 <Row gutter={[16, 16]}>
                   {Array.from({ length: 12 }).map((_, i) => (
                     <Col key={i} xs={24} sm={12} md={8}>
-                      <Card
-                        hoverable
-                        bordered
-                        style={{ borderRadius: 12, overflow: "hidden", height: "100%" }}
-                        cover={
-                          <div
-                            style={{
-                              width: "100%",
-                              aspectRatio: "1 / 1",
-                              background: "#f5f5f5",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Skeleton.Image
-                              active
-                              style={{ width: "80%", height: "80%", borderRadius: 8 }}
-                            />
-                          </div>
-                        }
-                      >
-                        <Skeleton
-                          active
-                          title={false}
-                          paragraph={{ rows: 2, width: ["90%", "60%"] }}
-                        />
-                        <div style={{ marginTop: 8 }}>
-                          <Skeleton.Button active size="small" style={{ width: "60%" }} />
-                        </div>
+                      <Card hoverable bordered style={{ borderRadius: 12, overflow: "hidden", height: "100%" }}>
+                        <Skeleton.Image active style={{ width: "100%", height: 200, borderRadius: 8 }} />
+                        <Skeleton active paragraph={{ rows: 2 }} />
                       </Card>
                     </Col>
                   ))}
@@ -495,9 +467,8 @@ export default function CategoryPageAntd() {
                       Hiển thị {pageInfo.from}-{pageInfo.to} / {pageInfo.total} sản phẩm
                     </div>
                   )}
-
                   <List
-                    grid={{ gutter: 16, column: 3, xs: 1, sm: 3, md: 3, lg: 3, xl: 3 }}
+                    grid={{ gutter: 16, column: 3, xs: 1, sm: 2, md: 3 }}
                     dataSource={products}
                     renderItem={(product: Product, idx: number) => (
                       <List.Item key={`${product.id}-${idx}`}>
@@ -512,7 +483,6 @@ export default function CategoryPageAntd() {
                       </List.Item>
                     )}
                   />
-
                   {pageInfo && pageInfo.last_page > 1 && (
                     <Row justify="center" style={{ marginTop: 16 }}>
                       <Pagination
@@ -535,18 +505,22 @@ export default function CategoryPageAntd() {
         </Layout>
       </div>
 
-      {/* CSS gợi ý cho filter button (đang để nguyên như bạn) */}
-      {/* <style jsx global>{`
-        .filter-card .ant-btn-default:not(.ant-btn-primary) {
-          border-color: #db4444;
-          color: #db4444;
-        }
-        .filter-card .ant-btn-default:not(.ant-btn-primary):hover {
-          border-color: #db4444;
-          color: #db4444;
-          background: rgba(219, 68, 68, 0.06);
-        }
-      `}</style> */}
+      {/* Modal Filter chỉ hiện trên mobile */}
+      {!screens.lg && (
+        <Modal
+          title="Bộ lọc"
+          open={filterOpen}
+          onCancel={() => setFilterOpen(false)}
+          footer={null}
+          width="90%"
+          centered
+          style={{ top: "20%" }}
+          bodyStyle={{ maxHeight: "60vh", overflowY: "auto", paddingBottom: 16 }}
+        >
+          {renderFilterContent()}
+        </Modal>
+
+      )}
     </ConfigProvider>
   );
 }
