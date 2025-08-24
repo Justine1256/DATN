@@ -5,22 +5,42 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class SaleController extends Controller
 {
     // GET /api/flash-sale?limit=24&shop_id=&min_discount=&sort=
     // Trả danh sách sản phẩm đang sale + mốc đếm ngược gần nhất
-    public function flashSale(Request $req)
-    {
-        $limit = min((int) $req->query('limit', 8), 8);
-        $shopId       = $req->query('shop_id');
-        $minDiscount  = (int) $req->query('min_discount', 0); // %
-        $sort         = $req->query('sort', 'ending_first');  // ending_first | best_discount
+public function flashSale(Request $req)
+{
+    $limit       = min((int) $req->query('limit', 8), 8);
+    $shopId      = $req->query('shop_id');
+    $minDiscount = (int) $req->query('min_discount', 0); // %
+    $sort        = $req->query('sort', 'ending_first');  // ending_first | best_discount
 
+    // Cache key theo input
+    $cacheKey = sprintf(
+        'flash_sale:limit=%d:shop=%s:min=%d:sort=%s',
+        $limit,
+        $shopId ?: 'all',
+        $minDiscount,
+        $sort
+    );
+
+    // Flash sale thay đổi theo thời gian -> TTL ngắn (1-2 phút)
+    $payload = Cache::store('redis')->remember($cacheKey, now()->addMinutes(2), function () use (
+        $limit, $shopId, $minDiscount, $sort
+    ) {
         $query = Product::query()
-            ->select(['id','shop_id','name','slug','image','price','sale_price','sale_starts_at','sale_ends_at','sold','rating'])
-            ->activeSale();
+            ->select([
+                'id', 'shop_id', 'name', 'slug', 'image',
+                'price', 'sale_price', 'sale_starts_at', 'sale_ends_at',
+                'sold', 'rating',
+            ])
+            ->with(['shop:id,slug,logo,name'])     // ⬅️ lấy thông tin shop
+            ->activeSale();                        // scope: đang trong thời gian sale & hợp lệ
 
         if ($shopId) {
             $query->where('shop_id', $shopId);
@@ -41,29 +61,43 @@ class SaleController extends Controller
         }
 
         $items = $query->limit($limit)->get()->map(function (Product $p) {
-            $discountPercent = $p->price > 0 ? (int) round(100 * (1 - ($p->sale_price / $p->price))) : 0;
+            $discountPercent = $p->price > 0
+                ? (int) round(100 * (1 - ($p->sale_price / $p->price)))
+                : 0;
+
+            // giống newProducts: bơm thông tin shop ra field phẳng
+            $shop = $p->shop;
             return [
-                'id' => $p->id,
-                'name' => $p->name,
-                'slug' => $p->slug,
-                'image' => $p->image,
-                'price' => (float) $p->price,
-                'sale_price' => (float) $p->sale_price,
+                'id'               => $p->id,
+                'name'             => $p->name,
+                'slug'             => $p->slug,
+                'image'            => $p->image,
+                'price'            => (float) $p->price,
+                'sale_price'       => (float) $p->sale_price,
                 'discount_percent' => $discountPercent,
-                'sale_starts_at' => optional($p->sale_starts_at)->toIso8601String(),
-                'sale_ends_at'   => optional($p->sale_ends_at)->toIso8601String(),
-                'sold' => (int) $p->sold,
-                'rating' => (float) $p->rating,
+                'sale_starts_at'   => optional($p->sale_starts_at)->toIso8601String(),
+                'sale_ends_at'     => optional($p->sale_ends_at)->toIso8601String(),
+                'sold'             => (int) $p->sold,
+                'rating'           => (float) $p->rating,
+
+                // ⬇️ info shop
+                'shop_slug'        => $shop->slug ?? null,
+                'shop_logo'        => $shop->logo ?? null,
+                'shop_name'        => $shop->name ?? null,
+                'shop_id'          => $p->shop_id,
             ];
         });
 
         $endsAt = $items->pluck('sale_ends_at')->filter()->sort()->first();
 
-        return response()->json([
+        return [
             'ends_at' => $endsAt,
             'items'   => $items,
-        ]);
-    }
+        ];
+    });
+
+    return response()->json($payload);
+}
 
     // PUT /api/products/{product}/sale
     // body: sale_price, sale_starts_at?, sale_ends_at?, priority?
