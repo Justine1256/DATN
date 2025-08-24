@@ -133,7 +133,7 @@ class AutoOrderAndReview extends Command
                     'confirmed_at'       => now(),
                     'shipped_at'         => now(),
                     'delivered_at'       => now(),
-                    'order_admin_status' => 'Paid',
+                    'order_admin_status' => 'Delivered',
                 ]);
 
                 // Order detail
