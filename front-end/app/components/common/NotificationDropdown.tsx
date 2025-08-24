@@ -43,7 +43,7 @@ export default function NotificationDropdown({ notifications, unreadCount, onNot
                 )}
             </div>
 
-            <div className="absolute top-full mt-2 right-0 w-[320px] bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
+            <div className="absolute top-full mt-2 right-[-104px] md:right-0 w-screen md:w-[320px] bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-300 z-50">
                 <div className="px-4 py-2 border-b text-base font-semibold text-black">Thông báo mới nhận</div>
 
                 <ul className="divide-y divide-gray-100 max-h-[300px] overflow-y-auto">

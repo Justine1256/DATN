@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AiOutlineHeart } from "react-icons/ai";
-import { FiUser, FiLogOut, FiSettings, FiSearch } from "react-icons/fi";
+import { FiUser, FiLogOut, FiSettings, FiSearch, FiChevronDown } from "react-icons/fi";
 import { TbBuildingStore } from "react-icons/tb";
 import Image from "next/image";
 import axios from "axios";
@@ -17,6 +17,7 @@ import { useUser } from "../../context/UserContext";
 import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
 import { useOptimizedNavigation } from "@/hooks/useOptimizedNavigation";
+import { AlignJustify } from 'lucide-react';
 
 interface Notification {
   id: number;
@@ -64,6 +65,8 @@ const Header = () => {
   const router = useRouter();
   const categoryRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuDropdownRef = useRef<HTMLDivElement>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
   const { user, setUser } = useUser();
   const shopSlug = user?.shop?.slug;
@@ -78,7 +81,9 @@ const Header = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSticky, setIsSticky] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [menuDropdownOpen, setMenuDropdownOpen] = useState(false);
+  const [cateDropdownOpen, setCateDropdownOpen] = useState(false);
   const [showVoucherPopup, setShowVoucherPopup] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
@@ -196,11 +201,31 @@ const Header = () => {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
+        setUserDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuDropdownRef.current && !menuDropdownRef.current.contains(e.target as Node)) {
+        setMenuDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleCloseCateList = (e: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
+        setCateDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleCloseCateList);
+    return () => document.removeEventListener("mousedown", handleCloseCateList);
   }, []);
 
   useEffect(() => {
@@ -250,7 +275,7 @@ const Header = () => {
     if (link) router.push(link);
   };
 
-  const linkCls = "relative group text-neutral-700 hover:text-[#DB4444] transition-colors";
+  const linkCls = "relative group text-white md:text-neutral-700 hover:text-[#DB4444] transition-colors";
   const underline = "absolute left-0 bottom-[-2px] h-[2px] w-0 bg-[#DB4444] transition-all duration-300 group-hover:w-full";
 
   return (
@@ -269,20 +294,74 @@ const Header = () => {
         className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-[#DB4444]"
       />
 
-
       {/* Thanh header chính */}
-      <div className="py-0 px-2">
+      <div className="py-0 px-4 md:px-2">
         <div className="grid grid-cols-12 items-center py-4 md:px-16 max-w-[1280px] mx-auto">
+          {/* Menu - mobile */}
+          <div className="relative block md:hidden col-span-2 " ref={menuDropdownRef}>
+            <AlignJustify onClick={() => setMenuDropdownOpen(!menuDropdownOpen)} />
+
+            {menuDropdownOpen && (
+              <div
+                className="
+                absolute left-0 mt-3 w-56
+                rounded-xl bg-[rgba(30,30,30,0.80)] backdrop-blur
+                shadow-2xl p-3 z-50
+                ring-1 ring-white/10
+              "
+              >
+                <ul className="text-white space-y-1 text-sm">
+                  <li><Link href="/" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10"
+                    onMouseEnter={() => router.prefetch("/")}>
+                    Trang Chủ
+                  </Link></li>
+                  <li>
+                    <div className="relative group" ref={categoryRef}>
+                      <div className="flex items-center justify-between gap-2 px-3 py-2 rounded hover:bg-white/10" onClick={() => setCateDropdownOpen(open => !open)} >
+                        <Link href="/category" onMouseEnter={() => router.prefetch("/category")}>
+                          Danh mục
+                        </Link>
+                        <FiChevronDown className="cursor-pointer" />
+                      </div>
+
+                      {cateDropdownOpen && (
+                        <div>
+                          <ul>
+                            {categories.map(cat => (
+                              <li key={cat.id}>
+                                <Link
+                                  href={`/category/${cat.slug}`}
+                                  className="block pl-6 pr-4 py-2 hover:bg-[rgba(219,68,68,0.06)]"
+                                  onMouseEnter={() => router.prefetch(`/category/${cat.slug}`)}
+                                >
+                                  {cat.name}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div></li>
+                  <li><Link href="/about" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10" onMouseEnter={() => router.prefetch("/about")}>
+                    Giới Thiệu
+                    <span className={underline}></span>
+                  </Link></li>
+                </ul>
+              </div>
+            )}
+
+          </div>
+
           {/* Logo */}
-          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
+          <div className="col-span-4 sm:col-span-3 lg:col-span-2">
             <Link href="/" className="w-fit block sm:w-auto sm:inline">
               <Image
                 src={isMobile ? "/logo-mobile.png" : "/logo.png"}
                 alt="Logo"
-                width={isMobile ? 50 : 140}
-                height={isMobile ? 50 : 140}
+                width={isMobile ? 100 : 140}
+                height={isMobile ? 100 : 140}
                 className="rounded-full cursor-pointer"
-                style={isMobile ? { width: "50px", height: "auto" } : {width: "90%", height: "auto" }}
+                style={isMobile ? { width: "100px", height: "auto" } : { width: "90%", height: "auto" }}
                 priority
               />
             </Link>
@@ -369,7 +448,7 @@ const Header = () => {
               )}
             </div>
 
-            <Link href="/wishlist" className="relative w-5 h-5 block" onMouseEnter={() => router.prefetch("/wishlist")}>
+            <Link href="/wishlist" className="hidden md: block relative w-5 h-5 block" onMouseEnter={() => router.prefetch("/wishlist")}>
               <AiOutlineHeart className="w-5 h-5 text-neutral-700 hover:text-[#DB4444] transition-colors duration-300" />
               {wishlistItems.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
@@ -390,10 +469,10 @@ const Header = () => {
                   width={32}
                   height={32}
                   className="h-8 w-8 rounded-full object-cover cursor-pointer"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 />
 
-                {dropdownOpen && (
+                {userDropdownOpen && (
                   <div
                     className="
       absolute right-0 mt-3 w-56
@@ -487,6 +566,7 @@ const Header = () => {
         )}
       </div>
     </header>
+
   );
 };
 

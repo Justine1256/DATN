@@ -314,7 +314,7 @@ export default function ProductCard({
                 <AiFillStar className="w-4 h-4 text-yellow-500" />
                 <span className="text-gray-600 text-xs">{Number(ratingValue).toFixed(1)}</span>
                 <span className="text-gray-500 text-xs ml-1">
-                  ({formatNumberShort(product.review_count || 0)} lượt đánh giá)
+                  ({formatNumberShort(product.review_count || 0)} lượt)
                 </span>
               </>
             ) : (
