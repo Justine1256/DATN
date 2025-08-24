@@ -31,6 +31,7 @@ use App\Http\Controllers\VoucherCategoryController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\ShopShippingAccountController;
 use App\Models\Banner;
 use Illuminate\Support\Facades\Auth;
@@ -53,6 +54,7 @@ Route::put('/banner/{id}', [BannerController::class, 'update']);
 Route::delete('/banner/{id}', [BannerController::class, 'destroy']);
 Route::post('/banner/upload-banner', [BannerController::class, 'uploadBanner']);
 
+Route::post('/ghtk/fee', [ShippingController::class, 'calculateFee']);
 
 Route::get('/images', [ImageController::class, 'index']);
 Route::get('/image/{path}', [ImageController::class, 'show'])->where('path', '.*');
