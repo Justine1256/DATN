@@ -66,7 +66,7 @@ interface Props {
     full_name: string
     address: string
     apartment?: string
-    city: string
+    city: string      // "Ward, District, Province"
     phone: string
     email: string
   }
@@ -104,6 +104,13 @@ export default function OrderSummary({
   const [error, setError] = useState("")
   const redirectTimerRef = useRef<NodeJS.Timeout | null>(null)
   const saveOnceRef = useRef(false)
+
+  /* ---- headers helper ---- */
+  const buildHeaders = (token?: string) => ({
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  })
 
   const num = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0)
   const getPriceToUse = (item: CartItem) => {
@@ -145,8 +152,6 @@ export default function OrderSummary({
 
     if (typeof serverDiscount === "number") {
       const disc = Math.max(0, Math.floor(serverDiscount))
-
-      // Nếu backend trả về freeship kèm discount = đúng bằng phí ship => chỉ set ship = 0, bỏ discount
       if (serverFreeShipping && disc > 0 && disc <= shippingBase) {
         voucherDiscount = 0
         shipping = 0
@@ -172,28 +177,80 @@ export default function OrderSummary({
     subtotal - promotionDiscount - voucherDiscount + shipping
   )
 
+  /* ---------- Helpers: parse city -> ward/district/province ---------- */
+  const splitCity = (cityStr: string) => {
+    const parts = (cityStr || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const ward = parts[0] || ""
+    const district = parts[1] || ""
+    const province = parts[2] || parts[1] || ""
+    return { ward, district, province }
+  }
+
+  /* ---------- POST lưu địa chỉ nếu cần (không chặn đặt hàng nếu fail) ---------- */
+  const saveAddressIfNeeded = async (token: string) => {
+    if (!saveAddress || !manualAddressData || saveOnceRef.current) return
+    try {
+      const headers = buildHeaders(token)
+
+      // lấy user_id
+      const ures = await axios.get(`${API_BASE_URL}/user`, { headers, withCredentials: true })
+      const userId = ures.data?.data?.id ?? ures.data?.id
+
+      const { ward, district, province } = splitCity(manualAddressData.city)
+      const body = {
+        user_id: userId,
+        full_name: manualAddressData.full_name,
+        phone: manualAddressData.phone,
+        email: manualAddressData.email,
+        address: manualAddressData.address, // street + apartment
+        ward,
+        district,
+        province,
+        city: province,           // tương thích BE dùng city = province
+        note: "",
+        is_default: false,
+        type: "Nhà Riêng",
+      }
+
+      await axios.post(`${API_BASE_URL}/addresses`, body, {
+        headers,
+        withCredentials: true,
+      })
+
+      saveOnceRef.current = true
+    } catch (e) {
+      console.warn("[Save Address] Failed:", e) // không block luồng đặt hàng
+    }
+  }
+
   /* ============== Đặt hàng ============== */
   const handlePlaceOrder = async () => {
-    if (paymentMethod === "vnpay" && onVNPayPayment) {
-      onVNPayPayment()
-      return
-    }
-
     if (!addressId && !manualAddressData) {
       setError("Vui lòng chọn hoặc nhập địa chỉ giao hàng.")
       return
     }
 
-    const cartItemIds = cartItems
-      .map((it) => Number(it.id))
-      .filter((n) => Number.isFinite(n) && n > 0)
-
     setLoading(true)
     setError("")
 
     try {
-      const token = localStorage.getItem("token") || Cookies.get("authToken")
+      const token = localStorage.getItem("token") || Cookies.get("authToken") || ""
       const isGuest = !token
+
+      // nếu user đã đăng nhập & bật lưu địa chỉ => POST /addresses trước
+      if (!isGuest) {
+        await saveAddressIfNeeded(token)
+      }
+
+      // VNPay: cho phép lưu địa chỉ xong rồi mới chuyển hướng
+      if (paymentMethod === "vnpay" && onVNPayPayment) {
+        onVNPayPayment()
+        setLoading(false)
+        return
+      }
 
       const globalCode: string | null =
         voucherCode ?? appliedVoucher?.code ?? globalVoucherCode ?? null
@@ -209,17 +266,17 @@ export default function OrderSummary({
         basePayload.voucher_codes = shopVouchers
       }
 
+      const cartItemIds = cartItems
+        .map((it) => Number(it.id))
+        .filter((n) => Number.isFinite(n) && n > 0)
+
       let url = ""
       let payload: any = {}
 
       if (isGuest) {
         url = `${API_BASE_URL}/nologin`
-        if (!manualAddressData) {
-          throw new Error("Khách vãng lai cần nhập địa chỉ giao hàng.")
-        }
-        if (!cart_items.length) {
-          throw new Error("Giỏ hàng trống hoặc thiếu sản phẩm hợp lệ.")
-        }
+        if (!manualAddressData) throw new Error("Khách vãng lai cần nhập địa chỉ giao hàng.")
+        if (!cart_items.length) throw new Error("Giỏ hàng trống hoặc thiếu sản phẩm hợp lệ.")
         payload = {
           ...basePayload,
           cart_items,
@@ -227,9 +284,7 @@ export default function OrderSummary({
             full_name: manualAddressData.full_name || "",
             address:
               `${manualAddressData.address || ""}` +
-              (manualAddressData.apartment
-                ? `, ${manualAddressData.apartment}`
-                : ""),
+              (manualAddressData.apartment ? `, ${manualAddressData.apartment}` : ""),
             city: manualAddressData.city || "",
             phone: manualAddressData.phone || "",
             email: manualAddressData.email || "",
@@ -237,24 +292,17 @@ export default function OrderSummary({
         }
       } else {
         url = `${API_BASE_URL}/dathang`
-        payload = {
-          ...basePayload,
-          cart_item_ids: cartItemIds,
-        }
+        payload = { ...basePayload, cart_item_ids: cartItemIds }
 
         if (
           manualAddressData &&
-          Object.values(manualAddressData).some(
-            (v) => (v ?? "").toString().trim() !== ""
-          )
+          Object.values(manualAddressData).some((v) => (v ?? "").toString().trim() !== "")
         ) {
           payload.address_manual = {
             full_name: manualAddressData.full_name,
             address:
               `${manualAddressData.address}` +
-              (manualAddressData.apartment
-                ? `, ${manualAddressData.apartment}`
-                : ""),
+              (manualAddressData.apartment ? `, ${manualAddressData.apartment}` : ""),
             city: manualAddressData.city,
             phone: manualAddressData.phone,
             email: manualAddressData.email,
@@ -266,23 +314,22 @@ export default function OrderSummary({
         }
       }
 
-      const headers: any = { "Content-Type": "application/json" }
-      if (!isGuest) headers.Authorization = `Bearer ${token}`
+      const headers = buildHeaders(isGuest ? undefined : token)
 
-      const response = await axios.post(url, payload, { headers })
+      const response = await axios.post(url, payload, {
+        headers,
+        withCredentials: true,
+      })
       console.log("[Order] Response:", response.data)
 
       if (response.data?.redirect_url || response.data?.payment_url) {
-        const redirectUrl =
-          response.data.redirect_url || response.data.payment_url
+        const redirectUrl = response.data.redirect_url || response.data.payment_url
 
         // xoá sp đã đặt trong localStorage
         const orderedSet = new Set(cartItems.map((it) => String(it.id)))
         const raw = localStorage.getItem("cart")
         const current = raw ? JSON.parse(raw) : []
-        const remain = current.filter(
-          (it: any) => !orderedSet.has(String(it.id))
-        )
+        const remain = current.filter((it: any) => !orderedSet.has(String(it.id)))
         localStorage.setItem("cart", JSON.stringify(remain))
 
         setTimeout(() => {

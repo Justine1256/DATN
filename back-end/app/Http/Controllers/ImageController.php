@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class ImageController extends Controller
 {
@@ -107,13 +108,24 @@ public function uploadRefundImage(Request $request)
         'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
     ]);
 
-    $file = $request->file('image');
-    $path = $file->store('Refund_photos', 'public');
-     $url = asset('storage/' . $path);
+    // Nên dùng chữ thường để an toàn trên Linux
+    $path = $request->file('image')->store('refund_photos', 'public');
+
+    // Nếu vì lý do nào đó không ra path, log lại để bắt lỗi
+    if (!$path) {
+        Log::error('Upload refund failed: path empty');
+        return response()->json(['message' => 'Không thể lưu ảnh'], 500);
+    }
+
+    // Lấy URL đúng theo disk 'public'
+    $url = config('filesystems.disks.public.url') . '/' . $path;
+    // Hoặc: $url = Storage::disk('public')->url($path);
+
+    Log::info('Refund image saved', ['path' => $path, 'url' => $url]);
 
     return response()->json([
         'message' => 'Tải ảnh hoàn đơn thành công',
-        'images' => [$url]
+        'images'  => [$url],
     ], 201);
 }
 public function uploadReviewImage(Request $request)
