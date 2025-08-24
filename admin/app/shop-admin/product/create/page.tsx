@@ -1,5 +1,5 @@
 "use client";
-export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import ImageDrop from "@/app/components/shop-admin/product/create/ImageDrop";
 import ProductInfoForm from "@/app/components/shop-admin/product/create/Form";

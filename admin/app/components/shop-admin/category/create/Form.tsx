@@ -1,13 +1,6 @@
 "use client";
-import dynamic from "next/dynamic";
-import React from "react";
-import { useCKEditorConfig } from "@/app/components/ckeditor/CKEditorWrapper";
 
-// ✅ CKEditor React mới
-const CKEditor = dynamic(
-  () => import("@ckeditor/ckeditor5-react").then((m) => m.CKEditor),
-  { ssr: false }
-);
+import React from "react";
 
 interface Category {
   id: string;
@@ -25,8 +18,6 @@ interface Props {
 }
 
 export default function CategoryInfoForm({ data, setData, categories }: Props) {
-  const { ClassicEditor, editorConfig } = useCKEditorConfig();
-
   return (
     <div className="space-y-8">
       {/* THÔNG TIN DANH MỤC */}
@@ -82,20 +73,12 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
           Mô tả danh mục
         </h3>
         <div className="border border-[#cbd5e1] rounded-lg overflow-hidden min-h-[300px] bg-white">
-          {editorConfig && (
-            <CKEditor
-              editor={ClassicEditor}
-              config={editorConfig as any}
-              // ❌ bỏ prop `data`, dùng onReady thay thế
-              onReady={(editor: any) => {
-                editor.setData(data.description || "");
-              }}
-              onChange={(_: any, editor: any) => {
-                setData("description", editor.getData());
-              }}
-
-            />
-          )}
+          <textarea
+            value={data.description || ""}
+            onChange={(e) => setData("description", e.target.value)}
+            placeholder="Nhập mô tả danh mục..."
+            className="w-full h-[300px] p-3 border-0 outline-none resize-none text-sm text-slate-700"
+          />
         </div>
         <p className="text-xs text-slate-500 mt-2">
           Mô tả chi tiết sẽ giúp khách hàng hiểu rõ hơn về danh mục của bạn

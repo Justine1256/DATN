@@ -2,15 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import dynamic from "next/dynamic";
 import { API_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
-import { useCKEditorConfig } from "@/app/components/ckeditor/CKEditorWrapper";
-
-const CKEditor = dynamic(
-  () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
-  { ssr: false }
-);
 
 interface ProductFormProps {
   images: { id: string; url: string }[];
@@ -36,8 +29,6 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
   const [value2, setValue2] = useState("");
   const [price, setPrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
-
-  const { ClassicEditor, editorConfig } = useCKEditorConfig();
 
   const formatCurrency = (value: number | string) => {
     const num = typeof value === "string" ? parseInt(value) : value;
@@ -242,23 +233,15 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
               <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
               Mô tả sản phẩm
             </h3>
-            <div className="border border-slate-300 rounded-lg overflow-hidden transition-all min-h-[300px]">
-              {editorConfig && (
-                <CKEditor
-                  editor={ClassicEditor}
-                  config={editorConfig as any}
-                  // ❌ bỏ data
-                  onReady={(editor: any) => {
-                    // ✅ set data khi editor đã sẵn sàng
-                    editor.setData(description || "");
-                  }}
-                  onChange={(_: any, editor: any) => {
-                    setDescription(editor.getData());
-                  }}
-
-                />
-              )}
-            </div>
+            <textarea
+              name="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Nhập mô tả chi tiết về sản phẩm..."
+              className="w-full min-h-[200px] px-3 py-2 border border-slate-300 rounded-md text-sm 
+                placeholder:text-slate-400 focus:outline-none focus:ring-2 
+                focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
+            />
             <p className="text-xs text-slate-500 mt-2">
               Mô tả chi tiết sẽ giúp khách hàng hiểu rõ hơn về sản phẩm của bạn
             </p>

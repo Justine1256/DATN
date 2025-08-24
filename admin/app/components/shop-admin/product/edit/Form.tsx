@@ -6,13 +6,6 @@ import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
 import { Product } from "@/types/product";
 
-import { useCKEditorConfig } from "@/app/components/ckeditor/CKEditorWrapper";
- import dynamic from "next/dynamic";
-
-  const CKEditor = dynamic(
-       () => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor),
-         { ssr: false }
-       );
 interface ProductFormProps {
   images: { id: string; url: string }[];
   defaultValues?: Product;
@@ -53,8 +46,6 @@ export default function ProductForm({
   const [value1, setValue1] = useState(defaultValues?.value1 || "");
   const [option2, setOption2] = useState(defaultValues?.option2 || "");
   const [value2, setValue2] = useState(defaultValues?.value2 || "");
-
-  const { ClassicEditor, editorConfig } = useCKEditorConfig();
 
   useEffect(() => {
     const fetchUserAndCategories = async () => {
@@ -100,7 +91,7 @@ export default function ProductForm({
     if (category !== "") {
       setCategory(category);
     }
-  }, [category]);
+  }, [category, setCategory]);
 
   if (loading) return <p>Đang tải dữ liệu...</p>;
 
@@ -204,7 +195,7 @@ export default function ProductForm({
             Tuỳ chọn sản phẩm
           </h3>
           {[{ label: "Tuỳ chọn 1", option: option1, setOption: setOption1, value: value1, setValue: setValue1 },
-            { label: "Tuỳ chọn 2", option: option2, setOption: setOption2, value: value2, setValue: setValue2 }].map((opt, idx) => (
+          { label: "Tuỳ chọn 2", option: option2, setOption: setOption2, value: value2, setValue: setValue2 }].map((opt, idx) => (
             <div key={idx} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
               <h4 className="text-sm font-medium text-slate-700 mb-3">{opt.label}</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -238,32 +229,17 @@ export default function ProductForm({
         </div>
 
         {/* Description */}
-        <div>
+        <div className="bg-white border border-slate-200 rounded-lg p-6">
           <h3 className="text-base font-medium text-slate-800 mb-4 flex items-center">
             <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
             Mô tả sản phẩm
           </h3>
-          <div className="border border-slate-300 rounded-lg overflow-hidden transition-all min-h-[300px]">
-            {editorConfig && (
-              <CKEditor
-                editor={ClassicEditor}
-                config={editorConfig as any}
-                // ❌ bỏ data
-                onReady={(editor: any) => {
-                  // ✅ set data khi editor đã sẵn sàng
-                  editor.setData(description || "");
-                }}
-                onChange={(_: any, editor: any) => {
-                  setDescription(editor.getData());
-                }}
-
-              />
-
-            )}
-          </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Mô tả chi tiết sẽ giúp khách hàng hiểu rõ hơn về sản phẩm của bạn
-          </p>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Nhập mô tả sản phẩm..."
+            className="w-full min-h-[200px] px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
+          />
         </div>
 
         {/* Images */}

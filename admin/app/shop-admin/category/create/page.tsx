@@ -1,5 +1,5 @@
 "use client";
-export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
