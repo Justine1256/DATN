@@ -17,19 +17,19 @@ use Illuminate\Support\Str;
 class AutoOrderAndReview extends Command
 {
     protected $signature = 'order:fake-reviews
-        {product_id : ID sản phẩm}
-        {count : Số lượt đặt + đánh giá}
+        {product_id? : ID sản phẩm; bỏ trống khi dùng --all}
+        {count? : Số lượt đặt + đánh giá; khi --all hoặc sản phẩm CHƯA có review thì auto 20–60% stock}
+        {--all : Tạo cho TẤT CẢ sản phẩm chưa có review}
         {--min=4 : Sao nhỏ nhất (1..5)}
         {--max=5 : Sao lớn nhất (1..5)}
         {--user_id= : ID user cố định; nếu bỏ trống sẽ random từ bảng users}
-        {--qty=1 : Số lượng/đơn}';
+        {--qty=1 : Số lượng/đơn}
+        {--chunk=200 : Số sản phẩm xử lý mỗi đợt khi --all}';
 
-    protected $description = 'Tự động đặt hàng sản phẩm rồi chuyển Delivered và tạo đánh giá (random user, random sao, image=null).';
+    protected $description = 'Đặt hàng & đánh giá tự động (random user, random sao, image=null). Hỗ trợ 1 sản phẩm hoặc quét tất cả chưa có review.';
 
     public function handle()
     {
-        $productId = (int) $this->argument('product_id');
-        $count     = (int) $this->argument('count');
         $minStar   = (int) $this->option('min');
         $maxStar   = (int) $this->option('max');
         $fixedUser = $this->option('user_id') ? (int) $this->option('user_id') : null;
@@ -37,63 +37,111 @@ class AutoOrderAndReview extends Command
 
         if (!in_array($minStar, [1,2,3,4,5]) || !in_array($maxStar, [1,2,3,4,5]) || $minStar > $maxStar) {
             $this->error('Khoảng sao không hợp lệ. Dùng --min=1..5, --max=1..5 và min<=max');
-            return Command::FAILURE;
+            return self::FAILURE;
+        }
+
+        // Chuẩn bị pool user
+        if ($fixedUser) {
+            $usersPool = collect([User::findOrFail($fixedUser)]);
+        } else {
+            $usersPool = $this->buildUsersPool();
+            if ($usersPool->isEmpty()) {
+                $usersPool = collect([$this->createFakeUser()]);
+            }
+        }
+
+        // Chế độ ALL: quét mọi sản phẩm chưa có review
+        if ($this->option('all')) {
+            $chunk = max(50, (int) $this->option('chunk'));
+            $this->info(">>> Bắt đầu quét tất cả sản phẩm CHƯA có review (chunk {$chunk})");
+
+            $totalDone = 0;
+            $query = Product::query()
+                ->where('stock', '>', 0)
+                ->whereNotExists(function ($q) {
+                    $q->select(DB::raw(1))
+                      ->from('order_details as od')
+                      ->join('reviews as r', 'r.order_detail_id', '=', 'od.id')
+                      ->whereColumn('od.product_id', 'products.id');
+                });
+
+            // (tuỳ DB) bạn có thể thêm điều kiện status:
+            // ->where('status', 'activated')
+
+            $query->chunkById($chunk, function ($products) use ($minStar, $maxStar, $usersPool, $fixedUser, $qty, &$totalDone) {
+                foreach ($products as $product) {
+                    // autoCount = 20–60% stock (chia theo qty), tối thiểu 1
+                    $autoCount = $this->autoCountFromStock((int)$product->stock, $qty);
+                    if ($autoCount <= 0) continue;
+
+                    $this->line("→ #{$product->id} {$product->name} | stock={$product->stock} | sẽ tạo {$autoCount} review");
+
+                    $created = $this->processProduct($product, $autoCount, $minStar, $maxStar, $qty, $usersPool, $fixedUser);
+                    $totalDone += $created;
+                }
+            });
+
+            $this->info(">>> Hoàn tất. Đã tạo {$totalDone} review (qua nhiều đơn).");
+            return self::SUCCESS;
+        }
+
+        // Chế độ 1 sản phẩm (giữ tương thích)
+        $productId = (int) ($this->argument('product_id') ?? 0);
+        if ($productId <= 0) {
+            $this->error('Thiếu product_id hoặc dùng --all để quét toàn bộ.');
+            return self::FAILURE;
         }
 
         /** @var Product|null $product */
         $product = Product::query()->find($productId);
         if (!$product) {
             $this->error("Không tìm thấy sản phẩm ID={$productId}");
-            return Command::FAILURE;
+            return self::FAILURE;
         }
 
-        // ===== Nếu sản phẩm CHƯA có review nào -> tự tính count = 20%..60% theo stock =====
-        $hasAnyReview = Review::join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
-            ->where('order_details.product_id', $productId)
+        // Nếu sản phẩm CHƯA có review → auto 20–60% stock
+        $hasReview = $this->productHasReview($product->id);
+        $countArg  = $this->argument('count');
+        $count     = $hasReview
+            ? max(1, (int) $countArg)
+            : $this->autoCountFromStock((int)$product->stock, $qty);
+
+        if ($count <= 0) {
+            $this->warn("Stock không đủ để tạo đơn (stock={$product->stock}, qty={$qty}). Bỏ qua.");
+            return self::SUCCESS;
+        }
+
+        $this->info(">>> Bắt đầu tạo {$count} đơn+đánh giá cho #{$product->id} - {$product->name}");
+        $created = $this->processProduct($product, $count, $minStar, $maxStar, $qty, $usersPool, $fixedUser);
+        $this->info("Hoàn tất. Đã tạo {$created} review.");
+        return self::SUCCESS;
+    }
+
+    /** Tính số lượt review = 20–60% stock (theo qty) */
+    protected function autoCountFromStock(int $stock, int $qty): int
+    {
+        if ($stock <= 0 || $qty <= 0) return 0;
+        $min = (int) ceil($stock * 0.20 / $qty);
+        $max = (int) floor($stock * 0.60 / $qty);
+        if ($max < 1) return 0;
+        if ($min < 1) $min = 1;
+        if ($min > $max) $min = $max;
+        return random_int($min, $max);
+    }
+
+    /** Kiểm tra sản phẩm đã có review chưa (qua order_details → reviews) */
+    protected function productHasReview(int $productId): bool
+    {
+        return DB::table('order_details as od')
+            ->join('reviews as r', 'r.order_detail_id', '=', 'od.id')
+            ->where('od.product_id', $productId)
             ->exists();
+    }
 
-        if (!$hasAnyReview) {
-            // tổng tồn: ưu tiên product->stock, nếu =0 thử cộng stock biến thể
-            $stockBase = (int) ($product->stock ?? 0);
-            if ($stockBase <= 0 && class_exists(ProductVariant::class)) {
-                $stockBase = (int) ProductVariant::where('product_id', $productId)->sum('stock');
-            }
-
-            // tỉ lệ ngẫu nhiên 20%..60%
-            $ratio     = random_int(20, 60) / 100;
-            $autoCount = max(1, (int) floor($stockBase * $ratio));
-
-            // chặn theo tồn kho thực tế mỗi đơn mua "qty" sp
-            if ($stockBase > 0) {
-                $autoCount = min($autoCount, (int) floor($stockBase / $qty));
-            }
-
-            if ($autoCount <= 0) {
-                $autoCount = 1;
-            }
-
-            $this->info("Sản phẩm chưa có đánh giá → tự tính số lượt: {$autoCount} (≈ ".round($ratio*100)."%) từ stock {$stockBase}, qty={$qty}");
-            $count = $autoCount;
-        } else {
-            if ($count <= 0) {
-                $this->error('count phải > 0 (sp đã có review nên không dùng tự tính)');
-                return Command::FAILURE;
-            }
-        }
-
-        $this->info(">>> Bắt đầu tạo {$count} đơn+đánh giá cho sản phẩm #{$product->id} - {$product->name}");
-
-        // ===== Pool user =====
-        if ($fixedUser) {
-            $usersPool = collect([User::findOrFail($fixedUser)]);
-        } else {
-            $usersPool = $this->buildUsersPool();
-            if ($usersPool->isEmpty()) {
-                $tmp = $this->createFakeUser();
-                $usersPool = collect([$tmp]);
-            }
-        }
-
+    /** Xử lý tạo n đơn + review cho 1 product, trả về số review tạo được */
+    protected function processProduct(Product $product, int $count, int $minStar, int $maxStar, int $qty, $usersPool, ?int $fixedUser): int
+    {
+        $created = 0;
         $bar = $this->output->createProgressBar($count);
         $bar->start();
 
@@ -103,54 +151,54 @@ class AutoOrderAndReview extends Command
                 /** @var User $user */
                 $user = $fixedUser ? $usersPool->first() : $usersPool->random();
 
-                // Địa chỉ
+                // địa chỉ
                 $address = $this->getOrCreateAddress($user);
 
-                // Lock sản phẩm
-                $lockedProduct = Product::query()
+                // lock sản phẩm
+                $locked = Product::query()
                     ->select('id','name','price','sale_price','stock','shop_id','category_id')
                     ->lockForUpdate()
                     ->findOrFail($product->id);
 
-                // Mỗi vòng: chọn biến thể còn stock (nếu có)
                 $variant = null;
                 if (class_exists(ProductVariant::class)) {
                     $variant = ProductVariant::query()
                         ->select('id','price','sale_price','stock')
-                        ->where('product_id', $lockedProduct->id)
+                        ->where('product_id', $locked->id)
                         ->where('stock', '>=', $qty)
-                        ->inRandomOrder()
-                        ->lockForUpdate()
+                        ->orderBy('id')
                         ->first();
+                }
+
+                // kiểm kho
+                if ($variant) {
+                    if ($variant->stock < $qty) throw new \RuntimeException('Biến thể không đủ kho');
+                } else {
+                    if ($locked->stock < $qty) throw new \RuntimeException('Sản phẩm không đủ kho');
                 }
 
                 $priceAtTime = $variant
                     ? ($variant->sale_price ?? $variant->price)
-                    : ($lockedProduct->sale_price ?? $lockedProduct->price);
+                    : ($locked->sale_price ?? $locked->price);
 
-                // Kiểm kho & trừ
-                if ($variant) {
-                    if ($variant->stock < $qty) throw new \RuntimeException("Biến thể không đủ kho");
-                    $variant->decrement('stock', $qty);
-                } else {
-                    if ((int) $lockedProduct->stock < $qty) throw new \RuntimeException("Sản phẩm không đủ kho");
-                    $lockedProduct->decrement('stock', $qty);
-                }
+                // trừ kho
+                if ($variant) $variant->decrement('stock', $qty);
+                else $locked->decrement('stock', $qty);
 
-                // Tạo order (COD)
+                // tạo order
                 $subtotal = $qty * $priceAtTime;
                 $final    = $subtotal;
 
                 $order = Order::create([
                     'user_id'          => $user->id,
-                    'shop_id'          => $lockedProduct->shop_id,
+                    'shop_id'          => $locked->shop_id,
                     'voucher_id'       => null,
                     'discount_amount'  => 0,
                     'total_amount'     => $subtotal,
                     'final_amount'     => $final,
                     'payment_method'   => 'COD',
-                    'payment_status'   => 'Pending',     // an toàn enum
-                    'order_status'     => 'Delivered',   // để ReviewController hợp lệ
+                    'payment_status'   => 'Pending',   // bảo toàn enum
+                    'order_status'     => 'Delivered', // để ReviewController hợp lệ
                     'shipping_status'  => 'Delivered',
                     'shipping_address' => json_encode([
                         'full_name' => $address->full_name,
@@ -168,9 +216,10 @@ class AutoOrderAndReview extends Command
                     'order_admin_status' => 'Unpaid',
                 ]);
 
+                // order detail
                 $detail = OrderDetail::create([
                     'order_id'       => $order->id,
-                    'product_id'     => $lockedProduct->id,
+                    'product_id'     => $locked->id,
                     'variant_id'     => $variant?->id,
                     'product_option' => null,
                     'product_value'  => null,
@@ -179,9 +228,10 @@ class AutoOrderAndReview extends Command
                     'subtotal'       => $subtotal,
                 ]);
 
-                Product::whereKey($lockedProduct->id)->increment('sold', $qty);
+                // tăng sold
+                Product::whereKey($locked->id)->increment('sold', $qty);
 
-                // Random sao & câu
+                // review
                 $rating  = random_int($minStar, $maxStar);
                 $comment = $this->randomCommentForRating($rating, $product->name);
 
@@ -194,24 +244,23 @@ class AutoOrderAndReview extends Command
                         'image'           => null,
                         'status'          => 'approved',
                     ]);
+                    $created++;
                 }
 
                 DB::commit();
                 $bar->advance();
             } catch (\Throwable $e) {
                 DB::rollBack();
-                $this->error("\n[Lỗi vòng {$i}]: " . $e->getMessage());
+                $this->error("\n[Lỗi]: ".$e->getMessage());
             }
         }
 
         $bar->finish();
-        $this->newLine(2);
-        $this->info("Hoàn tất.");
-
-        return Command::SUCCESS;
+        $this->newLine();
+        return $created;
     }
 
-    /** Lấy pool user ngẫu nhiên (cố gắng loại admin nếu có cột phù hợp) */
+    /** Pool user (loại admin nếu có cột phù hợp) */
     protected function buildUsersPool()
     {
         $userTable = (new User())->getTable();
@@ -220,12 +269,12 @@ class AutoOrderAndReview extends Command
         $q = User::query();
 
         if (in_array('is_admin', $cols)) {
-            $q->where(function($qq) {
+            $q->where(function($qq){
                 $qq->where('is_admin', false)->orWhereNull('is_admin');
             });
         }
         if (in_array('role', $cols)) {
-            $q->where(function($qq) {
+            $q->where(function($qq){
                 $qq->where('role', 'user')
                    ->orWhere('role', 'customer')
                    ->orWhereNull('role');
@@ -235,11 +284,10 @@ class AutoOrderAndReview extends Command
             $q->where('status', '!=', 'banned');
         }
 
-        // đủ để random trong memory
         return $q->select('id','name','email')->get();
     }
 
-    /** Tạo nhanh 1 user giả nếu không có user sẵn */
+    /** Tạo 1 user giả nếu DB trống */
     protected function createFakeUser(): User
     {
         $email = 'reviewer+'.Str::random(8).'@example.com';
@@ -250,7 +298,7 @@ class AutoOrderAndReview extends Command
         ]);
     }
 
-    /** Tạo/đảm bảo địa chỉ với đủ cột theo schema hiện tại */
+    /** Đảm bảo có địa chỉ theo schema hiện tại */
     protected function getOrCreateAddress(User $user): Address
     {
         $existing = Address::where('user_id', $user->id)->first();
@@ -275,14 +323,13 @@ class AutoOrderAndReview extends Command
         if (in_array('ward', $cols))      $payload['ward']     = 'Phường Hàng Trống';
         if (in_array('country', $cols))   $payload['country']  = 'VN';
         if (in_array('postcode', $cols))  $payload['postcode'] = '100000';
-        if (in_array('zip_code', $cols))   $payload['zip_code'] = '100000';
+        if (in_array('zip_code', $cols))  $payload['zip_code'] = '100000';
 
         $id = DB::table($table)->insertGetId($payload);
-
         return Address::findOrFail($id);
     }
 
-    /** Random comment theo số sao */
+    /** Random comment (tích hợp pool 50 câu chung chung) */
     protected function randomCommentForRating(int $rating, string $productName): string
     {
         $positives = [
@@ -310,7 +357,7 @@ class AutoOrderAndReview extends Command
             "Đúng size/qui cách mô tả, không sai lệch.",
             "Sản phẩm {name} vận hành ổn định.",
             "Hoàn toàn hài lòng từ khâu đóng gói đến sản phẩm.",
-            "Mua dùng thử và kết quả ngoài mong đợi.",
+            "Mua dùng thử và kết quả ngoài mong đợi."
         ];
 
         $neutrals = [
@@ -338,7 +385,7 @@ class AutoOrderAndReview extends Command
             "Tính thực dụng ổn, chưa thấy khác biệt lớn.",
             "Mua thử để trải nghiệm, nhìn chung ổn.",
             "Đúng như quảng cáo, nhưng chưa thật sự ấn tượng.",
-            "Chưa dùng lâu nên chưa nhận xét được độ bền.",
+            "Chưa dùng lâu nên chưa nhận xét được độ bền."
         ];
 
         $pool = ($rating >= 4) ? $positives : $neutrals;
