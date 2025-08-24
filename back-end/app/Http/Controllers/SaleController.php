@@ -341,4 +341,92 @@ public function bulkSetSale(Request $req)
 
         return response()->json(['message' => 'Đã dọn sale hết hạn', 'affected' => $affected]);
     }
+    public function flashSalePage(Request $request)
+{
+    $perPage   = (int) $request->query('per_page', 15);
+    $page      = (int) $request->query('page', 1);
+    $sorting   = $request->query('sorting', 'latest');   // giữ giống API index
+    $minPrice  = $request->query('min_price');
+    $maxPrice  = $request->query('max_price');
+    $shopId    = $request->query('shop_id');             // optional, nếu muốn lọc theo shop
+
+    // Cache key theo tham số giống API index (thêm shop_id cho linh hoạt)
+    $cacheKey = 'flash_sale:' . http_build_query([
+        'page'      => $page,
+        'per_page'  => $perPage,
+        'sorting'   => $sorting,
+        'min_price' => $minPrice,
+        'max_price' => $maxPrice,
+        'shop_id'   => $shopId ?: 'all',
+    ]);
+
+    $products = Cache::remember($cacheKey, now()->addMinutes(2), function () use (
+        $sorting, $minPrice, $maxPrice, $perPage, $page, $shopId
+    ) {
+        $now = now();
+
+        $query = Product::with(['category', 'shop'])
+            ->withCount(['approvedReviews as review_count'])
+            ->withAvg(['approvedReviews as rating_avg'], 'rating')
+            ->where('status', 'activated')
+
+            // chỉ lấy sản phẩm đang sale (sale_price < price và trong khung giờ nếu có)
+            ->whereNotNull('sale_price')
+            ->whereColumn('sale_price', '<', 'price')
+            ->where(function ($q) use ($now) {
+                $q->whereNull('sale_starts_at')->orWhere('sale_starts_at', '<=', $now);
+            })
+            ->where(function ($q) use ($now) {
+                $q->whereNull('sale_ends_at')->orWhere('sale_ends_at', '>=', $now);
+            });
+
+        if ($shopId) {
+            $query->where('shop_id', $shopId);
+        }
+
+        // Filter giá giống API index (ưu tiên giá hiển thị = COALESCE)
+        if ($minPrice !== null) {
+            $query->whereRaw('COALESCE(sale_price, price) >= ?', [$minPrice]);
+        }
+        if ($maxPrice !== null) {
+            $query->whereRaw('COALESCE(sale_price, price) <= ?', [$maxPrice]);
+        }
+
+        // Sắp xếp giống API index (có thêm discount_desc)
+        switch ($sorting) {
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'price_asc':
+                $query->orderByRaw('COALESCE(sale_price, price) ASC');
+                break;
+            case 'price_desc':
+                $query->orderByRaw('COALESCE(sale_price, price) DESC');
+                break;
+            case 'rating_desc':
+                $query->orderByDesc('rating_avg');
+                break;
+            case 'sold_desc':
+                $query->orderByDesc('sold');
+                break;
+            case 'discount_desc':
+                // Ưu tiên % giảm nhiều -> thứ tự 2: sale_ends_at gần nhất (NULL xuống cuối)
+                $query->orderByRaw('(price - sale_price) / price DESC')
+                      ->orderByRaw('sale_ends_at IS NULL')
+                      ->orderBy('sale_ends_at', 'asc');
+                break;
+            case 'latest':
+            default:
+                $query->orderByDesc('id');
+                break;
+        }
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
+    });
+
+    return response()->json($products);
+}
 }

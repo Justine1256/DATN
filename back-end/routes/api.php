@@ -81,6 +81,7 @@ Route::get('/products/recommended', [ProductController::class, 'getHotProducts']
 Route::get('/shop/{slug}/products', [ProductController::class, 'showShopProducts']);
 Route::get('/shop/{slug}/products-by-category/{category_slug}', [ProductController::class, 'getShopProductsByCategorySlug']);
 Route::get('/flash-sale', [SaleController::class, 'flashSale']);
+Route::get('/flash-sale-page', [SaleController::class, 'flashSalePage']);
 
 Route::post('/product', [ProductController::class, 'store']);
 Route::patch('/product/{id}', [ProductController::class, 'update']);
