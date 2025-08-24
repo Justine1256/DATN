@@ -45,15 +45,24 @@ export default function AboutPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // ==== Carousel state ====
-  const perSlide = 3;                     // 3 card/slide
+  // Responsive perSlide
+  const [perSlide, setPerSlide] = useState(3);
+  useEffect(() => {
+    const handleResize = () => {
+      setPerSlide(window.innerWidth < 640 ? 1 : 3);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const slides = useMemo(() => {
     const chunks: TeamMember[][] = [];
     for (let i = 0; i < teamMembers.length; i += perSlide) {
       chunks.push(teamMembers.slice(i, i + perSlide));
     }
     return chunks;
-  }, []);
+  }, [perSlide]);
   const totalSlides = slides.length;
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -63,19 +72,19 @@ export default function AboutPage() {
   const prev = () => setCurrent((c) => (c - 1 + totalSlides) % totalSlides);
 
   useEffect(() => {
-    if (paused || totalSlides <= 1) return; // thêm điều kiện
+    if (paused || totalSlides <= 1) return;
     autoplayRef.current = setInterval(next, 2000);
     return () => {
       if (autoplayRef.current) clearInterval(autoplayRef.current);
     };
-  }, [paused, totalSlides]);
+  }, [paused, totalSlides, next]);
 
 
   return (
-    <div className={`container mx-auto px-4 ${inter.className}`}>
-      <div className="py-12 text-black">
+    <div className={`container mx-auto !px-0 md:px-4 ${inter.className}`}>
+      <div className="py-6 md:py-12 text-black">
         {/* Câu chuyện của chúng tôi */}
-        <div className="flex flex-col md:flex-row gap-12 items-stretch mb-24">
+        <div className="flex flex-col md:flex-row gap-12 items-stretch mb-10 md:mb-24">
           <div className="flex-1 flex flex-col justify-between max-w-[600px]">
             <div>
               <h2 className="text-4xl font-bold mb-6">Câu chuyện của chúng tôi</h2>
@@ -101,18 +110,18 @@ export default function AboutPage() {
         </div>
 
         {/* Thống kê */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-24">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10 md:mb-24">
           {stats.map((item, idx) => (
             <div
               key={idx}
               className="group w-full aspect-square flex flex-col items-center justify-center bg-white text-black border border-black hover:bg-[#db4444] hover:text-white hover:-translate-y-1 transition-all duration-300 shadow-md"
             >
-              <div className="flex justify-center mb-4">
+              <div className="flex justify-center mb-2 md:mb-4">
                 <div className="w-12 h-12 rounded-full bg-black group-hover:bg-white border-4 border-gray-300 group-hover:border-white flex items-center justify-center transition-all duration-300">
                   <item.icon className="text-xl text-white group-hover:text-black transition-all duration-300" />
                 </div>
               </div>
-              <p className="text-3xl font-bold mb-2 text-black group-hover:text-white transition-all duration-300">
+              <p className="text-2xl md:text-3xl font-bold mb-1 md:mb-2 text-black group-hover:text-white transition-all duration-300">
                 {mounted ? (
                   <>
                     <CountUp end={item.number} decimals={item.number % 1 !== 0 ? 1 : 0} duration={2} />
@@ -130,8 +139,8 @@ export default function AboutPage() {
         </div>
 
         {/* Đội ngũ của chúng tôi - Slider 3 ảnh/slide */}
-        <div className="mb-24">
-          <h2 className="text-3xl font-bold text-center mb-12">Đội ngũ của chúng tôi</h2>
+        <div className="mb-10 md:mb-24">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-12">Đội ngũ của chúng tôi</h2>
 
           {/* Uniform card width */}
           <style jsx>{`
@@ -160,7 +169,7 @@ export default function AboutPage() {
                 >
                   {slide.map((member, idx) => (
                     <div key={idx} className="text-center member-card">
-                      <div className="relative w-full aspect-[4/5] mb-4 rounded-md overflow-hidden bg-gray-100">
+                      <div className="relative w-[200px] md:w-full h-[200px] md:h-auto aspect-[4/5] mx-auto mb-4 rounded-md overflow-hidden bg-gray-100">
                         <Image src={member.image} alt={member.name} fill className="object-cover" />
                       </div>
                       <h3 className="text-lg font-semibold text-black">{member.name}</h3>
