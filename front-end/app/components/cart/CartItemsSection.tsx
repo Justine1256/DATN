@@ -20,10 +20,12 @@ import {
   Divider,
   Button,
   Flex,
+  Grid,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 interface Props {
   cartItems: CartItem[];
@@ -35,6 +37,7 @@ export default function CartItemsSection({
   setCartItems: propsSetCartItems,
 }: Props) {
   const router = useRouter();
+  const screens = useBreakpoint();
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -384,12 +387,14 @@ export default function CartItemsSection({
           </Space>
         );
       },
+      responsive: ['md'],
     },
     {
       title: 'Biến thể',
       key: 'variant',
       width: 220,
       render: (_: any, item) => renderVariant(item),
+      responsive: ['md'],
     },
     {
       title: 'Giá',
@@ -421,6 +426,7 @@ export default function CartItemsSection({
           </div>
         );
       },
+      responsive: ['md'],
     },
     {
       title: 'Số lượng',
@@ -437,6 +443,7 @@ export default function CartItemsSection({
           onChange={(val) => handleQuantityChange(item.id, val)}
         />
       ),
+      responsive: ['md'],
     },
     {
       title: 'Tổng cộng',
@@ -448,6 +455,7 @@ export default function CartItemsSection({
           {formatPrice(getPriceToUse(item) * item.quantity)}
         </Text>
       ),
+      responsive: ['md'],
     },
     {
       title: '',
@@ -464,6 +472,7 @@ export default function CartItemsSection({
           <a className="text-red-500">Xoá</a>
         </Popconfirm>
       ),
+      responsive: ['md'],
     },
   ];
 
@@ -477,6 +486,129 @@ export default function CartItemsSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ===== Mobile item renderer =====
+  const renderMobileList = () => (
+    <div className="space-y-3 p-3">
+      {dataSource.map((item) => {
+        const shopSlug = (item as any).product?.shop?.slug || (item as any).product?.shop?.id;
+        const productSlug = (item as any).product?.slug || (item as any).product?.id;
+        const original = getOriginalPrice(item);
+        const sale = getPriceToUse(item);
+        const discounted = sale < original;
+
+        return (
+          <Card key={item.key} size="small" bodyStyle={{ padding: 12 }} bordered>
+            <div className="flex gap-3">
+              <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
+                <div className="relative w-20 h-20 shrink-0 rounded border overflow-hidden bg-white">
+                  <Image
+                    src={formatImageUrl(item.product.image)}
+                    alt={item.product.name || 'Sản phẩm'}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              </Link>
+
+              <div className="flex-1 min-w-0">
+                <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
+                  <div className="font-medium text-sm text-black hover:text-red-500 transition-colors line-clamp-2">
+                    {item.product.name}
+                  </div>
+                </Link>
+
+                {(item as any).product.shop && (
+                  <Link href={`/shop/${shopSlug}`} className="text-xs">
+                    <Tag color="processing" className="mt-1">
+                      🏪 {(item as any).product.shop.name}
+                    </Tag>
+                  </Link>
+                )}
+
+                <div className="mt-1 text-xs">{renderVariant(item)}</div>
+
+                <div className="mt-2 flex items-center justify-between">
+                  <div>
+                    <div className="text-base font-semibold" style={{ color: discounted ? '#DB4444' : '#111827' }}>
+                      {formatPrice(sale)}
+                    </div>
+                    {discounted && (
+                      <div className="text-xs text-gray-500 line-through">
+                        {formatPrice(original)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <InputNumber
+                      min={1}
+                      size="small"
+                      value={item.quantity}
+                      controls
+                      disabled={updatingIds.has(item.id)}
+                      onChange={(val) => handleQuantityChange(item.id, val)}
+                    />
+                    <Popconfirm
+                      title="Xoá sản phẩm?"
+                      okText="Xoá"
+                      cancelText="Huỷ"
+                      onConfirm={() => handleRemove(item.id)}
+                    >
+                      <Button danger type="link" size="small">
+                        Xoá
+                      </Button>
+                    </Popconfirm>
+                  </div>
+                </div>
+
+                <div className="mt-1 text-right text-sm font-semibold text-red-600">
+                  {formatPrice(sale * item.quantity)}
+                </div>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+
+  const renderMobileSummary = () => (
+    <div className="px-3 pb-3">
+      <Card size="small" bordered>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span>Tạm tính (giá gốc):</span>
+            <span>{formatPrice(subtotal)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Khuyến mãi (giảm theo SP):</span>
+            <span className="text-green-700">-{formatPrice(promotionDiscount)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Phí vận chuyển:</span>
+            <span>{formatPrice(shipping)}</span>
+          </div>
+          <Divider style={{ margin: '8px 0' }} />
+          <div className="flex justify-between text-base font-semibold">
+            <span className="text-brand">Tổng thanh toán:</span>
+            <span className="text-red-600">{formatPrice(total)}</span>
+          </div>
+        </div>
+        <Button
+          type="primary"
+          block
+          size="large"
+          className="mt-3"
+          disabled={dataSource.length === 0}
+          style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
+          onClick={handleCheckoutAll}
+        >
+          Đặt hàng
+        </Button>
+      </Card>
+    </div>
+  );
+
   return (
     <Card
       title={<span className="font-semibold">Giỏ hàng</span>}
@@ -484,83 +616,97 @@ export default function CartItemsSection({
       styles={{ body: { padding: 0 } }}
       className="bg-white"
     >
-      <Table<RowType>
-        columns={columns}
-        dataSource={dataSource}
-        loading={loading}
-        pagination={false}
-        rowKey="key"
-        sticky
-        // ⛔ bỏ rowSelection để không có checkbox
-        summary={() => (
-          <>
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={4}>
-                <Text>Tạm tính (giá gốc):</Text>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={1} align="right" colSpan={2}>
-                <Text>{formatPrice(subtotal)}</Text>
-              </Table.Summary.Cell>
-            </Table.Summary.Row>
+      {/* Mobile: card list; Desktop/Tablet: table */}
+      {!screens.md ? (
+        <>
+          {loading ? (
+            <div className="p-4">Đang tải giỏ hàng...</div>
+          ) : dataSource.length === 0 ? (
+            <div className="p-6 text-center">Giỏ hàng trống</div>
+          ) : (
+            <>
+              {renderMobileList()}
+              {renderMobileSummary()}
+            </>
+          )}
+        </>
+      ) : (
+        <>
+            <Table<RowType>
+              columns={columns}
+              dataSource={dataSource}
+              loading={loading}
+              pagination={false}
+              rowKey="key"
+              sticky
+              size="middle"
+              scroll={{ x: 960 }} // giúp table cuộn ngang nếu chật
+              summary={() => (
+                <>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={0} colSpan={4}>
+                      <Text>Tạm tính (giá gốc):</Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={1} align="right" colSpan={2}>
+                      <Text>{formatPrice(subtotal)}</Text>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
 
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={4}>
-                <Text>Khuyến mãi (giảm theo SP):</Text>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={1} align="right" colSpan={2}>
-                <Text type="success">-{formatPrice(promotionDiscount)}</Text>
-              </Table.Summary.Cell>
-            </Table.Summary.Row>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={2} colSpan={4}>
+                      <Text>Khuyến mãi (giảm theo SP):</Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={3} align="right" colSpan={2}>
+                      <Text type="success">-{formatPrice(promotionDiscount)}</Text>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
 
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={4}>
-                <Text>Phí vận chuyển:</Text>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={1} align="right" colSpan={2}>
-                <Text>{formatPrice(shipping)}</Text>
-              </Table.Summary.Cell>
-            </Table.Summary.Row>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={4} colSpan={4}>
+                      <Text>Phí vận chuyển:</Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={5} align="right" colSpan={2}>
+                      <Text>{formatPrice(shipping)}</Text>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
 
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={6}>
-                <Divider style={{ margin: '10px 0' }} />
-              </Table.Summary.Cell>
-            </Table.Summary.Row>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={6} colSpan={4}>
+                      <Text strong className="text-brand">Tổng thanh toán:</Text>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={7} align="right" colSpan={2}>
+                      <Text strong type="danger" className="total-danger">
+                        {formatPrice(total)}
+                      </Text>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
+                </>
+              )}
+            />
 
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={4}>
-                <Text strong className="text-brand">Tổng thanh toán:</Text>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={1} align="right" colSpan={2}>
-                <Text strong type="danger" className="total-danger">
-                  {formatPrice(total)}
-                </Text>
-              </Table.Summary.Cell>
-            </Table.Summary.Row>
-          </>
-        )}
-      />
-      <style jsx global>{`
-        .ant-table-summary .ant-typography:not(.ant-typography-success):not(.ant-typography-danger) {
-          color: #000 !important;
-        }
-      `}</style>
+          <style jsx global>{`
+            .ant-table-summary .ant-typography:not(.ant-typography-success):not(.ant-typography-danger) {
+              color: #000 !important;
+            }
+          `}</style>
 
-      {/* Footer hành động */}
-      <Flex justify="end" align="center" gap={12} style={{ padding: 16 }}>
-        <Link href="/">
-          <Button>Tiếp tục mua sắm</Button>
-        </Link>
-        <Button
-          type="primary"
-          size="large"
-          disabled={dataSource.length === 0}
-          style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
-          onClick={handleCheckoutAll}
-        >
-          Đặt hàng
-        </Button>
-      </Flex>
+          {/* Footer hành động (Desktop/Tablet) */}
+          <Flex justify="end" align="center" gap={12} style={{ padding: 16 }}>
+            <Link href="/">
+              <Button>Tiếp tục mua sắm</Button>
+            </Link>
+            <Button
+              type="primary"
+              size="large"
+              disabled={dataSource.length === 0}
+              style={{ backgroundColor: '#DB4444', borderColor: '#DB4444' }}
+              onClick={handleCheckoutAll}
+            >
+              Đặt hàng
+            </Button>
+          </Flex>
+        </>
+      )}
     </Card>
   );
 }

@@ -15,10 +15,12 @@ import {
     Spin,
     Empty,
     Pagination,
+    Grid,
 } from 'antd';
 import { GiftTwoTone } from '@ant-design/icons';
 
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 export interface VoucherShip {
     id: number;
@@ -36,6 +38,8 @@ const BRAND = '#DB4444';
 const SAVED = '#52c41a';
 
 export default function VoucherList() {
+    const screens = useBreakpoint();
+
     const [vouchers, setVouchers] = useState<VoucherShip[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -44,26 +48,26 @@ export default function VoucherList() {
     const [popupMessage, setPopupMessage] = useState<string>('');
     const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // paginate
+    // paginate (pageSize responsive)
     const [page, setPage] = useState(1);
-    const pageSize = 6;
+    const pageSize = screens.xl ? 6 : screens.md ? 4 : 2;
     const total = vouchers.length;
     const paged = useMemo(
         () => vouchers.slice((page - 1) * pageSize, page * pageSize),
-        [vouchers, page]
+        [vouchers, page, pageSize]
     );
 
-    const token = useMemo(() => Cookies.get('authToken') || '', []);
-
+    // đọc token khi mount
     useEffect(() => {
+        const token = Cookies.get('authToken') || '';
         if (!token) {
             setLoading(false);
             return;
         }
-        void fetchVouchers();
-    }, [token]);
+        void fetchVouchers(token);
+    }, []);
 
-    async function fetchVouchers() {
+    async function fetchVouchers(token: string) {
         try {
             const { data } = await axios.get(`${API_BASE_URL}/vouchers`, {
                 headers: {
@@ -79,10 +83,10 @@ export default function VoucherList() {
                 discount_type: (v.discount_type || 'amount') as 'percent' | 'amount',
                 discountText:
                     v.discount_type === 'percent'
-                        ? `Giảm ${v.discount_value}%`
+                        ? `Giảm ${Number(v.discount_value)}%`
                         : `Giảm ${Number(v.discount_value).toLocaleString('vi-VN')}đ`,
                 condition: `Đơn từ ${Number(v.min_order_value || 0).toLocaleString('vi-VN')}đ`,
-                expiry: v.end_date?.split('T')[0],
+                expiry: v.end_date?.split('T')?.[0],
                 imageUrl: '/ship.jpg',
                 isSaved: !!v.is_saved,
             }));
@@ -96,7 +100,7 @@ export default function VoucherList() {
         }
     }
 
-    /** Popup nhỏ + trượt từ phải qua (kiểu bạn yêu cầu) */
+    /** Popup nhỏ + trượt từ phải qua */
     function showToast(message: string, duration = 2500) {
         setPopupMessage(message);
         setShowPopup(true);
@@ -105,6 +109,9 @@ export default function VoucherList() {
     }
 
     async function handleSave(voucherId: number) {
+        const token = Cookies.get('authToken') || '';
+        if (!token) return showToast('Bạn cần đăng nhập');
+
         const existing = vouchers.find((v) => v.id === voucherId);
         if (existing?.isSaved) {
             showToast('Voucher đã tồn tại trong giỏ');
@@ -113,7 +120,7 @@ export default function VoucherList() {
 
         try {
             const res = await axios.post(
-                `${API_BASE_URL}/voucherseve`,
+                `${API_BASE_URL}/voucherseve`, // kiểm tra lại endpoint nếu cần
                 { voucher_id: voucherId },
                 {
                     headers: {
@@ -165,9 +172,19 @@ export default function VoucherList() {
         }
       `}</style>
 
-            {/* Popup trượt từ góc phải — theo đúng block bạn gửi */}
+            {/* Popup trượt từ góc phải */}
             {showPopup && (
-                <div className="fixed top-[140px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
+                <div
+                    className="fixed z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade"
+                    style={{
+                        top: screens.md ? 140 : 100,
+                        right: screens.md ? 20 : 12,
+                        maxWidth: screens.md ? 320 : 260,
+                        width: 'max-content',
+                    }}
+                    role="status"
+                    aria-live="polite"
+                >
                     {popupMessage}
                 </div>
             )}
@@ -185,16 +202,16 @@ export default function VoucherList() {
                 <>
                     <Row gutter={[16, 16]}>
                         {paged.map((v) => (
-                            <Col xs={24} md={12} key={v.id}>
+                            <Col xs={24} sm={12} lg={12} key={v.id}>
                                 <Card
                                     styles={{
                                         header: { borderBottom: 'none', background: '#fff', borderRadius: 8 },
                                         body: { paddingTop: 12, paddingBottom: 16 },
                                     }}
                                     title={
-                                        <Space align="center" size="small">
+                                        <Space align="center" size={screens.xs ? 4 : 8} wrap>
                                             <GiftTwoTone twoToneColor={BRAND} />
-                                            <Text strong style={{ color: '#db4444' }}>{v.code}</Text> 
+                                            <Text strong style={{ color: '#db4444' }}>{v.code}</Text>
                                             <Tag color="blue">
                                                 {v.discount_type === 'percent' ? 'Phần trăm' : 'Số tiền'}
                                             </Tag>
@@ -203,6 +220,7 @@ export default function VoucherList() {
                                     }
                                     extra={
                                         <Button
+                                            size={screens.md ? 'middle' : 'small'}
                                             type={v.isSaved ? 'default' : 'primary'}
                                             onClick={() =>
                                                 v.isSaved ? showToast('Voucher đã tồn tại trong giỏ') : handleSave(v.id)
@@ -223,24 +241,20 @@ export default function VoucherList() {
                                         boxShadow: '0 2px 10px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.03)',
                                     }}
                                 >
-                                    <Space size="small" direction="vertical" style={{ width: "100%" }}>
-                                        <Text
-                                            type="secondary"
-                                            style={{ color: "rgba(0,0,0,0.45)", cursor: "default" }}
-                                        >
+                                    <Space size="small" direction="vertical" style={{ width: '100%' }}>
+                                        <Text type="secondary" style={{ color: 'rgba(0,0,0,0.45)' }}>
                                             {v.condition}
                                         </Text>
 
                                         {v.expiry && (
-                                            <Text style={{ color: "inherit" }}>
-                                                HSD:{" "}
-                                                <Text strong style={{ color: "inherit" }}>
-                                                    {new Date(v.expiry).toLocaleDateString("vi-VN")}
+                                            <Text style={{ color: 'inherit' }}>
+                                                HSD:{' '}
+                                                <Text strong style={{ color: 'inherit' }}>
+                                                    {new Date(v.expiry).toLocaleDateString('vi-VN')}
                                                 </Text>
                                             </Text>
                                         )}
                                     </Space>
-
                                 </Card>
                             </Col>
                         ))}
@@ -248,6 +262,7 @@ export default function VoucherList() {
 
                     <div className="flex justify-center mt-6">
                         <Pagination
+                            size={screens.md ? 'default' : 'small'}
                             current={page}
                             total={total}
                             pageSize={pageSize}
