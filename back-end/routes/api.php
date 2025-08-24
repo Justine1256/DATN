@@ -60,6 +60,7 @@ Route::post('/upload-image', [ImageController::class, 'store']);
 Route::post('/upload-product-image', [ImageController::class, 'uploadProductImage']);
 Route::post('/upload-review-image', [ImageController::class, 'uploadReviewImage']);
 Route::post('/upload-refund-image', [ImageController::class, 'uploadRefundImage']);
+Route::post('/upload-report-image', [ImageController::class, 'uploadReportImage']);
 // Route::post('/shop/upload-logo', [ImageController::class, 'uploadShopLogo']);
 
 Route::get('/category', [CategoryController::class, 'index']);
