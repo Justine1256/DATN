@@ -292,13 +292,8 @@ export default function CategoryPageAntd() {
         },
       }}
     >
-<<<<<<< Updated upstream
-      <div className="max-w-[1170px] mx-auto px-4 md:pt-16 pb-10">
-        {/* Banner + category pills: skeleton khi tải lần đầu */}
-=======
       <div className="max-w-[1170px] mx-auto px-4 pt-16 pb-10">
         {/* Banner + category pills */}
->>>>>>> Stashed changes
         {isInitialLoading ? (
           <>
             <Card style={{ borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
