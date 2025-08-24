@@ -27,9 +27,14 @@ class Product extends Model
     'sold',
     'image',
     'status',
+    'sale_starts_at','sale_ends_at','sale_source','sale_priority',
 ];
 protected $casts = [
     'image' => 'array',
+    'price'          => 'decimal:2',
+        'sale_price'     => 'decimal:2',
+        'sale_starts_at' => 'datetime',
+        'sale_ends_at'   => 'datetime',
 ];
 
 
@@ -154,5 +159,53 @@ public function toSearchableArray()
     {
         return $q->orderByDesc('id');
         // hoặc orderByDesc('created_at')
+    }
+        public function scopeActiveSale($q)
+    {
+        $now = now();
+        return $q->whereNotNull('sale_price')
+            ->whereColumn('sale_price', '<', 'price')
+            ->where(function ($q) use ($now) {
+                $q->whereNull('sale_starts_at')->orWhere('sale_starts_at', '<=', $now);
+            })
+            ->where(function ($q) use ($now) {
+                $q->whereNull('sale_ends_at')->orWhere('sale_ends_at', '>=', $now);
+            });
+    }
+
+    public function getIsOnSaleAttribute(): bool
+    {
+        if (is_null($this->sale_price) || $this->sale_price >= $this->price) return false;
+        $now = now();
+        if ($this->sale_starts_at && $now->lt($this->sale_starts_at)) return false;
+        if ($this->sale_ends_at   && $now->gt($this->sale_ends_at))   return false;
+        return true;
+    }
+
+    public function getFinalPriceAttribute(): string
+    {
+        return $this->is_on_sale ? (string)$this->sale_price : (string)$this->price;
+    }
+
+    // Áp dụng sale cho 1 sản phẩm (helper)
+    public function applySale(float $salePrice, ?string $startsAt, ?string $endsAt, string $source, int $priority = 0): self
+    {
+        $this->sale_price     = $salePrice;
+        $this->sale_starts_at = $startsAt ? \Carbon\Carbon::parse($startsAt) : null;
+        $this->sale_ends_at   = $endsAt   ? \Carbon\Carbon::parse($endsAt)   : null;
+        $this->sale_source    = $source;
+        $this->sale_priority  = $priority;
+        return $this;
+    }
+
+    // Gỡ sale (helper)
+    public function clearSale(): self
+    {
+        $this->sale_price = null;
+        $this->sale_starts_at = null;
+        $this->sale_ends_at = null;
+        $this->sale_source = null;
+        $this->sale_priority = 0;
+        return $this;
     }
 }

@@ -87,5 +87,6 @@ class User extends Authenticatable
     {
         return $this->hasOne(Address::class)->where('is_default', 1);
     }
-
+    public function isAdmin(): bool  { return $this->role === 'admin'; }
+    public function isSeller(): bool { return $this->role === 'seller'; }
 }
