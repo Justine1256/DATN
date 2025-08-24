@@ -21,10 +21,10 @@ class AutoOrderAndReview extends Command
         {count : Số lượt đặt + đánh giá}
         {--min=4 : Sao nhỏ nhất (1..5)}
         {--max=5 : Sao lớn nhất (1..5)}
-        {--user_id= : ID user cố định; nếu bỏ trống sẽ tự tạo/luân phiên}
+        {--user_id= : ID user cố định; nếu bỏ trống sẽ random từ bảng users}
         {--qty=1 : Số lượng/đơn}';
 
-    protected $description = 'Tự động đặt hàng sản phẩm rồi chuyển Delivered và tạo đánh giá (random sao, image=null).';
+    protected $description = 'Tự động đặt hàng sản phẩm rồi chuyển Delivered và tạo đánh giá (random user, random sao, image=null).';
 
     public function handle()
     {
@@ -53,16 +53,16 @@ class AutoOrderAndReview extends Command
 
         $this->info(">>> Bắt đầu tạo {$count} đơn+đánh giá cho sản phẩm #{$product->id} - {$product->name}");
 
-        // chuẩn bị danh sách user dùng để gán review
-        $usersPool = collect();
+        // ===== Pool user =====
         if ($fixedUser) {
-            $u = User::find($fixedUser);
-            if (!$u) { $this->error("User {$fixedUser} không tồn tại"); return Command::FAILURE; }
-            $usersPool->push($u);
+            $usersPool = collect([User::findOrFail($fixedUser)]);
         } else {
-            $usersPool = User::query()
-                ->limit(5)
-                ->get();
+            $usersPool = $this->buildUsersPool();
+            if ($usersPool->isEmpty()) {
+                // không có user -> tạo tạm 1 user
+                $tmp = $this->createFakeUser();
+                $usersPool = collect([$tmp]);
+            }
         }
 
         $bar = $this->output->createProgressBar($count);
@@ -72,11 +72,11 @@ class AutoOrderAndReview extends Command
             DB::beginTransaction();
             try {
                 /** @var User $user */
-                $user = $usersPool->isNotEmpty()
-                    ? $usersPool[($i - 1) % $usersPool->count()]
-                    : $this->createFakeUser();
+                $user = $fixedUser
+                    ? $usersPool->first()
+                    : $usersPool->random(); // ✅ random 1 user cho mỗi vòng
 
-                // ✅ Địa chỉ: tự tạo đủ cột theo schema nếu chưa có
+                // Địa chỉ đầy đủ cột theo schema
                 $address = $this->getOrCreateAddress($user);
 
                 // Khóa kho, tính giá tại thời điểm đặt
@@ -108,7 +108,7 @@ class AutoOrderAndReview extends Command
                     $lockedProduct->decrement('stock', $qty);
                 }
 
-                // Tạo order (COD, Delivered để hợp lệ review)
+                // Tạo order (COD). Chọn status an toàn với enum phổ biến.
                 $subtotal = $qty * $priceAtTime;
                 $final    = $subtotal;
 
@@ -119,21 +119,24 @@ class AutoOrderAndReview extends Command
                     'discount_amount'  => 0,
                     'total_amount'     => $subtotal,
                     'final_amount'     => $final,
-                    'payment_method'   => 'COD',
-                    'payment_status'   => 'Completed',
-                    'order_status'     => 'Delivered',
+                    'payment_method'   => 'COD',       // enum thường: COD|vnpay
+                    'payment_status'   => 'Pending',   // tránh lỗi enum
+                    'order_status'     => 'Delivered', // để ReviewController hợp lệ
                     'shipping_status'  => 'Delivered',
                     'shipping_address' => json_encode([
                         'full_name' => $address->full_name,
                         'address'   => $address->address,
-                        'city'      => $address->city,
+                        'city'      => $address->city ?? null,
+                        'province'  => $address->province ?? null,
+                        'district'  => $address->district ?? null,
+                        'ward'      => $address->ward ?? null,
                         'phone'     => $address->phone,
                         'email'     => $address->email ?? 'no-reply@example.com',
                     ], JSON_UNESCAPED_UNICODE),
                     'confirmed_at'       => now(),
                     'shipped_at'         => now(),
                     'delivered_at'       => now(),
-                    'order_admin_status' => 'Delivered',
+                    'order_admin_status' => 'Unpaid',  // an toàn cho COD
                 ]);
 
                 // Order detail
@@ -151,9 +154,9 @@ class AutoOrderAndReview extends Command
                 // tăng sold
                 Product::whereKey($lockedProduct->id)->increment('sold', $qty);
 
-                // Review (random sao, image = null)
+                // Review (random sao & câu)
                 $rating  = random_int($minStar, $maxStar);
-                $comment = "Auto review {$i}/{$count} - rating {$rating}★";
+                $comment = $this->randomCommentForRating($rating, $product->name);
 
                 if (!Review::where('order_detail_id', $detail->id)->exists()) {
                     Review::create([
@@ -181,6 +184,34 @@ class AutoOrderAndReview extends Command
         return Command::SUCCESS;
     }
 
+    /** Lấy pool user ngẫu nhiên (cố gắng loại admin nếu có cột phù hợp) */
+    protected function buildUsersPool()
+    {
+        $userTable = (new User())->getTable();
+        $cols      = Schema::getColumnListing($userTable);
+
+        $q = User::query();
+
+        if (in_array('is_admin', $cols)) {
+            $q->where(function($qq) {
+                $qq->where('is_admin', false)->orWhereNull('is_admin');
+            });
+        }
+        if (in_array('role', $cols)) {
+            $q->where(function($qq) {
+                $qq->where('role', 'user')
+                   ->orWhere('role', 'customer')
+                   ->orWhereNull('role');
+            });
+        }
+        if (in_array('status', $cols)) {
+            $q->where('status', '!=', 'banned');
+        }
+
+        // lấy đủ để random trong memory
+        return $q->select('id','name','email')->get();
+    }
+
     /** Tạo nhanh 1 user giả nếu không có user sẵn */
     protected function createFakeUser(): User
     {
@@ -192,7 +223,7 @@ class AutoOrderAndReview extends Command
         ]);
     }
 
-    /** ✅ Tạo/đảm bảo địa chỉ với đủ cột theo schema hiện tại (fix lỗi ward không có default) */
+    /** Tạo/đảm bảo địa chỉ với đủ cột theo schema hiện tại (fix lỗi ward không có default) */
     protected function getOrCreateAddress(User $user): Address
     {
         $existing = Address::where('user_id', $user->id)->first();
@@ -205,7 +236,7 @@ class AutoOrderAndReview extends Command
             'user_id'    => $user->id,
             'full_name'  => $user->name ?? 'Auto Reviewer',
             'address'    => 'Số 1, Đường Test',
-            // 'city'       => 'Hà Nội',
+            'city'       => 'Hà Nội',
             'phone'      => '0900000000',
             'created_at' => now(),
             'updated_at' => now(),
@@ -214,7 +245,7 @@ class AutoOrderAndReview extends Command
         // set thêm nếu tồn tại cột
         if (in_array('email', $cols))     $payload['email']    = $user->email ?? 'no-reply@example.com';
         if (in_array('province', $cols))  $payload['province'] = 'Hà Nội';
-        // if (in_array('district', $cols))  $payload['district'] = 'Quận Hoàn Kiếm';
+        if (in_array('district', $cols))  $payload['district'] = 'Quận Hoàn Kiếm';
         if (in_array('ward', $cols))      $payload['ward']     = 'Phường Hàng Trống';
         if (in_array('country', $cols))   $payload['country']  = 'VN';
         if (in_array('postcode', $cols))  $payload['postcode'] = '100000';
@@ -223,5 +254,43 @@ class AutoOrderAndReview extends Command
         $id = DB::table($table)->insertGetId($payload);
 
         return Address::findOrFail($id);
+    }
+
+    /** Random comment theo số sao với ~20 mẫu câu tiếng Việt */
+    protected function randomCommentForRating(int $rating, string $productName): string
+    {
+        $positives = [
+            "Sản phẩm {name} dùng rất ổn, đúng mô tả.",
+            "Chất lượng tốt, đóng gói cẩn thận, rất hài lòng.",
+            "Giá hợp lý, hiệu năng ổn định, đáng tiền.",
+            "Shop giao nhanh, hàng chính hãng, 5 sao.",
+            "Dùng vài ngày thấy mượt mà, pin ổn.",
+            "Màu sắc chuẩn hình, thiết kế đẹp.",
+            "Đóng gói chắc chắn, không móp méo.",
+            "Rất đáng tiền, sẽ ủng hộ tiếp.",
+            "Hỗ trợ tư vấn nhiệt tình, sản phẩm ok.",
+            "Hiệu năng vượt mong đợi trong tầm giá.",
+            "Âm thanh/hình ảnh rõ nét, trải nghiệm tốt.",
+            "Lắp đặt/thiết lập dễ, hướng dẫn rõ ràng.",
+        ];
+
+        $neutrals = [
+            "Chất lượng tạm ổn, cần cải thiện thêm.",
+            "Hàng đúng mô tả nhưng giao hơi chậm.",
+            "Giá hơi cao so với kỳ vọng.",
+            "Đóng gói ổn, sản phẩm hoạt động bình thường.",
+            "Thiết kế ổn, hiệu năng mức trung bình.",
+            "Có vết trầy nhẹ nhưng dùng vẫn ok.",
+            "Pin chưa được như kỳ vọng, còn cải thiện.",
+            "Phù hợp tầm giá, không quá nổi bật.",
+            "Shop phản hồi hơi chậm nhưng xử lý ổn.",
+            "Hướng dẫn sử dụng nên chi tiết hơn.",
+            "Tính năng đủ dùng, chưa có điểm đột phá.",
+            "Khâu vận chuyển có thể tối ưu hơn.",
+        ];
+
+        $pool = ($rating >= 4) ? $positives : $neutrals;
+        $tpl  = $pool[array_rand($pool)];
+        return str_replace('{name}', $productName, $tpl);
     }
 }
