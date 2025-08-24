@@ -163,7 +163,7 @@ export default function Footer() {
         <Row justify="center">
           <Col>
             <Text type="secondary" style={{ color: 'rgba(255,255,255,0.65)' }}>
-              © {new Date().getFullYear()} Your Company. All rights reserved.
+              © {new Date().getFullYear()} Marketo. All rights reserved.
             </Text>
           </Col>
         </Row>
