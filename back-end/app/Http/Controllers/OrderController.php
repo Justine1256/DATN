@@ -612,116 +612,118 @@ class OrderController extends Controller
             'order' => $response
         ]);
     }
-public function ShopOrderList(Request $request)
-{
-    $user = Auth::user();
-    if (!$user) {
-        return response()->json(['message' => 'Unauthorized'], 401);
-    }
+    public function ShopOrderList(Request $request)
+    {
+        $user = Auth::user();
 
-    // Base query + eager load cần thiết
-    $query = Order::with(['user', 'shop', 'orderDetails']);
-
-    // Nếu FE cần kèm sản phẩm
-    if ($request->boolean('with_products')) {
-        $query->with(['orderDetails.product']);
-    }
-
-    // Seller chỉ thấy đơn của shop mình
-    if ($user->role === 'seller') {
-        $shop = \App\Models\Shop::where('user_id', $user->id)->first();
-        if (!$shop) {
+        if (!$user) {
             return response()->json([
-                'orders' => [],
-                'pagination' => [
-                    'current_page' => 1,
-                    'per_page'     => (int) $request->query('per_page', 20),
-                    'last_page'    => 1,
-                    'total'        => 0,
-                ],
-            ]);
+                'message' => 'Unauthorized'
+            ], 401);
         }
-        $query->where('shop_id', $shop->id);
-    }
 
-    // Lọc theo admin status nếu có
-    if ($request->filled('status')) {
-        $query->where('order_admin_status', $request->input('status'));
-    }
-
-    // Phân trang
-    $perPage = (int) $request->query('per_page', 20);
-    $orders  = $query->latest()->paginate($perPage);
-
-    // Transform an toàn bằng through()
-    $orders = $orders->through(function ($order) use ($request) {
-        $orderData = [
-            'id' => $order->id,
-            'buyer' => [
-                'id'     => $order->user?->id,
-                'name'   => $order->user?->name,
-                'email'  => $order->user?->email,
-                'phone'  => $order->user?->phone,
-                'avatar' => $order->user?->avatar,
-            ],
-            'shop' => [
-                'id'   => $order->shop?->id,
-                'name' => $order->shop?->name,
-            ],
-            'final_amount'         => $order->final_amount,
-            'payment_method'       => $order->payment_method,
-            'payment_status'       => $order->payment_status,
-            'order_status'         => $order->order_status,
-            'order_admin_status'   => $order->order_admin_status,
-            'shipping_status'      => $order->shipping_status,
-            'shipping_address'     => $order->shipping_address,
-            'transaction_id'       => $order->transaction_id,
-            'canceled_by'          => $order->canceled_by,
-            'reconciliation_status'=> $order->reconciliation_status,
-            'return_status'        => $order->return_status,
-            'cancel_status'        => $order->cancel_status,
-            'cancel_reason'        => $order->cancel_reason,
-            'rejection_reason'     => $order->rejection_reason,
-            'created_at'           => $order->created_at,
-            'confirmed_at'         => $order->confirmed_at,
-            'shipping_started_at'  => $order->shipping_started_at,
-            'canceled_at'          => $order->canceled_at,
-            'return_confirmed_at'  => $order->return_confirmed_at,
-            'reconciled_at'        => $order->reconciled_at,
-            'total_products'       => $order->orderDetails->sum('quantity'),
-        ];
+        $query = Order::with(['user', 'shop', 'orderDetails']);
 
         if ($request->boolean('with_products')) {
-            $orderData['products'] = $order->orderDetails->map(function ($detail) {
-                $images = $detail->product?->image;
-                if (!is_array($images)) {
-                    $images = json_decode($images ?? '[]', true) ?: [];
-                }
-                return [
-                    'id'            => $detail->product->id ?? null,
-                    'name'          => $detail->product->name ?? null,
-                    'price_at_time' => $detail->price_at_time,
-                    'quantity'      => $detail->quantity,
-                    'subtotal'      => $detail->subtotal,
-                    'image'         => $images[0] ?? null,
-                ];
-            });
+            $query->with(['orderDetails.product']);
         }
 
-        return $orderData;
-    });
+        if ($user->role === 'seller') {
+            // Lấy shop_id của seller
+            $shop = \App\Models\Shop::where('user_id', $user->id)->first();
 
-    return response()->json([
-        'orders' => $orders->items(),
-        'pagination' => [
-            'current_page' => $orders->currentPage(),
-            'per_page'     => $orders->perPage(),
-            'last_page'    => $orders->lastPage(),
-            'total'        => $orders->total(),
-        ],
-    ]);
-}
+            if (!$shop) {
+                return response()->json([
+                    'orders' => [],
+                    'pagination' => [
+                        'current_page' => 1,
+                        'last_page' => 1,
+                        'total' => 0,
+                    ]
+                ]);
+            }
 
+            $query->where('shop_id', $shop->id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('order_admin_status', $request->input('status'));
+        }
+        $orders = $query->latest()->paginate(20);
+
+        $data = $orders->map(function ($order) use ($request) {
+            $orderData = [
+                'id' => $order->id,
+                'buyer' => [
+                    'id' => $order->user?->id,
+                    'name' => $order->user?->name,
+                    'email' => $order->user?->email,
+                    'phone' => $order->user?->phone,
+                    'avatar' => $order->user?->avatar,
+                ],
+                'shop' => [
+                    'id' => $order->shop?->id,
+                    'name' => $order->shop?->name,
+                ],
+                'final_amount' => $order->final_amount,
+                'payment_method' => $order->payment_method,
+                'payment_status' => $order->payment_status,
+                'order_status' => $order->order_status,
+                'order_admin_status' => $order->order_admin_status,
+                'shipping_status' => $order->shipping_status,
+                'shipping_address' => $order->shipping_address,
+                'transaction_id' => $order->transaction_id,
+                'canceled_by' => $order->canceled_by,
+                'reconciliation_status' => $order->reconciliation_status,
+                'return_status' => $order->return_status,
+                'cancel_status' => $order->cancel_status,
+                'cancel_reason' => $order->cancel_reason,
+                'rejection_reason' => $order->rejection_reason,
+                'created_at' => $order->created_at,
+                'confirmed_at' => $order->confirmed_at,
+                'shipping_started_at' => $order->shipping_started_at,
+                'canceled_at' => $order->canceled_at,
+                'return_confirmed_at' => $order->return_confirmed_at,
+                'reconciled_at' => $order->reconciled_at,
+                'total_products' => $order->orderDetails->sum('quantity'),
+            ];
+
+            // ✅ Nếu có with_products, thì thêm sản phẩm
+            if ($request->boolean('with_products')) {
+                $orderData['products'] = $order->orderDetails->map(function ($detail) {
+                    $firstImage = null;
+                    $images = $detail->product?->image;
+
+                    if (!is_array($images)) {
+                        $images = json_decode($images, true);
+                    }
+
+                    if (is_array($images) && count($images) > 0) {
+                        $firstImage = $images[0];
+                    }
+
+                    return [
+                        'id' => $detail->product->id ?? null,
+                        'name' => $detail->product->name ?? null,
+                        'price_at_time' => $detail->price_at_time,
+                        'quantity' => $detail->quantity,
+                        'subtotal' => $detail->subtotal,
+                        'image' => $firstImage,
+                    ];
+                });
+            }
+
+            return $orderData;
+        });
+        return response()->json([
+            'orders' => $data,
+            'pagination' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'total' => $orders->total(),
+            ]
+        ]);
+    }
 
 
     public function updateShippingStatus($orderId, Request $request)
@@ -1416,9 +1418,6 @@ public function ShopOrderList(Request $request)
         // Ảnh người mua gửi khi yêu cầu hoàn đơn
         $photos = \App\Models\OrderReturnPhoto::where('order_id', $orderId)->pluck('image_path');
 
-            $refundImages = \App\Models\OrderReturnPhoto::where('order_id', $orderId)
-                    ->pluck('image_path');
-
         // Ảnh sản phẩm gốc trong đơn hàng
         $productImages = $order->orderDetails->map(function ($detail) {
             return [
@@ -1427,7 +1426,6 @@ public function ShopOrderList(Request $request)
                 'image' => $detail->product->image, // Giả sử có cột image trong bảng products
             ];
         });
-        $reportImages = $report->image ?: [];
 
         return response()->json([
             'report_id' => $report->id,
@@ -1446,8 +1444,7 @@ public function ShopOrderList(Request $request)
                 'logo'  => $order->shop->logo ?? null,
             ],
             'report_reason' => $report->reason,
-            'report_images'   => $reportImages,
-            // 'photos' => $photos,
+            'photos' => $photos,
             'product_images' => $productImages, // Thêm phần này
             'created_at' => $report->created_at,
             'status' => $report->status,
