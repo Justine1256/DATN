@@ -7,20 +7,26 @@ import { API_BASE_URL } from '@/utils/api';
 import React from 'react';
 
 type FlashSaleResp = {
-  ends_at?: string | null; // e.g. "2025-08-25T00:00:00+07:00"
+  ends_at?: string | null;
   items: Array<{
     id: number;
     name: string;
     slug: string;
-    image: string[];               // như mẫu bạn gửi
+    image: string[] | string;
     price: number;
     sale_price?: number | null;
     discount_percent?: number;
     sale_starts_at?: string | null;
     sale_ends_at?: string | null;
     sold?: number;
-    rating?: number;               // BE trả 'rating'
-    // có thể còn các field khác...
+    rating?: number;
+
+    /** ⬇️ 3 field mới từ BE */
+    shop_slug?: string | null;
+    shop_logo?: string | null;
+    shop_name?: string | null;
+
+    // shop_id?: number; // nếu cần thêm sau
   }>;
 };
 
@@ -55,7 +61,7 @@ export default function FlashSale() {
     return () => clearInterval(timer);
   }, [endTime]);
 
-  // 🔁 Fetch dữ liệu flash sale (đọc đúng keys: items, ends_at)
+  // 🔁 Fetch dữ liệu flash sale
   useEffect(() => {
     const run = async () => {
       try {
@@ -69,27 +75,42 @@ export default function FlashSale() {
           setEndTime(Date.now() + 3 * 24 * 60 * 60 * 1000);
         }
 
-        // map items -> Product (ProductCard dùng rating_avg, image: string[])
-        const list: Product[] = (Array.isArray(data?.items) ? data.items : []).map((it) => ({
-          id: it.id,
-          name: it.name,
-          slug: it.slug,
-          image: Array.isArray(it.image) ? it.image : [String(it.image ?? '')],
-          price: it.price,
-          sale_price: it.sale_price ?? undefined,
-          // chuyển rating BE -> rating_avg cho ProductCard
-          rating_avg: typeof it.rating === 'number' ? it.rating : undefined,
-          // thêm các trường optional để ProductCard không lỗi
-          rating: Number(it.rating ?? 0),
-          discount: it.discount_percent,
-          sold: it.sold,
-          // nếu BE trả sale window theo item, truyền xuống luôn
-          sale_starts_at: it.sale_starts_at ?? undefined,
-          sale_ends_at: it.sale_ends_at ?? undefined,
-          // các field shop_* để tránh undefined
-          shop_slug: '', // nếu có slug shop ở BE thì gán vào đây
-          variants: [],  // nếu có variant thì map thêm
-        }));
+        // map items -> Product (kèm 3 field shop_* mới)
+        const list: Product[] = (Array.isArray(data?.items) ? data.items : []).map((it) => {
+          const images = Array.isArray(it.image) ? it.image : [String(it.image ?? '')];
+
+          const p: any = {
+            id: it.id,
+            name: it.name,
+            slug: it.slug,
+            image: images,
+            price: it.price,
+            sale_price: it.sale_price ?? undefined,
+            rating_avg: typeof it.rating === 'number' ? it.rating : undefined,
+            rating: Number(it.rating ?? 0),
+            discount: it.discount_percent,
+            sold: it.sold,
+            // nếu bạn đã khai báo các field này trong Product thì giữ; nếu chưa có, TS vẫn ok vì ép any
+            sale_starts_at: it.sale_starts_at ?? undefined,
+            sale_ends_at: it.sale_ends_at ?? undefined,
+
+            /** ⬇️ 3 field mới đẩy thẳng qua ProductCard */
+            shop_slug: it.shop_slug ?? '',
+            shop_logo: it.shop_logo ?? '',
+            shop_name: it.shop_name ?? '',
+
+            variants: [],
+          };
+
+          // (tuỳ chọn) đồng thời set luôn object shop để ProductCard ưu tiên
+          p.shop = {
+            slug: it.shop_slug ?? undefined,
+            logo: it.shop_logo ?? undefined,
+            name: it.shop_name ?? undefined,
+          };
+
+          return p as Product;
+        });
 
         setProducts(list);
       } catch (e) {
