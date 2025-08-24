@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
 import { AiOutlineHeart } from "react-icons/ai";
 import { AiFillHeart, AiFillStar } from "react-icons/ai";
@@ -23,6 +23,10 @@ export interface Product {
   option1?: string;
   value1?: string;
   sale_price?: number;
+  // ➕ Thêm 2 trường thời gian sale (optional)
+  sale_starts_at?: string | null;
+  sale_ends_at?: string | null;
+
   shop_slug: string;
   variants: any[];
   sold?: number;
@@ -48,6 +52,22 @@ const formatNumberShort = (num: number): string => {
 
 const formatShopLogo = (img: unknown): string => formatImageUrl(img ?? "");
 
+// ⏱️ util: format thời lượng D : HH : mm : ss
+function formatCountdown(ms: number) {
+  if (ms <= 0) return "00:00:00";
+  const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+
+  const hh = String(hours).padStart(2, "0");
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(seconds).padStart(2, "0");
+
+  return days > 0 ? `${String(days).padStart(2, "0")} : ${hh} : ${mm} : ${ss}` : `${hh} : ${mm} : ${ss}`;
+}
+
 export default function ProductCard({
   product,
   onUnlike,
@@ -69,6 +89,10 @@ export default function ProductCard({
   const [popupMessage, setPopupMessage] = useState("");
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
 
+  // ⏱️ state cho countdown
+  const [now, setNow] = useState(() => Date.now());
+  const tickRef = useRef<number | null>(null);
+
   useEffect(() => {
     setLiked(isInWishlist);
     if (product && Array.isArray(product.variants) && product.variants.length > 0) {
@@ -76,11 +100,27 @@ export default function ProductCard({
     }
   }, [isInWishlist, product?.id, product]);
 
+  // Tạo timer mỗi giây khi có sale window (upcoming/active)
+  const hasSaleWindow = useMemo(() => {
+    if (!product) return false;
+    const starts = selectedVariant?.sale_starts_at ?? product.sale_starts_at ?? null;
+    const ends = selectedVariant?.sale_ends_at ?? product.sale_ends_at ?? null;
+    // chỉ tạo timer nếu có sale_price và (starts hoặc ends)
+    const hasPrice = (selectedVariant?.sale_price ?? product.sale_price) != null;
+    return hasPrice && (starts || ends);
+  }, [product, selectedVariant]);
+
+  useEffect(() => {
+    if (!hasSaleWindow) return;
+    tickRef.current = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => { if (tickRef.current) window.clearInterval(tickRef.current); };
+  }, [hasSaleWindow]);
+
   if (!product) return <LoadingSkeleton />;
 
   const getPrice = () => {
-    if (selectedVariant) return Number(selectedVariant.sale_price || selectedVariant.price).toLocaleString('vi-VN');
-    return Number(product.sale_price || product.price).toLocaleString('vi-VN');
+    if (selectedVariant) return Number(selectedVariant.sale_price ?? selectedVariant.price).toLocaleString('vi-VN');
+    return Number(product.sale_price ?? product.price).toLocaleString('vi-VN');
   };
 
   const mainImage = formatImageUrl(product.image?.[0]);
@@ -90,6 +130,27 @@ export default function ProductCard({
   const shopSlug = product.shop_slug || shopObj.slug;
   const shopName = shopObj.name || product.shop_name || "Shop";
   const shopLogo = formatShopLogo(shopObj.logo || product.shop_logo);
+
+  // ➕ Tính trạng thái sale & thời gian còn lại
+  const saleStartsAtStr: string | null | undefined = selectedVariant?.sale_starts_at ?? product.sale_starts_at;
+  const saleEndsAtStr: string | null | undefined   = selectedVariant?.sale_ends_at   ?? product.sale_ends_at;
+  const salePrice: number | undefined = selectedVariant?.sale_price ?? product.sale_price ?? undefined;
+
+  const startsAt = saleStartsAtStr ? new Date(saleStartsAtStr).getTime() : undefined;
+  const endsAt   = saleEndsAtStr ? new Date(saleEndsAtStr).getTime() : undefined;
+
+  let saleState: 'none' | 'upcoming' | 'active' = 'none';
+  let countdownMs = 0;
+
+  if (salePrice && (startsAt || endsAt)) {
+    if (startsAt && now < startsAt) {
+      saleState = 'upcoming';
+      countdownMs = startsAt - now;
+    } else if ((!startsAt || now >= startsAt) && (!endsAt || now <= endsAt)) {
+      saleState = 'active';
+      countdownMs = endsAt ? endsAt - now : 0; // nếu không có endsAt thì không hiển thị thời lượng còn lại
+    }
+  }
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -176,7 +237,7 @@ export default function ProductCard({
 
       {product.sale_price && (
         <div className="absolute top-2 left-2 bg-brand text-white text-[10px] px-2 py-0.5 rounded">
-          -{Math.round(((product.price - product.sale_price) / product.price) * 100)}%
+          -{Math.round(((product.price - (product.sale_price ?? product.price)) / product.price) * 100)}%
         </div>
       )}
 
@@ -189,10 +250,10 @@ export default function ProductCard({
         {liked ? <AiFillHeart className="text-red-500" /> : <AiOutlineHeart className="text-red-500" />}
       </button>
 
-      {/* Ảnh sản phẩm: giữ chiều cao 150px như ban đầu */}
+      {/* Ảnh sản phẩm */}
       <div className="w-full h-[150px] mt-8 flex items-center justify-center overflow-hidden">
         <Image
-          src={mainImage}
+          src={formatImageUrl(product.image?.[0])}
           alt={product.name}
           width={150}
           height={150}
@@ -217,6 +278,7 @@ export default function ProductCard({
           <span className="font-medium truncate max-w-[160px]">{shopName}</span>
         </button>
 
+        {/* Giá */}
         <div className="flex gap-2 mt-2 items-center">
           <span className="text-brand font-bold text-base">
             {getPrice()}₫
@@ -228,6 +290,23 @@ export default function ProductCard({
           )}
         </div>
 
+        {/* ⏱️ Đồng hồ sale (nếu có) — đặt dưới giá, trên đánh giá */}
+        {saleState !== 'none' && (
+          <div className="mt-1 text-xs font-semibold">
+            {saleState === 'upcoming' && (
+              <span className="text-orange-600">
+                Bắt đầu sau: <span className="tabular-nums">{formatCountdown(countdownMs)}</span>
+              </span>
+            )}
+            {saleState === 'active' && endsAt && (
+              <span className="text-red-600">
+                Còn: <span className="tabular-nums">{formatCountdown(countdownMs)}</span>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Đánh giá + đã bán */}
         <div className="flex items-center justify-between text-sm mt-2 flex-wrap gap-y-1">
           <div className="flex items-center gap-1">
             {Number(ratingValue) > 0 ? (
@@ -252,5 +331,4 @@ export default function ProductCard({
       </div>
     </div>
   );
-
 }

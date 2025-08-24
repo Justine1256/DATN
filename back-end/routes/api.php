@@ -30,6 +30,7 @@ use App\Http\Controllers\VoucherUserController;
 use App\Http\Controllers\VoucherCategoryController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\SaleController;
 use App\Http\Controllers\ShopShippingAccountController;
 use App\Models\Banner;
 use Illuminate\Support\Facades\Auth;
@@ -78,6 +79,7 @@ Route::get('/category/{slug}/products', [ProductController::class, 'getCategoryA
 Route::get('/products/recommended', [ProductController::class, 'getHotProducts']);
 Route::get('/shop/{slug}/products', [ProductController::class, 'showShopProducts']);
 Route::get('/shop/{slug}/products-by-category/{category_slug}', [ProductController::class, 'getShopProductsByCategorySlug']);
+Route::get('/flash-sale', [SaleController::class, 'flashSale']);
 
 Route::post('/product', [ProductController::class, 'store']);
 Route::patch('/product/{id}', [ProductController::class, 'update']);
@@ -272,6 +274,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/shop/restore/products/{id}', [ProductController::class, 'restoreProduct']);
     Route::post('/shop/products/stock/add', [ProductController::class, 'importStock']);
     Route::get('/shop/products/stock/show', [ProductController::class, 'getLowStockProducts']);
+    Route::put('/products/{product}/sale', [SaleController::class, 'setProductSale']);
+    Route::put('/products/sale/bulk',      [SaleController::class, 'bulkSetSale']);
+    Route::delete('/products/{product}/sale', [SaleController::class, 'clearProductSale']);
+
+    // tuỳ chọn: trigger expire thủ công (chỉ cho admin)
+    Route::post('/sale/expire-now', [SaleController::class, 'expireNow']);
     // quản lý danh mục của shop
     Route::get('/shop/categories/{shop_id}', [CategoryController::class, 'getShopCategories']);
     Route::post('/shop/categories', [CategoryController::class, 'addCategoryByShop']);
