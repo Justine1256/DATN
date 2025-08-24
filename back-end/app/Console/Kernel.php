@@ -18,5 +18,8 @@ class Kernel extends ConsoleKernel
     {
         $this->load(__DIR__.'/Commands');
     }
+    protected $commands = [
+    \App\Console\Commands\AutoOrderAndReview::class,
+];
 
 }
