@@ -140,11 +140,25 @@ export default function OrderSummary({
     )
     const promotionDiscount = Math.max(0, subtotal - discountedSubtotal)
     const shippingBase = cartItems.length > 0 ? 20000 : 0
-    const voucherDiscount =
-      typeof serverDiscount === "number"
-        ? Math.max(0, Math.floor(serverDiscount))
-        : 0
-    const shipping = serverFreeShipping ? 0 : shippingBase
+    let voucherDiscount = 0
+    let shipping = shippingBase
+
+    if (typeof serverDiscount === "number") {
+      const disc = Math.max(0, Math.floor(serverDiscount))
+
+      // Nếu backend trả về freeship kèm discount = đúng bằng phí ship => chỉ set ship = 0, bỏ discount
+      if (serverFreeShipping && disc > 0 && disc <= shippingBase) {
+        voucherDiscount = 0
+        shipping = 0
+      } else {
+        voucherDiscount = disc
+        shipping = serverFreeShipping ? 0 : shippingBase
+      }
+    } else {
+      voucherDiscount = 0
+      shipping = serverFreeShipping ? 0 : shippingBase
+    }
+
     return { subtotal, promotionDiscount, voucherDiscount, shipping }
   }, [cartItems, serverDiscount, serverFreeShipping])
 

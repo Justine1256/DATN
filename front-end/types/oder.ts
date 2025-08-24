@@ -206,6 +206,12 @@ export interface Order {
     payment_status: PaymentStatus
     created_at: string
     reported?: boolean
+    voucher_discount?: string | number;
+    total_discount?: string | number;
+    discount?: string | number;
+
+    free_shipping?: boolean | null; // nếu BE có flag freeship
+    global_voucher_code?: string | null; // nếu cần hiển thị
     updated_at: string
     order_details: OrderDetail[]
     shop_name: string

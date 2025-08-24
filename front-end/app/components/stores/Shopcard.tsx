@@ -19,10 +19,10 @@ import {
   Divider,
   Space,
 } from 'antd';
+import { StyleProvider } from '@ant-design/cssinjs';
 
 const { Text, Title } = Typography;
 
-// ---- Typings for custom “open chat” event (for TypeScript safety) ----
 declare global {
   interface WindowEventMap {
     'open-chat-with-user': CustomEvent<{
@@ -32,20 +32,11 @@ declare global {
       role?: string;
       isBot?: boolean;
     }>;
-  }
-}
-
-// Helper: dispatch event to open global chatbox with a receiver
-function openChatWith(user: {
-  id: number;
-  name: string;
-  avatar?: string | null;
-  role?: string;
-  isBot?: boolean;
-}) {
-  if (typeof window !== 'undefined') {
-    const ev = new CustomEvent('open-chat-with-user', { detail: user });
-    window.dispatchEvent(ev);
+    'open-chat-box': CustomEvent<{
+      receiverId: number;
+      receiverName: string;
+      avatar?: string;
+    }>;
   }
 }
 
@@ -79,14 +70,11 @@ interface Shop {
   slug: string;
   followers_count: number;
   is_following?: boolean;
-
-  /** Nếu backend có user id đại diện shop, thêm 2 field optional này để lấy đúng receiver id */
   user_id?: number | null;
   owner_user_id?: number | null;
 }
 
 export default function ShopCard({ shop }: { shop: Shop }) {
-  // ---- Follow state (giữ nguyên logic) ----
   const [followed, setFollowed] = useState<boolean>(!!shop?.is_following);
   useEffect(() => setFollowed(!!shop?.is_following), [shop?.id, shop?.is_following]);
 
@@ -157,204 +145,199 @@ export default function ShopCard({ shop }: { shop: Shop }) {
       setPending(false);
     }
   };
-const handleOpenChat = () => {
-  if (!shop) return;
 
-  // Ưu tiên id user của chủ shop
-  const receiverId = Number(
-    shop.id
+  const handleOpenChat = () => {
+    if (!shop) return;
+    const receiverId = Number(shop.id);
+    if (!Number.isFinite(receiverId)) {
+      console.warn('Lỗi không nhận được id.');
+      return;
+    }
+    const avatarUrl = shop.logo ? `${API_BASE_URL}/image/${shop.logo}` : undefined;
+    window.dispatchEvent(
+      new CustomEvent('open-chat-box', {
+        detail: {
+          receiverId,
+          receiverName: shop.name,
+          avatar: avatarUrl,
+        },
+      })
+    );
+  };
+
+  const toggleFollow = useCallback(
+    () => (followed ? unfollowShop() : followShop()),
+    [followed]
   );
 
-  if (!Number.isFinite(receiverId)) {
-    console.warn("Lỗi không nhận được id.");
-    return;
-  }
-
-  // avatar nên là URL đầy đủ để Chat hiển thị ngay
-  const avatarUrl = shop.logo ? `${API_BASE_URL}/image/${shop.logo}` : undefined;
-
-  window.dispatchEvent(
-    new CustomEvent("open-chat-box", {
-      detail: {
-        receiverId,
-        receiverName: shop.name,
-        avatar: avatarUrl,
-      },
-    })
-  );
-};
-
-  const toggleFollow = useCallback(() => (followed ? unfollowShop() : followShop()), [followed]);
-
-  // ---- UI (Ant Design), gọn gàng, avatar không đè, card KHÔNG overlay ảnh ----
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: '#db4444',
-          colorInfo: '#db4444',
-          borderRadiusLG: 14,
-          fontSize: 14,
-        },
-        components: {
-          Button: { controlHeight: 34, paddingInline: 12 },
-          Card: { paddingLG: 16 },
-          Tag: { defaultBg: '#eef6ee' },
-        },
-      }}
-    >
-      {/* COVER — độc lập, không bị che */}
-      <div className="rounded-2xl overflow-hidden">
-        <Image
-          src="/shop_cover.jpg"
-          alt="Shop Cover"
-          width={1440}
-          height={280}
-          className="w-full h-[220px] md:h-[280px] object-cover"
-          priority
-        />
-      </div>
+    <StyleProvider hashPriority="high">
+      <ConfigProvider
+        theme={{
+          token: {
+            colorPrimary: '#db4444',
+            colorInfo: '#db4444',
+            borderRadiusLG: 14,
+            fontSize: 14,
+          },
+          components: {
+            Button: { controlHeight: 34, paddingInline: 12 },
+            Card: { paddingLG: 16 },
+            Tag: { defaultBg: '#eef6ee' },
+          },
+        }}
+      >
+        {/* Khoanh vùng để reset các rule global “quá tay” */}
+        <div className="shop-root">
+          {/* COVER */}
+          <div className="rounded-2xl overflow-hidden">
+            <Image
+              src="/shop_cover.jpg"
+              alt="Shop Cover"
+              width={1440}
+              height={280}
+              className="w-full h-[220px] md:h-[280px] object-cover"
+              priority
+            />
+          </div>
 
-      {/* INFO — card tách rời, dưới cover */}
-      <Card className="mt-4" variant="outlined" styles={{ body: { paddingTop: 12, paddingBottom: 12 } }}>
-        <Row gutter={[16, 16]} align="middle" wrap>
-          {/* Avatar + Name */}
-          <Col xs={24} md={12} lg={10}>
-            <Space align="center" size={12} wrap>
-              <Avatar
-                size={72}
-                src={`${API_BASE_URL}/image/${shop.logo}`}
-                style={{
-                  border: '3px solid #fff',
-                  boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
-                  backgroundColor: '#fafafa',
-                }}
-              />
-              <div>
-                <Space size={8} align="center" wrap>
-                  <Title level={4} style={{ margin: 0 }}>
-                    {shop.name}
-                  </Title>
-                  <Tag color={shop.status === 'activated' ? 'success' : 'default'}>
-                    {shop.status === 'activated' ? 'Đã kích hoạt' : 'Chưa kích hoạt'}
-                  </Tag>
+          {/* INFO */}
+          <Card className="mt-4" variant="outlined" styles={{ body: { paddingTop: 12, paddingBottom: 12 } }}>
+            <Row gutter={[16, 16]} align="middle" wrap>
+              <Col xs={24} md={12} lg={10}>
+                <Space align="center" size={12} wrap>
+                  <Avatar
+                    size={72}
+                    src={`${API_BASE_URL}/image/${shop.logo}`}
+                    style={{
+                      border: '3px solid #fff',
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+                      backgroundColor: '#fafafa',
+                    }}
+                  />
+                  <div>
+                    <Space size={8} align="center" wrap>
+                      <Title level={4} style={{ margin: 0 }}>
+                        {shop.name}
+                      </Title>
+                      <Tag color={shop.status === 'activated' ? 'success' : 'default'}>
+                        {shop.status === 'activated' ? 'Đã kích hoạt' : 'Chưa kích hoạt'}
+                      </Tag>
+                    </Space>
+                    <div className="mt-1">
+                      <Tooltip title={shop.email}>
+                        <Text
+                          type="secondary"
+                          ellipsis={{ tooltip: false }}
+                          style={{ maxWidth: 260, display: 'inline-block' }}
+                        >
+                          {shop.email}
+                        </Text>
+                      </Tooltip>
+                    </div>
+                  </div>
                 </Space>
-                <div className="mt-1">
-                  <Tooltip title={shop.email}>
-                    <Text
-                      type="secondary"
-                      ellipsis={{ tooltip: false }}
-                      style={{ maxWidth: 260, display: 'inline-block' }}
-                    >
-                      {shop.email}
-                    </Text>
-                  </Tooltip>
-                </div>
-              </div>
-            </Space>
-          </Col>
-
-          {/* Actions */}
-          <Col xs={24} md={12} lg={14}>
-            <Row justify="end" gutter={8} wrap>
-              <Col>
-                <Button
-                  onClick={toggleFollow}
-                  loading={pending}
-                  type={followed ? 'default' : 'primary'}
-                  ghost={followed}
-                  icon={<User size={16} />}
-                >
-                  {followed ? 'Đã theo dõi' : 'Theo dõi'}
-                </Button>
               </Col>
-              <Col>
-                <Button
-                  icon={<MessageCircle size={16} />}
-                  onClick={handleOpenChat}
-                >
-                  Chat
-                </Button>
+
+              <Col xs={24} md={12} lg={14}>
+                <Row justify="end" gutter={8} wrap>
+                  <Col>
+                    <Button
+                      onClick={toggleFollow}
+                      loading={pending}
+                      type={followed ? 'default' : 'primary'}
+                      ghost={followed}
+                      icon={<User size={16} />}
+                    >
+                      {followed ? 'Đã theo dõi' : 'Theo dõi'}
+                    </Button>
+                  </Col>
+                  <Col>
+                    <Button icon={<MessageCircle size={16} />} onClick={handleOpenChat}>
+                      Chat
+                    </Button>
+                  </Col>
+                </Row>
               </Col>
             </Row>
-          </Col>
-        </Row>
 
-        <Divider style={{ margin: '12px 0' }} />
+            <Divider style={{ margin: '12px 0' }} />
 
-        {/* Stats Grid */}
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} lg={8}>
-            <Space>
-              <Phone size={16} className="text-[#db4444]" />
-              <div>
-                <Text type="secondary">Điện thoại</Text>
-                <div className="font-semibold text-black">{shop.phone}</div>
-              </div>
-            </Space>
-          </Col>
+            {/* Stats */}
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12} lg={8}>
+                <Space>
+                  <Phone size={16} className="text-[#db4444]" />
+                  <div>
+                    <Text type="secondary">Điện thoại</Text>
+                    <div className="font-semibold text-black">{shop.phone}</div>
+                  </div>
+                </Space>
+              </Col>
 
-          <Col xs={24} sm={12} lg={8}>
-            <Space>
-              <Package size={16} className="text-[#db4444]" />
-              <div>
-                <Text type="secondary">Đã bán</Text>
-                <div className="font-semibold text-black">
-                  {shop.total_sales ? shop.total_sales : 'Chưa có lượt bán'}
-                </div>
-              </div>
-            </Space>
-          </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Space>
+                  <Package size={16} className="text-[#db4444]" />
+                  <div>
+                    <Text type="secondary">Đã bán</Text>
+                    <div className="font-semibold text-black">
+                      {shop.total_sales ? shop.total_sales : 'Chưa có lượt bán'}
+                    </div>
+                  </div>
+                </Space>
+              </Col>
 
-          <Col xs={24} sm={12} lg={8}>
-            <Space>
-              <Star size={16} className="text-[#db4444]" />
-              <div>
-                <Text type="secondary">Đánh giá</Text>
-                <div className="font-semibold text-black">
-                  {shop.rating !== null ? shop.rating : 'Chưa có đánh giá'}
-                </div>
-              </div>
-            </Space>
-          </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Space>
+                  <Star size={16} className="text-[#db4444]" />
+                  <div>
+                    <Text type="secondary">Đánh giá</Text>
+                    <div className="font-semibold text-black">
+                      {shop.rating !== null ? shop.rating : 'Chưa có đánh giá'}
+                    </div>
+                  </div>
+                </Space>
+              </Col>
 
-          <Col xs={24} sm={12} lg={8}>
-            <Space>
-              <Calendar size={16} className="text-[#db4444]" />
-              <div>
-                <Text type="secondary">Tham gia</Text>
-                <div className="font-semibold text-black">{formatTimeAgo(shop.created_at)}</div>
-              </div>
-            </Space>
-          </Col>
+              <Col xs={24} sm={12} lg={8}>
+                <Space>
+                  <Calendar size={16} className="text-[#db4444]" />
+                  <div>
+                    <Text type="secondary">Tham gia</Text>
+                    <div className="font-semibold text-black">{formatTimeAgo(shop.created_at)}</div>
+                  </div>
+                </Space>
+              </Col>
 
-          <Col xs={24} sm={12} lg={8}>
-            <Space>
-              <Users size={16} className="text-[#db4444]" />
-              <div>
-                <Text type="secondary">Người theo dõi</Text>
-                <div className="font-semibold text-black">
-                  {followers > 0 ? followers : 'Chưa có người theo dõi'}
-                </div>
-              </div>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+              <Col xs={24} sm={12} lg={8}>
+                <Space>
+                  <Users size={16} className="text-[#db4444]" />
+                  <div>
+                    <Text type="secondary">Người theo dõi</Text>
+                    <div className="font-semibold text-black">
+                      {followers > 0 ? followers : 'Chưa có người theo dõi'}
+                    </div>
+                  </div>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
 
-      {/* Sản phẩm của shop — tách riêng, không bọc chung card */}
-      {shop.slug && (
-        <div className="w-full max-w-screen-xl mx-auto mt-6">
-          <ShopProductSlider shopSlug={shop.slug} />
+          {/* Products */}
+          {shop.slug && (
+            <div className="w-full max-w-screen-xl mx-auto mt-6">
+              <ShopProductSlider shopSlug={shop.slug} />
+            </div>
+          )}
+
+          {/* Toast */}
+          {showPopup && (
+            <div className="fixed top-[120px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500">
+              {popupText}
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Toast nhẹ */}
-      {showPopup && (
-        <div className="fixed top-[120px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500">
-          {popupText}
-        </div>
-      )}
-    </ConfigProvider>
+      </ConfigProvider>
+    </StyleProvider>
   );
 }
