@@ -118,3 +118,27 @@ export interface Shop {
   updated_at: string;
   deleted_at: string | null;
 }
+export interface NormalizedProduct {
+  id: number;
+  name: string;
+  slug: string;
+
+  price?: number;
+  sale_price?: number;
+  oldPrice?: number;
+
+  rating?: number;
+  rating_avg?: number;
+  review_count?: number;
+
+  discount?: number;
+  sold?: number;
+
+  image: string[];
+  variants: Variant[];
+
+  shop_slug?: string;
+  shop?: { name?: string; slug?: string };
+
+  createdAt?: number;
+}
