@@ -903,7 +903,7 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4 w-full">
 
                 {/* quantity and "buy now" */}
-                <div className="flex md:block gap-4">
+                <div className="flex gap-4">
                   <div className="flex flex-col items-start gap-1 w-1/3 sm:w-auto">
                     <div className="flex border rounded overflow-hidden h-[44px] w-fit md:w-full sm:w-[165px]">
                       <button
