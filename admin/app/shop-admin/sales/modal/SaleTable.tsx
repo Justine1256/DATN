@@ -11,6 +11,7 @@ import {
   Radio,
   Tooltip,
   Tag,
+  Select,
 } from 'antd';
 import { API_BASE_URL } from '@/utils/api';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
@@ -145,19 +146,31 @@ export default function SaleTable({
       render: (val) => formatVND(Number(val)),
       sorter: (a, b) => Number(a.price) - Number(b.price),
     },
-    {
-      title: 'Kiểu giảm',
-      key: 'discount_type',
-      render: (_, record) => (
-        <Radio.Group
-          defaultValue={record.discount_type}
-          onChange={(e) => (record.discount_type = e.target.value)}
-        >
-          <Radio value="percent">% phần trăm</Radio>
-          <Radio value="fixed">Số tiền</Radio>
-        </Radio.Group>
-      ),
-    },
+{
+  title: 'Kiểu giảm',
+  key: 'discount_type',
+  render: (_, record) => (
+    <Select
+      placeholder="Chọn kiểu giảm"
+      style={{ width: 100 }}
+      defaultValue={record.discount_type}
+      onChange={(v) => {
+        record.discount_type = v;
+        // (tuỳ chọn) reset giá trị giảm khi đổi kiểu:
+        // record.discount_value = undefined;
+
+        // (tuỳ chọn) ép re-render nếu bạn muốn cập nhật ngay max/placeholder của ô "Giá trị giảm":
+        // setTick((n) => n + 1);
+      }}
+      options={[
+        { value: 'percent', label: '% phần trăm' },
+        { value: 'fixed',   label: 'Số tiền' },
+      ]}
+      // allowClear  // bật nếu muốn cho phép xoá lựa chọn
+    />
+  ),
+},
+
     {
       title: (
         <Space size={4}>
@@ -168,6 +181,7 @@ export default function SaleTable({
         </Space>
       ),
       key: 'discount_value',
+      width: 150,
       render: (_, record) => (
         <InputNumber
           min={1}
@@ -176,11 +190,7 @@ export default function SaleTable({
               ? 50
               : Math.max(1, Math.floor(Number(record.price) * 0.5))
           }
-          placeholder={
-            record.discount_type === 'percent'
-              ? 'Nhập % (≤50)'
-              : 'Nhập số tiền (≤50%)'
-          }
+          placeholder={'Giá trị giảm'}
           onChange={(v) => (record.discount_value = v)}
           className="w-full"
         />
