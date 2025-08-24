@@ -67,103 +67,173 @@ class SaleController extends Controller
 
     // PUT /api/products/{product}/sale
     // body: sale_price, sale_starts_at?, sale_ends_at?, priority?
-    public function setProductSale(Request $req, Product $product)
-    {
-        $user = $req->user();
+// 1) Đặt sale cho 1 sản phẩm
+public function setProductSale(Request $req, Product $product)
+{
+    $user = $req->user();
 
-        // --- Authorization ---
-        // Admin quản tất cả, Seller chỉ sp của shop mình
-        if (method_exists($user, 'isAdmin') && !$user->isAdmin()) {
-            if (method_exists($user, 'isSeller') && $user->isSeller()) {
-                if (property_exists($user, 'shop_id') && (int)$user->shop_id !== (int)$product->shop_id) {
-                    return response()->json(['message' => 'Bạn không có quyền chỉnh sale sản phẩm này'], 403);
-                }
-            } else {
-                return response()->json(['message' => 'Forbidden'], 403);
+    // Authorization (giữ nguyên)
+    if (method_exists($user, 'isAdmin') && !$user->isAdmin()) {
+        if (method_exists($user, 'isSeller') && $user->isSeller()) {
+            if (property_exists($user, 'shop_id') && (int)$user->shop_id !== (int)$product->shop_id) {
+                return response()->json(['message' => 'Bạn không có quyền chỉnh sale sản phẩm này'], 403);
             }
+        } else {
+            return response()->json(['message' => 'Forbidden'], 403);
         }
-
-        $data = $req->validate([
-            'sale_price'     => ['required','numeric','gt:0'],
-            'sale_starts_at' => ['nullable','date'],
-            'sale_ends_at'   => ['nullable','date','after_or_equal:sale_starts_at'],
-            'priority'       => ['nullable','integer','between:0,100'],
-        ]);
-
-        // Validate sale_price < price (so với sp hiện tại)
-        if ((float)$data['sale_price'] >= (float)$product->price) {
-            return response()->json(['message' => 'sale_price phải nhỏ hơn price hiện tại'], 422);
-        }
-
-        $source   = (method_exists($user, 'isAdmin') && $user->isAdmin()) ? 'admin' : 'seller';
-        $priority = (int) ($data['priority'] ?? 0);
-
-        $product->applySale(
-            (float) $data['sale_price'],
-            $data['sale_starts_at'] ?? null,
-            $data['sale_ends_at']   ?? null,
-            $source,
-            $priority
-        )->save();
-
-        return response()->json([
-            'message' => 'Đã cập nhật sale cho sản phẩm',
-            'product' => $product->fresh(),
-        ]);
     }
+
+    $data = $req->validate([
+        'sale_price'      => ['nullable','numeric','gt:0'],
+        'discount_type'   => ['nullable','in:percent,fixed'],
+        'discount_value'  => ['nullable','numeric','gt:0'],
+        'sale_starts_at'  => ['nullable','date'],
+        'sale_ends_at'    => ['nullable','date','after_or_equal:sale_starts_at'],
+        'priority'        => ['nullable','integer','between:0,100'],
+    ]);
+
+    if (!$req->filled('sale_price') && !($req->filled('discount_type') && $req->filled('discount_value'))) {
+        return response()->json(['message' => 'Cần nhập sale_price hoặc discount_type + discount_value'], 422);
+    }
+
+    $minSalePrice = round($product->price * 0.5, 2); // sale phải >= 50% giá gốc
+    $salePrice = $req->filled('sale_price') ? (float)$req->input('sale_price') : null;
+
+    if (is_null($salePrice)) {
+        $dtype = $req->input('discount_type');
+        $dval  = (float)$req->input('discount_value');
+
+        if ($dtype === 'percent') {
+            if ($dval <= 0 || $dval > 50) {
+                return response()->json(['message' => 'Giảm theo % phải trong (0, 50]'], 422);
+            }
+            $salePrice = max(0, round($product->price * (1 - $dval / 100), 0));
+        } else { // fixed
+            if ($dval <= 0 || $dval > $product->price * 0.5) {
+                return response()->json(['message' => 'Số tiền giảm không được vượt quá 50% giá gốc'], 422);
+            }
+            $salePrice = max(0, (float)$product->price - $dval);
+        }
+    }
+
+    if ($salePrice <= 0 || $salePrice >= (float)$product->price) {
+        return response()->json(['message' => 'sale_price phải > 0 và nhỏ hơn price hiện tại'], 422);
+    }
+    if ($salePrice < $minSalePrice) {
+        return response()->json([
+            'message' => 'Không được giảm quá 50% giá gốc',
+            'min_sale_price' => $minSalePrice
+        ], 422);
+    }
+
+    $source   = (method_exists($user, 'isAdmin') && $user->isAdmin()) ? 'admin' : 'seller';
+    $priority = (int) ($data['priority'] ?? 0);
+
+    $product->applySale(
+        $salePrice,
+        $data['sale_starts_at'] ?? null,
+        $data['sale_ends_at']   ?? null,
+        $source,
+        $priority
+    )->save();
+
+    return response()->json([
+        'message' => 'Đã cập nhật sale cho sản phẩm',
+        'product' => $product->fresh(),
+    ]);
+}
+
 
     // PUT /api/products/sale/bulk
     // body: product_ids[], sale_price, sale_starts_at?, sale_ends_at?, priority?
-    public function bulkSetSale(Request $req)
-    {
-        $user = $req->user();
+// 2) Đặt sale hàng loạt
+public function bulkSetSale(Request $req)
+{
+    $user = $req->user();
 
-        $data = $req->validate([
-            'product_ids'    => ['required','array','min:1'],
-            'product_ids.*'  => ['integer','exists:products,id'],
-            'sale_price'     => ['required','numeric','gt:0'],
-            'sale_starts_at' => ['nullable','date'],
-            'sale_ends_at'   => ['nullable','date','after_or_equal:sale_starts_at'],
-            'priority'       => ['nullable','integer','between:0,100'],
-        ]);
+    $data = $req->validate([
+        'product_ids'    => ['required','array','min:1'],
+        'product_ids.*'  => ['integer','exists:products,id'],
+        'sale_price'     => ['nullable','numeric','gt:0'],
+        'discount_type'  => ['nullable','in:percent,fixed'],
+        'discount_value' => ['nullable','numeric','gt:0'],
+        'sale_starts_at' => ['nullable','date'],
+        'sale_ends_at'   => ['nullable','date','after_or_equal:sale_starts_at'],
+        'priority'       => ['nullable','integer','between:0,100'],
+    ]);
 
-        $source   = (method_exists($user, 'isAdmin') && $user->isAdmin()) ? 'admin' : 'seller';
-        $priority = (int) ($data['priority'] ?? 0);
-
-        DB::transaction(function () use ($data, $source, $priority, $user) {
-            $products = Product::query()
-                ->whereIn('id', $data['product_ids'])
-                ->lockForUpdate()
-                ->get();
-
-            foreach ($products as $p) {
-                // Authorization per product
-                if (method_exists($user, 'isAdmin') && !$user->isAdmin()) {
-                    if (method_exists($user, 'isSeller') && $user->isSeller()) {
-                        if (property_exists($user, 'shop_id') && (int)$user->shop_id !== (int)$p->shop_id) {
-                            continue; // bỏ qua sp không thuộc shop
-                        }
-                    } else {
-                        continue;
-                    }
-                }
-
-                if ((float)$data['sale_price'] >= (float)$p->price) {
-                    continue; // bỏ qua nếu sale_price >= price
-                }
-
-                $p->applySale(
-                    (float) $data['sale_price'],
-                    $data['sale_starts_at'] ?? null,
-                    $data['sale_ends_at']   ?? null,
-                    $source,
-                    $priority
-                )->save();
-            }
-        });
-
-        return response()->json(['message' => 'Đã cập nhật sale hàng loạt']);
+    if (!$req->filled('sale_price') && !($req->filled('discount_type') && $req->filled('discount_value'))) {
+        return response()->json(['message' => 'Cần nhập sale_price hoặc discount_type + discount_value'], 422);
     }
+
+    $hasDisc = $req->filled('discount_type') && $req->filled('discount_value');
+    $dtype   = $req->input('discount_type');
+    $dval    = (float) $req->input('discount_value');
+
+    // Nếu là % ở chế độ hàng loạt, chặn ngay nếu > 50
+    if ($hasDisc && $dtype === 'percent' && ($dval <= 0 || $dval > 50)) {
+        return response()->json(['message' => 'Giảm theo % phải trong (0, 50]'], 422);
+    }
+
+    $source   = (method_exists($user, 'isAdmin') && $user->isAdmin()) ? 'admin' : 'seller';
+    $priority = (int) ($data['priority'] ?? 0);
+
+    $updated = 0; $skipped = 0;
+
+    DB::transaction(function () use ($data, $source, $priority, $user, $hasDisc, $dtype, $dval, &$updated, &$skipped, $req) {
+        $products = Product::query()
+            ->whereIn('id', $data['product_ids'])
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($products as $p) {
+            // Authorization
+            if (method_exists($user, 'isAdmin') && !$user->isAdmin()) {
+                if (method_exists($user, 'isSeller') && $user->isSeller()) {
+                    if (property_exists($user, 'shop_id') && (int)$user->shop_id !== (int)$p->shop_id) {
+                        $skipped++; continue;
+                    }
+                } else { $skipped++; continue; }
+            }
+
+            $minSalePrice = round($p->price * 0.5, 2);
+            $salePrice = $req->filled('sale_price') ? (float)$data['sale_price'] : null;
+
+            if (is_null($salePrice) && $hasDisc) {
+                if ($dtype === 'percent') {
+                    $salePrice = max(0, round($p->price * (1 - $dval / 100), 0));
+                } else { // fixed
+                    // số tiền giảm cố định không vượt 50% của từng sản phẩm
+                    if ($dval > $p->price * 0.5) { $skipped++; continue; }
+                    $salePrice = max(0, (float)$p->price - $dval);
+                }
+            }
+
+            if (
+                is_null($salePrice) ||
+                $salePrice <= 0 ||
+                $salePrice >= (float)$p->price ||
+                $salePrice < $minSalePrice
+            ) { $skipped++; continue; }
+
+            $p->applySale(
+                $salePrice,
+                $data['sale_starts_at'] ?? null,
+                $data['sale_ends_at']   ?? null,
+                $source,
+                $priority
+            )->save();
+            $updated++;
+        }
+    });
+
+    return response()->json([
+        'message' => 'Đã cập nhật sale hàng loạt',
+        'updated' => $updated,
+        'skipped' => $skipped, // các sp bị bỏ qua vì vượt quá 50% hoặc không hợp lệ
+    ]);
+}
+
 
     // DELETE /api/products/{product}/sale
     public function clearProductSale(Request $req, Product $product)

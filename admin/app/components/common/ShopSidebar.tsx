@@ -34,6 +34,7 @@ export const menu: readonly MenuRoot[] = [
       { label: "Danh sách", href: "/shop-admin/product" },
       { label: "Thêm mới", href: "/shop-admin/product/create", icon: <PlusCircle size={14} /> },
       { label: "Nhập hàng", href: "/shop-admin/shop/stock", icon: <PlusCircle size={14} /> },
+      { label: "Chương trình khuyến mãi", href: "/shop-admin/sales", icon: <PlusCircle size={14} /> },
     ],
   },
   {
