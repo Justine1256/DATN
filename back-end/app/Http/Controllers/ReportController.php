@@ -96,14 +96,15 @@ class ReportController extends Controller
             'order_id' => $order->id,
             'reason' => $validated['reason'],
             'status' => 'Pending',
+            'image'    => $validated['images'],
         ]);
 
-        foreach ($validated['images'] as $url) {
-            \App\Models\OrderReturnPhoto::create([
-                'order_id' => $order->id,
-                'image_path' => $url,
-            ]);
-        }
+        // foreach ($validated['images'] as $url) {
+        //     \App\Models\OrderReturnPhoto::create([
+        //         'order_id' => $order->id,
+        //         'image_path' => $url,
+        //     ]);
+        // }
 
         return response()->json(['message' => 'Tố cáo đơn hàng #' . $order->id . ' đã được gửi thành công', 'report_id' => $report->id]);
     }

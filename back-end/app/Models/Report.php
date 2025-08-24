@@ -12,6 +12,7 @@ class Report extends Model
         'order_id',
         'reason',
         'status',
+        'image',
     ];
 
     // Quan hệ: báo cáo được gửi bởi user
@@ -29,5 +30,8 @@ class Report extends Model
     {
         return $this->belongsTo(Order::class);
     }
+        protected $casts = [
+        'image' => 'array',   // <— quan trọng: cột image sẽ là array (JSON)
+    ];
 
 }

@@ -1416,6 +1416,9 @@ public function ShopOrderList(Request $request)
         // Ảnh người mua gửi khi yêu cầu hoàn đơn
         $photos = \App\Models\OrderReturnPhoto::where('order_id', $orderId)->pluck('image_path');
 
+            $refundImages = \App\Models\OrderReturnPhoto::where('order_id', $orderId)
+                    ->pluck('image_path');
+
         // Ảnh sản phẩm gốc trong đơn hàng
         $productImages = $order->orderDetails->map(function ($detail) {
             return [
@@ -1424,6 +1427,7 @@ public function ShopOrderList(Request $request)
                 'image' => $detail->product->image, // Giả sử có cột image trong bảng products
             ];
         });
+        $reportImages = $report->image ?: [];
 
         return response()->json([
             'report_id' => $report->id,
@@ -1442,7 +1446,8 @@ public function ShopOrderList(Request $request)
                 'logo'  => $order->shop->logo ?? null,
             ],
             'report_reason' => $report->reason,
-            'photos' => $photos,
+            'report_images'   => $reportImages,
+            // 'photos' => $photos,
             'product_images' => $productImages, // Thêm phần này
             'created_at' => $report->created_at,
             'status' => $report->status,
