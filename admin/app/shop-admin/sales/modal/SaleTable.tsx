@@ -45,6 +45,64 @@ function computeDiscountPercent(record: any) {
   return Math.round(100 * (1 - Number(effectiveSale) / price));
 }
 
+/** Validate chỉ ô "giá trị giảm" theo kiểu giảm */
+function getDiscountError(record: any): string | null {
+  const price = Number(record.price || 0);
+  const type = record.discount_type;
+  const val = record.discount_value;
+
+  if (!type) return null; // chưa chọn kiểu thì chưa báo
+  if (val == null || val === undefined || Number(val) <= 0) {
+    return 'Giá trị giảm phải > 0';
+  }
+
+  if (type === 'percent') {
+    if (Number(val) > 50) return 'Không được giảm quá 50%';
+    return null;
+  } else {
+    const max = Math.floor(price * 0.5);
+    if (Number(val) > max) return `Số tiền giảm tối đa là ${formatVND(max)} (≤50%)`;
+    return null;
+  }
+}
+
+/** Validate toàn dòng trước khi Lưu */
+function getRowInvalidReason(record: any): string | null {
+  const price = Number(record.price || 0);
+
+  // 1) validate thời gian
+  if (record.sale_starts_at && record.sale_ends_at) {
+    const s = new Date(record.sale_starts_at).getTime();
+    const e = new Date(record.sale_ends_at).getTime();
+    if (s > e) return 'Thời gian: Bắt đầu phải trước hoặc bằng Kết thúc';
+  }
+
+  // 2) nếu dùng kiểu giảm + giá trị giảm
+  if (record.discount_type && record.discount_value) {
+    const err = getDiscountError(record);
+    if (err) return err;
+
+    const preview = computeSalePrice(record);
+    if (preview == null) return 'Không tính được giá sale';
+    if (preview <= 0) return 'Giá sale phải > 0';
+    if (preview >= price) return 'Giá sale phải < giá gốc';
+    if (preview < price * 0.5) return 'Giảm quá 50% giá gốc';
+    return null;
+  }
+
+  // 3) fallback: nếu người dùng nhập trực tiếp sale_price ở nơi khác
+  if (record.sale_price != null) {
+    const sp = Number(record.sale_price);
+    if (!(sp > 0)) return 'Giá sale phải > 0';
+    if (sp >= price) return 'Giá sale phải < giá gốc';
+    if (sp < price * 0.5) return 'Giảm quá 50% giá gốc';
+    return null;
+  }
+
+  // chưa nhập gì để lưu
+  return 'Hãy nhập % hoặc số tiền giảm (hoặc giá sale cụ thể)';
+}
+
 export default function SaleTable({
   products,
   loading,
@@ -66,12 +124,14 @@ export default function SaleTable({
 }) {
   const token = Cookies.get('authToken');
   const [msg, contextHolder] = message.useMessage();
-
-  // ép re-render nhẹ khi đổi kiểu giảm để cập nhật max/placeholder
-  const [, setTick] = useState(0);
+  const [, setTick] = useState(0); // ép re-render nhẹ khi đổi input
 
   const handleSaveSale = async (record: any) => {
     if (!token) return msg.error('Bạn chưa đăng nhập');
+
+    // ✅ validate trước khi gọi API
+    const invalid = getRowInvalidReason(record);
+    if (invalid) return msg.error(invalid);
 
     const payload: any = {
       sale_starts_at: record.sale_starts_at || null,
@@ -99,19 +159,17 @@ export default function SaleTable({
       });
       if (!res.ok) throw new Error();
 
-      // nếu BE trả product, dùng để patch chính xác (tuỳ API của bạn)
+      // Có thể đọc dữ liệu trả về để patch chuẩn theo BE
       // const data = await res.json();
       // const p = data?.product;
 
-      // Patch cục bộ (ít nhất clear input tạm nếu dùng discount_type/value)
       onLocalPatch?.(record.id, {
-        sale_price: computeSalePrice(record), // preview hiện tại
+        sale_price: computeSalePrice(record),
         // sale_starts_at: p?.sale_starts_at ?? record.sale_starts_at,
         // sale_ends_at: p?.sale_ends_at ?? record.sale_ends_at,
       });
 
       msg.success('Cập nhật thành công');
-      // onRefresh(); // không cần refetch, để lại nếu bạn muốn chắc chắn đồng bộ
     } catch (err) {
       console.error(err);
       msg.error('Không thể cập nhật sale');
@@ -128,7 +186,6 @@ export default function SaleTable({
       });
       if (!res.ok) throw new Error();
 
-      // Cập nhật cục bộ 1 dòng, KHÔNG refetch
       onLocalPatch?.(id, {
         sale_price: null,
         sale_starts_at: null,
@@ -202,38 +259,48 @@ export default function SaleTable({
         </Space>
       ),
       key: 'discount_value',
-      width: 150,
-      render: (_, record) => (
-        <InputNumber
-          min={1}
-          max={
-            record.discount_type === 'percent'
-              ? 50
-              : Math.max(1, Math.floor(Number(record.price) * 0.5))
-          }
-          placeholder={
-            record.discount_type === 'percent'
-              ? 'Nhập % (≤50)'
-              : 'Nhập số tiền (≤50%)'
-          }
-          value={record.discount_value}
-          onChange={(v) => {
-            record.discount_value = v ?? undefined;
-            setTick((n) => n + 1);
-          }}
-          className="w-full"
-        />
-      ),
+      width: 170,
+      render: (_, record) => {
+        const err = getDiscountError(record);
+        return (
+          <Tooltip title={err || undefined} open={err ? undefined : false}>
+            <InputNumber
+              min={1}
+              max={
+                record.discount_type === 'percent'
+                  ? 100 /* cho phép nhập rộng, sẽ báo lỗi nếu > 50 */
+                  : undefined /* cho phép nhập rộng, sẽ báo lỗi nếu vượt 50% */
+              }
+              placeholder={
+                record.discount_type === 'percent'
+                  ? 'Nhập % (≤50)'
+                  : 'Nhập số tiền (≤50%)'
+              }
+              value={record.discount_value}
+              onChange={(v) => {
+                record.discount_value = v ?? undefined;
+                setTick((n) => n + 1);
+              }}
+              className="w-full"
+              status={err ? 'error' : undefined}
+            />
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Giá sale (xem trước)',
       key: 'sale_preview',
       render: (_, record) => {
         const preview = computeSalePrice(record);
+        const price = Number(record.price || 0);
+        const tooLow = preview != null && preview < price * 0.5;
         return preview != null ? (
-          <span className="font-semibold text-red-600">
-            {formatVND(Number(preview))}
-          </span>
+          <Tooltip title={tooLow ? 'Giảm quá 50% giá gốc' : undefined}>
+            <span className={`font-semibold ${tooLow ? 'text-red-500' : 'text-red-600'}`}>
+              {formatVND(Number(preview))}
+            </span>
+          </Tooltip>
         ) : (
           <span className="text-gray-400">—</span>
         );
@@ -296,19 +363,28 @@ export default function SaleTable({
     {
       title: 'Thao tác',
       key: 'actions',
-      render: (_, record) => (
-        <Space>
-          <Button type="primary" onClick={() => handleSaveSale(record)}>
-            Lưu
-          </Button>
-          <Popconfirm
-            title="Xóa sale này?"
-            onConfirm={() => handleRemoveSale(record.id)} // ✅ truyền id
-          >
-            <Button danger>Gỡ</Button>
-          </Popconfirm>
-        </Space>
-      ),
+      render: (_, record) => {
+        const invalid = getRowInvalidReason(record);
+        return (
+          <Space>
+            <Tooltip title={invalid || undefined}>
+              <Button
+                type="primary"
+                onClick={() => handleSaveSale(record)}
+                disabled={!!invalid}
+              >
+                Lưu
+              </Button>
+            </Tooltip>
+            <Popconfirm
+              title="Xóa sale này?"
+              onConfirm={() => handleRemoveSale(record.id)}
+            >
+              <Button danger>Gỡ</Button>
+            </Popconfirm>
+          </Space>
+        );
+      },
     },
   ];
 
