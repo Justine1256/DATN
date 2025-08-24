@@ -1,8 +1,7 @@
 "use client";
-
+import chunk from "lodash/chunk";
 import { useEffect, useMemo, useState } from "react";
 import {
-    Layout,
     Card,
     Row,
     Col,
@@ -22,13 +21,14 @@ import {
 import { FilterOutlined, ReloadOutlined, AppstoreOutlined } from "@ant-design/icons";
 import LandingSlider from "@/app/components/home/LandingSlider";
 import ProductCard from "@/app/components/product/ProductCard";
-
 import { type NormalizedProduct } from "@/app/components/product/hooks/Product";
 
 const MARKETO_BASE = "https://api.marketo.info.vn/api";
 const { Text } = Typography;
 
-interface RawProduct { [k: string]: any }
+interface RawProduct {
+    [k: string]: any;
+}
 
 interface PaginationInfo {
     current_page: number;
@@ -42,6 +42,7 @@ interface PaginationInfo {
 const PRICE_MIN = 0;
 const PRICE_MAX = 50_000_000;
 
+// === helpers ===
 const pickNumber = (...candidates: any[]): number | undefined => {
     for (const c of candidates) {
         const n = Number(c);
@@ -63,6 +64,57 @@ const ensureArray = (val: any): string[] => {
     return [];
 };
 
+// Đọc 1 trang cho 1 endpoint bất kỳ (ví dụ: "flash-sale-page" hoặc "product")
+async function fetchProductPage(path: string, page: number, perPage = 100) {
+    const sep = path.includes("?") ? "&" : "?";
+    const url = `${MARKETO_BASE}/${path}${sep}page=${page}&per_page=${perPage}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    const items: any[] = Array.isArray(json)
+        ? json
+        : (json?.data ?? json?.products ?? json?.items ?? []);
+
+    // trích meta phân trang (đủ kiểu key để an toàn)
+    const meta = json?.meta ?? json?.pagination ?? {};
+    const current =
+        Number(meta.current_page ?? meta.currentPage ?? json?.current_page ?? page) || page;
+    const per_page = Number(meta.per_page ?? json?.per_page ?? perPage) || perPage;
+
+    // thử xác định last_page
+    let last =
+        Number(meta.last_page ?? meta.lastPage ?? json?.last_page) ||
+        0;
+
+    if (!last) {
+        const total = Number(meta.total ?? json?.total ?? (Array.isArray(json) ? json.length : 0)) || 0;
+        last = Math.max(1, Math.ceil(total / per_page));
+    }
+
+    return { items, current, last };
+}
+
+// Quét hết trang (nếu endpoint có phân trang). Nếu endpoint không hỗ trợ phân trang, vẫn trả kết quả lần gọi đầu.
+async function fetchAllProducts(path: string, perPage = 100) {
+    // gọi trang đầu để xem có meta không
+    const first = await fetchProductPage(path, 1, perPage);
+    const all: any[] = [...first.items];
+
+    if (first.last <= first.current || first.items.length === 0) {
+        // không có thêm trang; trả ngay
+        return all;
+    }
+
+    // có phân trang -> quét tiếp
+    for (let p = first.current + 1; p <= first.last; p++) {
+        const page = await fetchProductPage(path, p, perPage);
+        all.push(...page.items);
+        if (page.current >= page.last || page.items.length === 0) break;
+    }
+    return all;
+}
+
 export default function CategoryPageAntd() {
     const [allProducts, setAllProducts] = useState<NormalizedProduct[]>([]);
     const [products, setProducts] = useState<NormalizedProduct[]>([]);
@@ -79,22 +131,32 @@ export default function CategoryPageAntd() {
 
     const [page, setPage] = useState(1);
     const [pageInfo, setPageInfo] = useState<PaginationInfo | null>(null);
-    const itemsPerPage = 15;
+    const itemsPerPage = 16;
 
     const [filterOpen, setFilterOpen] = useState(false);
 
-    // ====== FETCH SẢN PHẨM ======
     // ====== FETCH SẢN PHẨM ======
     useEffect(() => {
         (async () => {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch(`${MARKETO_BASE}/flash-sale-page`);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const raw = await res.json();
-                const list: RawProduct[] =
-                    (Array.isArray(raw) ? raw : (raw?.data ?? raw?.products ?? raw?.items ?? [])) || [];
+                // 1) thử quét phân trang cho endpoint hiện tại (flash-sale-page)
+                let list: RawProduct[] = await fetchAllProducts("flash-sale-page", 100);
+
+                // 2) nếu endpoint không có phân trang và trả mảng rỗng (hoặc lỗi meta), thử gọi trực tiếp 1 lần
+                if (!Array.isArray(list) || list.length === 0) {
+                    const fallbackRes = await fetch(`${MARKETO_BASE}/flash-sale-page`, { cache: "no-store" });
+                    if (fallbackRes.ok) {
+                        const j = await fallbackRes.json();
+                        list = (Array.isArray(j) ? j : (j?.data ?? j?.products ?? j?.items ?? [])) || [];
+                    }
+                }
+
+                // 3) nếu vẫn thấy ít/không có dữ liệu, fallback sang /product (có phân trang)
+                if (!Array.isArray(list) || list.length === 0) {
+                    list = await fetchAllProducts("product", 100);
+                }
 
                 const normalized: NormalizedProduct[] = list.map((r) => {
                     const price = pickNumber(r.price, r.unit_price, r.base_price, r.min_price);
@@ -103,11 +165,12 @@ export default function CategoryPageAntd() {
                     const rating_avg = pickNumber(r.rating_avg, r.rating);
                     const review_count = pickNumber(r.review_count, r.reviews_count, r.total_reviews);
 
-                    // ✅ Luôn tính discount = % giảm giá
-                    const discount =
-                        (price && sale_price
+                    // Ưu tiên tính % giảm từ price & sale_price; nếu thiếu thì dùng r.discount(_percent)
+                    const computedDiscount =
+                        price != null && sale_price != null
                             ? Math.max(0, Math.round(((price - sale_price) / price) * 100))
-                            : undefined) ?? pickNumber(r.discount, r.discount_percent);
+                            : undefined;
+                    const discount = computedDiscount ?? pickNumber(r.discount, r.discount_percent);
 
                     return {
                         id: r.id ?? r.product_id ?? r._id ?? Math.random(),
@@ -121,7 +184,7 @@ export default function CategoryPageAntd() {
                         rating,
                         rating_avg,
                         review_count,
-                        discount, // <-- sửa ở đây
+                        discount,
                         sold: pickNumber(r.sold, r.total_sales, r.sales),
                         createdAt: pickNumber(r.createdAt, r.created_at, Date.parse?.(r.created_at)),
                         variants: Array.isArray(r.variants) ? r.variants : [],
@@ -137,7 +200,6 @@ export default function CategoryPageAntd() {
         })();
     }, []);
 
-
     const getSortingParam = () => {
         if (selectedNameSort) return selectedNameSort === "asc" ? "name_asc" : "name_desc";
         if (selectedPriceSort) return selectedPriceSort === "asc" ? "price_asc" : "price_desc";
@@ -147,8 +209,7 @@ export default function CategoryPageAntd() {
         return "rating_desc";
     };
 
-    // Map sang đúng type của ProductCard
-    // Dùng NormalizedProduct luôn
+    // Map sang đúng type của ProductCard (giữ nguyên)
     const cardProducts: NormalizedProduct[] = useMemo(
         () =>
             products.map((p) => ({
@@ -165,7 +226,6 @@ export default function CategoryPageAntd() {
         [products]
     );
 
-
     // Filter + Sort + Paginate
     useEffect(() => {
         if (loading) return;
@@ -174,26 +234,29 @@ export default function CategoryPageAntd() {
             (p.sale_price != null ? Number(p.sale_price) : Number(p.price)) || 0;
 
         let filtered = allProducts.filter(
-            (p) =>
-                effectivePrice(p) >= appliedRange[0] &&
-                effectivePrice(p) <= appliedRange[1]
+            (p) => effectivePrice(p) >= appliedRange[0] && effectivePrice(p) <= appliedRange[1]
         );
 
         const sorting = getSortingParam();
         const cmp = (a: NormalizedProduct, b: NormalizedProduct) => {
             switch (sorting) {
-                case "name_asc": return (a.name || "").localeCompare(b.name || "");
-                case "name_desc": return (b.name || "").localeCompare(a.name || "");
-                case "price_asc": return effectivePrice(a) - effectivePrice(b);
-                case "price_desc": return effectivePrice(b) - effectivePrice(a);
+                case "name_asc":
+                    return (a.name || "").localeCompare(b.name || "");
+                case "name_desc":
+                    return (b.name || "").localeCompare(a.name || "");
+                case "price_asc":
+                    return effectivePrice(a) - effectivePrice(b);
+                case "price_desc":
+                    return effectivePrice(b) - effectivePrice(a);
                 case "discount_desc":
-                    return (Number(b.discount ?? 0)) - (Number(a.discount ?? 0));
-
-                case "sold_desc": return (Number(b.sold ?? 0)) - (Number(a.sold ?? 0));
-                case "latest": return (Number(b.createdAt ?? 0)) - (Number(a.createdAt ?? 0));
+                    return Number(b.discount ?? 0) - Number(a.discount ?? 0);
+                case "sold_desc":
+                    return Number(b.sold ?? 0) - Number(a.sold ?? 0);
+                case "latest":
+                    return Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0);
                 case "rating_desc":
                 default:
-                    return (Number(b.rating_avg ?? b.rating ?? 0)) - (Number(a.rating_avg ?? a.rating ?? 0));
+                    return Number(b.rating_avg ?? b.rating ?? 0) - Number(a.rating_avg ?? a.rating ?? 0);
             }
         };
         filtered = filtered.sort(cmp);
@@ -214,10 +277,7 @@ export default function CategoryPageAntd() {
             from: total === 0 ? 0 : start + 1,
             to: end,
         });
-    }, [
-        loading, allProducts, appliedRange,
-        selectedSort, selectedPriceSort, selectedDiscountSort, selectedNameSort, page,
-    ]);
+    }, [loading, allProducts, appliedRange, selectedSort, selectedPriceSort, selectedDiscountSort, selectedNameSort, page]);
 
     const formatVND = (v: number) =>
         new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
@@ -226,10 +286,16 @@ export default function CategoryPageAntd() {
 
     const BannerSkeleton = (
         <Card style={{ borderRadius: 12, overflow: "hidden" }}>
-            <div style={{
-                width: "100%", aspectRatio: "16 / 6", background: "#f5f5f5",
-                display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
+            <div
+                style={{
+                    width: "100%",
+                    aspectRatio: "16 / 6",
+                    background: "#f5f5f5",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
                 <Skeleton.Image active style={{ width: "95%", height: "90%", borderRadius: 12 }} />
             </div>
         </Card>
@@ -380,6 +446,10 @@ export default function CategoryPageAntd() {
                 </Card>
 
                 {/* Products */}
+       
+
+              
+
                 <Card>
                     {error ? (
                         <Alert type="error" showIcon message={error} />
@@ -423,15 +493,19 @@ export default function CategoryPageAntd() {
                                     Hiển thị {pageInfo.from}-{pageInfo.to} / {pageInfo.total} sản phẩm
                                 </div>
                             )}
-                            <List
-                                grid={{ gutter: 16, column: 4, xs: 1, sm: 2, md: 3, lg: 4, xl: 4 }}
-                                dataSource={cardProducts}
-                                renderItem={(product, idx) => (
-                                    <List.Item key={`${product.id}-${idx}`}>
-                                        <ProductCard product={product as any} />
-                                    </List.Item>
-                                )}
-                            />
+
+                            {/* ✅ 4 cột, mỗi cột chứa 4 sản phẩm */}
+                            <Row gutter={[16, 16]}>
+                                {Array.from({ length: 4 }).map((_, colIdx) => (
+                                    <Col key={colIdx} xs={24} sm={12} md={6} lg={6}>
+                                        {chunk(cardProducts, 4)[colIdx]?.map((product, idx) => (
+                                            <div key={`${product.id}-${idx}`} style={{ marginBottom: 16 }}>
+                                                <ProductCard product={product as any} />
+                                            </div>
+                                        ))}
+                                    </Col>
+                                ))}
+                            </Row>
 
                             {pageInfo && pageInfo.last_page > 1 && (
                                 <Row justify="center" style={{ marginTop: 16 }}>
@@ -450,10 +524,15 @@ export default function CategoryPageAntd() {
                         </>
                     )}
                 </Card>
+
             </div>
 
             <Modal
-                title={<Space><FilterOutlined /> Bộ lọc</Space>}
+                title={
+                    <Space>
+                        <FilterOutlined /> Bộ lọc
+                    </Space>
+                }
                 open={filterOpen}
                 onCancel={() => setFilterOpen(false)}
                 footer={null}
@@ -470,4 +549,6 @@ export default function CategoryPageAntd() {
             </Modal>
         </ConfigProvider>
     );
+
+   
 }

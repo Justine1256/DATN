@@ -79,7 +79,7 @@ export default function CategoryPageAntd() {
 
     const [page, setPage] = useState(1);
     const [pageInfo, setPageInfo] = useState<PaginationInfo | null>(null);
-    const itemsPerPage = 15;
+    const itemsPerPage = 16;
 
     const [filterOpen, setFilterOpen] = useState(false);
 
@@ -89,11 +89,13 @@ export default function CategoryPageAntd() {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch(`${MARKETO_BASE}/product`);
+                const res = await fetch(`${MARKETO_BASE}/product?page=${page}&per_page=${itemsPerPage}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const raw = await res.json();
-                const list: RawProduct[] =
-                    (Array.isArray(raw) ? raw : (raw?.data ?? raw?.products ?? raw?.items ?? [])) || [];
+
+                const list: RawProduct[] = Array.isArray(raw)
+                    ? raw
+                    : raw?.data ?? raw?.products ?? raw?.items ?? [];
 
                 const normalized: NormalizedProduct[] = list.map((r) => {
                     const price = pickNumber(r.price, r.unit_price, r.base_price, r.min_price);
@@ -125,14 +127,28 @@ export default function CategoryPageAntd() {
                     };
                 });
 
+                // ✅ Lưu tất cả sản phẩm vào allProducts (để filter/sort dùng)
                 setAllProducts(normalized);
+
+                // cập nhật meta pagination từ API
+                const meta = raw?.meta ?? raw?.pagination;
+                setPageInfo({
+                    current_page: meta?.current_page ?? page,
+                    last_page: meta?.last_page ?? 1,
+                    per_page: meta?.per_page ?? itemsPerPage,
+                    total: meta?.total ?? normalized.length,
+                    from: meta?.from ?? 1,
+                    to: meta?.to ?? normalized.length,
+                });
             } catch (e: any) {
                 setError(e?.message || "Đã xảy ra lỗi");
             } finally {
                 setLoading(false);
             }
         })();
-    }, []);
+    }, [page]);
+
+
 
     const getSortingParam = () => {
         if (selectedNameSort) return selectedNameSort === "asc" ? "name_asc" : "name_desc";
@@ -297,77 +313,104 @@ export default function CategoryPageAntd() {
                         </Col>
                         <Col flex="auto">
                             <Space wrap size={8} style={{ width: "100%", justifyContent: "flex-end" }} align="center">
-                                <span style={{ whiteSpace: "nowrap" }} className="hidden md:inline-flex">
-                                    <AppstoreOutlined />
-                                    <Text strong style={{ color: "#1f1f1f", marginLeft: 6 }}>Sắp xếp theo</Text>
-                                </span>
+                              
 
-                                <Select
-                                    value={selectedSort}
-                                    onChange={(v) => {
-                                        setSelectedSort(v);
-                                        setSelectedPriceSort(null);
-                                        setSelectedDiscountSort(null);
-                                        setSelectedNameSort(null);
-                                        setPage(1);
-                                    }}
-                                    options={[
-                                        { label: "Phổ Biến", value: "Phổ Biến" },
-                                        { label: "Mới Nhất", value: "Mới Nhất" },
-                                        { label: "Bán Chạy", value: "Bán Chạy" },
-                                    ]}
-                                />
-                                <Select
-                                    style={{ minWidth: 150 }}
-                                    value={selectedPriceSort || undefined}
-                                    placeholder="Giá"
-                                    onChange={(v) => {
-                                        setSelectedPriceSort(v ?? null);
-                                        if (v) {
-                                            setSelectedDiscountSort(null);
-                                            setSelectedNameSort(null);
-                                        }
-                                        setPage(1);
-                                    }}
-                                    allowClear
-                                    options={[
-                                        { label: "Thấp đến cao", value: "asc" },
-                                        { label: "Cao đến thấp", value: "desc" },
-                                    ]}
-                                />
-                                <Select
-                                    style={{ minWidth: 150 }}
-                                    value={selectedDiscountSort || undefined}
-                                    placeholder="Khuyến mãi"
-                                    onChange={(v) => {
-                                        setSelectedDiscountSort(v ?? null);
-                                        if (v) {
-                                            setSelectedPriceSort(null);
-                                            setSelectedNameSort(null);
-                                        }
-                                        setPage(1);
-                                    }}
-                                    allowClear
-                                    options={[{ label: "Cao đến thấp", value: "desc" }]}
-                                />
-                                <Select
-                                    style={{ minWidth: 150 }}
-                                    value={selectedNameSort || undefined}
-                                    placeholder="Tên"
-                                    onChange={(v) => {
-                                        setSelectedNameSort(v ?? null);
-                                        if (v) {
+                                <Space wrap size={8} style={{ width: "100%", justifyContent: "flex-end" }} align="center">
+                                    <span style={{ whiteSpace: "nowrap" }} className="hidden md:inline-flex">
+                                        <AppstoreOutlined />
+                                        <Text strong style={{ color: "#1f1f1f", marginLeft: 6 }}>Sắp xếp theo</Text>
+                                    </span>
+
+                                    <Select
+                                        value={selectedSort}
+                                        onChange={(v) => {
+                                            setSelectedSort(v);
                                             setSelectedPriceSort(null);
                                             setSelectedDiscountSort(null);
-                                        }
-                                        setPage(1);
-                                    }}
-                                    allowClear
-                                    options={[
-                                        { label: "A đến Z", value: "asc" },
-                                        { label: "Z đến A", value: "desc" },
-                                    ]}
-                                />
+                                            setSelectedNameSort(null);
+                                            setPage(1);
+                                        }}
+                                        options={[
+                                            { label: "Phổ Biến", value: "Phổ Biến" },
+                                            { label: "Mới Nhất", value: "Mới Nhất" },
+                                            { label: "Bán Chạy", value: "Bán Chạy" },
+                                        ]}
+                                    />
+
+                                    <Select
+                                        style={{ minWidth: 150 }}
+                                        value={selectedPriceSort || undefined}
+                                        placeholder="Giá"
+                                        onChange={(v) => {
+                                            setSelectedPriceSort(v ?? null);
+                                            if (v) {
+                                                setSelectedDiscountSort(null);
+                                                setSelectedNameSort(null);
+                                            }
+                                            setPage(1);
+                                        }}
+                                        allowClear
+                                        options={[
+                                            { label: "Thấp đến cao", value: "asc" },
+                                            { label: "Cao đến thấp", value: "desc" },
+                                        ]}
+                                    />
+
+                                    <Select
+                                        style={{ minWidth: 150 }}
+                                        value={selectedDiscountSort || undefined}
+                                        placeholder="Khuyến mãi"
+                                        onChange={(v) => {
+                                            setSelectedDiscountSort(v ?? null);
+                                            if (v) {
+                                                // reset các sort khác
+                                                setSelectedPriceSort(null);
+                                                setSelectedNameSort(null);
+                                            }
+                                            setPage(1);
+                                        }}
+                                        allowClear
+                                        options={[
+                                            { label: "Giảm giá cao đến thấp", value: "desc" },
+                                            { label: "Giảm giá thấp đến cao", value: "asc" },
+                                        ]}
+                                    />
+
+
+                                    <Select
+                                        style={{ minWidth: 150 }}
+                                        value={selectedNameSort || undefined}
+                                        placeholder="Tên"
+                                        onChange={(v) => {
+                                            setSelectedNameSort(v ?? null);
+                                            if (v) {
+                                                setSelectedPriceSort(null);
+                                                setSelectedDiscountSort(null);
+                                            }
+                                            setPage(1);
+                                        }}
+                                        allowClear
+                                        options={[
+                                            { label: "A đến Z", value: "asc" },
+                                            { label: "Z đến A", value: "desc" },
+                                        ]}
+                                    />
+
+                                    {/* ✅ Nút Đặt lại */}
+                                    <Button
+                                        icon={<ReloadOutlined />}
+                                        onClick={() => {
+                                            setSelectedSort("Phổ Biến");
+                                            setSelectedPriceSort(null);
+                                            setSelectedDiscountSort(null);
+                                            setSelectedNameSort(null);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        Đặt lại
+                                    </Button>
+                                </Space>
+
                             </Space>
                         </Col>
                     </Row>
