@@ -1,25 +1,47 @@
 'use client';
 
-import { Table, Button, InputNumber, DatePicker, Space, Popconfirm, message, Radio, Tooltip } from 'antd';
+import {
+  Table,
+  Button,
+  InputNumber,
+  DatePicker,
+  Space,
+  Popconfirm,
+  message,
+  Radio,
+  Tooltip,
+  Tag,
+} from 'antd';
 import { API_BASE_URL } from '@/utils/api';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Cookies from 'js-cookie';
 
 const { RangePicker } = DatePicker;
 
+// formatter VND
+const formatVND = (n: number) =>
+  new Intl.NumberFormat('vi-VN').format(Math.max(0, Math.floor(Number(n)))) + 'đ';
+
+// Giá sale “đang áp dụng” (ưu tiên discount_type/value nếu đang nhập)
 function computeSalePrice(record: any) {
   const price = Number(record.price || 0);
   const type = record.discount_type;
-  const val  = Number(record.discount_value || 0);
-
+  const val = Number(record.discount_value || 0);
   if (!type || !val) return record.sale_price ?? null;
+  if (type === 'percent') return Math.max(0, Math.round(price * (1 - val / 100)));
+  return Math.max(0, price - val); // fixed
+}
 
-  if (type === 'percent') {
-    return Math.max(0, Math.round(price * (1 - val / 100)));
-  }
-  // fixed
-  return Math.max(0, price - val);
+// % giảm dựa trên giá gốc & giá sale
+function computeDiscountPercent(record: any) {
+  const price = Number(record.price || 0);
+  if (price <= 0) return null;
+  const effectiveSale =
+    (computeSalePrice(record) ?? record.sale_price ?? null) as number | null;
+  if (effectiveSale == null) return null;
+  if (Number(effectiveSale) >= price) return 0;
+  return Math.round(100 * (1 - Number(effectiveSale) / price));
 }
 
 export default function SaleTable({
@@ -28,25 +50,34 @@ export default function SaleTable({
   onRefresh,
   selectedRowKeys,
   setSelectedRowKeys,
-}: any) {
+  pagination,
+  onPageChange,
+}: {
+  products: any[];
+  loading: boolean;
+  onRefresh: () => void;
+  selectedRowKeys: number[];
+  setSelectedRowKeys: (keys: number[]) => void;
+  pagination: { current: number; pageSize: number; total: number };
+  onPageChange: (page: number) => void;
+}) {
   const token = Cookies.get('authToken');
 
   const handleSaveSale = async (record: any) => {
     if (!token) return message.error('Bạn chưa đăng nhập');
 
-    // gửi discount_* (BE sẽ tính)
     const payload: any = {
       sale_starts_at: record.sale_starts_at || null,
       sale_ends_at: record.sale_ends_at || null,
     };
 
     if (record.discount_type && record.discount_value) {
-      payload.discount_type  = record.discount_type;
+      payload.discount_type = record.discount_type;
       payload.discount_value = Number(record.discount_value);
     } else if (record.sale_price) {
       payload.sale_price = Number(record.sale_price);
     } else {
-      return message.error('Hãy nhập % hoặc số tiền giảm (hoặc nhập trực tiếp giá sale)');
+      return message.error('Hãy nhập % hoặc số tiền giảm (hoặc giá sale cụ thể)');
     }
 
     try {
@@ -61,7 +92,7 @@ export default function SaleTable({
       });
       if (!res.ok) throw new Error();
       message.success('Cập nhật thành công');
-      onRefresh();
+      onRefresh(); // refresh đúng trang hiện tại (parent đã lo)
     } catch (err) {
       console.error(err);
       message.error('Không thể cập nhật sale');
@@ -86,12 +117,33 @@ export default function SaleTable({
   };
 
   const columns: ColumnsType<any> = [
-    { title: 'Sản phẩm', dataIndex: 'name', key: 'name' },
+    {
+  title: 'Sản phẩm',
+  dataIndex: 'name',
+  key: 'name',
+  width: 220,
+  render: (val: string) => (
+    <div
+      title={val} // hover thấy full
+      style={{
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+        whiteSpace: 'normal',
+      }}
+    >
+      {val}
+    </div>
+  ),
+}
+,
     {
       title: 'Giá gốc',
       dataIndex: 'price',
       key: 'price',
-      render: (val) => `${Number(val).toLocaleString('vi-VN')}₫`,
+      render: (val) => formatVND(Number(val)),
+      sorter: (a, b) => Number(a.price) - Number(b.price),
     },
     {
       title: 'Kiểu giảm',
@@ -107,14 +159,30 @@ export default function SaleTable({
       ),
     },
     {
-      title: 'Giá trị giảm',
+      title: (
+        <Space size={4}>
+          Giá trị giảm
+          <Tooltip title="Nếu giảm %: tối đa 50%. Nếu giảm số tiền: không vượt 50% giá gốc.">
+            <span className="text-gray-400 cursor-help">ⓘ</span>
+          </Tooltip>
+        </Space>
+      ),
       key: 'discount_value',
       render: (_, record) => (
         <InputNumber
           min={1}
-          max={record.discount_type === 'percent' ? 99 : Number(record.price) - 1}
-          placeholder={record.discount_type === 'percent' ? 'Nhập %' : 'Nhập số tiền'}
+          max={
+            record.discount_type === 'percent'
+              ? 50
+              : Math.max(1, Math.floor(Number(record.price) * 0.5))
+          }
+          placeholder={
+            record.discount_type === 'percent'
+              ? 'Nhập % (≤50)'
+              : 'Nhập số tiền (≤50%)'
+          }
           onChange={(v) => (record.discount_value = v)}
+          className="w-full"
         />
       ),
     },
@@ -123,9 +191,43 @@ export default function SaleTable({
       key: 'sale_preview',
       render: (_, record) => {
         const preview = computeSalePrice(record);
-        return preview
-          ? <span className="font-semibold text-red-600">{preview.toLocaleString('vi-VN')}₫</span>
-          : <span className="text-gray-400">—</span>;
+        return preview != null ? (
+          <span className="font-semibold text-red-600">
+            {formatVND(Number(preview))}
+          </span>
+        ) : (
+          <span className="text-gray-400">—</span>
+        );
+      },
+      sorter: (a, b) => {
+        const av = computeSalePrice(a) ?? a.sale_price ?? a.price;
+        const bv = computeSalePrice(b) ?? b.sale_price ?? b.price;
+        return Number(av) - Number(bv);
+      },
+    },
+    {
+      title: 'Giảm (%)',
+      key: 'discount_percent',
+      render: (_, record) => {
+        const d = computeDiscountPercent(record);
+        if (d == null) return <span className="text-gray-400">—</span>;
+        const overLimit = d > 50;
+        return (
+          <Tooltip
+            title={
+              overLimit
+                ? 'Vượt quá 50% - BE sẽ từ chối khi lưu'
+                : `Giảm ${d}% so với giá gốc`
+            }
+          >
+            <Tag color={overLimit ? 'error' : 'success'}>{d}%</Tag>
+          </Tooltip>
+        );
+      },
+      sorter: (a, b) => {
+        const ad = computeDiscountPercent(a) ?? -1;
+        const bd = computeDiscountPercent(b) ?? -1;
+        return ad - bd;
       },
     },
     {
@@ -156,14 +258,24 @@ export default function SaleTable({
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Button type="primary" onClick={() => handleSaveSale(record)}>Lưu</Button>
-          <Popconfirm title="Xóa sale này?" onConfirm={() => handleRemoveSale(record.id)}>
+          <Button type="primary" onClick={() => handleSaveSale(record)}>
+            Lưu
+          </Button>
+          <Popconfirm
+            title="Xóa sale này?"
+            onConfirm={() => handleRemoveSale(record.id)}
+          >
             <Button danger>Gỡ</Button>
           </Popconfirm>
         </Space>
       ),
     },
   ];
+
+  // antd Table onChange (dùng để chuyển trang server)
+  const handleTableChange = (pg: TablePaginationConfig) => {
+    if (pg.current && onPageChange) onPageChange(pg.current);
+  };
 
   return (
     <Table
@@ -173,9 +285,15 @@ export default function SaleTable({
       loading={loading}
       rowSelection={{
         selectedRowKeys,
-        onChange: (keys) => setSelectedRowKeys(keys),
+        onChange: (keys) => setSelectedRowKeys(keys as number[]),
       }}
-      pagination={{ pageSize: 10 }}
+      pagination={{
+        current: pagination.current,
+        pageSize: pagination.pageSize,
+        total: pagination.total,
+        showSizeChanger: false, // backend cố định 6/sp
+      }}
+      onChange={handleTableChange}
     />
   );
 }
