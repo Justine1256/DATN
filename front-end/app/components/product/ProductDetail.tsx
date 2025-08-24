@@ -821,7 +821,8 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
               {/* Countdown sát bên giá */}
               {showCountdown && (
                 <div className="flex items-center gap-2 pl-3 ml-1 border-l border-red-200 text-[#DB4444] leading-none">
-                  <span className="text-[20px]">🔥</span>
+                  <span className="text-[20px] fire-icon">🔥</span>
+
                   {salePhase === 'active' ? (
                     <>
                       <span className="text-[14px]">Kết thúc sau</span>
