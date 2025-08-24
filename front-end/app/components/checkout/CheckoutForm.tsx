@@ -65,6 +65,9 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
   // ĐỊA CHỈ ĐANG CHỈNH (để PATCH khi đặt hàng)
   const [editingSavedId, setEditingSavedId] = useState<number | string | null>(null);
 
+  // Cho biết đã sửa gì chưa khi đang chỉnh một địa chỉ đã lưu
+  const [isDirty, setIsDirty] = useState<boolean>(false);
+
   // profile để fallback liên hệ
   const [profile, setProfile] = useState<{ name?: string; phone?: string; email?: string }>({});
 
@@ -180,13 +183,14 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
         const sorted = list.sort((a, b) => Number(b.is_default) - Number(a.is_default));
         setAddresses(sorted);
 
-        // chọn mặc định và FILL XUỐNG (có thể sửa)
+        // chọn mặc định và FILL XUỐNG (cho sửa, nhưng CHƯA cho tick vì chưa dirty)
         const def = sorted.find(a => !!a.is_default);
         if (def) {
           fillFromSaved(def);
-          setSelectedAddressId(String(def.id));  // hiển thị đúng item đang chọn
+          setSelectedAddressId(String(def.id));  // hiển thị item đang chọn
           setEditingSavedId(def.id);             // nhớ id để PATCH nếu user sửa
           setManualMode(true);                   // cho phép sửa ngay
+          setIsDirty(false);                     // CHƯA sửa gì
           setSaveAddress(false);
           onAddressSelect(Number(def.id));       // parent vẫn có id nếu không sửa gì thêm
           onSaveAddressToggle?.(false);
@@ -274,6 +278,9 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
     setEmailError(null);
     setProvinceError(null);
     setWardError(null);
+
+    // khi fill từ saved → coi như CHƯA sửa
+    setIsDirty(false);
   };
 
   // ===== Select change (saved/manual) =====
@@ -284,6 +291,7 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
         setManualMode(true);
         setSelectedAddressId('');
         setEditingSavedId(null);
+        setIsDirty(false);
         onAddressSelect(null);
         onSaveAddressToggle?.(false);
         setSaveAddress(false);
@@ -304,7 +312,8 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
         // Tự nhập mới → xoá sạch
         setManualMode(true);
         setSelectedAddressId('');
-        setEditingSavedId(null);
+        setEditingSavedId(null);  // không phải địa chỉ đã lưu
+        setIsDirty(false);        // cho tick ngay (do không phải saved) – điều kiện disable sẽ cho phép
         onAddressSelect(null);
         onSaveAddressToggle?.(false);
         setSaveAddress(false);
@@ -321,13 +330,14 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
         return;
       }
 
-      // chọn một địa chỉ đã lưu → fill đầy đủ + cho sửa
+      // chọn một địa chỉ đã lưu → fill đầy đủ + CHƯA cho tick cho đến khi sửa
       const found = addresses.find(a => String(a.id) === String(value));
       if (found) {
         fillFromSaved(found);
         setManualMode(true);
         setSelectedAddressId(String(found.id)); // hiển thị item đã chọn
         setEditingSavedId(found.id);            // ghi nhớ để PATCH nếu user sửa
+        setIsDirty(false);                      // chưa sửa
         onAddressSelect(Number(found.id));      // parent vẫn dùng id nếu user KHÔNG sửa gì thêm
         onSaveAddressToggle?.(false);
         setSaveAddress(false);
@@ -335,6 +345,11 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
     },
     [addresses, onAddressSelect, onSaveAddressToggle, profile]
   );
+
+  // ===== Helpers: khi user sửa thì đánh dấu dirty nếu đang chỉnh saved =====
+  const markDirtyIfEditingSaved = () => {
+    if (editingSavedId != null) setIsDirty(true);
+  };
 
   // ===== Input change =====
   const handleInputChange = useCallback(
@@ -352,9 +367,11 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
       // người dùng đang nhập → checkout coi là manual, không dùng id nữa
       if (selectedAddressId) setSelectedAddressId('');
       onAddressSelect(null);
-      // LƯU Ý: KHÔNG xoá editingSavedId — để OrderSummary PATCH đúng địa chỉ đang chỉnh
+
+      // đánh dấu đã sửa nếu đang chỉnh saved
+      if (editingSavedId != null) setIsDirty(true);
     },
-    [formData, manualMode, selectedAddressId, onAddressSelect]
+    [formData, manualMode, selectedAddressId, onAddressSelect, editingSavedId]
   );
 
   // ===== Province/Ward change =====
@@ -369,6 +386,8 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
 
       if (selectedAddressId) setSelectedAddressId('');
       onAddressSelect(null);
+
+      markDirtyIfEditingSaved();
     },
     [provinces, manualMode, selectedAddressId, onAddressSelect]
   );
@@ -382,6 +401,8 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
 
       if (selectedAddressId) setSelectedAddressId('');
       onAddressSelect(null);
+
+      markDirtyIfEditingSaved();
     },
     [wards, manualMode, selectedAddressId, onAddressSelect]
   );
@@ -428,13 +449,12 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
     onAddressChange,
   ]);
 
-  // ===== Tick “lưu địa chỉ” – chỉ phát cờ, lưu POST/PATCH sẽ làm ở bước Đặt hàng =====
+  // ===== Tick “lưu địa chỉ” – chỉ phát cờ, POST/PATCH làm ở bước Đặt hàng =====
+  // disable nếu: không ở manualMode, HOẶC đang chỉnh địa chỉ đã lưu nhưng chưa sửa (isDirty = false)
+  const checkboxDisabled = !manualMode || (editingSavedId != null && !isDirty);
+
   const handleToggleSave = (checked: boolean) => {
-    if (!manualMode) {
-      setSaveAddress(false);
-      onSaveAddressToggle?.(false);
-      return;
-    }
+    if (checkboxDisabled) return; // chặn tick nếu chưa được phép
     setSaveAddress(checked);
     onSaveAddressToggle?.(checked);
   };
@@ -509,7 +529,9 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
             />
             <Text style={{ color: 'black' }}>
               {manualMode
-                ? 'Bạn có thể chỉnh các ô bên dưới. Tích “Lưu địa chỉ này” (POST/PATCH khi bấm “Đặt hàng”).'
+                ? (editingSavedId != null
+                  ? 'Đang dùng địa chỉ đã lưu.'
+                  : 'Bạn đang tự nhập địa chỉ mới. Có thể bật “Lưu địa chỉ này” nếu muốn.')
                 : 'Hoặc chọn “+ Nhập địa chỉ mới” ở đầu danh sách.'}
             </Text>
           </Form.Item>
@@ -538,14 +560,14 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
             />
           </Form.Item>
 
-          <Form.Item label="Tên đường">
+          {/* <Form.Item label="Tên đường">
             <Input
               placeholder="Nguyễn Trãi…"
               value={formData.apartment}
               onChange={(e) => handleInputChange('apartment', e.target.value)}
               disabled={!manualMode}
             />
-          </Form.Item>
+          </Form.Item> */}
 
           <Form.Item
             label="Tỉnh/Thành phố"
@@ -619,10 +641,15 @@ export default function CheckoutForm({ onAddressSelect, onAddressChange, onSaveA
               <Checkbox
                 checked={!!saveAddress}
                 onChange={(e) => handleToggleSave(e.target.checked)}
-                disabled={!manualMode}
+                disabled={checkboxDisabled}
               >
-                Lưu địa chỉ này cho lần sau 
+                Lưu địa chỉ này cho lần sau
               </Checkbox>
+              {editingSavedId != null && !isDirty && (
+                <div style={{ color: '#999', marginTop: 4 }}>
+                  (Đang dùng địa chỉ đã lưu — hãy sửa thông tin để bật được tuỳ chọn này)
+                </div>
+              )}
             </Form.Item>
           )}
         </Form>
