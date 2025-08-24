@@ -123,7 +123,27 @@ public function uploadRefundImage(Request $request)
         'images'  => [$url],
     ], 201);
 }
+public function uploadReportImage(Request $request)
+{
+    $request->validate([
+        'image' => 'required|image|mimes:jpg,jpeg,png,gif|max:2048',
+    ]);
 
+    $path = $request->file('image')->store('refund_photos', 'public');
+
+    if (!$path) {
+        Log::error('Upload refund failed: path empty');
+        return response()->json(['message' => 'Không thể lưu ảnh'], 500);
+    }
+
+    // Dùng asset() thay vì config
+    $url = asset('storage/' . $path);
+
+    return response()->json([
+        'message' => 'Tải ảnh hoàn đơn thành công',
+        'images'  => [$url],
+    ], 201);
+}
 public function uploadReviewImage(Request $request)
 {
     $request->validate([
