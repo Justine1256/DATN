@@ -138,8 +138,15 @@ export default function FlashSale() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 sm:gap-6 mt-1 sm:mt-2">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black">Sale chớp nhoáng</h2>
+              {/* Tiêu đề có icon 🔥 */}
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-black flex items-center gap-2">
+                <span className="fire-icon text-3xl">🔥</span>
+                Sale chớp nhoáng
+              </h2>
 
+
+
+              {/* Countdown */}
               <div className="flex items-end gap-6 text-black w-full sm:w-1/4 justify-between">
                 {[
                   { label: 'Ngày', value: timeLeft.days },
@@ -150,15 +157,18 @@ export default function FlashSale() {
                   <React.Fragment key={item.label}>
                     <div className="flex flex-col items-center w-14">
                       <span className="text-xs font-semibold text-gray-600 mb-1">{item.label}</span>
-                      <span className="text-xl sm:text-2xl md:text-3xl font-bold tabular-nums">
+                      <span className="text-xl sm:text-2xl md:text-3xl font-bold tabular-nums text-[#DB4444]">
                         {String(item.value).padStart(2, '0')}
                       </span>
                     </div>
-                    {i < arr.length - 1 && <div className="text-brand font-semibold text-xl">:</div>}
+                    {i < arr.length - 1 && (
+                      <div className="text-[#DB4444] font-semibold text-xl">:</div>
+                    )}
                   </React.Fragment>
                 ))}
               </div>
             </div>
+
           </div>
         </div>
 
