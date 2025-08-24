@@ -204,7 +204,7 @@ export default function ShopInfo({ shop, followed, onFollowToggle, isCheckingFol
         </div>
 
         {/* Left - mobile */}
-        <div className="flex flex-col gap-2">
+        <div className="flex md:hidden flex-col gap-2">
           <div className="flex md:hidden gap-4 flex-shrink-0">
             <div className="relative w-[60px] h-[60px] rounded-full overflow-hidden cursor-pointer">
               <Link href={`/shop/${shop.slug}`}>
