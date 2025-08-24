@@ -247,8 +247,15 @@ export default function ProductForm({ images, onOptionsChange }: ProductFormProp
                 <CKEditor
                   editor={ClassicEditor}
                   config={editorConfig as any}
-                  data={description}
-                  onChange={(event, editor) => setDescription(editor.getData())}
+                  // ❌ bỏ data
+                  onReady={(editor: any) => {
+                    // ✅ set data khi editor đã sẵn sàng
+                    editor.setData(description || "");
+                  }}
+                  onChange={(_: any, editor: any) => {
+                    setDescription(editor.getData());
+                  }}
+
                 />
               )}
             </div>

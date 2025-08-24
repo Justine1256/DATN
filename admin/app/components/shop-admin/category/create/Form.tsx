@@ -3,9 +3,11 @@ import dynamic from "next/dynamic";
 import React from "react";
 import { useCKEditorConfig } from "@/app/components/ckeditor/CKEditorWrapper";
 
-const CKEditor = dynamic(() => import("@ckeditor/ckeditor5-react").then((mod) => mod.CKEditor), {
-  ssr: false,
-});
+// ✅ CKEditor React mới
+const CKEditor = dynamic(
+  () => import("@ckeditor/ckeditor5-react").then((m) => m.CKEditor),
+  { ssr: false }
+);
 
 interface Category {
   id: string;
@@ -84,13 +86,15 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
             <CKEditor
               editor={ClassicEditor}
               config={editorConfig as any}
-              data={data.description || ""}
-              onChange={(event, editor) => {
-                const html = editor.getData();
-                setData("description", html);
+              // ❌ bỏ prop `data`, dùng onReady thay thế
+              onReady={(editor: any) => {
+                editor.setData(data.description || "");
               }}
-            />
+              onChange={(_: any, editor: any) => {
+                setData("description", editor.getData());
+              }}
 
+            />
           )}
         </div>
         <p className="text-xs text-slate-500 mt-2">

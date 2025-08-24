@@ -82,9 +82,16 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
             <CKEditor
               editor={ClassicEditor}
               config={editorConfig as any}
-              data={data.description || ""}
-              onChange={(event, editor) => setData("description", editor.getData())}
+              onReady={(editor: any) => {
+                // set data khi CKEditor load xong
+                editor.setData(data.description || "");
+              }}
+              onChange={(_: any, editor: any) => {
+                setData("description", editor.getData());
+              }}
+
             />
+
 
           )}
         </div>

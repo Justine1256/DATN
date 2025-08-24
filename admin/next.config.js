@@ -14,6 +14,11 @@ const nextConfig = {
       { protocol: 'https', hostname: 'shop.nagakawa.com.vn' },
     ],
   },
+
+  // 👇 thêm cái này
+  experimental: {
+    esmExternals: "loose",
+  },
 };
 
 module.exports = nextConfig;
