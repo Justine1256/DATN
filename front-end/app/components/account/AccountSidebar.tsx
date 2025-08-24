@@ -73,24 +73,39 @@ export default function AccountSidebar({
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // isMobile detector logic (same as Header.tsx)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640); // 640px is Tailwind's 'sm'
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     if (currentSection === 'profile') {
       setIsAccountOpen(true);
+    } else if (
+      currentSection === 'NotificationDropdown' ||
+      currentSection === 'orders' ||
+      currentSection === 'vouchers'
+    ) {
+      setIsAccountOpen(false);
     }
   }, [currentSection]);
 
   const getActiveClass = (section: string) =>
-    currentSection === section ? 'text-brand bg-[#DB4444]/5' : 'text-gray-600 hover:text-brand hover:bg-gray-50';
+    currentSection === section ? 'border-b border-brand text-brand' : 'text-gray-600 hover:text-brand hover:bg-gray-50';
 
   const handleAccountClick = () => {
     setIsAccountOpen(!isAccountOpen);
   };
 
-const avatarUrl = user?.avatar
-  ? user.avatar.startsWith("http")
-    ? user.avatar
-    : `${STATIC_BASE_URL}${user.avatar.startsWith("/") ? "" : "/"}${user.avatar}`
-  : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
+  const avatarUrl = user?.avatar
+    ? user.avatar.startsWith("http")
+      ? user.avatar
+      : `${STATIC_BASE_URL}${user.avatar.startsWith("/") ? "" : "/"}${user.avatar}`
+    : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
 
 
   // ✅ Hàm upload ảnh
@@ -151,33 +166,30 @@ const avatarUrl = user?.avatar
   };
 
   return (
-    <div className="w-[253px]">
-
-
-
+    <div className="md:w-[253px]">
 
       {/* 🔹 Thông tin người dùng + ảnh đại diện */}
       {user && (
-        <div className="bg-white rounded-2xl p-6 mb-6 border border-gray-100">
-          <div className="flex items-center space-x-4">
+        <div className="bg-white rounded-2xl p-3 md:p-6 mb-3 md:mb-6 border border-gray-100">
+          <div className="flex items-center space-x-6 md:space-x-4">
             {/* Ảnh đại diện */}
             <div className="relative group">
               <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-100">
-              <Image
-                src={
-                  avatarUrl.startsWith("http")
-                    ? avatarUrl
-                    : `${STATIC_BASE_URL}/${avatarUrl}`
-                }
-                alt="Avatar"
-                width={64}
-                height={64}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).onerror = null;
-                  e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
-                }}
-              />
+                <Image
+                  src={
+                    avatarUrl.startsWith("http")
+                      ? avatarUrl
+                      : `${STATIC_BASE_URL}/${avatarUrl}`
+                  }
+                  alt="Avatar"
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).onerror = null;
+                    e.currentTarget.src = `${STATIC_BASE_URL}/avatars/default-avatar.jpg`;
+                  }}
+                />
 
               </div>
 
@@ -199,19 +211,20 @@ const avatarUrl = user?.avatar
             </div>
 
             {/* Tên người dùng + Rank + Trạng thái */}
-            <div className="flex-1 space-y-1">
-              {/* Tên */}
-              {user?.name && (
-                <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
-              )}
+            <div className="flex-1 space-y-1 flex flex-col">
+              <div className='flex gap-2'>
+                {/* Tên */}
+                {user?.name && (
+                  <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
+                )}
 
 
-              {/* Rank badge */}
-              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRankBg(user.rank)}`}>
-                {getRankIcon(user.rank)}
-                <span className="capitalize text white">{user.rank}</span>
+                {/* Rank badge */}
+                <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getRankBg(user.rank)}`}>
+                  {getRankIcon(user.rank)}
+                  <span className="capitalize text white">{user.rank}</span>
+                </div>
               </div>
-
 
               {/* Trạng thái */}
               <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
@@ -242,7 +255,7 @@ const avatarUrl = user?.avatar
 
 
       {/* 🔹 Menu chính */}
-      <nav className="space-y-2">
+      <nav className="hidden md:block space-y-2">
         {/* ▶️ Tài khoản của tôi - có submenu */}
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <button
@@ -389,6 +402,122 @@ const avatarUrl = user?.avatar
           </button>
         </div>
       </nav>
+
+      {/* 🔹 Menu chính - mobile*/}
+      <nav className="flex justify-between md:hidden">
+        {/* ▶️ Tài khoản của tôi - có submenu */}
+        <div className="bg-white  overflow-hidden">
+          <button
+            type="button"
+            onClick={handleAccountClick}
+            className={clsx(
+              'w-full transition-colors flex gap-2 items-center',
+              isAccountOpen ? 'border-b border-brand text-brand' : 'text-gray-700 hover:bg-gray-50'
+            )}
+          >
+            <div className="flex items-center gap-2">
+              Tài khoản
+            </div>
+          </button>
+        </div>
+
+        {/* ▶️ Đơn hàng */}
+        <div className="bg-white overflow-hidden">
+          <button
+            type="button"
+            onClick={() => onChangeSection('orders')}
+            className={clsx(
+              'w-full text-left transition-colors',
+              getActiveClass('orders')
+            )}
+          >
+            Đơn hàng
+          </button>
+        </div>
+
+        {/* ▶️ Thông báo */}
+        <div className="bg-white overflow-hidden">
+          <button
+            type="button"
+            onClick={() => onChangeSection('NotificationDropdown')}
+            className={clsx(
+              'w-full text-left transition-colors',
+              getActiveClass('NotificationDropdown')
+            )}
+          >
+            Thông Báo
+          </button>
+        </div>
+
+        {/* ▶️ Mã giảm giá */}
+        <div className="bg-white overflow-hidden">
+          <button
+            type="button"
+            onClick={() => onChangeSection('vouchers')}
+            className={clsx(
+              'w-ful text-left transition-colors',
+              getActiveClass('vouchers')
+            )}
+          >
+            Mã giảm giá
+          </button>
+        </div>
+      </nav>
+
+      {/* ▶️ Submenu Tài khoản của tôi -mobile*/}
+      {isAccountOpen && (
+          <div className="flex md:hidden gap-8 mt-4 p-4 rounded-2xl bg-gray-50">
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                type="button"
+                onClick={() => onChangeSection('profileView')}
+                className={clsx(
+                  'w-full text-left transition-colors',
+                  getActiveClass('profileView')
+                )}
+              >
+                <span>Hồ Sơ Của Tôi</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onChangeSection('changepassword')}
+                className={clsx(
+                  'w-full text-left transition-colors',
+                  getActiveClass('changepassword')
+                )}
+              >
+                <span>Đổi Mật Khẩu</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                type="button"
+                onClick={() => onChangeSection('address')}
+                className={clsx(
+                  'w-full text-left transition-colors',
+                  getActiveClass('address')
+                )}
+              >
+                <span>Địa Chỉ</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onChangeSection('followedshops')}
+                className={clsx(
+                  'w-full text-left transition-colors',
+                  getActiveClass('followedshops')
+                )}
+              >
+                <span>Shop Đã Theo Dõi</span>
+              </button>
+            </div>
+          </div>
+      )}
+
+
 
       {/* ✅ Popup */}
       {popup.visible && (

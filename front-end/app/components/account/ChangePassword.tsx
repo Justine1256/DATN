@@ -114,8 +114,8 @@ export default function ChangePassword() {
       }}
     >
       <div className="w-full flex justify-center">
-        <div className="container mx-auto px-4 mt-8">
-          <div className="w-full max-w-[440px] mx-auto pt-6 text-black">
+        <div className="container mx-auto px-4 md:mt-8">
+          <div className="w-full max-w-[440px] mx-auto md:pt-6 text-black">
             <form onSubmit={handleSubmit}>
               <Card
                 className="shadow-md"

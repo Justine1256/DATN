@@ -267,13 +267,13 @@ export default function AccountPage() {
   const { bg, text } = getRankStyle(rank);
 
   return (
-    <div className="w-full flex justify-center py-10 text-[15px] text-gray-800">
+    <div className="w-full flex justify-center md:py-10 text-[15px] text-gray-800">
       <div className="w-full max-w-full bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="bg-[#DB4444] px-6 py-4 text-center text-red-50 text-xl">
+        <div className="bg-[#DB4444] px-6 py-2 md:py-4 text-center text-red-50 text-lg md:text-xl">
           {isEditing ? "Tùy chỉnh hồ sơ" : "Tài khoản của tôi"}
         </div>
 
-        <div className="p-7 space-y-7">
+        <div className="px-3 py-7 md:p-7 space-y-7">
           {isEditing ? (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="flex flex-col items-center gap-3">
@@ -339,43 +339,90 @@ export default function AccountPage() {
               </div>
             </form>
           ) : (
-            <div className="flex items-start justify-between">
-              <div className="flex gap-9">
-                <Image
-                  src={avatarUrl}
-                  alt="avatar"
-                  width={150}
-                  height={150}
-                  className="w-1/4 h-1/4 rounded-full object-cover"
-                  unoptimized
-                />
+            <div>
+              {/* desktop */}
+              <div className="hidden md:flex items-start justify-between">
+                <div className="flex gap-9">
+                  <Image
+                    src={avatarUrl}
+                    alt="avatar"
+                    width={150}
+                    height={150}
+                    className="w-1/4 h-1/4 rounded-full object-cover"
+                    unoptimized
+                  />
 
-                <div className="flex flex-col justify-between">
-                  <p className="font-bold text-lg">{user?.name}</p>
-                  <p className="text-sm text-[#DB4444]">{user?.username}</p>
+                  <div className="flex flex-col justify-between">
+                    <p className="font-bold text-lg">{user?.name}</p>
+                    <p className="text-sm text-[#DB4444]">{user?.username}</p>
+                    <p className="text-sm text-gray-700">
+                      <strong>Email:</strong> {user?.email}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      <strong>Số điện thoại:</strong> {user?.phone}
+                    </p>
+                    <p className="text-sm text-gray-700 capitalize">
+                      <strong>Vai trò:</strong> {user?.role}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="whitespace-nowrap border border-gray-300 px-4 py-1.5 rounded hover:bg-[#DB4444] hover:text-white transition"
+                >
+                  Chỉnh sửa
+                </button>
+              </div>
+
+              {/* mobile */}
+              <div className="flex md:hidden flex-col items-start justify-between">
+                <div className="flex justify-between w-full mb-4">
+                  <div className="flex gap-2">
+                    <Image
+                      src={avatarUrl}
+                      alt="avatar"
+                      width={50}
+                      height={50}
+                      className="w-[50px] h-[50px] rounded-full object-cover"
+                      unoptimized
+                    />
+
+                    <div>
+                      <p className="font-bold text-lg">{user?.name}</p>
+                      <p className="text-sm text-[#DB4444]">{user?.username}</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="whitespace-nowrap border border-gray-300 px-4 py-1.5 rounded hover:bg-[#DB4444] hover:text-white transition h-fit"
+                  >
+                    Chỉnh sửa
+                  </button>
+                </div>
+
+                <div className="flex flex-col justify-between w-full">
                   <p className="text-sm text-gray-700">
                     <strong>Email:</strong> {user?.email}
                   </p>
-                  <p className="text-sm text-gray-700">
-                    <strong>Số điện thoại:</strong> {user?.phone}
-                  </p>
-                  <p className="text-sm text-gray-700 capitalize">
-                    <strong>Vai trò:</strong> {user?.role}
-                  </p>
+
+                  <div className="flex justify-between w-full">
+                    <p className="text-sm text-gray-700">
+                      <strong>Số điện thoại:</strong> {user?.phone}
+                    </p>
+                    <p className="text-sm text-gray-700 capitalize">
+                      <strong>Vai trò:</strong> {user?.role}
+                    </p>
+                  </div>
                 </div>
+
               </div>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="whitespace-nowrap border border-gray-300 px-4 py-1.5 rounded hover:bg-[#DB4444] hover:text-white transition"
-              >
-                Chỉnh sửa
-              </button>
             </div>
           )}
 
           {/* Thẻ thành viên */}
           <div
-            className="relative rounded-xl p-5 overflow-hidden"
+            className="relative rounded-xl p-5 pb-6 md:pb-5 overflow-hidden"
             style={{
               background:
                 rank === "diamond"
@@ -392,7 +439,8 @@ export default function AccountPage() {
               color: "#CCCCCC",
             }}
           >
-            <div className="relative z-10 flex items-center justify-between mb-4">
+            {/* desktop */}
+            <div className="hidden md:flex relative z-10 items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-white">Thẻ thành viên</h3>
 
               {/* Nhãn rank + Nút cập nhật hạng */}
@@ -401,8 +449,8 @@ export default function AccountPage() {
                   onClick={handleRecalculateRank}
                   disabled={isRecalcLoading}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded border ${isRecalcLoading
-                      ? "opacity-60 cursor-not-allowed"
-                      : "hover:bg-white/90 hover:text-[#DB4444]"
+                    ? "opacity-60 cursor-not-allowed"
+                    : "hover:bg-white/90 hover:text-[#DB4444]"
                     }`}
                   style={{
                     color: "#ffffff",
@@ -425,17 +473,51 @@ export default function AccountPage() {
               </div>
             </div>
 
+            {/* mobile */}
+            <div className="flex md:hidden relative z-10 items-start justify-between mb-4">
+
+              {/* Nhãn rank + Nút cập nhật hạng */}
+              <div className="flex flex-col items-center gap-2">
+                <h3 className="text-sm font-semibold text-white">Thẻ thành viên</h3>
+                <button
+                  onClick={handleRecalculateRank}
+                  disabled={isRecalcLoading}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded ${isRecalcLoading
+                    ? "opacity-60 cursor-not-allowed"
+                    : "hover:bg-white/90 hover:text-[#DB4444]"
+                    }`}
+                  style={{
+                    color: "#ffffff",
+                    borderColor: "#ffffff",
+                    backgroundColor: "rgba(255,255,255,0.12)",
+                    transition: "all .15s ease",
+                  }}
+                  title="Cập nhật lại thứ hạng"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 ${isRecalcLoading ? "animate-spin" : ""}`} />
+                  {isRecalcLoading ? "Đang cập nhật..." : "Cập nhật hạng"}
+                </button>
+              </div>
+
+              <div
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${bg} ${text}`}
+              >
+                {getRankIcon(rank)}
+                <span className="capitalize">{rank}</span>
+              </div>
+            </div>
+
             {/* Khu hiển thị số + progress bar */}
             <div
-              className={`relative z-10 flex divide-x text-center ${rank === "diamond"
-                  ? "divide-[#CCCCCC]"
-                  : rank === "gold"
-                    ? "divide-[#C9A602]"
-                    : rank === "silver"
-                      ? "divide-[#A9B8C9]"
-                      : rank === "bronze"
-                        ? "divide-[#CD7F32]"
-                        : "divide-[#80AAFA]"
+              className={`relative z-10 flex flex-col md:flex-row gap-6 md:gap-0 md:divide-x text-center ${rank === "diamond"
+                ? "divide-[#CCCCCC]"
+                : rank === "gold"
+                  ? "divide-[#C9A602]"
+                  : rank === "silver"
+                    ? "divide-[#A9B8C9]"
+                    : rank === "bronze"
+                      ? "divide-[#CD7F32]"
+                      : "divide-[#80AAFA]"
                 }`}
             >
               {/* Đơn hàng: chỉ số, KHÔNG có "/" nhưng vẫn có progress */}
@@ -487,8 +569,8 @@ export default function AccountPage() {
         {showPopup && (
           <div
             className={`fixed top-20 right-5 z-[9999] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-fadeIn ${popupType === "success"
-                ? "bg-white text-black border-green-500"
-                : "bg-white text-red-600 border-red-500"
+              ? "bg-white text-black border-green-500"
+              : "bg-white text-red-600 border-red-500"
               }`}
           >
             {popupMessage}

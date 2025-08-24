@@ -637,3 +637,35 @@ a {
   border-color: #db4444 !important;
   box-shadow: 0 0 0 3px rgba(219, 68, 68, 0.15) !important;
 }
+@keyframes fireCombo {
+  0% {
+    transform: rotate(0deg) scale(1);
+    text-shadow: 0 0 4px #DB4444, 0 0 8px #ff6b35;
+  }
+
+  25% {
+    transform: rotate(-5deg) scale(1.06);
+    text-shadow: 0 0 6px #ff6b35, 0 0 12px #ffb347;
+  }
+
+  50% {
+    transform: rotate(5deg) scale(0.96);
+    text-shadow: 0 0 8px #ffb347, 0 0 16px #ff7a3c;
+  }
+
+  75% {
+    transform: rotate(-3deg) scale(1.03);
+    text-shadow: 0 0 6px #ff6b35, 0 0 12px #DB4444;
+  }
+
+  100% {
+    transform: rotate(0deg) scale(1);
+    text-shadow: 0 0 4px #DB4444, 0 0 8px #ff6b35;
+  }
+}
+
+.fire-icon {
+  display: inline-block;
+  animation: fireCombo 2s ease-in-out infinite;
+}
+

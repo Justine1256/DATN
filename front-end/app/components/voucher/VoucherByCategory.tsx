@@ -16,6 +16,7 @@ import {
     Space,
     Spin,
     Result,
+    Grid,
 } from 'antd';
 import type { TabsProps } from 'antd';
 
@@ -24,7 +25,8 @@ import { TbFridge, TbAirConditioning } from 'react-icons/tb';
 import { FaTshirt, FaHeartbeat, FaTv } from 'react-icons/fa';
 import { MdSportsEsports, MdOutlineLaptopMac } from 'react-icons/md';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 export interface VoucherShip {
     id: number;
@@ -66,6 +68,8 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export default function VoucherByCategory() {
+    const screens = useBreakpoint();
+
     const [activeCat, setActiveCat] = useState<string>(categories[0]);
     const [vouchers, setVouchers] = useState<VoucherShip[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -198,45 +202,65 @@ export default function VoucherByCategory() {
 
     return (
         <div className="max-w-[1120px] mx-auto px-4 py-16">
-            {/* CSS popup */}
+            {/* CSS popup + Tabs scroll on mobile */}
             <style jsx global>{`
         @keyframes slideInFade {
           from { transform: translateX(120%); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
         }
-        .animate-slideInFade {
-          animation: slideInFade 0.35s ease-out both;
+        .animate-slideInFade { animation: slideInFade 0.35s ease-out both; }
+
+        /* Tabs cuộn ngang trên mobile */
+        .voucher-tabs .ant-tabs-nav {
+          overflow-x: auto;
+          scrollbar-width: none;  /* Firefox */
+          -ms-overflow-style: none; /* IE/Edge */
         }
+        .voucher-tabs .ant-tabs-nav::-webkit-scrollbar { display: none; } /* Chrome/Safari */
       `}</style>
 
+            {/* Popup */}
             {showPopup && (
-                <div className="fixed top-[140px] right-5 z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade">
+                <div
+                    className="fixed z-[9999] bg-green-100 text-green-800 text-sm px-4 py-2 rounded shadow-lg border-b-4 border-green-500 animate-slideInFade"
+                    style={{
+                        top: screens.md ? 140 : 100,
+                        right: screens.md ? 20 : 12,
+                        maxWidth: screens.md ? 360 : 260,
+                        width: 'max-content',
+                    }}
+                    role="status"
+                    aria-live="polite"
+                >
                     {popupMessage}
                 </div>
             )}
 
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
                 <Text
                     style={{
-                        color: "black",       // màu chữ đen
-                        fontSize: "40px",     // tăng cỡ chữ (tuỳ chỉnh: 16px, 18px, 20px...)
-                        fontWeight: 500,      // đậm vừa (có thể đổi 600/700 nếu muốn đậm hơn)
-                        cursor: "default"
+                        color: '#111',
+                        fontSize: screens.md ? 32 : 22,
+                        fontWeight: 600,
+                        letterSpacing: 0.2,
                     }}
                 >
                     Mã giảm giá cho danh mục
                 </Text>
-
-
             </div>
 
-            <Card styles={{ body: { padding: 16 } }} style={{ borderRadius: 16 }} variant="outlined">
+            <Card styles={{ body: { padding: screens.md ? 16 : 12 } }} style={{ borderRadius: 16 }} variant="outlined">
                 <Tabs
+                    className="voucher-tabs"
                     items={tabs}
                     activeKey={activeCat}
                     onChange={setActiveCat}
-                    centered
-                    tabBarGutter={8}
+                    centered={screens.md}
+                    tabBarGutter={screens.md ? 12 : 6}
+                    tabBarStyle={{
+                        paddingInline: screens.md ? 0 : 4,
+                        marginBottom: screens.md ? 0 : 4,
+                    }}
                 />
 
                 <div style={{ minHeight: 240, paddingTop: 12 }}>
@@ -255,11 +279,18 @@ export default function VoucherByCategory() {
                     ) : (
                         <Row gutter={[16, 16]}>
                             {vouchers.map((v) => (
-                                <Col xs={24} sm={12} key={v.id}>
+                                <Col
+                                    key={v.id}
+                                    xs={24}      // 1 cột mobile
+                                    sm={12}      // 2 cột tablet
+                                    md={12}      // 2 cột md
+                                    lg={8}       // 3 cột từ lg
+                                    xl={8}
+                                >
                                     <Card
                                         hoverable
                                         variant="outlined"
-                                        styles={{ body: { padding: 16 } }}
+                                        styles={{ body: { padding: screens.md ? 16 : 12 } }}
                                         style={{ borderRadius: 14, height: '100%' }}
                                     >
                                         <Space direction="vertical" size={8} style={{ width: '100%' }}>
@@ -270,21 +301,13 @@ export default function VoucherByCategory() {
                                             </Space>
 
                                             <Space direction="vertical" size={2} style={{ width: '100%' }}>
-                                                <Text
-                                                    type="secondary"
-                                                    style={{ color: "rgba(0,0,0,0.45)", cursor: "default" }}
-                                                >
+                                                <Text type="secondary" style={{ color: 'rgba(0,0,0,0.45)' }}>
                                                     Mã áp dụng
                                                 </Text>
-
-                                                <Text
-                                                    strong
-                                                    style={{ color: '#db4444' }}
-                                                    copyable={{ text: v.code }}
-                                                >
+                                                <Text strong style={{ color: '#db4444', fontSize: screens.md ? 16 : 15 }}
+                                                    copyable={{ text: v.code }}>
                                                     {v.code || '(Chưa có mã)'}
                                                 </Text>
-
                                             </Space>
 
                                             <Space
@@ -294,17 +317,12 @@ export default function VoucherByCategory() {
                                                     marginTop: 8,
                                                 }}
                                             >
-                                                <Text
-                                                    type="secondary"
-                                                    style={{
-                                                        color: "rgba(0,0,0,0.45)",
-                                                        cursor: "default"
-                                                    }}
-                                                >
+                                                <Text type="secondary" style={{ color: 'rgba(0,0,0,0.45)' }}>
                                                     ID: {v.id}
                                                 </Text>
 
                                                 <Button
+                                                    size={screens.md ? 'middle' : 'small'}
                                                     type="primary"
                                                     onClick={() => handleSave(v.id)}
                                                     disabled={v.isSaved}
