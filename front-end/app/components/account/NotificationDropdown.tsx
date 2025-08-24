@@ -26,6 +26,8 @@ import {
     LinkOutlined,
 } from '@ant-design/icons';
 
+import { StyleProvider } from '@ant-design/cssinjs';
+
 const { Title, Text, Paragraph } = Typography;
 
 interface Notification {
@@ -112,7 +114,6 @@ export default function NotificationDropdown() {
                 );
             }
 
-            // Điều hướng (giữ nguyên hành vi cũ)
             window.location.href = n.link;
         } catch (err) {
             console.error('Lỗi khi cập nhật trạng thái thông báo', err);
@@ -123,205 +124,211 @@ export default function NotificationDropdown() {
     const unreadCount = notifications.filter((n) => n.is_read === 0).length;
 
     return (
-        <ConfigProvider
-            theme={{
-                token: {
-                    colorPrimary: '#db4444',
-                    colorInfo: '#db4444',
-                },
-                components: {
-                    Tag: {
-                        colorError: '#db4444',
+        <StyleProvider hashPriority="high">
+            <ConfigProvider
+                theme={{
+                    token: {
+                        colorPrimary: '#db4444',
+                        colorInfo: '#db4444',
                     },
-                    Badge: {
-                        colorError: '#db4444',
+                    components: {
+                        Tag: {
+                            colorError: '#db4444',
+                        },
+                        Badge: {
+                            colorError: '#db4444',
+                        },
                     },
-                },
-            }}
-        >
-            <div style={{ width: '100%', maxWidth: 1280, margin: '0 auto', padding: '32px 16px' }}>
-                {/* Header */}
-                <Card
-                    styles={{ body: { padding: 20 } }}
-                    style={{
-                        marginBottom: 16,
-                        background:
-                            'linear-gradient(90deg, rgba(219,68,68,0.06), rgba(219,68,68,0.02) 45%, rgba(255,255,255,1))',
-                        borderRadius: 16,
-                    }}
+                }}
+            >
+                <div
+                    className="notif-root"
+                    style={{ width: '100%', maxWidth: 1280, margin: '0 auto', padding: '32px 16px' }}
                 >
-                    {errorMessage ? (
-                        <Alert
-                            type="error"
-                            message={errorMessage}
-                            showIcon
-                            style={{ borderRadius: 12 }}
-                        />
-                    ) : (
-                        <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
-                            <Space align="center" size={14}>
-                                <Badge count={unreadCount} color="#db4444" offset={[0, 6]}>
-                                    <div
-                                        style={{
-                                            width: 48,
-                                            height: 48,
-                                            display: 'grid',
-                                            placeItems: 'center',
-                                            borderRadius: 14,
-                                            background:
-                                                'linear-gradient(135deg, #db4444 0%, #f06a6a 100%)',
-                                            color: '#fff',
-                                        }}
-                                    >
-                                        <BellOutlined style={{ fontSize: 22 }} />
-                                    </div>
-                                </Badge>
-                                <div>
-                                    <Title level={3} style={{ margin: 0 }}>
-                                        Thông báo
-                                    </Title>
-                                    <Text type="secondary">
-                                        {notifications.length > 0
-                                            ? `${notifications.length} thông báo`
-                                            : 'Chưa có thông báo'}
-                                    </Text>
-                                </div>
-                            </Space>
-                            {/* ĐÃ BỎ nút Trang thông báo theo yêu cầu */}
-                        </Space>
-                    )}
-                </Card>
-
-                {/* Danh sách */}
-                <Card style={{ borderRadius: 16 }} bodyStyle={{ padding: 0 }}>
-                    {loading ? (
-                        <div style={{ padding: 24 }}>
-                            <List
-                                itemLayout="vertical"
-                                dataSource={[1, 2, 3, 4, 5, 6]}
-                                renderItem={(i) => (
-                                    <List.Item key={i}>
-                                        <Skeleton
-                                            active
-                                            title
-                                            paragraph={{ rows: 2 }}
-                                            avatar={{ shape: 'square', size: 56 }}
-                                        />
-                                    </List.Item>
-                                )}
+                    {/* Header */}
+                    <Card
+                        styles={{ body: { padding: 20 } }}
+                        style={{
+                            marginBottom: 16,
+                            background:
+                                'linear-gradient(90deg, rgba(219,68,68,0.06), rgba(219,68,68,0.02) 45%, rgba(255,255,255,1))',
+                            borderRadius: 16,
+                        }}
+                    >
+                        {errorMessage ? (
+                            <Alert
+                                type="error"
+                                message={errorMessage}
+                                showIcon
+                                style={{ borderRadius: 12 }}
                             />
-                        </div>
-                    ) : notifications.length === 0 ? (
-                        <div style={{ padding: 48 }}>
-                            <Empty
-                                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                description={
-                                    <>
-                                        <Title level={5} style={{ marginBottom: 0 }}>
-                                            Chưa có thông báo
+                        ) : (
+                            <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
+                                <Space align="center" size={14}>
+                                    <Badge count={unreadCount} color="#db4444" offset={[0, 6]}>
+                                        <div
+                                            style={{
+                                                width: 48,
+                                                height: 48,
+                                                display: 'grid',
+                                                placeItems: 'center',
+                                                borderRadius: 14,
+                                                background:
+                                                    'linear-gradient(135deg, #db4444 0%, #f06a6a 100%)',
+                                                color: '#fff',
+                                            }}
+                                        >
+                                            <BellOutlined style={{ fontSize: 22 }} />
+                                        </div>
+                                    </Badge>
+                                    <div>
+                                        <Title level={3} style={{ margin: 0 }}>
+                                            Thông báo
                                         </Title>
                                         <Text type="secondary">
-                                            Hiện tại bạn chưa có thông báo nào để hiển thị
+                                            {notifications.length > 0
+                                                ? `${notifications.length} thông báo`
+                                                : 'Chưa có thông báo'}
                                         </Text>
-                                    </>
-                                }
+                                    </div>
+                                </Space>
+                                {/* Bỏ nút Trang thông báo theo yêu cầu */}
+                            </Space>
+                        )}
+                    </Card>
+
+                    {/* Danh sách */}
+                    <Card style={{ borderRadius: 16 }} bodyStyle={{ padding: 0 }}>
+                        {loading ? (
+                            <div style={{ padding: 24 }}>
+                                <List
+                                    itemLayout="vertical"
+                                    dataSource={[1, 2, 3, 4, 5, 6]}
+                                    renderItem={(i) => (
+                                        <List.Item key={i}>
+                                            <Skeleton
+                                                active
+                                                title
+                                                paragraph={{ rows: 2 }}
+                                                avatar={{ shape: 'square', size: 56 }}
+                                            />
+                                        </List.Item>
+                                    )}
+                                />
+                            </div>
+                        ) : notifications.length === 0 ? (
+                            <div style={{ padding: 48 }}>
+                                <Empty
+                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                    description={
+                                        <>
+                                            <Title level={5} style={{ marginBottom: 0 }}>
+                                                Chưa có thông báo
+                                            </Title>
+                                            <Text type="secondary">
+                                                Hiện tại bạn chưa có thông báo nào để hiển thị
+                                            </Text>
+                                        </>
+                                    }
+                                />
+                            </div>
+                        ) : (
+                            <List
+                                itemLayout="vertical"
+                                dataSource={notifications}
+                                pagination={{
+                                    pageSize: 6,
+                                    showSizeChanger: false,
+                                    style: { padding: '8px 16px 16px' },
+                                }}
+                                renderItem={(n) => {
+                                    const isUnread = n.is_read === 0;
+                                    const coverSrc = n.image_url
+                                        ? `${STATIC_BASE_URL}${n.image_url}`
+                                        : '/noti-def.jpg';
+
+                                    const hovered = hoverId === n.id;
+
+                                    return (
+                                        <List.Item
+                                            key={n.id}
+                                            onMouseEnter={() => setHoverId(n.id)}
+                                            onMouseLeave={() => setHoverId(null)}
+                                            onClick={() => handleNotificationClick(n)}
+                                            style={{
+                                                padding: 16,
+                                                background: isUnread
+                                                    ? 'rgba(219,68,68,0.04)'
+                                                    : hovered
+                                                        ? 'rgba(0,0,0,0.02)'
+                                                        : 'transparent',
+                                                transition: 'all .2s ease',
+                                                cursor: 'pointer',
+                                                transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
+                                            }}
+                                        >
+                                            <Space align="start" style={{ width: '100%' }} size={16}>
+                                                <Badge dot={isUnread} color="#db4444">
+                                                    <Avatar
+                                                        shape="square"
+                                                        size={56}
+                                                        src={coverSrc}
+                                                        alt={n.title}
+                                                        style={{ borderRadius: 12 }}
+                                                        onError={() => false}
+                                                    />
+                                                </Badge>
+
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <Space
+                                                        align="start"
+                                                        style={{ width: '100%', justifyContent: 'space-between' }}
+                                                    >
+                                                        <Title
+                                                            level={5}
+                                                            style={{ margin: 0, color: isUnread ? '#1f1f1f' : '#595959' }}
+                                                        >
+                                                            {n.title}
+                                                        </Title>
+                                                        {n.is_read === 1 && (
+                                                            <CheckCircleTwoTone twoToneColor="#52c41a" />
+                                                        )}
+                                                    </Space>
+
+                                                    <Paragraph
+                                                        type="secondary"
+                                                        ellipsis={{ rows: 2 }}
+                                                        style={{ margin: '6px 0 10px' }}
+                                                    >
+                                                        {n.content}
+                                                    </Paragraph>
+
+                                                    <Space align="center" size={10}>
+                                                        <Text type="secondary">
+                                                            <ClockCircleOutlined /> {formatTime(n.created_at)}
+                                                        </Text>
+                                                        <Tag
+                                                            color="#db4444"
+                                                            style={{
+                                                                borderRadius: 999,
+                                                                opacity: hovered ? 1 : 0.3,
+                                                                transition: 'opacity .2s ease',
+                                                            }}
+                                                            icon={<LinkOutlined />}
+                                                        >
+                                                            Mở
+                                                        </Tag>
+                                                    </Space>
+                                                </div>
+                                            </Space>
+                                        </List.Item>
+                                    );
+                                }}
                             />
-                        </div>
-                    ) : (
-                        <List
-                            itemLayout="vertical"
-                            dataSource={notifications}
-                            pagination={{
-                                pageSize: 6,            // ✅ giới hạn chiều dài, có phân trang
-                                showSizeChanger: false,
-                                style: { padding: '8px 16px 16px' },
-                            }}
-                            renderItem={(n) => {
-                                const isUnread = n.is_read === 0;
-                                const coverSrc = n.image_url
-                                    ? `${STATIC_BASE_URL}${n.image_url}`
-                                    : '/noti-def.jpg';
-
-                                const hovered = hoverId === n.id;
-
-                                return (
-                                    <List.Item
-                                        key={n.id}
-                                        onMouseEnter={() => setHoverId(n.id)}
-                                        onMouseLeave={() => setHoverId(null)}
-                                        onClick={() => handleNotificationClick(n)}
-                                        style={{
-                                            padding: 16,
-                                            background: isUnread
-                                                ? 'rgba(219,68,68,0.04)'
-                                                : hovered
-                                                    ? 'rgba(0,0,0,0.02)'
-                                                    : 'transparent',
-                                            transition: 'all .2s ease',
-                                            cursor: 'pointer',
-                                            transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
-                                        }}
-                                    >
-                                        <Space align="start" style={{ width: '100%' }} size={16}>
-                                            <Badge dot={isUnread} color="#db4444">
-                                                <Avatar
-                                                    shape="square"
-                                                    size={56}
-                                                    src={coverSrc}
-                                                    alt={n.title}
-                                                    style={{ borderRadius: 12 }}
-                                                    // ✅ Fix TS: đúng chữ ký () => boolean
-                                                    onError={() => false}
-                                                />
-                                            </Badge>
-
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <Space
-                                                    align="start"
-                                                    style={{ width: '100%', justifyContent: 'space-between' }}
-                                                >
-                                                    <Title
-                                                        level={5}
-                                                        style={{ margin: 0, color: isUnread ? '#1f1f1f' : '#595959' }}
-                                                    >
-                                                        {n.title}
-                                                    </Title>
-                                                    {n.is_read === 1 && <CheckCircleTwoTone twoToneColor="#52c41a" />}
-                                                </Space>
-
-                                                <Paragraph
-                                                    type="secondary"
-                                                    ellipsis={{ rows: 2 }}
-                                                    style={{ margin: '6px 0 10px' }}
-                                                >
-                                                    {n.content}
-                                                </Paragraph>
-
-                                                <Space align="center" size={10}>
-                                                    <Text type="secondary">
-                                                        <ClockCircleOutlined /> {formatTime(n.created_at)}
-                                                    </Text>
-                                                    <Tag
-                                                        color="#db4444"
-                                                        style={{
-                                                            borderRadius: 999,
-                                                            opacity: hovered ? 1 : 0.3,
-                                                            transition: 'opacity .2s ease',
-                                                        }}
-                                                        icon={<LinkOutlined />}
-                                                    >
-                                                        Mở
-                                                    </Tag>
-                                                </Space>
-                                            </div>
-                                        </Space>
-                                    </List.Item>
-                                );
-                            }}
-                        />
-                    )}
-                </Card>
-            </div>
-        </ConfigProvider>
+                        )}
+                    </Card>
+                </div>
+            </ConfigProvider>
+        </StyleProvider>
     );
 }

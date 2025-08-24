@@ -216,12 +216,18 @@ export default function VoucherByCategory() {
             )}
 
             <div className="text-center mb-16">
-                <Title level={2} style={{ marginBottom: 8 }}>
-                    Mã Giảm Giá Theo Danh Mục
-                </Title>
-                <Text type="secondary">
-                    Khám phá ưu đãi dành riêng cho từng danh mục sản phẩm bạn quan tâm
+                <Text
+                    style={{
+                        color: "black",       // màu chữ đen
+                        fontSize: "40px",     // tăng cỡ chữ (tuỳ chỉnh: 16px, 18px, 20px...)
+                        fontWeight: 500,      // đậm vừa (có thể đổi 600/700 nếu muốn đậm hơn)
+                        cursor: "default"
+                    }}
+                >
+                    Mã giảm giá cho danh mục
                 </Text>
+
+
             </div>
 
             <Card styles={{ body: { padding: 16 } }} style={{ borderRadius: 16 }} variant="outlined">
@@ -264,7 +270,13 @@ export default function VoucherByCategory() {
                                             </Space>
 
                                             <Space direction="vertical" size={2} style={{ width: '100%' }}>
-                                                <Text type="secondary">Mã áp dụng</Text>
+                                                <Text
+                                                    type="secondary"
+                                                    style={{ color: "rgba(0,0,0,0.45)", cursor: "default" }}
+                                                >
+                                                    Mã áp dụng
+                                                </Text>
+
                                                 <Text
                                                     strong
                                                     style={{ color: '#db4444' }}
@@ -282,7 +294,16 @@ export default function VoucherByCategory() {
                                                     marginTop: 8,
                                                 }}
                                             >
-                                                <Text type="secondary">ID: {v.id}</Text>
+                                                <Text
+                                                    type="secondary"
+                                                    style={{
+                                                        color: "rgba(0,0,0,0.45)",
+                                                        cursor: "default"
+                                                    }}
+                                                >
+                                                    ID: {v.id}
+                                                </Text>
+
                                                 <Button
                                                     type="primary"
                                                     onClick={() => handleSave(v.id)}

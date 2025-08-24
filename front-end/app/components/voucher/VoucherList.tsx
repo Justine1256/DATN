@@ -223,14 +223,24 @@ export default function VoucherList() {
                                         boxShadow: '0 2px 10px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.03)',
                                     }}
                                 >
-                                    <Space size="small" direction="vertical" style={{ width: '100%' }}>
-                                        <Text type="secondary">{v.condition}</Text>
+                                    <Space size="small" direction="vertical" style={{ width: "100%" }}>
+                                        <Text
+                                            type="secondary"
+                                            style={{ color: "rgba(0,0,0,0.45)", cursor: "default" }}
+                                        >
+                                            {v.condition}
+                                        </Text>
+
                                         {v.expiry && (
-                                            <Text>
-                                                HSD: <Text strong>{new Date(v.expiry).toLocaleDateString('vi-VN')}</Text>
+                                            <Text style={{ color: "inherit" }}>
+                                                HSD:{" "}
+                                                <Text strong style={{ color: "inherit" }}>
+                                                    {new Date(v.expiry).toLocaleDateString("vi-VN")}
+                                                </Text>
                                             </Text>
                                         )}
                                     </Space>
+
                                 </Card>
                             </Col>
                         ))}
