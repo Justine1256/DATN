@@ -8,7 +8,6 @@ import {
   Space,
   Popconfirm,
   message,
-  Radio,
   Tooltip,
   Tag,
   Select,
@@ -17,6 +16,7 @@ import { API_BASE_URL } from '@/utils/api';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Cookies from 'js-cookie';
+import { useState } from 'react';
 
 const { RangePicker } = DatePicker;
 
@@ -53,6 +53,7 @@ export default function SaleTable({
   setSelectedRowKeys,
   pagination,
   onPageChange,
+  onLocalPatch,
 }: {
   products: any[];
   loading: boolean;
@@ -61,11 +62,16 @@ export default function SaleTable({
   setSelectedRowKeys: (keys: number[]) => void;
   pagination: { current: number; pageSize: number; total: number };
   onPageChange: (page: number) => void;
+  onLocalPatch?: (id: number, partial: Partial<any>) => void;
 }) {
   const token = Cookies.get('authToken');
+  const [msg, contextHolder] = message.useMessage();
+
+  // ép re-render nhẹ khi đổi kiểu giảm để cập nhật max/placeholder
+  const [, setTick] = useState(0);
 
   const handleSaveSale = async (record: any) => {
-    if (!token) return message.error('Bạn chưa đăng nhập');
+    if (!token) return msg.error('Bạn chưa đăng nhập');
 
     const payload: any = {
       sale_starts_at: record.sale_starts_at || null,
@@ -78,7 +84,7 @@ export default function SaleTable({
     } else if (record.sale_price) {
       payload.sale_price = Number(record.sale_price);
     } else {
-      return message.error('Hãy nhập % hoặc số tiền giảm (hoặc giá sale cụ thể)');
+      return msg.error('Hãy nhập % hoặc số tiền giảm (hoặc giá sale cụ thể)');
     }
 
     try {
@@ -92,16 +98,28 @@ export default function SaleTable({
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
-      message.success('Cập nhật thành công');
-      onRefresh(); // refresh đúng trang hiện tại (parent đã lo)
+
+      // nếu BE trả product, dùng để patch chính xác (tuỳ API của bạn)
+      // const data = await res.json();
+      // const p = data?.product;
+
+      // Patch cục bộ (ít nhất clear input tạm nếu dùng discount_type/value)
+      onLocalPatch?.(record.id, {
+        sale_price: computeSalePrice(record), // preview hiện tại
+        // sale_starts_at: p?.sale_starts_at ?? record.sale_starts_at,
+        // sale_ends_at: p?.sale_ends_at ?? record.sale_ends_at,
+      });
+
+      msg.success('Cập nhật thành công');
+      // onRefresh(); // không cần refetch, để lại nếu bạn muốn chắc chắn đồng bộ
     } catch (err) {
       console.error(err);
-      message.error('Không thể cập nhật sale');
+      msg.error('Không thể cập nhật sale');
     }
   };
 
   const handleRemoveSale = async (id: number) => {
-    if (!token) return message.error('Bạn chưa đăng nhập');
+    if (!token) return msg.error('Bạn chưa đăng nhập');
     try {
       const res = await fetch(`${API_BASE_URL}/products/${id}/sale`, {
         method: 'DELETE',
@@ -109,36 +127,44 @@ export default function SaleTable({
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error();
-      message.success('Đã gỡ sale');
-      onRefresh();
+
+      // Cập nhật cục bộ 1 dòng, KHÔNG refetch
+      onLocalPatch?.(id, {
+        sale_price: null,
+        sale_starts_at: null,
+        sale_ends_at: null,
+        discount_type: undefined,
+        discount_value: undefined,
+      });
+
+      msg.success('Đã gỡ sale');
     } catch (err) {
       console.error(err);
-      message.error('Không thể gỡ sale');
+      msg.error('Không thể gỡ sale');
     }
   };
 
   const columns: ColumnsType<any> = [
     {
-  title: 'Sản phẩm',
-  dataIndex: 'name',
-  key: 'name',
-  width: 220,
-  render: (val: string) => (
-    <div
-      title={val} // hover thấy full
-      style={{
-        display: '-webkit-box',
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden',
-        whiteSpace: 'normal',
-      }}
-    >
-      {val}
-    </div>
-  ),
-}
-,
+      title: 'Sản phẩm',
+      dataIndex: 'name',
+      key: 'name',
+      width: 220,
+      render: (val: string) => (
+        <div
+          title={val}
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            whiteSpace: 'normal',
+          }}
+        >
+          {val}
+        </div>
+      ),
+    },
     {
       title: 'Giá gốc',
       dataIndex: 'price',
@@ -146,31 +172,26 @@ export default function SaleTable({
       render: (val) => formatVND(Number(val)),
       sorter: (a, b) => Number(a.price) - Number(b.price),
     },
-{
-  title: 'Kiểu giảm',
-  key: 'discount_type',
-  render: (_, record) => (
-    <Select
-      placeholder="Chọn kiểu giảm"
-      style={{ width: 100 }}
-      defaultValue={record.discount_type}
-      onChange={(v) => {
-        record.discount_type = v;
-        // (tuỳ chọn) reset giá trị giảm khi đổi kiểu:
-        // record.discount_value = undefined;
-
-        // (tuỳ chọn) ép re-render nếu bạn muốn cập nhật ngay max/placeholder của ô "Giá trị giảm":
-        // setTick((n) => n + 1);
-      }}
-      options={[
-        { value: 'percent', label: '% phần trăm' },
-        { value: 'fixed',   label: 'Số tiền' },
-      ]}
-      // allowClear  // bật nếu muốn cho phép xoá lựa chọn
-    />
-  ),
-},
-
+    {
+      title: 'Kiểu giảm',
+      key: 'discount_type',
+      render: (_, record) => (
+        <Select
+          placeholder="Chọn kiểu giảm"
+          style={{ width: 120 }}
+          value={record.discount_type}
+          onChange={(v) => {
+            record.discount_type = v;
+            record.discount_value = undefined;
+            setTick((n) => n + 1);
+          }}
+          options={[
+            { value: 'percent', label: '% phần trăm' },
+            { value: 'fixed', label: 'Số tiền' },
+          ]}
+        />
+      ),
+    },
     {
       title: (
         <Space size={4}>
@@ -190,8 +211,16 @@ export default function SaleTable({
               ? 50
               : Math.max(1, Math.floor(Number(record.price) * 0.5))
           }
-          placeholder={'Giá trị giảm'}
-          onChange={(v) => (record.discount_value = v)}
+          placeholder={
+            record.discount_type === 'percent'
+              ? 'Nhập % (≤50)'
+              : 'Nhập số tiền (≤50%)'
+          }
+          value={record.discount_value}
+          onChange={(v) => {
+            record.discount_value = v ?? undefined;
+            setTick((n) => n + 1);
+          }}
           className="w-full"
         />
       ),
@@ -259,6 +288,7 @@ export default function SaleTable({
               record.sale_starts_at = null;
               record.sale_ends_at = null;
             }
+            setTick((n) => n + 1);
           }}
         />
       ),
@@ -273,7 +303,7 @@ export default function SaleTable({
           </Button>
           <Popconfirm
             title="Xóa sale này?"
-            onConfirm={() => handleRemoveSale(record.id)}
+            onConfirm={() => handleRemoveSale(record.id)} // ✅ truyền id
           >
             <Button danger>Gỡ</Button>
           </Popconfirm>
@@ -288,22 +318,25 @@ export default function SaleTable({
   };
 
   return (
-    <Table
-      rowKey="id"
-      columns={columns}
-      dataSource={products}
-      loading={loading}
-      rowSelection={{
-        selectedRowKeys,
-        onChange: (keys) => setSelectedRowKeys(keys as number[]),
-      }}
-      pagination={{
-        current: pagination.current,
-        pageSize: pagination.pageSize,
-        total: pagination.total,
-        showSizeChanger: false, // backend cố định 6/sp
-      }}
-      onChange={handleTableChange}
-    />
+    <>
+      {contextHolder}
+      <Table
+        rowKey="id"
+        columns={columns}
+        dataSource={products}
+        loading={loading}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (keys) => setSelectedRowKeys(keys as number[]),
+        }}
+        pagination={{
+          current: pagination.current,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
+          showSizeChanger: false, // backend cố định 6/sp
+        }}
+        onChange={handleTableChange}
+      />
+    </>
   );
 }

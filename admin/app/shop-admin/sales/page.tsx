@@ -5,7 +5,7 @@ import {
   Button, Input, DatePicker, Slider, Select, Radio, Space, message
 } from 'antd';
 import Cookies from 'js-cookie';
-import dayjs, { Dayjs } from 'dayjs';
+import { Dayjs } from 'dayjs';
 
 import { API_BASE_URL } from '@/utils/api';
 import SaleTable from './modal/SaleTable';
@@ -20,7 +20,6 @@ type Product = {
   sale_price?: number | null;
   sale_starts_at?: string | null;
   sale_ends_at?: string | null;
-  // ... các field khác
 };
 
 type Filters = {
@@ -53,11 +52,16 @@ export default function ShopSaleManagement() {
     total: 0,
   });
 
+  // patch 1 dòng tại chỗ (optimistic update)
+  const patchProduct = (id: number, partial: Partial<Product>) => {
+    setProducts(prev => prev.map(p => (p.id === id ? { ...p, ...partial } : p)));
+  };
+
   // ====== Filters state (FE) ======
   const [filters, setFilters] = useState<Filters>({
     q: '',
     range: null,
-    discount: [0, 50],          // tối đa 50% theo rule BE
+    discount: [0, 50],
     status: 'all',
     sortBy: 'name',
     sortDir: 'asc',
@@ -80,7 +84,6 @@ export default function ShopSaleManagement() {
       if (!resUser.ok) { msg.error('Không thể lấy thông tin người dùng'); return; }
 
       const user = await resUser.json();
-      // tuỳ backend: user.shop_id hoặc user.shop.id
       const shopId = user?.shop?.id ?? user?.shop_id;
       if (!shopId) { msg.error('Không tìm thấy shop_id cho tài khoản này'); return; }
 
@@ -197,7 +200,6 @@ export default function ShopSaleManagement() {
     return list;
   }, [products, filters]);
 
-  // ====== UI ======
   return (
     <div className="p-4 bg-white rounded-md shadow">
       {ctx}
@@ -213,10 +215,9 @@ export default function ShopSaleManagement() {
         </Button>
       </div>
 
-      {/* --- FILTER BAR (lọc FE trên trang hiện tại) --- */}
+      {/* FILTER BAR (lọc FE trên trang hiện tại) */}
       <div className="mb-4 p-3 rounded border border-gray-200">
         <Space size="large" wrap>
-          {/* Tìm tên */}
           <Input.Search
             allowClear
             placeholder="Tìm theo tên sản phẩm"
@@ -226,14 +227,12 @@ export default function ShopSaleManagement() {
             value={filters.q}
           />
 
-          {/* Khoảng thời gian sale */}
           <RangePicker
             showTime
             value={filters.range as any}
             onChange={(v) => setFilters((f) => ({ ...f, range: (v as any) ?? null }))}
           />
 
-          {/* % giảm */}
           <div style={{ width: 240 }}>
             <div className="text-xs text-gray-500 mb-1">Khoảng % giảm</div>
             <Slider
@@ -246,7 +245,6 @@ export default function ShopSaleManagement() {
             />
           </div>
 
-          {/* Trạng thái sale */}
           <Select
             value={filters.status}
             style={{ width: 160 }}
@@ -258,7 +256,6 @@ export default function ShopSaleManagement() {
             ]}
           />
 
-          {/* Sort */}
           <Select
             value={filters.sortBy}
             style={{ width: 180 }}
@@ -277,7 +274,6 @@ export default function ShopSaleManagement() {
             <Radio.Button value="desc">Giảm</Radio.Button>
           </Radio.Group>
 
-          {/* Reset */}
           <Button
             onClick={() =>
               setFilters({
@@ -301,9 +297,9 @@ export default function ShopSaleManagement() {
         onRefresh={() => fetchProducts(pagination.current)}
         selectedRowKeys={selectedRowKeys}
         setSelectedRowKeys={setSelectedRowKeys}
-        // phân trang server
         pagination={pagination}
         onPageChange={handlePageChange}
+        onLocalPatch={patchProduct}
       />
 
       <BulkSaleModal
