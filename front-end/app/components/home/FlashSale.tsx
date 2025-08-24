@@ -21,12 +21,11 @@ type FlashSaleResp = {
     sold?: number;
     rating?: number;
 
-    /** ⬇️ 3 field mới từ BE */
+    // ⬇️ từ BE
+    review_count?: number;
     shop_slug?: string | null;
     shop_logo?: string | null;
     shop_name?: string | null;
-
-    // shop_id?: number; // nếu cần thêm sau
   }>;
 };
 
@@ -68,14 +67,12 @@ export default function FlashSale() {
         const res = await fetch(`${API_BASE_URL}/flash-sale`, { cache: 'no-store' });
         const data: FlashSaleResp = await res.json();
 
-        // set end time (nếu không có -> fallback 3 ngày)
         if (data?.ends_at) {
           setEndTime(new Date(data.ends_at).getTime());
         } else {
           setEndTime(Date.now() + 3 * 24 * 60 * 60 * 1000);
         }
 
-        // map items -> Product (kèm 3 field shop_* mới)
         const list: Product[] = (Array.isArray(data?.items) ? data.items : []).map((it) => {
           const images = Array.isArray(it.image) ? it.image : [String(it.image ?? '')];
 
@@ -88,13 +85,12 @@ export default function FlashSale() {
             sale_price: it.sale_price ?? undefined,
             rating_avg: typeof it.rating === 'number' ? it.rating : undefined,
             rating: Number(it.rating ?? 0),
+            review_count: typeof it.review_count === 'number' ? it.review_count : 0,
             discount: it.discount_percent,
             sold: it.sold,
-            // nếu bạn đã khai báo các field này trong Product thì giữ; nếu chưa có, TS vẫn ok vì ép any
             sale_starts_at: it.sale_starts_at ?? undefined,
             sale_ends_at: it.sale_ends_at ?? undefined,
 
-            /** ⬇️ 3 field mới đẩy thẳng qua ProductCard */
             shop_slug: it.shop_slug ?? '',
             shop_logo: it.shop_logo ?? '',
             shop_name: it.shop_name ?? '',
@@ -102,7 +98,7 @@ export default function FlashSale() {
             variants: [],
           };
 
-          // (tuỳ chọn) đồng thời set luôn object shop để ProductCard ưu tiên
+          // Cho ProductCard ưu tiên object shop nếu có
           p.shop = {
             slug: it.shop_slug ?? undefined,
             logo: it.shop_logo ?? undefined,
