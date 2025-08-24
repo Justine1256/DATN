@@ -1,4 +1,5 @@
 "use client";
+import "react-quill/dist/quill.snow.css";
 
 import { usePathname } from "next/navigation";
 import { Roboto } from "next/font/google";

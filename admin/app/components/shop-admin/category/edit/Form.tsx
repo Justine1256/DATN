@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { RichTextEditor } from "@/app/components/cke/RichTextEditor"; // ✅ Import RichTextEditor
 
 interface Category {
   id: string;
@@ -72,12 +73,11 @@ export default function CategoryInfoForm({ data, setData, categories }: Props) {
           <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
           Mô tả danh mục
         </h3>
-        <div className="border border-[#cbd5e1] rounded-lg overflow-hidden min-h-[300px] bg-white">
-          <textarea
+        <div className="border border-[#cbd5e1] rounded-lg overflow-hidden bg-white p-2">
+          <RichTextEditor
             value={data.description || ""}
-            onChange={(e) => setData("description", e.target.value)}
-            placeholder="Nhập mô tả danh mục..."
-            className="w-full h-[300px] p-3 border-0 outline-none resize-none text-sm text-slate-700"
+            onChange={(val) => setData("description", val)}
+            height={250} // bạn có thể đổi height
           />
         </div>
         <p className="text-xs text-slate-500 mt-2">

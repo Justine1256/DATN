@@ -5,6 +5,7 @@ import Cookies from "js-cookie";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import { Category } from "@/types/category";
 import { Product } from "@/types/product";
+import { RichTextEditor } from "@/app/components/cke/RichTextEditor"; // ✅ Import RichTextEditor
 
 interface ProductFormProps {
   images: { id: string; url: string }[];
@@ -234,11 +235,10 @@ export default function ProductForm({
             <div className="w-1 h-4 bg-[#db4444] rounded-full mr-3"></div>
             Mô tả sản phẩm
           </h3>
-          <textarea
+          <RichTextEditor
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Nhập mô tả sản phẩm..."
-            className="w-full min-h-[200px] px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-[#db4444]/20 focus:border-[#db4444] transition-all"
+            onChange={setDescription}
+            height={300}
           />
         </div>
 
