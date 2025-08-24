@@ -78,6 +78,33 @@ export default function OrderListItem({
     };
 
 
+    // Fallback an toàn cho tổng tiền hiển thị
+    const safeFinalAmount = (() => {
+        // 1) tổng các dòng
+        const sumDetails = (order.order_details || []).reduce((s, d) => {
+            const sub = Number(d?.subtotal);
+            return s + (Number.isFinite(sub) ? sub : 0);
+        }, 0);
+
+        // 2) đọc các field nếu backend có trả
+        const rawFinal = Number(order.final_amount);
+        const ship = Number(order.shipping_fee ?? 0);
+        const rawDisc = Number(
+            order.voucher_discount ??
+            order.discount ??
+            (order as any).total_discount ??
+            (order as any).discount_amount ??
+            0
+        );
+
+
+        // 3) nếu final_amount hợp lệ (>0) thì ưu tiên dùng
+        if (Number.isFinite(rawFinal) && rawFinal > 0) return rawFinal;
+
+        // 4) nếu không, tự tính lại: cap discount ≤ sumDetails
+        const cappedDisc = Math.max(0, Math.min(rawDisc, sumDetails));
+        return Math.max(0, sumDetails - cappedDisc) + (Number.isFinite(ship) ? ship : 0);
+    })();
 
 
     const handleReportShop = async (data: { reason: string; images: File[] }) => {
@@ -413,8 +440,9 @@ export default function OrderListItem({
                     <div className="flex items-center gap-3">
                         <span className="text-gray-600 font-medium">Tổng tiền:</span>
                         <div className="text-2xl font-bold text-[#db4444]">
-                            {Number.parseFloat(order.final_amount).toLocaleString()}₫
+                            {Math.floor(safeFinalAmount).toLocaleString()}₫
                         </div>
+
                     </div>
 
                     <div className="flex gap-3">

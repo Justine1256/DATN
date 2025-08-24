@@ -310,11 +310,14 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
 
   const summary = useMemo(() => {
     const subAll = perShopComputed.reduce((s, r) => s + r.subTotal, 0);
-    const shopDiscounts = perShopComputed.reduce((s, r) => s + r.voucherDiscount, 0);
-    const shippingAll = perShopComputed.reduce((s, r) => s + r.shipping, 0);
-    const discountAll = shopDiscounts + globalVoucherDiscount;
-    const total = Math.max(0, subAll - globalVoucherDiscount) - shopDiscounts + shippingAll;
-    return { subTotal: subAll, discount: discountAll, shipping: shippingAll, total };
+    const shopDiscounts = perShopComputed.reduce((s, r) => s + r.voucherDiscount, 0)
+    const shippingAll = perShopComputed.reduce((s, r) => s + r.shipping, 0)
+    const discountAll = shopDiscounts + globalVoucherDiscount
+    const total = Math.max(0, subAll - discountAll + shippingAll)
+
+    return { subTotal: subAll, discount: discountAll, shipping: shippingAll, total }
+
+ 
   }, [perShopComputed, globalVoucherDiscount]);
 
   const shopVouchers = useMemo(
