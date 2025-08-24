@@ -230,34 +230,29 @@ export default function ShopPageAntd() {
   // Map shop API -> đúng kiểu mà ShopCard cần
   const shopForCard: ShopCardShop | null = useMemo(() => {
     if (!shopApi) return null;
-    // Ép rating về number, ShopCard thường mong đợi số
     const ratingNum =
       typeof shopApi.rating === "number"
         ? shopApi.rating
         : Number(shopApi.rating || 0);
-
-    // Trả về object với đầy đủ field mà ShopCard cần, extra fields không sao (structural typing)
     return {
       ...shopApi,
       rating: Number.isFinite(ratingNum) ? ratingNum : 0,
     } as ShopCardShop;
   }, [shopApi]);
 
-  const isLoadingShopAndCategories = !slug || !shopData || !categoryData;
+  // ---------------- NEW: loading flags theo phần ----------------
+  const isLoadingShop = !!slug && !shopData && !shopError;
+  const isLoadingCats = !!slug && !categoryData && !categoryError;
+
+  const showShopSkeleton = !slug || isLoadingShop;
+  const showCatsSkeleton = !slug || isLoadingCats;
+
   const error = shopError || categoryError || productError;
 
   const formatVND = (v: number) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
 
   // ---- Render ----
-  if (isLoadingShopAndCategories) {
-    return (
-      <div className="max-w-[1200px] mx-auto px-4 pb-10">
-        <Skeleton active paragraph={{ rows: 8 }} />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="max-w-[1200px] mx-auto px-4 pb-10">
@@ -266,7 +261,8 @@ export default function ShopPageAntd() {
     );
   }
 
-  if (!shopForCard) {
+  // chỉ cảnh báo khi KHÔNG loading shop nữa mà vẫn không có dữ liệu
+  if (!showShopSkeleton && !shopForCard) {
     return (
       <div className="max-w-[1200px] mx-auto px-4 pb-10">
         <Alert type="warning" showIcon message="Không thể tải thông tin cửa hàng." />
@@ -305,7 +301,26 @@ export default function ShopPageAntd() {
       <Layout className="max-w-[1200px] mx-auto bg-transparent px-4 pb-10">
         <Content style={{ background: "transparent" }}>
           <Card variant="borderless" style={{ marginTop: 16, marginBottom: 16 }}>
-            <ShopCard shop={shopForCard} />
+            {showShopSkeleton ? (
+              <Card
+                bordered
+                style={{ borderRadius: 12, overflow: "hidden" }}
+                cover={
+                  <Skeleton.Image
+                    active
+                    style={{ width: "100%", height: 220, borderRadius: 0 }}
+                  />
+                }
+              >
+                <Skeleton
+                  active
+                  title={{ width: "40%" }}
+                  paragraph={{ rows: 2, width: ["60%", "30%"] }}
+                />
+              </Card>
+            ) : (
+              <ShopCard shop={shopForCard!} />
+            )}
           </Card>
 
           <Layout style={{ background: "transparent" }}>
@@ -317,100 +332,117 @@ export default function ShopPageAntd() {
               style={{ background: "transparent", paddingRight: 16 }}
             >
               <Card title={<Space><FilterOutlined />Bộ lọc</Space>}>
-                <Space direction="vertical" size="large" style={{ width: "100%" }}>
-                  {/* Categories */}
-                  <div>
-                    <Space align="center">
-                      <Text strong style={{ color: "#1f1f1f" }}>Danh mục</Text>
-                    </Space>
-
-                    <div style={{ marginTop: 12 }}>
-                      <Button
-                        type={!selectedCategory ? "primary" : "default"}
-                        block
-                        onClick={() => setSelectedCategory(null)}
-                      >
-                        Tất Cả Sản Phẩm
-                      </Button>
-                      <Divider style={{ margin: "12px 0" }} />
-                      {(showAllCategories ? categories : categories.slice(0, 6)).map((cat) => (
-                        <Button
-                          key={cat.id}
-                          block
-                          style={{ marginBottom: 8, textAlign: "left" }}
-                          type={selectedCategory === cat.slug ? "primary" : "default"}
-                          onClick={() => {
-                            setSelectedCategory(cat.slug);
-                            setCurrentPage(1);
-                          }}
-                        >
-                          {truncateText(cat.name, 25)}
-                        </Button>
-                      ))}
-                      {categories.length > 6 && (
-                        <Button type="link" onClick={() => setShowAllCategories(!showAllCategories)}>
-                          {showAllCategories ? "Ẩn bớt" : "Xem thêm"}
-                        </Button>
-                      )}
-                      {selectedCategory && (
-                        <div style={{ marginTop: 8 }}>
-                          <Tag color="red">Đang lọc: {truncateText(selectedCategory, 20)}</Tag>
-                        </div>
-                      )}
+                {showCatsSkeleton ? (
+                  <Space direction="vertical" size="large" style={{ width: "100%" }}>
+                    <Skeleton.Button active block style={{ height: 40 }} />
+                    <Divider style={{ margin: "12px 0" }} />
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <Skeleton.Button key={i} active block style={{ height: 36, marginBottom: 8 }} />
+                    ))}
+                    <Divider />
+                    <Skeleton.Input active block style={{ height: 20 }} />
+                    <Skeleton.Input active block style={{ height: 20, marginTop: 6 }} />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Skeleton.Button active style={{ width: 90 }} />
+                      <Skeleton.Button active style={{ width: 90 }} />
                     </div>
-                  </div>
-
-                  {/* Price Range */}
-                  <div>
-                    <Space direction="vertical" style={{ width: "100%" }}>
-                      <Text strong style={{ color: "#1f1f1f" }}>
-                        Giá <span style={{ color: "#8c8c8c" }}>(VNĐ)</span>
-                      </Text>
-
-                      <Row justify="space-between">
-                        <Text style={{ color: "#1f1f1f" }}>{formatVND(tempRange[0])}</Text>
-                        <Text style={{ color: "#1f1f1f" }}>{formatVND(tempRange[1])}</Text>
-                      </Row>
-
-                      <Slider
-                        range
-                        min={PRICE_MIN}
-                        max={PRICE_MAX}
-                        step={100_000}
-                        value={tempRange}
-                        onChange={(v) => setTempRange(v as [number, number])}
-                        tooltip={{ formatter: (v) => formatVND(Number(v)) }}
-                      />
-
-                      <Space>
-                        <Button
-                          type="primary"
-                          onClick={() => {
-                            setAppliedRange(tempRange);
-                            setCurrentPage(1);
-                          }}
-                        >
-                          Áp dụng
-                        </Button>
-                        <Button
-                          icon={<ReloadOutlined />}
-                          onClick={() => {
-                            setSelectedSort("Phổ Biến");
-                            setSelectedPriceSort(null);
-                            setSelectedDiscountSort(null);
-                            setSelectedNameSort(null);
-                            setSelectedCategory(null);
-                            setTempRange([PRICE_MIN, PRICE_MAX]);
-                            setAppliedRange([PRICE_MIN, PRICE_MAX]);
-                            setCurrentPage(1);
-                          }}
-                        >
-                          Đặt lại
-                        </Button>
+                  </Space>
+                ) : (
+                  <Space direction="vertical" size="large" style={{ width: "100%" }}>
+                    {/* Categories */}
+                    <div>
+                      <Space align="center">
+                        <Text strong style={{ color: "#1f1f1f" }}>Danh mục</Text>
                       </Space>
-                    </Space>
-                  </div>
-                </Space>
+
+                      <div style={{ marginTop: 12 }}>
+                        <Button
+                          type={!selectedCategory ? "primary" : "default"}
+                          block
+                          onClick={() => setSelectedCategory(null)}
+                        >
+                          Tất Cả Sản Phẩm
+                        </Button>
+                        <Divider style={{ margin: "12px 0" }} />
+                        {(showAllCategories ? categories : categories.slice(0, 6)).map((cat) => (
+                          <Button
+                            key={cat.id}
+                            block
+                            style={{ marginBottom: 8, textAlign: "left" }}
+                            type={selectedCategory === cat.slug ? "primary" : "default"}
+                            onClick={() => {
+                              setSelectedCategory(cat.slug);
+                              setCurrentPage(1);
+                            }}
+                          >
+                            {truncateText(cat.name, 25)}
+                          </Button>
+                        ))}
+                        {categories.length > 6 && (
+                          <Button type="link" onClick={() => setShowAllCategories(!showAllCategories)}>
+                            {showAllCategories ? "Ẩn bớt" : "Xem thêm"}
+                          </Button>
+                        )}
+                        {selectedCategory && (
+                          <div style={{ marginTop: 8 }}>
+                            <Tag color="red">Đang lọc: {truncateText(selectedCategory, 20)}</Tag>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Price Range */}
+                    <div>
+                      <Space direction="vertical" style={{ width: "100%" }}>
+                        <Text strong style={{ color: "#1f1f1f" }}>
+                          Giá <span style={{ color: "#8c8c8c" }}>(VNĐ)</span>
+                        </Text>
+
+                        <Row justify="space-between">
+                          <Text style={{ color: "#1f1f1f" }}>{formatVND(tempRange[0])}</Text>
+                          <Text style={{ color: "#1f1f1f" }}>{formatVND(tempRange[1])}</Text>
+                        </Row>
+
+                        <Slider
+                          range
+                          min={PRICE_MIN}
+                          max={PRICE_MAX}
+                          step={100_000}
+                          value={tempRange}
+                          onChange={(v) => setTempRange(v as [number, number])}
+                          tooltip={{ formatter: (v) => formatVND(Number(v)) }}
+                        />
+
+                        <Space>
+                          <Button
+                            type="primary"
+                            onClick={() => {
+                              setAppliedRange(tempRange);
+                              setCurrentPage(1);
+                            }}
+                          >
+                            Áp dụng
+                          </Button>
+                          <Button
+                            icon={<ReloadOutlined />}
+                            onClick={() => {
+                              setSelectedSort("Phổ Biến");
+                              setSelectedPriceSort(null);
+                              setSelectedDiscountSort(null);
+                              setSelectedNameSort(null);
+                              setSelectedCategory(null);
+                              setTempRange([PRICE_MIN, PRICE_MAX]);
+                              setAppliedRange([PRICE_MIN, PRICE_MAX]);
+                              setCurrentPage(1);
+                            }}
+                          >
+                            Đặt lại
+                          </Button>
+                        </Space>
+                      </Space>
+                    </div>
+                  </Space>
+                )}
               </Card>
             </Sider>
 
@@ -526,8 +558,47 @@ export default function ShopPageAntd() {
                   <Row gutter={[16, 16]}>
                     {Array.from({ length: 12 }).map((_, i) => (
                       <Col key={i} xs={12} sm={8} md={6} lg={6}>
-                        <Card>
-                          <Skeleton active paragraph={{ rows: 2 }} />
+                        <Card
+                          hoverable
+                          bordered
+                          style={{
+                            borderRadius: 12,
+                            overflow: "hidden",
+                            height: "100%",
+                          }}
+                          cover={
+                            <div
+                              style={{
+                                width: "100%",
+                                aspectRatio: "1 / 1", // giữ ô vuông
+                                background: "#f5f5f5",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Skeleton.Image
+                                active
+                                style={{
+                                  width: "80%",
+                                  height: "80%",
+                                  borderRadius: 8,
+                                }}
+                              />
+                            </div>
+                          }
+                        >
+                          <Skeleton
+                            active
+                            title={false}
+                            paragraph={{
+                              rows: 2,
+                              width: ["90%", "60%"],
+                            }}
+                          />
+                          <div style={{ marginTop: 8 }}>
+                            <Skeleton.Button active size="small" style={{ width: "60%" }} />
+                          </div>
                         </Card>
                       </Col>
                     ))}
@@ -577,6 +648,7 @@ export default function ShopPageAntd() {
                     </Row>
                   </>
                 )}
+
               </Card>
             </Content>
           </Layout>
