@@ -92,9 +92,9 @@ export default function LoginForm() {
   }, [])
 
   return (
-    <div className="w-[370px] max-w-md mx-auto text-black relative">
-      <h2 className="text-[1.5rem] font-semibold mb-1">Đăng nhập vào MAKETO</h2>
-      <p className="text-sm text-gray-700 mb-6">Nhập thông tin của bạn bên dưới</p>
+    <div className=" max-w-md mx-auto text-black relative">
+      <h2 className="text-center md:text-left text-[1.5rem] font-semibold mb-1">Đăng nhập vào MAKETO</h2>
+      <p className="text-center md:text-left text-sm text-gray-700 mb-6">Nhập thông tin của bạn bên dưới</p>
 
       {error && <p className="text-red-600 text-sm mb-4 whitespace-pre-wrap">{error}</p>}
 

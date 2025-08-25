@@ -16,8 +16,8 @@ export default function SignUpPage() {
     </div>
 
       {/* Right Form Section */}
-      <div className="w-full md:w-1/2 flex items-center justify-center bg-white px-4">
-        <div className="w-full max-w-full p-8">
+      <div className="w-full md:w-1/2 flex items-center justify-center bg-white md:px-4">
+        <div className="w-full max-w-full md:p-8">
           <SignupForm />
         </div>
       </div>

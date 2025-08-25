@@ -372,9 +372,9 @@ export default function SignupForm() {
   }
 
   return (
-    <div className="w-[370px] max-w-md mx-auto text-black relative">
-      <h2 className="text-[1.5rem] font-semibold mb-1">Tạo tài khoản</h2>
-      <p className="text-sm text-gray-700 mb-6">Vui lòng nhập thông tin bên dưới</p>
+    <div className="max-w-md mx-auto text-black relative">
+      <h2 className="text-center md:text-left text-[1.5rem] font-semibold mb-1">Tạo tài khoản</h2>
+      <p className="text-center md:text-left text-sm text-gray-700 mb-6">Vui lòng nhập thông tin bên dưới</p>
 
       <Form form={form} onFinish={handleSubmit} layout="vertical" className="space-y-4">
         <Form.Item

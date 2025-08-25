@@ -95,7 +95,7 @@ export default function ForgotPasswordForm() {
   };
 
   return (
-    <div className="w-[370px] max-w-md mx-auto text-black relative">
+    <div className="max-w-md mx-auto text-black relative">
       <h2 className="text-[1.5rem] font-semibold mb-1">Quên mật khẩu</h2>
       <p className="text-sm text-gray-700 mb-6">
         Nhập email để nhận mã OTP đặt lại mật khẩu
