@@ -451,11 +451,17 @@ const Header = () => {
               <SearchBar />
             </div>
 
-            <NotificationDropdown
-              notifications={notifications}
-              unreadCount={unreadNotificationCount}
-              onNotificationClick={handleNotificationClick}
-            />
+            <div
+              className="cursor-pointer"
+              onClick={() => router.push("/account?section=NotificationDropdown")}
+            >
+              <NotificationDropdown
+                notifications={notifications}
+                unreadCount={unreadNotificationCount}
+                onNotificationClick={handleNotificationClick}
+              />
+            </div>
+
 
             {/* CART */}
             {/* CART */}
