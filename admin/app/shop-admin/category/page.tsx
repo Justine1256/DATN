@@ -80,7 +80,6 @@ export default function CategoryListPage() {
             });
             if (!res.ok) throw new Error("Lỗi khi lấy danh mục");
             const data = await res.json();
-            console.log("📌 API categories response:", data);
 
             // ✅ Loại các field có giá trị null ra khỏi object trước khi set state
             const cleaned: LocalCategory[] = (Array.isArray(data.categories) ? data.categories : []).map(

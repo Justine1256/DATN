@@ -15,7 +15,6 @@ export default function NewProducts() {
     fetch(`${API_BASE_URL}/newproducts`)
       .then((res) => res.json())
       .then((data) => {
-        console.log("📦 Dữ liệu sản phẩm mới:", data); // <-- log toàn bộ dữ liệu
         setProducts(Array.isArray(data.products) ? data.products : []);
       })
       .catch((err) => {

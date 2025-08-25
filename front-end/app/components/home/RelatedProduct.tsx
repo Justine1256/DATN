@@ -16,9 +16,7 @@ export default function BestSellingSlider() {
         fetch(`${API_BASE_URL}/bestsellingproducts`)
             .then((res) => res.json())
             .then((data) => {
-                console.log("📦 API bestsellingproducts trả về:", data); // Log toàn bộ dữ liệu
                 const list = Array.isArray(data) ? data : data.products || [];
-                console.log("📋 Danh sách sản phẩm sau khi xử lý:", list); // Log mảng sau khi lọc
                 setProducts(list);
             })
             .catch((err) => {

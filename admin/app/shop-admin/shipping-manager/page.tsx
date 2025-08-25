@@ -57,7 +57,6 @@ export default function ShippingAccountsPage() {
       const res = await axios.get("https://online-gateway.ghn.vn/shiip/public-api/master-data/province", {
   headers: { Token: token }
 });
-      console.log("res",res);
       
       setProvinces(res.data.data);
     } catch {
