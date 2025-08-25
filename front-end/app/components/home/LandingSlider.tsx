@@ -10,6 +10,7 @@ interface Slide {
   image: string;
   buttonText: string;
   variant: "red" | "black";
+  link: string;
 }
 
 export default function LandingSlider() {
@@ -44,6 +45,7 @@ export default function LandingSlider() {
             image: `${API_BASE_URL}/image/${item?.image}`,
             buttonText: "Mua Ngay",
             variant,
+            link: item?.link || "/shop",
           };
         });
 
@@ -164,17 +166,24 @@ export default function LandingSlider() {
               "
             >
               <button
-                onClick={() => router.push("/shop")}
+                onClick={() => {
+                  if (slide.link.startsWith("http")) {
+                    window.open(slide.link, "_blank"); // link ngoài: mở tab mới
+                  } else {
+                    router.push(slide.link);           // link nội bộ
+                  }
+                }}
                 className={`
-                  rounded-md text-white font-semibold transition
-                  w-28 h-10 sm:w-[143px] sm:h-[43px]
-                  ${slide.variant === "red"
+    rounded-md text-white font-semibold transition
+    w-28 h-10 sm:w-[143px] sm:h-[43px]
+    ${slide.variant === "red"
                     ? "bg-brand hover:bg-red-600"
                     : "bg-black hover:bg-neutral-700"}
-                `}
+  `}
               >
                 {slide.buttonText}
               </button>
+
             </div>
           )}
         </div>
