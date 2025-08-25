@@ -399,16 +399,16 @@ export default function ShopManagementPage() {
       label: record.status === "blocked" || record.status === "locked" ? "Mở khóa shop" : "Khóa shop",
       onClick: () => handleBlockShop(record.id, record.status),
     },
-    {
-      type: "divider",
-    },
-    {
-      key: "delete",
-      icon: <DeleteOutlined />,
-      label: "Xóa shop",
-      danger: true,
-      onClick: () => handleDeleteShop(record.id, record.name),
-    },
+    // {
+    //   type: "divider",
+    // },
+    // {
+    //   key: "delete",
+    //   icon: <DeleteOutlined />,
+    //   label: "Xóa shop",
+    //   danger: true,
+    //   onClick: () => handleDeleteShop(record.id, record.name),
+    // },
   ]
 
   const columns: ColumnsType<ShopData> = [

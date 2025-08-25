@@ -422,14 +422,14 @@ export default function ShopDetailModal({ shop, visible, onClose, onRefresh, onU
           >
             {shop.status === "blocked" || shop.status === "locked" ? "Mở khóa" : "Khóa shop"}
           </Button>
-          <Button
+          {/* <Button
             icon={<DeleteOutlined />}
             danger
             onClick={() => handleAction("delete")}
             loading={actionLoading === "delete"}
           >
             Xóa shop
-          </Button>
+          </Button> */}
           <Button onClick={onClose}>Đóng</Button>
         </Space>
       }

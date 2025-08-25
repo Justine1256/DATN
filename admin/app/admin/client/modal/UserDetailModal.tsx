@@ -245,9 +245,6 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
         <Card>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <Title level={4}>Thông tin cá nhân & Liên hệ</Title>
-            <Button type="primary" icon={<EditOutlined />} onClick={() => setEditing(!editing)}>
-              {editing ? "Hủy" : "Chỉnh sửa"}
-            </Button>
           </div>
 
           {editing ? (
@@ -483,9 +480,9 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
           <Card size="small" title="Thao tác tài khoản">
             <Space wrap>
-              <Button icon={<ReloadOutlined />} onClick={handleResetPassword}>
+              {/* <Button icon={<ReloadOutlined />} onClick={handleResetPassword}>
                 Reset mật khẩu
-              </Button>
+              </Button> */}
               <Button
                 icon={user.status === "active" ? <LockOutlined /> : <UnlockOutlined />}
                 type={user.status === "active" ? "default" : "primary"}
@@ -493,7 +490,7 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
               >
                 {user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
               </Button>
-              <Popconfirm
+              {/* <Popconfirm
                 title="Xóa tài khoản"
                 description="Bạn có chắc chắn muốn xóa tài khoản này? Hành động này không thể hoàn tác."
                 onConfirm={handleDeleteAccount}
@@ -504,7 +501,7 @@ export default function UserDetailModal({ user, visible, onClose }: UserDetailMo
                 <Button danger icon={<DeleteOutlined />}>
                   Xóa tài khoản
                 </Button>
-              </Popconfirm>
+              </Popconfirm> */}
             </Space>
           </Card>
 
