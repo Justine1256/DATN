@@ -24,7 +24,13 @@ public function index()
 
     return response()->json($banners);
 }
+public function allBanner()
+{
+    $banners = Banner::whereNull('deleted_at')
+        ->get();
 
+    return response()->json($banners);
+}
 
     // POST: Thêm mới banner
     public function store(Request $request)

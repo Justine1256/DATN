@@ -464,7 +464,6 @@ const Header = () => {
 
 
             {/* CART */}
-            {/* CART */}
             <div
               className="relative cursor-pointer"
               onClick={() => router.push("/cart")}

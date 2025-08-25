@@ -143,14 +143,14 @@ export default function CartDropdownResponsive({ cartItems, formatImageUrl }: Pr
             </div>
 
             {/* Mobile */}
-            <div className="md:hidden relative">
+            <div className="md:hidden relative flex items-center">
                 <button
                     type="button"
                     onClick={() => setOpenMobile(true)}
                     aria-label="Giỏ hàng"
                     className="relative w-5 h-5"
                 >
-                    <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 6h13M7 13L5.4 5M16 17a2 2 0 100 4 2 2 0 000-4zm-8 0a2 2 0 100 4 2 2 0 000-4z" />
                     </svg>
                     {count > 0 && (
