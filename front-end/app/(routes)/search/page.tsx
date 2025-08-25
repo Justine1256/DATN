@@ -1,5 +1,5 @@
-import { Suspense } from 'react';
-import SearchPageClient from './SearchPage';
+import { Suspense } from "react";
+import SearchPageClient from "./SearchPage";
 
 export default function Page() {
     return (
