@@ -107,8 +107,7 @@ export default function Footer() {
           <Col xs={24} sm={12} md={4}>
             <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>Liên kết nhanh</Title>
             <Space direction="vertical" size={6}>
-              <Link href="#" className="ant-typography">Chính sách bảo mật</Link>
-              <Link href="/dieu-khoan" className="ant-typography">Điều khoản sử dụng</Link>
+              <Link href="/dieu-khoan" className="ant-typography">Điều khoản & Chính sách</Link>
               <Link href="#" className="ant-typography">Câu hỏi thường gặp</Link>
               <Link href="#" className="ant-typography">Liên hệ</Link>
             </Space>
