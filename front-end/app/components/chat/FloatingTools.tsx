@@ -1121,7 +1121,7 @@ export default function EnhancedChatTools() {
                   </div>
                   <button
                     onClick={() => setShowList(false)}
-                    className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center"
+                    className="w-9 h-9 rounded-full hover:bg-white/10 flex md:hidden items-center justify-center"
                   >
                     <X size={16} />
                   </button>
