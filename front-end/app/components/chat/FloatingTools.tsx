@@ -1067,7 +1067,7 @@ export default function EnhancedChatTools() {
               setActiveChat(false)
             }
           }}
-          className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#e14b4b] to-[#c93434] text-white shadow-2xl shadow-red-200/40 ring-2 ring-white/50 hover:ring-white transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center"
+          className={`${showList ? "hidden" : "block"} relative w-14 h-14 rounded-full bg-gradient-to-br from-[#e14b4b] to-[#c93434] text-white shadow-2xl shadow-red-200/40 ring-2 ring-white/50 hover:ring-white transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center`}
           aria-label="Open chat"
         >
           <MessageCircle size={22} />
