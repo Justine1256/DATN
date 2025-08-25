@@ -413,27 +413,37 @@ export default function ProductDetail({ shopslug, productslug }: ProductDetailPr
     const useVariant = matchedVariant ?? null;
     const price = useVariant?.price ?? safeProduct.price;
     const sale_price = useVariant?.sale_price ?? safeProduct.sale_price;
+const cartItem = {
+  product_id: safeProduct.id,
+  quantity,
+  name: safeProduct.name,
+  image: Array.isArray(safeProduct.image) ? safeProduct.image[0] : safeProduct.image,
+  price: Number(price || 0),
+  sale_price: sale_price ? Number(sale_price) : null,
+  value1: selectedA,
+  value2: selectedB,
+  variant_id: useVariant?.id ?? null,
+  option1: safeProduct.option1 || 'Phân loại 1',
+  option2: safeProduct.option2 || 'Phân loại 2',
+  variant_price: useVariant?.price ?? null,
+  variant_sale_price: useVariant?.sale_price ?? null,
+  shop: {
+    id: safeProduct.shop?.id,
+    name: safeProduct.shop?.name,
+    slug: safeProduct.shop?.slug,
+  },
+  // thêm hẳn object variant
+  variant: useVariant ? {
+    id: useVariant.id,
+    option1: safeProduct.option1,
+    option2: safeProduct.option2,
+    value1: useVariant.value1,
+    value2: useVariant.value2,
+    price: useVariant.price,
+    sale_price: useVariant.sale_price,
+  } : null
+};
 
-    const cartItem = {
-      product_id: safeProduct.id,
-      quantity,
-      name: safeProduct.name,
-      image: Array.isArray(safeProduct.image) ? safeProduct.image[0] : (typeof safeProduct.image === 'string' ? safeProduct.image : ''),
-      price: Number(price || 0),
-      sale_price: sale_price ? Number(sale_price) : null,
-      value1: selectedA,
-      value2: selectedB,
-      variant_id: useVariant?.id ?? null,
-      option1: safeProduct.option1 || 'Phân loại 1',
-      option2: safeProduct.option2 || 'Phân loại 2',
-      variant_price: useVariant?.price ?? null,
-      variant_sale_price: useVariant?.sale_price ?? null,
-      shop: {
-        id: safeProduct.shop?.id,
-        name: safeProduct.shop?.name,
-        slug: safeProduct.shop?.slug,
-      }
-    };
 
     try {
       const token = Cookies.get('authToken');
