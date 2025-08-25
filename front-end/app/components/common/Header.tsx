@@ -12,7 +12,8 @@ import Wishlist from "../wishlist/Wishlist";
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api";
 import SearchBar from "./SearchBar";
 import NotificationDropdown from "./NotificationDropdown";
-import CartDropdown from "./CartDropdown";
+import CartDropdownResponsive from "./CartDropdownResponsive";
+
 import { useUser } from "../../context/UserContext";
 import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
@@ -440,14 +441,16 @@ const Header = () => {
             />
 
             {/* CART */}
-            <div className="relative" onClick={navigateToCart} onMouseEnter={() => prefetchRoute("/cart")}>
-              <CartDropdown key={cartItems.length} cartItems={cartItems} formatImageUrl={formatImageUrl} />
+            {/* CART */}
+            <div className="relative">
+              <CartDropdownResponsive cartItems={cartItems} formatImageUrl={formatImageUrl} />
               {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
                   {cartCount}
                 </span>
               )}
             </div>
+
 
             {/* WISHLIST (đặt ngay cạnh giỏ hàng) */}
             <button
