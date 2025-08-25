@@ -1042,25 +1042,28 @@ export default function EnhancedChatTools() {
   return (
     <>
       {/* ========== Notifications ========== */}
-      {createPortal(
-        <div
-          className="
-      fixed top-[72px] right-4 z-[10000]
-      flex flex-col items-end
-      space-y-3
-    "
-        >
-          {notifications.slice(-3).map((notification) => (
-            <ChatNotification
-              key={`notification-${notification.id}`}
-              message={notification}
-              onClose={() => removeNotification(Number(notification.id))}
-              onClick={() => handleNotificationClick(notification)}
-            />
-          ))}
-        </div>,
-        document.body
-      )}
+      {mounted && typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="
+        fixed top-[72px] right-4 z-[10000]
+        flex flex-col items-end
+        space-y-3
+      "
+          >
+            {notifications.slice(-3).map((notification) => (
+              <ChatNotification
+                key={`notification-${notification.id}`}
+                message={notification}
+                onClose={() => removeNotification(Number(notification.id))}
+                onClick={() => handleNotificationClick(notification)}
+              />
+            ))}
+          </div>,
+          document.body
+        )
+      }
+
 
 
       {/* ========== Floating Chat Button ========== */}
