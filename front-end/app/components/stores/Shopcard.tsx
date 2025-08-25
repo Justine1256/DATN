@@ -95,6 +95,61 @@ export default function ShopCard({ shop }: { shop: Shop }) {
     setPopupText(msg);
     setShowPopup(true);
   };
+  // 1) thêm các helper ở đầu file (sau import)
+
+  const extractFirstUrl = (s: string): string | null => {
+    // case 1: là JSON array: ["https://...jpg", "..."]
+    const trimmed = s.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const arr = JSON.parse(trimmed);
+        if (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === "string") {
+          return arr[0];
+        }
+      } catch { /* ignore */ }
+    }
+    // case 2: chuỗi “dính liền” nhiều mảng: ["https://...jpg"]["https://...jpg"]...
+    const re = /https?:\/\/[^\]\s"]+/g;
+    const matches = s.match(re);
+    if (matches && matches.length > 0) return matches[0];
+
+    // case 3: chỉ là một path/URL bình thường
+    return trimmed || null;
+  };
+
+  const toFirstImage = (input: unknown): string | null => {
+    if (!input) return null;
+
+    if (Array.isArray(input)) {
+      const first = input.find(x => typeof x === "string" && x.trim().length > 0);
+      return first ?? null;
+    }
+
+    if (typeof input === "string") {
+      const first = extractFirstUrl(input);
+      return first;
+    }
+
+    return null;
+  };
+
+  const formatShopLogoUrl = (logo: unknown): string => {
+    const first = toFirstImage(logo);
+
+    // fallback ảnh mặc định khi không có logo
+    if (!first) return "/shop_default_logo.png";
+
+    // nếu đã là URL tuyệt đối -> trả nguyên
+    if (first.startsWith("http://") || first.startsWith("https://")) return first;
+
+    // nếu là đường dẫn tuyệt đối trên storage (/storage/shops/xxx.jpg)
+    if (first.startsWith("/")) {
+      return `${API_BASE_URL}/image${first}`; // backend proxy /image/<path>
+    }
+
+    // còn lại là relative path (storage/shops/xxx.jpg)
+    return `${API_BASE_URL}/image/${first}`;
+  };
 
   const followShop = async () => {
     const token = Cookies.get('authToken') || localStorage.getItem('token');
@@ -208,7 +263,7 @@ export default function ShopCard({ shop }: { shop: Shop }) {
                 <Space align="center" size={12} wrap>
                   <Avatar
                     size={72}
-                    src={`${API_BASE_URL}/image/${shop.logo}`}
+                    src={formatShopLogoUrl(shop.logo)}
                     style={{
                       border: '3px solid #fff',
                       boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
