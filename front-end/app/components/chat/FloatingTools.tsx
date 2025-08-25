@@ -1113,10 +1113,18 @@ export default function EnhancedChatTools() {
               <div className="px-4 py-3 bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
                 <div className="flex items-center justify-between">
                   <AlignJustify className="block md:hidden mr-2" onClick={toggleContactList} />
-                  <span className="font-semibold">Liên hệ gần đây</span>
-                  <span className="text-[11px] bg-white/25 px-2 py-0.5 rounded-full">
-                    {contactQuery ? filteredContacts.length : recentContacts.length}
-                  </span>
+                  <div>
+                    <span className="font-semibold">Liên hệ gần đây</span>
+                    <span className="text-[11px] bg-white/25 px-2 py-0.5 rounded-full">
+                      {contactQuery ? filteredContacts.length : recentContacts.length}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowList(false)}
+                    className="w-9 h-9 rounded-full hover:bg-white/10 flex md:hidden items-center justify-center"
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
                 {/* Search */}
                 <div className="mt-2 relative">
@@ -1259,52 +1267,55 @@ export default function EnhancedChatTools() {
             <div className={`${isContactListOpen ? "hidden" : "flex"} flex-1 flex flex-col max-h-full`}>
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
-                <AlignJustify className="block md:hidden mr-2" onClick={toggleContactList} />
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    {receiver?.isBot ? (
-                      <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-                        <Bot size={18} className="text-white" />
-                      </div>
-                    ) : (
-                      <Image
-                        src={
-                          receiver?.avatar
-                            ? receiver.avatar.startsWith("http") || receiver.avatar.startsWith("/")
-                              ? receiver.avatar
-                              : `${STATIC_BASE_URL}/${receiver.avatar}`
-                            : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
-                        }
-                        alt="avatar"
-                        width={36}
-                        height={36}
-                        className="w-9 h-9 rounded-full object-cover ring-2 ring-white/60"
-                      />
-                    )}
-                    {receiver?.online && (
-                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 ring-2 ring-white" />
-                    )}
-                  </div>
-                  <div className="leading-tight">
-                    <p className="font-semibold text-sm flex items-center gap-1">
-                      {receiver?.name || "Chưa chọn người"}
-                      {receiver?.isBot && <Bot size={12} className="text-blue-200" />}
-                    </p>
-                    <p className="text-[11px] opacity-90">
-                      {receiver?.isBot
-                        ? "AI Assistant — Luôn sẵn sàng hỗ trợ"
-                        : connectionStatus === "connected"
-                          ? isReceiverTyping
-                            ? `${receiver?.name} đang nhập…`
-                            : "Đang hoạt động"
-                          : connectionStatus === "connecting"
-                            ? "Đang kết nối WebSocket…"
-                            : connectionStatus === "error"
-                              ? "Lỗi WebSocket — dùng API"
-                              : "WebSocket mất kết nối"}
-                    </p>
+                <div className="flex items-center">
+                  <AlignJustify className="block md:hidden mr-2" onClick={toggleContactList} />
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      {receiver?.isBot ? (
+                        <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                          <Bot size={18} className="text-white" />
+                        </div>
+                      ) : (
+                        <Image
+                          src={
+                            receiver?.avatar
+                              ? receiver.avatar.startsWith("http") || receiver.avatar.startsWith("/")
+                                ? receiver.avatar
+                                : `${STATIC_BASE_URL}/${receiver.avatar}`
+                              : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+                          }
+                          alt="avatar"
+                          width={36}
+                          height={36}
+                          className="w-9 h-9 rounded-full object-cover ring-2 ring-white/60"
+                        />
+                      )}
+                      {receiver?.online && (
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 ring-2 ring-white" />
+                      )}
+                    </div>
+                    <div className="leading-tight">
+                      <p className="font-semibold text-sm flex items-center gap-1">
+                        {receiver?.name || "Chưa chọn người"}
+                        {receiver?.isBot && <Bot size={12} className="text-blue-200" />}
+                      </p>
+                      <p className="text-[11px] opacity-90">
+                        {receiver?.isBot
+                          ? "AI Assistant — Luôn sẵn sàng hỗ trợ"
+                          : connectionStatus === "connected"
+                            ? isReceiverTyping
+                              ? `${receiver?.name} đang nhập…`
+                              : "Đang hoạt động"
+                            : connectionStatus === "connecting"
+                              ? "Đang kết nối WebSocket…"
+                              : connectionStatus === "error"
+                                ? "Lỗi WebSocket — dùng API"
+                                : "WebSocket mất kết nối"}
+                      </p>
+                    </div>
                   </div>
                 </div>
+
 
                 <div className="flex items-center gap-1.5">
                   {!receiver?.isBot && (
