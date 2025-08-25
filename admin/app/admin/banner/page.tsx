@@ -49,7 +49,7 @@ const BannerManagement = () => {
   const loadBanners = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/banner`);
+      const res = await axios.get(`${API_BASE_URL}/banner-management`);
       setBanners(res.data);
     } catch (error) {
       message.error('Không thể tải danh sách banner');

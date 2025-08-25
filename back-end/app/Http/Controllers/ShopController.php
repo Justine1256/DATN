@@ -302,28 +302,65 @@ public function showShopInfo(Request $request, string $slug)
     }
 public function showAllShops(Request $request)
 {
+    // Subquery: tổng report theo shop
+    $reportsSub = DB::table('reports')
+        ->select('shop_id', DB::raw('COUNT(*) AS totalReports'))
+        ->groupBy('shop_id');
+
+    // Subquery: rating trung bình theo shop (chỉ lấy review approved)
+    // reviews -> order_details (order_detail_id) -> orders (shop_id)
+    $ratingsSub = DB::table('reviews AS rv')
+        ->join('order_details AS od', 'od.id', '=', 'rv.order_detail_id')
+        ->join('orders AS o', 'o.id', '=', 'od.order_id')
+        ->where('rv.status', 'approved')
+        ->select(
+            'o.shop_id',
+            DB::raw('AVG(rv.rating) AS rating_avg'),
+            DB::raw('COUNT(*) AS rating_count')
+        )
+        ->groupBy('o.shop_id');
+
     $shops = DB::table('shops')
         ->leftJoin('users', 'shops.user_id', '=', 'users.id')
-        ->leftJoin(DB::raw('(SELECT shop_id, COUNT(*) as totalReports FROM reports GROUP BY shop_id) as r'), 'shops.id', '=', 'r.shop_id')
+        ->leftJoinSub($reportsSub, 'r', function ($join) {
+            $join->on('shops.id', '=', 'r.shop_id');
+        })
+        ->leftJoinSub($ratingsSub, 'rt', function ($join) {
+            $join->on('shops.id', '=', 'rt.shop_id');
+        })
         ->select(
-            'shops.id as shop_id',
-            'shops.name as shop_name',
+            'shops.id AS shop_id',
+            'shops.name AS shop_name',
             'shops.description',
             'shops.logo',
-            'shops.address as shop_address',
+            'shops.address AS shop_address',
             'shops.is_verified',
-            'shops.status as shop_status',
-            'shops.created_at as shop_created_at',
-            'shops.rating',
-            'users.id as owner_id',
-            'users.name as owner_name',
-            'users.phone as owner_phone',
-            'users.email as owner_email',
-            'users.avatar as owner_avatar',
-            DB::raw('(SELECT COUNT(*) FROM products WHERE products.shop_id = shops.id) as totalProducts'),
-            DB::raw('(SELECT COUNT(*) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalOrders'),
-            DB::raw('(SELECT IFNULL(SUM(final_amount), 0) FROM orders WHERE orders.shop_id = shops.id AND orders.order_status = "Delivered" AND orders.payment_status = "Completed") as totalRevenue'),
-            DB::raw('IFNULL(r.totalReports, 0) as totalReports')
+            'shops.status AS shop_status',
+            'shops.created_at AS shop_created_at',
+            // dùng rating tính từ reviews; nếu chưa có thì 0
+            DB::raw('IFNULL(rt.rating_avg, 0) AS rating_avg'),
+            DB::raw('IFNULL(rt.rating_count, 0) AS rating_count'),
+
+            'users.id AS owner_id',
+            'users.name AS owner_name',
+            'users.phone AS owner_phone',
+            'users.email AS owner_email',
+            'users.avatar AS owner_avatar',
+
+            DB::raw('(SELECT COUNT(*) FROM products WHERE products.shop_id = shops.id) AS totalProducts'),
+            DB::raw('(
+                SELECT COUNT(*) FROM orders
+                WHERE orders.shop_id = shops.id
+                  AND orders.order_status = "Delivered"
+                  AND orders.payment_status = "Completed"
+            ) AS totalOrders'),
+            DB::raw('(
+                SELECT IFNULL(SUM(final_amount), 0) FROM orders
+                WHERE orders.shop_id = shops.id
+                  AND orders.order_status = "Delivered"
+                  AND orders.payment_status = "Completed"
+            ) AS totalRevenue'),
+            DB::raw('IFNULL(r.totalReports, 0) AS totalReports')
         )
         ->get();
 
@@ -332,10 +369,10 @@ public function showAllShops(Request $request)
         $warningLevel = 'normal';
         $warningColor = 'green';
 
-        if ($shop->totalReports >= 10) {
+        if ((int)$shop->totalReports >= 10) {
             $warningLevel = 'danger';
             $warningColor = 'red';
-        } elseif ($shop->totalReports >= 5) {
+        } elseif ((int)$shop->totalReports >= 5) {
             $warningLevel = 'warning';
             $warningColor = 'yellow';
         }
@@ -349,7 +386,11 @@ public function showAllShops(Request $request)
             'isVerified' => (bool)$shop->is_verified,
             'status' => $shop->shop_status,
             'registrationDate' => $shop->shop_created_at,
-            'rating' => (float)$shop->rating,
+
+            // ✅ rating lấy từ reviews (approved)
+            'rating' => (float) round($shop->rating_avg ?? 0, 2),
+            'ratingCount' => (int) ($shop->rating_count ?? 0),
+
             'totalProducts' => (int)$shop->totalProducts,
             'totalOrders' => (int)$shop->totalOrders,
             'totalRevenue' => (float)$shop->totalRevenue,
@@ -385,6 +426,7 @@ public function showAllShops(Request $request)
         'data' => $sortedData
     ]);
 }
+
 
 
     public function applyShop(Request $request)
@@ -571,6 +613,7 @@ public function getMyShopCustomers(Request $request)
         $totalSales = DB::table('orders')
             ->where('shop_id', $shopId)
             ->where('order_status', 'Delivered')
+            ->where('payment_status', 'Completed')
             ->sum('final_amount');
 
         // Tổng số đơn hàng
