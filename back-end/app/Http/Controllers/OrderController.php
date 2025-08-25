@@ -1082,7 +1082,7 @@ class OrderController extends Controller
     public function updateShopOrderStatus(Request $request, $orderId)
     {
         $validated = $request->validate([
-            'order_admin_status' => 'required|string|max:100',
+            'order_admin_status' => 'nullable|string|max:100',
             'reconciliation_status' => 'nullable|in:Pending,Done',
         ]);
 
@@ -1092,36 +1092,8 @@ class OrderController extends Controller
             return response()->json(['message' => 'Order not found'], 404);
         }
 
-        $adminStatus = $validated['order_admin_status'];
-
-        // ✅ Xác định flow chuẩn theo thứ tự xử lý
-        $orderFlow = [
-            'Pending Processing',
-            'Processing',
-            'Ready for Shipment',
-            'Shipping',
-            'Delivered',
-            'Paid - Reconciliation Pending',
-            'Reconciled',
-        ];
-
-        // ✅ Kiểm tra nếu chuyển lùi trạng thái
-        $currentIndex = array_search($order->order_admin_status, $orderFlow);
-        $newIndex = array_search($adminStatus, $orderFlow);
-
-        if ($currentIndex !== false && $newIndex !== false && $newIndex < $currentIndex) {
-            $allowedBackwardTransitions = [
-                'Ready for Shipment' => ['Processing'],
-                'Processing' => ['Pending Processing'],
-            ];
-
-            if (!in_array($adminStatus, $allowedBackwardTransitions[$order->order_admin_status] ?? [])) {
-                return response()->json(['message' => 'Không được phép chuyển lùi trạng thái đơn hàng này'], 400);
-            }
-        }
-
-        // ✅ Kiểm tra trạng thái đối soát trước khi cập nhật trạng thái đơn
-        if ($request->has('reconciliation_status')) {
+        // ✅ Nếu chỉ truyền reconciliation_status mà không truyền order_admin_status
+        if ($request->has('reconciliation_status') && !$request->has('order_admin_status')) {
             if (
                 $order->order_status !== 'Delivered' ||
                 !in_array($order->order_admin_status, ['Delivered', 'Reconciled', 'Paid - Reconciliation Pending'])
@@ -1133,94 +1105,125 @@ class OrderController extends Controller
                 return response()->json(['message' => 'Chỉ đối soát đơn hàng thanh toán COD'], 400);
             }
 
-            if (str_starts_with($adminStatus, 'Cancelled')) {
+            if (str_starts_with($order->order_admin_status, 'Cancelled')) {
                 return response()->json(['message' => 'Đơn hàng đã huỷ, không thể đối soát'], 400);
             }
 
             $order->reconciliation_status = $validated['reconciliation_status'];
-        }
 
-        // ✅ Ánh xạ order_admin_status → order_status
-        $statusMap = [
-            'Pending Processing'              => 'Pending',
-            'Processing'                      => 'order confirmation',
-            'Processed'                       => 'order confirmation',
-            'Cancellation Request Pending'    => 'order confirmation',
-            'Ready for Shipment'              => 'Shipped',
-            'Shipping'                        => 'Shipped',
-            'Delivered'                       => 'Delivered',
-            'Paid - Reconciliation Pending'   => 'Delivered',
-            'Reconciled'                      => 'Delivered',
-            'Returned - Requesting'           => 'Return Requested',
-            'Returned - Approved'             => 'Return Requested',
-            'Returned - Rejected'             => 'Delivered',
-            'Returned - Customer Shipped'     => 'Return Requested',
-            'Returned - Completed'            => 'Refunded',
-            'Unpaid'                          => 'Pending',
-            'Cancelled by Customer'           => 'Canceled',
-            'Cancelled by Seller'             => 'Canceled',
-            'Cancelled - Payment Failed'      => 'Canceled',
-            'Cancelled - Customer Refused Delivery' => 'Canceled',
-        ];
-
-        $order->order_admin_status = $adminStatus;
-
-        if (isset($statusMap[$adminStatus])) {
-            $order->order_status = $statusMap[$adminStatus];
-        }
-        if (in_array($adminStatus, ['Processing', 'Processed', 'Ready for Shipment']) && !$order->confirmed_at) {
-            $order->confirmed_at = now();
-        }
-        if ($adminStatus === 'Shipping' && !$order->shipping_started_at) {
-            $order->shipping_started_at = now();
-        }
-        if (str_starts_with($adminStatus, 'Cancelled') && !$order->canceled_at) {
-            $order->canceled_at = now();
-        }
-        if ($order->order_status === 'Delivered' && !$order->delivered_at) {
-            $order->delivered_at = now();
-        }
-        if ($adminStatus === 'Return Approved' && !$order->return_confirmed_at) {
-            $order->return_confirmed_at = now();
-        }
-        if ($adminStatus === 'Reconciled' && !$order->reconciled_at) {
-            $order->reconciled_at = now();
-        }
-
-        // ✅ Ánh xạ shipping_status nếu phù hợp
-        $shippingMap = [
-            'Ready for Shipment' => 'Pending',
-            'Shipping' => 'Shipping',
-            'Delivered' => 'Delivered',
-            'Cancelled by Customer' => 'Failed',
-            'Cancelled by Seller' => 'Failed',
-            'Cancelled - Payment Failed' => 'Failed',
-            'Cancelled - Customer Refused Delivery' => 'Failed',
-        ];
-
-        if (isset($shippingMap[$adminStatus])) {
-            $order->shipping_status = $shippingMap[$adminStatus];
-        }
-        if ($order->order_status === 'Delivered' && !$order->delivered_at) {
-            $order->delivered_at = now();
-        }
-
-        // ✅ Ghi nhận người hủy nếu là trạng thái hủy
-        if (str_starts_with($adminStatus, 'Cancelled')) {
-            if ($adminStatus === 'Cancelled by Customer') {
-                $order->canceled_by = 'Customer';
-            } elseif ($adminStatus === 'Cancelled by Seller') {
-                $order->canceled_by = 'Seller';
-            } elseif ($adminStatus === 'Cancelled - Payment Failed') {
-                $order->canceled_by = 'Payment Gateway';
-            } else {
-                $order->canceled_by = 'System';
+            if ($validated['reconciliation_status'] === 'Done') {
+                $order->order_admin_status = 'Reconciled';
+                $order->order_status = 'Delivered';
+                if (!$order->reconciled_at) {
+                    $order->reconciled_at = now();
+                }
             }
+
+            $order->save();
+            return response()->json(['message' => 'Đối soát đơn hàng thành công']);
         }
 
-        $order->save();
+        // ✅ Nếu vẫn truyền order_admin_status thì xử lý như logic cũ
+        if ($request->has('order_admin_status')) {
+            $adminStatus = $validated['order_admin_status'];
 
-        return response()->json(['message' => 'Cập nhật đơn hàng thành công']);
+            $orderFlow = [
+                'Pending Processing',
+                'Processing',
+                'Ready for Shipment',
+                'Shipping',
+                'Delivered',
+                'Paid - Reconciliation Pending',
+                'Reconciled',
+            ];
+
+            $currentIndex = array_search($order->order_admin_status, $orderFlow);
+            $newIndex = array_search($adminStatus, $orderFlow);
+
+            if ($currentIndex !== false && $newIndex !== false && $newIndex < $currentIndex) {
+                $allowedBackwardTransitions = [
+                    'Ready for Shipment' => ['Processing'],
+                    'Processing' => ['Pending Processing'],
+                ];
+
+                if (!in_array($adminStatus, $allowedBackwardTransitions[$order->order_admin_status] ?? [])) {
+                    return response()->json(['message' => 'Không được phép chuyển lùi trạng thái đơn hàng này'], 400);
+                }
+            }
+
+            if ($request->has('reconciliation_status')) {
+                if (
+                    $order->order_status !== 'Delivered' ||
+                    !in_array($order->order_admin_status, ['Delivered', 'Reconciled', 'Paid - Reconciliation Pending'])
+                ) {
+                    return response()->json(['message' => 'Chỉ đơn hàng đã giao và đã xác nhận nhận hàng mới được đối soát'], 400);
+                }
+
+                if ($order->payment_method !== 'COD') {
+                    return response()->json(['message' => 'Chỉ đối soát đơn hàng thanh toán COD'], 400);
+                }
+
+                if (str_starts_with($adminStatus, 'Cancelled')) {
+                    return response()->json(['message' => 'Đơn hàng đã huỷ, không thể đối soát'], 400);
+                }
+
+                $order->reconciliation_status = $validated['reconciliation_status'];
+            }
+
+            $statusMap = [
+                'Pending Processing' => 'Pending',
+                'Processing' => 'order confirmation',
+                'Processed' => 'order confirmation',
+                'Cancellation Request Pending' => 'order confirmation',
+                'Ready for Shipment' => 'Shipped',
+                'Shipping' => 'Shipped',
+                'Delivered' => 'Delivered',
+                'Paid - Reconciliation Pending' => 'Delivered',
+                'Reconciled' => 'Delivered',
+            ];
+
+            $order->order_admin_status = $adminStatus;
+            if (isset($statusMap[$adminStatus])) {
+                $order->order_status = $statusMap[$adminStatus];
+            }
+
+            // ✅ Ánh xạ shipping_status
+            $shippingMap = [
+                'Ready for Shipment' => 'Pending',
+                'Shipping' => 'Shipping',
+                'Delivered' => 'Delivered',
+                'Cancelled by Customer' => 'Failed',
+                'Cancelled by Seller' => 'Failed',
+                'Cancelled - Payment Failed' => 'Failed',
+                'Cancelled - Customer Refused Delivery' => 'Failed',
+            ];
+            if (isset($shippingMap[$adminStatus])) {
+                $order->shipping_status = $shippingMap[$adminStatus];
+            }
+
+            // ✅ Cập nhật các mốc thời gian
+            if (in_array($adminStatus, ['Processing', 'Processed', 'Ready for Shipment']) && !$order->confirmed_at) {
+                $order->confirmed_at = now();
+            }
+            if ($adminStatus === 'Shipping' && !$order->shipping_started_at) {
+                $order->shipping_started_at = now();
+            }
+            if (str_starts_with($adminStatus, 'Cancelled') && !$order->canceled_at) {
+                $order->canceled_at = now();
+            }
+            if ($order->order_status === 'Delivered' && !$order->delivered_at) {
+                $order->delivered_at = now();
+            }
+            if ($adminStatus === 'Reconciled' && !$order->reconciled_at) {
+                $order->reconciled_at = now();
+            }
+
+            $order->save();
+
+            return response()->json(['message' => 'Cập nhật đơn hàng thành công']);
+        }
+
+        return response()->json(['message' => 'Không có dữ liệu hợp lệ để cập nhật'], 400);
     }
     // hoàn đơn
     public function requestRefund(Request $request, $id)
