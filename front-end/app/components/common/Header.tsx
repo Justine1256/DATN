@@ -298,7 +298,7 @@ const Header = () => {
       <div className="py-0 px-4 md:px-2">
         <div className="grid grid-cols-12 items-center py-4 md:px-16 max-w-[1280px] mx-auto">
           {/* Menu - mobile */}
-          <div className="relative block md:hidden col-span-2 " ref={menuDropdownRef}>
+          <div className="relative block md:hidden col-span-1 " ref={menuDropdownRef}>
             <AlignJustify onClick={() => setMenuDropdownOpen(!menuDropdownOpen)} />
 
             {menuDropdownOpen && (
@@ -419,8 +419,7 @@ const Header = () => {
           </nav>
 
           {/* Right */}
-          {/* Right */}
-          <div className="col-span-6 sm:col-span-9 lg:col-span-4 flex justify-end items-center space-x-4">
+          <div className="col-span-7 sm:col-span-9 lg:col-span-4 flex justify-end items-center space-x-4">
             {/* Mobile search toggle */}
             <button
               className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 hover:border-[#DB4444] hover:text-[#DB4444]"
@@ -454,7 +453,7 @@ const Header = () => {
             <button
               type="button"
               aria-label="Yêu thích"
-              className="relative flex items-center justify-center hover:text-[#DB4444] transition-colors"
+              className="relative hidden md:flex items-center justify-center hover:text-[#DB4444] transition-colors"
               onClick={() => router.push("/wishlist")}
               onMouseEnter={() => prefetchRoute("/wishlist")}
             >
@@ -498,7 +497,17 @@ const Header = () => {
                           href="/account"
                           className="flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10"
                         >
-                          <FiUser /> Quản Lý Tài Khoản
+                          <FiUser className="w-5 h-5"  /> Quản Lý Tài Khoản
+                        </Link>
+                      </li>
+
+                      <li>
+                        <Link
+                          href="/wishlist"
+                          className="md:hidden flex items-center gap-2 px-3 py-2 rounded hover:bg-white/10"
+                        >
+                          <AiOutlineHeart className="w-5 h-5" />   {/* tăng từ w-5 h-5 → w-6 h-6 */}
+                          Danh sách yêu thích
                         </Link>
                       </li>
 
@@ -545,6 +554,13 @@ const Header = () => {
                   </div>
                 )}
               </div>
+            )}
+
+             {!user && (
+              <Link href="/login" className={` md:hidden`} onMouseEnter={() => router.prefetch("/login")}>
+                Đăng Nhập
+                <span className={underline}></span>
+              </Link>
             )}
 
             {showVoucherPopup && (
