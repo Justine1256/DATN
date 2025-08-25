@@ -145,8 +145,9 @@ class ShopController extends Controller
         'description' => $shopData['description'],
         'phone' => $shopData['phone'],
         'email' => $shopData['email'],
-'logo' => $shopData['logo'] ?? $user->avatar ?? asset('uploads/shops/default-logo.png'),
-
+        'logo' => json_encode([
+            $shopData['logo'] ?? $user->avatar ?? asset('uploads/shops/default-logo.png')
+        ]),
         'total_sales' => 0,
         'rating' => null,
         'status' => 'activated',
