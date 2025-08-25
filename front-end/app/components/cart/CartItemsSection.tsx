@@ -486,7 +486,7 @@ export default function CartItemsSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ===== Mobile item renderer =====
+  // ===== Mobile item renderer (giao diện đã tinh chỉnh nhưng GIỮ logic cũ) =====
   const renderMobileList = () => (
     <div className="space-y-3 p-3">
       {dataSource.map((item) => {
@@ -499,7 +499,6 @@ export default function CartItemsSection({
         return (
           <Card key={item.key} size="small" bodyStyle={{ padding: 12 }} bordered className="rounded-lg">
             <div className="flex gap-3">
-              {/* Ảnh */}
               <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
                 <div className="relative w-20 h-20 shrink-0 rounded border overflow-hidden bg-white">
                   <Image
@@ -511,37 +510,35 @@ export default function CartItemsSection({
                 </div>
               </Link>
 
-              {/* Nội dung */}
-              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                {/* Hàng 1: Tên + shop */}
-                <div>
-                  <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
-                    <div className="font-medium text-sm text-black hover:text-red-500 line-clamp-2">
-                      {item.product.name}
-                    </div>
-                  </Link>
-                  {(item as any).product.shop && (
-                    <Link href={`/shop/${shopSlug}`} className="text-xs">
-                      <Tag color="processing" className="mt-1">
-                        🏪 {(item as any).product.shop.name}
-                      </Tag>
-                    </Link>
-                  )}
-                </div>
-
-                {/* Hàng 2: Giá */}
-                <div>
-                  <div className="text-base font-semibold" style={{ color: discounted ? '#DB4444' : '#111827' }}>
-                    {formatPrice(sale)}
+              <div className="flex-1 min-w-0">
+                <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
+                  <div className="font-medium text-sm text-black hover:text-red-500 transition-colors line-clamp-2">
+                    {item.product.name}
                   </div>
-                  {discounted && (
-                    <div className="text-xs text-gray-500 line-through">{formatPrice(original)}</div>
-                  )}
-                </div>
+                </Link>
 
-                {/* Hàng 3: Số lượng + Xoá + Tổng tiền */}
-                <div className="flex items-center justify-between mt-1">
-                  {/* Input + Xoá */}
+                {(item as any).product.shop && (
+                  <Link href={`/shop/${shopSlug}`} className="text-xs">
+                    <Tag color="processing" className="mt-1">
+                      🏪 {(item as any).product.shop.name}
+                    </Tag>
+                  </Link>
+                )}
+
+                <div className="mt-1 text-xs">{renderVariant(item)}</div>
+
+                <div className="mt-2 flex items-center justify-between">
+                  <div>
+                    <div className="text-base font-semibold" style={{ color: discounted ? '#DB4444' : '#111827' }}>
+                      {formatPrice(sale)}
+                    </div>
+                    {discounted && (
+                      <div className="text-xs text-gray-500 line-through">
+                        {formatPrice(original)}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex items-center gap-2">
                     <InputNumber
                       min={1}
@@ -563,9 +560,10 @@ export default function CartItemsSection({
                       </Button>
                     </Popconfirm>
                   </div>
-
-                 
                 </div>
+
+                {/* Giữ phần tổng dòng (line total) như code đầu */}
+               
               </div>
             </div>
           </Card>
@@ -573,9 +571,6 @@ export default function CartItemsSection({
       })}
     </div>
   );
-
-
-
 
   const renderMobileSummary = () => (
     <div className="px-3 pb-3">
@@ -614,7 +609,6 @@ export default function CartItemsSection({
     </div>
   );
 
-
   return (
     <Card
       title={<span className="font-semibold">Giỏ hàng</span>}
@@ -638,57 +632,57 @@ export default function CartItemsSection({
         </>
       ) : (
         <>
-            <Table<RowType>
-              columns={columns}
-              dataSource={dataSource}
-              loading={loading}
-              pagination={false}
-              rowKey="key"
-              sticky
-              size="middle"
-              scroll={{ x: 960 }} // giúp table cuộn ngang nếu chật
-              summary={() => (
-                <>
-                  <Table.Summary.Row>
-                    <Table.Summary.Cell index={0} colSpan={4}>
-                      <Text>Tạm tính (giá gốc):</Text>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={1} align="right" colSpan={2}>
-                      <Text>{formatPrice(subtotal)}</Text>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
+          <Table<RowType>
+            columns={columns}
+            dataSource={dataSource}
+            loading={loading}
+            pagination={false}
+            rowKey="key"
+            sticky
+            size="middle"
+            scroll={{ x: 960 }}
+            summary={() => (
+              <>
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0} colSpan={4}>
+                    <Text>Tạm tính (giá gốc):</Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={1} align="right" colSpan={2}>
+                    <Text>{formatPrice(subtotal)}</Text>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
 
-                  <Table.Summary.Row>
-                    <Table.Summary.Cell index={2} colSpan={4}>
-                      <Text>Khuyến mãi (giảm theo SP):</Text>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={3} align="right" colSpan={2}>
-                      <Text type="success">-{formatPrice(promotionDiscount)}</Text>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={2} colSpan={4}>
+                    <Text>Khuyến mãi (giảm theo SP):</Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={3} align="right" colSpan={2}>
+                    <Text type="success">-{formatPrice(promotionDiscount)}</Text>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
 
-                  <Table.Summary.Row>
-                    <Table.Summary.Cell index={4} colSpan={4}>
-                      <Text>Phí vận chuyển:</Text>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={5} align="right" colSpan={2}>
-                      <Text>{formatPrice(shipping)}</Text>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={4} colSpan={4}>
+                    <Text>Phí vận chuyển:</Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={5} align="right" colSpan={2}>
+                    <Text>{formatPrice(shipping)}</Text>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
 
-                  <Table.Summary.Row>
-                    <Table.Summary.Cell index={6} colSpan={4}>
-                      <Text strong className="text-brand">Tổng thanh toán:</Text>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={7} align="right" colSpan={2}>
-                      <Text strong type="danger" className="total-danger">
-                        {formatPrice(total)}
-                      </Text>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
-                </>
-              )}
-            />
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={6} colSpan={4}>
+                    <Text strong className="text-brand">Tổng thanh toán:</Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={7} align="right" colSpan={2}>
+                    <Text strong type="danger" className="total-danger">
+                      {formatPrice(total)}
+                    </Text>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              </>
+            )}
+          />
 
           <style jsx global>{`
             .ant-table-summary .ant-typography:not(.ant-typography-success):not(.ant-typography-danger) {

@@ -19,7 +19,7 @@ import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
 import { useOptimizedNavigation } from "@/hooks/useOptimizedNavigation";
 import { AlignJustify } from 'lucide-react';
-
+import { createPortal } from "react-dom";
 interface Notification {
   id: number;
   image_url: string;
@@ -39,12 +39,26 @@ const Popup = ({
   onConfirm: () => void;
   onClose: () => void;
 }) => {
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      <div className="bg-white rounded-2xl px-6 py-5 max-w-lg w-[90%] sm:w-full shadow-2xl animate-fade-in-up border border-gray-200">
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null; // tránh SSR mismatch
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="bg-white rounded-2xl px-6 py-5 max-w-lg w-[90%] sm:w-full shadow-2xl border border-gray-200">
         <p className="text-gray-800 text-base mb-6 flex items-center gap-2">{message}</p>
         <div className="flex justify-end gap-3">
-          <button onClick={onClose} className="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm">Hủy</button>
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm"
+          >
+            Hủy
+          </button>
           <button
             onClick={() => {
               onClose();
@@ -56,9 +70,11 @@ const Popup = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
+
 
 const BRAND = '#DB4444';
 
@@ -87,6 +103,7 @@ const Header = () => {
   const [cateDropdownOpen, setCateDropdownOpen] = useState(false);
   const [showVoucherPopup, setShowVoucherPopup] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [showWishlistPopup, setShowWishlistPopup] = useState(false);
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -434,16 +451,28 @@ const Header = () => {
               <SearchBar />
             </div>
 
-            <NotificationDropdown
-              notifications={notifications}
-              unreadCount={unreadNotificationCount}
-              onNotificationClick={handleNotificationClick}
-            />
+            <div
+              className="cursor-pointer"
+              onClick={() => router.push("/account?section=NotificationDropdown")}
+            >
+              <NotificationDropdown
+                notifications={notifications}
+                unreadCount={unreadNotificationCount}
+                onNotificationClick={handleNotificationClick}
+              />
+            </div>
+
 
             {/* CART */}
             {/* CART */}
-            <div className="relative">
-              <CartDropdownResponsive cartItems={cartItems} formatImageUrl={formatImageUrl} />
+            <div
+              className="relative cursor-pointer"
+              onClick={() => router.push("/cart")}
+            >
+              <CartDropdownResponsive
+                cartItems={cartItems}
+                formatImageUrl={formatImageUrl}
+              />
               {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
                   {cartCount}
@@ -456,18 +485,28 @@ const Header = () => {
             <button
               type="button"
               aria-label="Yêu thích"
-              className="relative hidden md:flex items-center justify-center hover:text-[#DB4444] transition-colors"
-              onClick={() => router.push("/wishlist")}
-              onMouseEnter={() => prefetchRoute("/wishlist")}
+              className="relative hidden md:flex items-center justify-center transition-colors text-black hover:text-[#DB4444]"
+              onClick={() => {
+                if (!user) {
+                  setShowWishlistPopup(true); // chưa login -> hiện popup
+                  return;
+                }
+                router.push("/wishlist"); // đã login -> đi wishlist
+              }}
+              onMouseEnter={() => user && prefetchRoute("/wishlist")}
             >
-              <AiOutlineHeart className="w-6 h-6" />   {/* tăng từ w-5 h-5 → w-6 h-6 */}
-              {wishlistItems.length > 0 && (
+              {/* KHÔNG set màu ở icon, để nó ăn theo button */}
+              <AiOutlineHeart className="w-6 h-6" />
+
+              {user && wishlistItems.length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
                   {wishlistItems.length}
                 </span>
               )}
-
             </button>
+
+
+
 
 
             {user && (
@@ -573,6 +612,14 @@ const Header = () => {
                 onClose={() => setShowVoucherPopup(false)}
               />
             )}
+            {showWishlistPopup && (
+              <Popup
+                message="⚠️ Bạn cần đăng nhập để xem danh sách yêu thích."
+                onConfirm={() => router.push("/login")}
+                onClose={() => setShowWishlistPopup(false)}
+              />
+            )}
+
           </div>
 
         </div>
