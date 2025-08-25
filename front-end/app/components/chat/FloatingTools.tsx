@@ -9,7 +9,7 @@ import Cookies from "js-cookie"
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
 import ChatNotification from "./ChatNotification"
 import { usePusherChat } from "@/app/hooks/usePusherChat"
-
+import { createPortal } from "react-dom"
 // ===== Type fixes & extensions =====
 interface User {
   id: number
@@ -1042,16 +1042,26 @@ export default function EnhancedChatTools() {
   return (
     <>
       {/* ========== Notifications ========== */}
-      <div className="fixed top-4 right-4 z-[10000] space-y-3">
-        {notifications.map((notification) => (
-          <ChatNotification
-            key={`notification-${notification.id}`}
-            message={notification}
-            onClose={() => removeNotification(Number(notification.id))}
-            onClick={() => handleNotificationClick(notification)}
-          />
-        ))}
-      </div>
+      {createPortal(
+        <div
+          className="
+      fixed top-[72px] right-4 z-[10000]
+      flex flex-col items-end
+      space-y-3
+    "
+        >
+          {notifications.slice(-3).map((notification) => (
+            <ChatNotification
+              key={`notification-${notification.id}`}
+              message={notification}
+              onClose={() => removeNotification(Number(notification.id))}
+              onClick={() => handleNotificationClick(notification)}
+            />
+          ))}
+        </div>,
+        document.body
+      )}
+
 
       {/* ========== Floating Chat Button ========== */}
       <div className="fixed right-5 bottom-5 z-[9999] md:right-5 md:bottom-5">
