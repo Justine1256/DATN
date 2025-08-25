@@ -601,99 +601,111 @@ public function getMyShopCustomers(Request $request)
         'data' => $data
     ]);
 }
-   public function stats(Request $request)
+public function stats(Request $request)
 {
-        $user = Auth::user();
+    $user = Auth::user();
     $shopId = $user->shop->id ?? null;
-        if (!$shopId) {
-            return response()->json(['error' => 'Shop not found'], 404);
-        }
 
-        // Tổng doanh thu đơn hàng đã giao thành công
-        $totalSales = DB::table('orders')
-            ->where('shop_id', $shopId)
-            ->where('order_status', 'Delivered')
-            ->where('payment_status', 'Completed')
-            ->sum('final_amount');
+    if (!$shopId) {
+        return response()->json(['error' => 'Shop not found'], 404);
+    }
 
-        // Tổng số đơn hàng
-        $totalOrders = DB::table('orders')
-            ->where('shop_id', $shopId)
-            ->count();
+    // Tổng doanh thu đơn hàng đã giao thành công
+    $totalSales = DB::table('orders')
+        ->where('shop_id', $shopId)
+        ->where('order_status', 'Delivered')
+        ->where('payment_status', 'Completed')
+        ->sum('final_amount');
 
-        // Đơn đã giao
-        $completedOrders = DB::table('orders')
-            ->where('shop_id', $shopId)
-            ->where('order_status', 'Delivered')
-            ->count();
+    // ✅ Tính commission (5%)
+    $commission = round($totalSales * 0.05, 2);
 
-        // Đơn đã huỷ
-        $canceledOrders = DB::table('orders')
-            ->where('shop_id', $shopId)
-            ->where('order_status', 'Canceled')
-            ->count();
+    // Tổng số đơn hàng
+    $totalOrders = DB::table('orders')
+        ->where('shop_id', $shopId)
+        ->count();
 
-        // Tổng sản phẩm đang bán
-        $totalProducts = DB::table('products')
-            ->where('shop_id', $shopId)
-            ->where('status', 'activated')
-            ->count();
+    // Đơn đã giao
+    $completedOrders = DB::table('orders')
+        ->where('shop_id', $shopId)
+        ->where('order_status', 'Delivered')
+        ->count();
 
-        // Sản phẩm sắp hết hàng (tồn kho < 5)
-        $lowStockProducts = DB::table('products')
-            ->where('shop_id', $shopId)
-            ->where('stock', '<', 5)
-            ->count();
+    // Đơn đã huỷ
+    $canceledOrders = DB::table('orders')
+        ->where('shop_id', $shopId)
+        ->where('order_status', 'Canceled')
+        ->count();
 
-        // Sản phẩm bán chạy nhất
-        $topSellingProducts = DB::table('products')
-            ->where('shop_id', $shopId)
-            ->orderByDesc('sold')
-            ->limit(5)
-            ->select('id', 'name', 'sold', 'stock')
-            ->get();
+    // Tổng sản phẩm đang bán
+    $totalProducts = DB::table('products')
+        ->where('shop_id', $shopId)
+        ->where('status', 'activated')
+        ->count();
 
-        // Trung bình đánh giá shop
-        $averageRating = DB::table('products')
-            ->where('shop_id', $shopId)
-            ->avg('rating');
+    // Sản phẩm sắp hết hàng (tồn kho < 5)
+    $lowStockProducts = DB::table('products')
+        ->where('shop_id', $shopId)
+        ->where('stock', '<', 5)
+        ->count();
 
-        // Tổng đánh giá
-        $totalReviews = DB::table('reviews')
-            ->join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
-            ->join('products', 'order_details.product_id', '=', 'products.id')
-            ->where('products.shop_id', $shopId)
-            ->count();
+    // Sản phẩm bán chạy nhất
+    $topSellingProducts = DB::table('products')
+        ->where('shop_id', $shopId)
+        ->orderByDesc('sold')
+        ->limit(5)
+        ->select('id', 'name', 'sold', 'stock')
+        ->get();
 
-        // Tổng số người theo dõi
-        $totalFollowers = DB::table('follows')
-            ->where('shop_id', $shopId)
-            ->count();
+    // ✅ Trung bình đánh giá shop tính từ reviews (approved)
+    $averageRating = DB::table('reviews')
+        ->join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
+        ->join('products', 'order_details.product_id', '=', 'products.id')
+        ->where('products.shop_id', $shopId)
+        ->where('reviews.status', 'approved')
+        ->avg('reviews.rating');
 
-        // Doanh thu theo tháng (6 tháng gần nhất)
-        $monthlyRevenue = DB::table('orders')
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, SUM(final_amount) as revenue")
-            ->where('shop_id', $shopId)
-            ->where('order_status', 'Delivered')
-            ->where('created_at', '>=', now()->subMonths(6))
-            ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
-            ->orderBy('month')
-            ->get();
+    // Tổng đánh giá
+    $totalReviews = DB::table('reviews')
+        ->join('order_details', 'reviews.order_detail_id', '=', 'order_details.id')
+        ->join('products', 'order_details.product_id', '=', 'products.id')
+        ->where('products.shop_id', $shopId)
+        ->where('reviews.status', 'approved')
+        ->count();
 
-        return response()->json([
-            'total_sales' => $totalSales,
-            'total_orders' => $totalOrders,
-            'completed_orders' => $completedOrders,
-            'canceled_orders' => $canceledOrders,
-            'total_products' => $totalProducts,
-            'low_stock_products' => $lowStockProducts,
-            'top_selling_products' => $topSellingProducts,
-            'average_rating' => round($averageRating, 1),
-            'total_reviews' => $totalReviews,
-            'total_followers' => $totalFollowers,
-            'monthly_revenue' => $monthlyRevenue,
-        ]);
+    // Tổng số người theo dõi
+    $totalFollowers = DB::table('follows')
+        ->where('shop_id', $shopId)
+        ->count();
+
+    // Doanh thu theo tháng (6 tháng gần nhất)
+    $monthlyRevenue = DB::table('orders')
+        ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, SUM(final_amount) as revenue")
+        ->where('shop_id', $shopId)
+        ->where('order_status', 'Delivered')
+        ->where('payment_status', 'Completed')
+        ->where('created_at', '>=', now()->subMonths(6))
+        ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
+        ->orderBy('month')
+        ->get();
+
+    return response()->json([
+        'total_sales'      => round($totalSales, 2),
+        'commission'       => $commission, // ✅ Thêm trường commission 5%
+        'shop_revenue'     => round($totalSales - $commission, 2), // ✅ Doanh thu thực nhận của shop
+        'total_orders'     => $totalOrders,
+        'completed_orders' => $completedOrders,
+        'canceled_orders'  => $canceledOrders,
+        'total_products'   => $totalProducts,
+        'low_stock_products' => $lowStockProducts,
+        'top_selling_products' => $topSellingProducts,
+        'average_rating'   => round($averageRating, 1),
+        'total_reviews'    => $totalReviews,
+        'total_followers'  => $totalFollowers,
+        'monthly_revenue'  => $monthlyRevenue,
+    ]);
 }
+
     public function updateShopStatus(Request $request, $id)
     {
         $validated = $request->validate([
