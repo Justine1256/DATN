@@ -283,7 +283,6 @@ export default function RefundReportsPage() {
             }
 
             setSelectedReport(detailData)
-            console.log("Refund report detail:", detailData)
             setShowDetailModal(true)
         } catch (err: any) {
             showNotification(err?.message || "Có lỗi xảy ra khi tải chi tiết", "error")

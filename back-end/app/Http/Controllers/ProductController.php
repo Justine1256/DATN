@@ -1008,29 +1008,34 @@ public function search(Request $request)
         return response()->json(['error' => 'Keyword is required'], 400);
     }
 
-    // Search ra danh sách product IDs
+    // Search ra danh sách product IDs (Laravel Scout)
     $searchResults = Product::search($keyword)->take(50)->get();
-
-    // Lấy lại dữ liệu từ DB để có thể eager load quan hệ
     $productIds = $searchResults->pluck('id')->toArray();
 
+    if (empty($productIds)) {
+        return response()->json([]);
+    }
+
+    // Chỉ lấy sản phẩm có status = activated
     $products = Product::with(['shop:id,slug'])
         ->whereIn('id', $productIds)
+        ->where('status', 'activated')
         ->get(['id', 'name', 'slug', 'price', 'image', 'shop_id']);
 
     $formatted = $products->map(function ($product) {
         return [
-            'id' => $product->id,
-            'name' => $product->name,
-            'slug' => $product->slug,
-            'price' => $product->price,
-            'image' => $product->image,
+            'id'        => $product->id,
+            'name'      => $product->name,
+            'slug'      => $product->slug,
+            'price'     => $product->price,
+            'image'     => $product->image,
             'shop_slug' => $product->shop->slug ?? null,
         ];
     });
 
     return response()->json($formatted);
 }
+
 
 
     // 2. Lấy danh sách sản phẩm hot

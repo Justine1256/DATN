@@ -40,7 +40,6 @@ export default function CartDropdownResponsive({ cartItems, formatImageUrl }: Pr
     const [openMobile, setOpenMobile] = useState(false);
 
     useEffect(() => {
-        console.log("CartDropdownResponsive cartItems:", cartItems);
     }, [cartItems]);
 
     useEffect(() => {

@@ -32,6 +32,7 @@ import {
   TrendingUp,
   AlertTriangle,
   CheckCircle,
+  Percent,
 } from "lucide-react";
 
 const { Title, Text } = Typography;
@@ -40,7 +41,9 @@ const { Title, Text } = Typography;
 interface TopSellingProduct { id: number; name: string; sold: number; stock: number }
 interface MonthlyRevenue { month: string; revenue: string }
 interface DashboardData {
-  total_sales: string;
+  total_sales: string;       // Tổng thu (gross) - API trả string số
+  commission: number;        // Thuế/hoa hồng 5% - API đã tính sẵn
+  shop_revenue: number;      // Tổng nhận (net) - API đã tính sẵn
   total_orders: number;
   completed_orders: number;
   canceled_orders: number;
@@ -74,7 +77,7 @@ function useCountUp(end: number, duration = 1500, start = 0) {
   return Math.round(count * 100) / 100;
 }
 
-/* ================ Animated display components (safe hooks) ================ */
+/* ================ Animated display components ================ */
 const VND = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" });
 const VN = new Intl.NumberFormat("vi-VN");
 
@@ -86,11 +89,6 @@ const AnimatedInt: React.FC<{ value: number; duration?: number; className?: stri
 const AnimatedCurrency: React.FC<{ value: number; duration?: number; className?: string }> = ({ value, duration = 1800, className }) => {
   const n = useCountUp(value, duration);
   return <span className={className}>{VND.format(n)}</span>;
-};
-
-const AnimatedDecimal: React.FC<{ value: number; duration?: number; digits?: number; className?: string }> = ({ value, duration = 1500, digits = 1, className }) => {
-  const n = useCountUp(value, duration);
-  return <span className={className}>{n.toFixed(digits)}</span>;
 };
 
 /* ================= Component ================= */
@@ -228,6 +226,7 @@ export default function AdminDashboardAntD() {
               <>
                 {/* ===== KPI Cards (equal height) ===== */}
                 <Row gutter={[16, 16]}>
+                  {/* Tổng doanh thu (gross) + commission (5%) + tổng nhận (net) */}
                   <Col xs={24} sm={12} lg={6} style={{ display: "flex" }}>
                     <Card
                       hoverable
@@ -244,11 +243,31 @@ export default function AdminDashboardAntD() {
                           <TrendingUp size={16} />
                         </Tooltip>
                       </Space>
-                      <div style={{ marginTop: 4, marginBottom: 2 }}>
+
+                      {/* Gross */}
+                      <div style={{ marginTop: 4 }}>
                         <Title level={3} style={{ margin: 0 }}>
                           <AnimatedCurrency value={parseFloat(data.total_sales)} duration={1800} />
                         </Title>
+                        <Text type="secondary">Tổng thu (gross)</Text>
                       </div>
+
+                      <Divider style={{ margin: "10px 0" }} />
+
+                      {/* Commission 5% (đã do API tính) */}
+                      <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                        <Tag color="blue">
+                          <Percent size={14} style={{ verticalAlign: -2, marginRight: 4 }} />
+                          Thuế/hoa hồng (5%)
+                        </Tag>
+                        <Text strong>{VND.format(Number(data.commission))}</Text>
+                      </Space>
+
+                      {/* Net */}
+                      <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                        <Text strong> Tổng nhận (net) </Text>
+                        <Text strong style={{ color: "#16a34a" }}>{VND.format(Number(data.shop_revenue))}</Text>
+                      </Space>
                     </Card>
                   </Col>
 

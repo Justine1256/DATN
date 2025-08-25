@@ -68,8 +68,6 @@ export default function OrderListItem({
             detail.shop_slug || product.shop_slug || product.shop?.slug || order.shop_slug;
         const productSlug = product.slug;
 
-        console.log("🔍 shopSlug:", shopSlug);
-        console.log("🔍 productSlug:", productSlug);
 
         // Chỉ điều hướng khi có đủ slug
         if (!shopSlug || !productSlug) return;

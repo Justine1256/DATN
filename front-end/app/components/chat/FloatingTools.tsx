@@ -1024,7 +1024,6 @@ export default function EnhancedChatTools() {
   }
 
   const handleContactClick = (user: User) => {
-    console.log("Contact clicked:", user);
 
     setReceiver(user)
     setLastReceiver(user.id)
@@ -1033,9 +1032,7 @@ export default function EnhancedChatTools() {
   }
 
   const toggleContactList = () => {
-    console.log("Toggling contact list");
     setIsContactListOpen(!isContactListOpen);
-    console.log('isContactListOpen', !isContactListOpen);
 
   }
 

@@ -320,7 +320,6 @@ export default function OrderSummary({
         headers,
         withCredentials: true,
       })
-      console.log("[Order] Response:", response.data)
 
       if (response.data?.redirect_url || response.data?.payment_url) {
         const redirectUrl = response.data.redirect_url || response.data.payment_url

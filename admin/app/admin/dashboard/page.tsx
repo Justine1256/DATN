@@ -27,8 +27,8 @@ interface AdminDashboardData {
   total_shops: number
   total_products: number
   total_orders: number
-  total_revenue: string
-  total_commission: number
+  total_revenue: string        // ví dụ "123456789"
+  total_commission: number     // tổng hoa hồng của sàn (VND)
   total_vouchers: number
   total_categories: number
   warning_users: number
@@ -204,7 +204,6 @@ export default function AdminDashboard() {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            // Add authorization header if needed
             "Authorization": `Bearer ${token}`,
           },
         })
@@ -289,6 +288,15 @@ export default function AdminDashboard() {
       </div>
     )
   }
+
+  // ====== Derived values for currency-based metrics ======
+  const totalRevenueNumber = Number.parseFloat(String(data.total_revenue || 0))
+  // fallback: nếu API chưa trả total_commission -> tính 5% từ total_revenue
+  const commissionValue =
+    typeof data.total_commission === "number" && !Number.isNaN(data.total_commission)
+      ? data.total_commission
+      : Math.max(0, totalRevenueNumber * 0.05)
+  const netRevenue = Math.max(0, totalRevenueNumber - commissionValue)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
@@ -375,6 +383,13 @@ export default function AdminDashboard() {
               <TrendingUp className="inline h-3 w-3 mr-1" />
               Từ {data.total_orders} đơn hàng
             </p>
+            {/* Hiển thị thêm Net revenue sau phí (optional) */}
+            <p className="text-xs opacity-90 mt-1">
+              Doanh thu sau phí:{" "}
+              <span className="font-semibold">
+                {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(netRevenue)}
+              </span>
+            </p>
           </div>
 
           {/* Total Products */}
@@ -429,12 +444,12 @@ export default function AdminDashboard() {
                   <Percent className="h-6 w-6 text-white" />
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-medium opacity-80">COMMISSION</div>
+                  <div className="text-xs font-medium opacity-80">COMMISSION (5%)</div>
                   <div className="w-8 h-1 bg-white/30 rounded-full mt-1"></div>
                 </div>
               </div>
-              <div className="text-3xl font-bold mb-2">
-                <CountUpRegular end={data.total_commission} duration={1500} />
+              <div className="text-2xl font-bold mb-1">
+                <CountUpCurrency end={commissionValue.toString()} duration={1800} />
               </div>
               <div className="flex items-center text-sm opacity-90">
                 <div className="w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-pulse"></div>
