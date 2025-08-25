@@ -1,7 +1,9 @@
 "use client";
 import "react-quill/dist/quill.snow.css";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Roboto } from "next/font/google";
 import "./globals.css";
 import Header from "./components/common/Header";
@@ -10,6 +12,7 @@ import ModernAdminSidebar from "./components/common/Adminsiderbar";
 import { AuthProvider, useAuth } from "./AuthContext";
 import axios from "axios";
 
+// Giữ nguyên cấu hình axios của bạn
 axios.defaults.baseURL = "https://marketo.info.vn";
 axios.defaults.withCredentials = true;
 
@@ -19,7 +22,7 @@ const roboto = Roboto({
   variable: "--font-roboto",
 });
 
-// ====== Loading đẹp với chữ Marketo + thanh load ======
+/* ====== Loading đẹp với chữ Marketo + thanh load ====== */
 function AuthLoadingScreen() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6">
@@ -36,12 +39,10 @@ function AuthLoadingScreen() {
       `}</style>
 
       <div className="w-full max-w-md text-center">
-        {/* Logo text Marketo */}
         <div
           className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent select-none"
           style={{
-            backgroundImage:
-              "linear-gradient(90deg, #db4444, #ef7a7a, #db4444)",
+            backgroundImage: "linear-gradient(90deg, #db4444, #ef7a7a, #db4444)",
             backgroundSize: "200% 200%",
             animation: "brandShine 2.4s ease-in-out infinite",
           }}
@@ -49,53 +50,55 @@ function AuthLoadingScreen() {
           Marketo
         </div>
 
-        {/* Thông điệp */}
-        <p className="text-gray-600 mb-6">
-          Đang kiểm tra phiên đăng nhập...
-        </p>
+        <p className="text-gray-600 mb-6">Đang kiểm tra phiên đăng nhập...</p>
 
-        {/* Thanh load */}
         <div className="relative h-2 w-full bg-white/70 rounded-full overflow-hidden shadow-inner border border-gray-200">
           <span
             className="absolute top-0 bottom-0 left-0 w-1/3 rounded-full"
-            style={{
-              background: "#db4444",
-              animation: "loadingBar 1.15s ease-in-out infinite",
-            }}
+            style={{ background: "#db4444", animation: "loadingBar 1.15s ease-in-out infinite" }}
           />
         </div>
 
-        {/* Hint nhỏ */}
-        <div className="mt-4 text-xs text-gray-400">
-          Vui lòng chờ giây lát…
-        </div>
+        <div className="mt-4 text-xs text-gray-400">Vui lòng chờ giây lát…</div>
       </div>
     </div>
   );
 }
 
-// ====== Màn hình chưa đăng nhập ======
+/* ====== Màn hình chưa đăng nhập ====== */
 function NotLoggedInScreen() {
+  const [loginUrl, setLoginUrl] = useState<string>("/login");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const host = window.location.hostname;
+    // Localhost → điều hướng local; domain thật → điều hướng domain thật
+    if (host === "localhost" || host === "127.0.0.1") {
+      setLoginUrl("http://localhost:3000/login");
+    } else {
+      setLoginUrl("https://marketo.info.vn/login");
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6">
       <div className="w-full max-w-md text-center bg-white rounded-2xl shadow-xl p-8">
-        <div className="text-3xl font-extrabold text-[#db4444] mb-2">
-          Marketo
-        </div>
+        <div className="text-3xl font-extrabold text-[#db4444] mb-2">Marketo</div>
         <p className="text-gray-600 mb-6">Bạn chưa đăng nhập.</p>
-        <a
-          href="/login"
+
+        <Link
+          href={loginUrl}
           className="inline-flex items-center justify-center px-5 py-3 rounded-lg text-white font-semibold shadow-sm transition-transform hover:scale-[1.01]"
           style={{ backgroundColor: "#db4444" }}
         >
           Đăng nhập ngay
-        </a>
+        </Link>
       </div>
     </div>
   );
 }
 
-// ====== Nội dung, phân role & sidebar ======
+/* ====== Nội dung, phân role & sidebar ====== */
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, isAuthReady } = useAuth();
@@ -103,7 +106,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const isNotFound = pathname === "/404" || pathname.includes("not-found");
   if (isNotFound) return <div>{children}</div>;
 
-  // Loading kiểm tra đăng nhập (đẹp)
+  // Loading kiểm tra đăng nhập
   if (!isAuthReady) return <AuthLoadingScreen />;
 
   // Chưa đăng nhập
@@ -124,7 +127,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ====== Root Layout ======
+/* ====== Root Layout ====== */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi">
@@ -132,9 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <title>Admin Marketo</title>
         <meta name="theme-color" content="#db4444" />
       </head>
-      <body
-        className={`bg-[#f9fafb] text-gray-900 font-sans antialiased ${roboto.variable}`}
-      >
+      <body className={`bg-[#f9fafb] text-gray-900 font-sans antialiased ${roboto.variable}`}>
         <AuthProvider>
           <LayoutContent>{children}</LayoutContent>
         </AuthProvider>
