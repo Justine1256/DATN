@@ -470,30 +470,28 @@ const Header = () => {
 
 
             {/* WISHLIST (đặt ngay cạnh giỏ hàng) */}
-            {/* WISHLIST (đặt ngay cạnh giỏ hàng) */}
             <button
               type="button"
               aria-label="Yêu thích"
-              aria-disabled={!user}
-              className={`relative hidden md:flex items-center justify-center transition-colors ${user ? "hover:text-[#DB4444] cursor-pointer" : "text-neutral-400 cursor-not-allowed"
-                }`}
+              className="relative hidden md:flex items-center justify-center transition-colors hover:text-[#DB4444]"
               onClick={() => {
                 if (!user) {
-                  setShowWishlistPopup(true);   // chặn mở /wishlist khi chưa đăng nhập
+                  setShowWishlistPopup(true); // chưa login -> hiện popup
                   return;
                 }
-                router.push("/wishlist");
+                router.push("/wishlist"); // đã login -> đi wishlist
               }}
               onMouseEnter={() => user && prefetchRoute("/wishlist")}
             >
-              <AiOutlineHeart className="w-6 h-6" />
-              {/* Hiện badge CHỈ khi đã đăng nhập và có item */}
+              <AiOutlineHeart className="w-6 h-6 text-black" />
+
               {user && wishlistItems.length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
                   {wishlistItems.length}
                 </span>
               )}
             </button>
+
 
 
 
