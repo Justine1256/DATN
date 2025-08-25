@@ -611,7 +611,7 @@ public function getMyShopCustomers(Request $request)
             ->get();
 
         // Trung bình đánh giá shop
-        $averageRating = DB::table('products')
+        $averageRating = DB::table('reviews')
             ->where('shop_id', $shopId)
             ->avg('rating');
 
