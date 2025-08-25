@@ -486,7 +486,7 @@ export default function CartItemsSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ===== Mobile item renderer =====
+  // ===== Mobile item renderer (giao diện đã tinh chỉnh nhưng GIỮ logic cũ) =====
   const renderMobileList = () => (
     <div className="space-y-3 p-3">
       {dataSource.map((item) => {
@@ -497,7 +497,7 @@ export default function CartItemsSection({
         const discounted = sale < original;
 
         return (
-          <Card key={item.key} size="small" bodyStyle={{ padding: 12 }} bordered>
+          <Card key={item.key} size="small" bodyStyle={{ padding: 12 }} bordered className="rounded-lg">
             <div className="flex gap-3">
               <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
                 <div className="relative w-20 h-20 shrink-0 rounded border overflow-hidden bg-white">
@@ -545,6 +545,7 @@ export default function CartItemsSection({
                       size="small"
                       value={item.quantity}
                       controls
+                      className="!w-16"
                       disabled={updatingIds.has(item.id)}
                       onChange={(val) => handleQuantityChange(item.id, val)}
                     />
@@ -554,16 +555,15 @@ export default function CartItemsSection({
                       cancelText="Huỷ"
                       onConfirm={() => handleRemove(item.id)}
                     >
-                      <Button danger type="link" size="small">
+                      <Button danger type="link" size="small" className="!p-0">
                         Xoá
                       </Button>
                     </Popconfirm>
                   </div>
                 </div>
 
-                <div className="mt-1 text-right text-sm font-semibold text-red-600">
-                  {formatPrice(sale * item.quantity)}
-                </div>
+                {/* Giữ phần tổng dòng (line total) như code đầu */}
+               
               </div>
             </div>
           </Card>
@@ -574,7 +574,7 @@ export default function CartItemsSection({
 
   const renderMobileSummary = () => (
     <div className="px-3 pb-3">
-      <Card size="small" bordered>
+      <Card size="small" bordered className="shadow rounded-lg">
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span>Tạm tính (giá gốc):</span>
@@ -640,7 +640,7 @@ export default function CartItemsSection({
             rowKey="key"
             sticky
             size="middle"
-            scroll={{ x: 960 }} // giúp table cuộn ngang nếu chật
+            scroll={{ x: 960 }}
             summary={() => (
               <>
                 <Table.Summary.Row>

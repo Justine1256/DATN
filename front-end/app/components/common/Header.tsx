@@ -459,8 +459,14 @@ const Header = () => {
 
             {/* CART */}
             {/* CART */}
-            <div className="relative">
-              <CartDropdownResponsive cartItems={cartItems} formatImageUrl={formatImageUrl} />
+            <div
+              className="relative cursor-pointer"
+              onClick={() => router.push("/cart")}
+            >
+              <CartDropdownResponsive
+                cartItems={cartItems}
+                formatImageUrl={formatImageUrl}
+              />
               {cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
                   {cartCount}
@@ -473,7 +479,7 @@ const Header = () => {
             <button
               type="button"
               aria-label="Yêu thích"
-              className="relative hidden md:flex items-center justify-center transition-colors hover:text-[#DB4444]"
+              className="relative hidden md:flex items-center justify-center transition-colors text-black hover:text-[#DB4444]"
               onClick={() => {
                 if (!user) {
                   setShowWishlistPopup(true); // chưa login -> hiện popup
@@ -483,7 +489,8 @@ const Header = () => {
               }}
               onMouseEnter={() => user && prefetchRoute("/wishlist")}
             >
-              <AiOutlineHeart className="w-6 h-6 text-black" />
+              {/* KHÔNG set màu ở icon, để nó ăn theo button */}
+              <AiOutlineHeart className="w-6 h-6" />
 
               {user && wishlistItems.length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-[#DB4444] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
@@ -491,6 +498,7 @@ const Header = () => {
                 </span>
               )}
             </button>
+
 
 
 
