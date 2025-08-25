@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/chatbot', [BotController::class, 'ask']);
 
 Route::get('/banner', [BannerController::class, 'index']);
+Route::get('/banner-management', [BannerController::class, 'allBanner']);
 Route::post('/banner', [BannerController::class, 'store']);
 Route::put('/banner/{id}', [BannerController::class, 'update']);
 Route::delete('/banner/{id}', [BannerController::class, 'destroy']);
