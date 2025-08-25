@@ -516,54 +516,62 @@ class UserController extends Controller
         return view('emails.verify_result', ['message' => 'Token không hợp lệ.']);
     }
 
-    public function getStatistics()
-    {
-        // Tổng quan
-        $totalUsers        = DB::table('users')->where('role', 'user')->count();
-        $totalShops        = DB::table('shops')->count();
-        $totalProducts     = DB::table('products')->count();
-        $totalOrders       = DB::table('orders')->count();
-        $totalRevenue      = DB::table('orders')->where('payment_status', 'Completed')->sum('final_amount');
-        $totalCommission   = DB::table('commissions')->where('status', 'Paid')->sum('amount');
-        $totalVouchers     = DB::table('vouchers')->count();
-        $totalCategories   = DB::table('categories')->count();
-        $totalParentCategories = DB::table('categories')->whereNull('parent_id')->count();
+public function getStatistics()
+{
+    // Tổng quan
+    $totalUsers        = DB::table('users')->where('role', 'user')->count();
+    $totalShops        = DB::table('shops')->count();
+    $totalProducts     = DB::table('products')->count();
+    $totalOrders       = DB::table('orders')->count();
 
-        // User bị cảnh báo (dựa trên số đơn bị hủy)
-        $userCancelStats = DB::table('orders')
-            ->select('user_id', DB::raw('COUNT(*) as cancel_count'))
-            ->where('order_status', 'Canceled')
-            ->groupBy('user_id')
-            ->get();
+    // Tổng doanh thu chỉ lấy đơn đã thanh toán thành công
+    $totalRevenue = DB::table('orders')
+        ->where('payment_status', 'Completed')
+        ->sum('final_amount');
 
-        $warningUsers = $userCancelStats->where('cancel_count', '>=', 5)->where('cancel_count', '<', 10)->count();
-        $dangerUsers  = $userCancelStats->where('cancel_count', '>=', 10)->count();
+    // ✅ Tính commission 5% từ tổng doanh thu
+    $totalCommission = round($totalRevenue * 0.05, 2);
 
-        // Shop bị cảnh báo (dựa trên số lần bị report)
-        $shopReportStats = DB::table('reports')
-            ->select('shop_id', DB::raw('COUNT(*) as report_count'))
-            ->groupBy('shop_id')
-            ->get();
+    $totalVouchers     = DB::table('vouchers')->count();
+    $totalCategories   = DB::table('categories')->count();
+    $totalParentCategories = DB::table('categories')->whereNull('parent_id')->count();
 
-        $warningShops = $shopReportStats->where('report_count', '>=', 5)->where('report_count', '<', 10)->count();
-        $dangerShops  = $shopReportStats->where('report_count', '>=', 10)->count();
+    // User bị cảnh báo (dựa trên số đơn bị hủy)
+    $userCancelStats = DB::table('orders')
+        ->select('user_id', DB::raw('COUNT(*) as cancel_count'))
+        ->where('order_status', 'Canceled')
+        ->groupBy('user_id')
+        ->get();
 
-        return response()->json([
-            'total_users'            => $totalUsers,
-            'total_shops'            => $totalShops,
-            'total_products'         => $totalProducts,
-            'total_orders'           => $totalOrders,
-            'total_revenue'          => $totalRevenue,
-            'total_commission'       => $totalCommission,
-            'total_vouchers'         => $totalVouchers,
-            'total_categories'       => $totalCategories,
-            'total_parent_categories' => $totalParentCategories,
-            'warning_users'          => $warningUsers,
-            'danger_users'           => $dangerUsers,
-            'warning_shops'          => $warningShops,
-            'danger_shops'           => $dangerShops,
-        ]);
-    }
+    $warningUsers = $userCancelStats->where('cancel_count', '>=', 5)->where('cancel_count', '<', 10)->count();
+    $dangerUsers  = $userCancelStats->where('cancel_count', '>=', 10)->count();
+
+    // Shop bị cảnh báo (dựa trên số lần bị report)
+    $shopReportStats = DB::table('reports')
+        ->select('shop_id', DB::raw('COUNT(*) as report_count'))
+        ->groupBy('shop_id')
+        ->get();
+
+    $warningShops = $shopReportStats->where('report_count', '>=', 5)->where('report_count', '<', 10)->count();
+    $dangerShops  = $shopReportStats->where('report_count', '>=', 10)->count();
+
+    return response()->json([
+        'total_users'             => $totalUsers,
+        'total_shops'             => $totalShops,
+        'total_products'          => $totalProducts,
+        'total_orders'            => $totalOrders,
+        'total_revenue'           => round($totalRevenue, 2),
+        'total_commission'        => $totalCommission, // ✅ Commission 5%
+        'total_vouchers'          => $totalVouchers,
+        'total_categories'        => $totalCategories,
+        'total_parent_categories' => $totalParentCategories,
+        'warning_users'           => $warningUsers,
+        'danger_users'            => $dangerUsers,
+        'warning_shops'           => $warningShops,
+        'danger_shops'            => $dangerShops,
+    ]);
+}
+
     public function recalculateMyRank(Request $request)
     {
         // Lấy user từ token
