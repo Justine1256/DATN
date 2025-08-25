@@ -7,7 +7,7 @@ export default function ForgotpasswordPage() {
       {/* Left Image Section */}
       <div className="hidden md:block md:w-1/2 h-64 md:h-screen relative">
       <Image
-        src="/signupimg.png"
+        src="/signupimg.jpg"
         alt="Signup Image"
         fill
         className="object-cover"
