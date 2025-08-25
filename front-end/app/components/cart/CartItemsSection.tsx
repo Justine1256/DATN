@@ -497,8 +497,9 @@ export default function CartItemsSection({
         const discounted = sale < original;
 
         return (
-          <Card key={item.key} size="small" bodyStyle={{ padding: 12 }} bordered>
+          <Card key={item.key} size="small" bodyStyle={{ padding: 12 }} bordered className="rounded-lg">
             <div className="flex gap-3">
+              {/* Ảnh */}
               <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
                 <div className="relative w-20 h-20 shrink-0 rounded border overflow-hidden bg-white">
                   <Image
@@ -510,41 +511,44 @@ export default function CartItemsSection({
                 </div>
               </Link>
 
-              <div className="flex-1 min-w-0">
-                <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
-                  <div className="font-medium text-sm text-black hover:text-red-500 transition-colors line-clamp-2">
-                    {item.product.name}
-                  </div>
-                </Link>
-
-                {(item as any).product.shop && (
-                  <Link href={`/shop/${shopSlug}`} className="text-xs">
-                    <Tag color="processing" className="mt-1">
-                      🏪 {(item as any).product.shop.name}
-                    </Tag>
-                  </Link>
-                )}
-
-                <div className="mt-1 text-xs">{renderVariant(item)}</div>
-
-                <div className="mt-2 flex items-center justify-between">
-                  <div>
-                    <div className="text-base font-semibold" style={{ color: discounted ? '#DB4444' : '#111827' }}>
-                      {formatPrice(sale)}
+              {/* Nội dung */}
+              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                {/* Hàng 1: Tên + shop */}
+                <div>
+                  <Link href={`/shop/${shopSlug}/product/${productSlug}`}>
+                    <div className="font-medium text-sm text-black hover:text-red-500 line-clamp-2">
+                      {item.product.name}
                     </div>
-                    {discounted && (
-                      <div className="text-xs text-gray-500 line-through">
-                        {formatPrice(original)}
-                      </div>
-                    )}
-                  </div>
+                  </Link>
+                  {(item as any).product.shop && (
+                    <Link href={`/shop/${shopSlug}`} className="text-xs">
+                      <Tag color="processing" className="mt-1">
+                        🏪 {(item as any).product.shop.name}
+                      </Tag>
+                    </Link>
+                  )}
+                </div>
 
+                {/* Hàng 2: Giá */}
+                <div>
+                  <div className="text-base font-semibold" style={{ color: discounted ? '#DB4444' : '#111827' }}>
+                    {formatPrice(sale)}
+                  </div>
+                  {discounted && (
+                    <div className="text-xs text-gray-500 line-through">{formatPrice(original)}</div>
+                  )}
+                </div>
+
+                {/* Hàng 3: Số lượng + Xoá + Tổng tiền */}
+                <div className="flex items-center justify-between mt-1">
+                  {/* Input + Xoá */}
                   <div className="flex items-center gap-2">
                     <InputNumber
                       min={1}
                       size="small"
                       value={item.quantity}
                       controls
+                      className="!w-16"
                       disabled={updatingIds.has(item.id)}
                       onChange={(val) => handleQuantityChange(item.id, val)}
                     />
@@ -554,15 +558,13 @@ export default function CartItemsSection({
                       cancelText="Huỷ"
                       onConfirm={() => handleRemove(item.id)}
                     >
-                      <Button danger type="link" size="small">
+                      <Button danger type="link" size="small" className="!p-0">
                         Xoá
                       </Button>
                     </Popconfirm>
                   </div>
-                </div>
 
-                <div className="mt-1 text-right text-sm font-semibold text-red-600">
-                  {formatPrice(sale * item.quantity)}
+                 
                 </div>
               </div>
             </div>
@@ -572,9 +574,12 @@ export default function CartItemsSection({
     </div>
   );
 
+
+
+
   const renderMobileSummary = () => (
     <div className="px-3 pb-3">
-      <Card size="small" bordered>
+      <Card size="small" bordered className="shadow rounded-lg">
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span>Tạm tính (giá gốc):</span>
@@ -608,6 +613,7 @@ export default function CartItemsSection({
       </Card>
     </div>
   );
+
 
   return (
     <Card

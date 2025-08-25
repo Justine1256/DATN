@@ -21,6 +21,8 @@ import {
 } from 'antd';
 import { API_BASE_URL, STATIC_BASE_URL } from '@/utils/api';
 import { ShoppingCartOutlined } from '@ant-design/icons';
+import CartByShopMobile from './CartByShopMobile';
+
 
 const { Panel } = Collapse;
 const { Text, Title } = Typography;
@@ -772,213 +774,222 @@ const shopName = String(prod.shop?.name ?? raw.shop?.name ?? raw.shop_name ?? 'S
         ) : grouped.length === 0 ? (
           <Alert type="info" message="Không có sản phẩm được chọn." />
         ) : (
-          <Collapse
-            accordion
-            activeKey={activeShopId}
-            onChange={(k) => setActiveShopId(Array.isArray(k) ? String(k[0]) : String(k))}
-            style={{ background: 'transparent' }}
-          >
-            {grouped.map((g) => {
-              const shopVoucher = applied.byShop[g.shop_id] ?? null;
-              const money = calcShopMoney(g.shop_id);
-              const firstTwo = g.items.slice(0, COLLAPSE_COUNT);
-              const hiddenCount = Math.max(0, g.items.length - COLLAPSE_COUNT);
+              <>
+                {/* Mobile */}
+                <div className="block md:hidden">
+                  <CartByShopMobile
+                    formatImage={imageUrl}
+                    perShop={perShopComputed}
+                    grouped={grouped}
+                    VND={VND}
+                    onOpenVoucher={openVoucherModal}
+                    onClearVoucher={clearVoucher}
+                  />
+                </div>
 
-              return (
-                <Panel
-                  key={String(g.shop_id)}
-                  header={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-                      <Text strong style={{ color: 'black' }}>
-                        Shop:{' '}
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            maxWidth: 180,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            verticalAlign: 'bottom',
-                          }}
-                          title={g.shop_name ?? `#${g.shop_id}`}
-                        >
-                          {g.shop_name ?? `#${g.shop_id}`}
-                        </span>
-                      </Text>
-
-                      <div
-                        style={{
-                          marginLeft: 'auto',
-                          display: 'flex',
-                          gap: 12,
-                          fontSize: 12,
-                          color: '#666',
-                        }}
-                      >
-                        <span>
-                          Tạm tính: <Text strong>{VND(money.subTotal)}</Text>
-                        </span>
-                        {!!money.voucherDiscount && (
-                          <span>
-                            Giảm: <Text type="danger">-{VND(money.voucherDiscount)}</Text>
-                          </span>
-                        )}
-                        <span>Phí VC: {VND(money.shipping)}</span>
-                      </div>
-                    </div>
-                  }
-                >
-                  {/* Sản phẩm (tối đa 2) */}
-                  <List<CartItem>
-                    itemLayout="horizontal"
-                    dataSource={firstTwo}
-                    rowKey={(it) => String(it.id)}
-                    renderItem={(it) => {
-                      const u = unitPrice(it);
-                      const total = u * it.quantity;
-                      const ori = it.product.price * it.quantity;
-                      const hasSale = u < it.product.price;
+                {/* Desktop */}
+                <div className="hidden md:block">
+                  <Collapse
+                    accordion
+                    activeKey={activeShopId}
+                    onChange={(k) => setActiveShopId(Array.isArray(k) ? String(k[0]) : String(k))}
+                    style={{ background: 'transparent' }}
+                  >
+                    {grouped.map((g) => {
+                      const shopVoucher = applied.byShop[g.shop_id] ?? null;
+                      const money = calcShopMoney(g.shop_id);
+                      const firstTwo = g.items.slice(0, COLLAPSE_COUNT);
+                      const hiddenCount = Math.max(0, g.items.length - COLLAPSE_COUNT);
 
                       return (
-                        <List.Item style={{ padding: '6px 0' }}>
-                          <List.Item.Meta
-                            avatar={
-                              <img
-                                src={imageUrl(it.product.image)}
-                                alt={it.product.name}
+                        <Panel
+                          key={String(g.shop_id)}
+                          header={
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+                              <Text strong style={{ color: 'black' }}>
+                                Shop:{' '}
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    maxWidth: 180,
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    verticalAlign: 'bottom',
+                                  }}
+                                  title={g.shop_name ?? `#${g.shop_id}`}
+                                >
+                                  {g.shop_name ?? `#${g.shop_id}`}
+                                </span>
+                              </Text>
+
+                              <div
                                 style={{
-                                  width: 44,
-                                  height: 44,
-                                  objectFit: 'contain',
-                                  borderRadius: 8,
-                                  border: '1px solid #f0f0f0',
+                                  marginLeft: 'auto',
+                                  display: 'flex',
+                                  gap: 12,
+                                  fontSize: 12,
+                                  color: '#666',
                                 }}
-                              />
-                            }
-                            title={
-                              <OneLine>
-                                <strong>{it.product.name}</strong>
-                              </OneLine>
-                            }
-                            description={
-                              <Text type="secondary" style={{ color: 'rgba(0,0,0,.45)' }}>
-                                SL: {it.quantity}
-                              </Text>
-                            }
+                              >
+                                <span>
+                                  Tạm tính: <Text strong style={{ color: '#999' }}>{VND(money.subTotal)}</Text>
+                                </span>
 
+                                {!!money.voucherDiscount && (
+                                  <span>
+                                    Giảm: <Text type="danger">-{VND(money.voucherDiscount)}</Text>
+                                  </span>
+                                )}
+                                <span>Phí VC: {VND(money.shipping)}</span>
+                              </div>
+                            </div>
+                          }
+                        >
+                          {/* Sản phẩm (tối đa 2) */}
+                          <List<CartItem>
+                            itemLayout="horizontal"
+                            dataSource={firstTwo}
+                            rowKey={(it) => String(it.id)}
+                            renderItem={(it) => {
+                              const u = unitPrice(it);
+                              const total = u * it.quantity;
+                              const ori = it.product.price * it.quantity;
+                              const hasSale = u < it.product.price;
+
+                              return (
+                                <List.Item style={{ padding: '6px 0' }}>
+                                  <List.Item.Meta
+                                    avatar={
+                                      <img
+                                        src={imageUrl(it.product.image)}
+                                        alt={it.product.name}
+                                        style={{
+                                          width: 44,
+                                          height: 44,
+                                          objectFit: 'contain',
+                                          borderRadius: 8,
+                                          border: '1px solid #f0f0f0',
+                                        }}
+                                      />
+                                    }
+                                    title={<strong>{it.product.name}</strong>}
+                                    description={
+                                      <Text type="secondary" style={{ color: 'rgba(0,0,0,.45)' }}>
+                                        SL: {it.quantity}
+                                      </Text>
+                                    }
+                                  />
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 120 }}>
+                                    {hasSale && (
+                                      <Text delete style={{ color: '#999', fontSize: 13, marginBottom: 2 }}>
+                                        {VND(ori)}
+                                      </Text>
+                                    )}
+                                    <Text strong type="danger" style={{ color: '#d0302f' }}>
+                                      {VND(total)}
+                                    </Text>
+                                  </div>
+                                </List.Item>
+                              );
+                            }}
                           />
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 120 }}>
-                            {hasSale && (
-                              <Text delete style={{ color: '#999', fontSize: 13, marginBottom: 2 }}>
-                                {VND(ori)}
-                              </Text>
-                            )}
-                            <Text
-                              strong
-                              type="danger"
-                              style={{
-                                color: '#d0302f',
-                                userSelect: 'text',
-                              }}
-                            >
-                              {VND(total)}
-                            </Text>
 
+                          {/* Nếu còn sp ẩn → nút xem modal */}
+                          {hiddenCount > 0 && (
+                            <div style={{ textAlign: 'center', marginTop: 4 }}>
+                              <Button
+                                type="link"
+                                onClick={() => {
+                                  setItemsModalShop(g);
+                                  setItemsModalOpen(true);
+                                }}
+                              >
+                                Xem tất cả {g.items.length} sản phẩm
+                              </Button>
+                            </div>
+                          )}
+
+                          <Divider style={{ margin: '10px 0' }} />
+
+                          {/* Voucher pills */}
+                          <div
+                            style={{
+                              marginTop: 6,
+                              marginBottom: 8,
+                              display: 'flex',
+                              gap: 8,
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            {applied.global && (
+                              <div className="voucher-pill" title={`Voucher sàn: ${applied.global.code}`}>
+                                <span className="voucher-label">Voucher sàn:</span>
+                                <span className="voucher-code">{applied.global.code}</span>
+                                <button
+                                  type="button"
+                                  className="voucher-close"
+                                  aria-label="Bỏ voucher sàn"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    clearVoucher(null);
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            )}
+
+                            {shopVoucher && (
+                              <div className="voucher-pill" title={`Voucher shop: ${shopVoucher.code}`}>
+                                <span className="voucher-label">Voucher shop:</span>
+                                <span className="voucher-code">{shopVoucher.code}</span>
+                                <button
+                                  type="button"
+                                  className="voucher-close"
+                                  aria-label="Bỏ voucher shop"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    clearVoucher(g.shop_id);
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            )}
+
+                            <Button size="small" onClick={() => openVoucherModal(g.shop_id)}>
+                              Voucher
+                            </Button>
                           </div>
 
-
-                        </List.Item>
+                          {/* Tóm tắt per shop */}
+                          <div style={{ fontSize: 13 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>Tạm tính</span>
+                              <strong>{VND(money.subTotal)}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>Giảm voucher shop</span>
+                              <span style={{ color: '#d0302f' }}>-{VND(money.voucherDiscount)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>Phí vận chuyển</span>
+                              <span>{VND(money.shipping)}</span>
+                            </div>
+                          </div>
+                        </Panel>
                       );
-                    }}
-                  />
+                    })}
+                  </Collapse>
+                </div>
+              </>
 
-                  {/* Nếu còn sp ẩn → nút xem modal */}
-                  {hiddenCount > 0 && (
-                    <div style={{ textAlign: 'center', marginTop: 4 }}>
-                      <Button
-                        type="link"
-                        onClick={() => {
-                          setItemsModalShop(g);
-                          setItemsModalOpen(true);
-                        }}
-                      >
-                        Xem tất cả {g.items.length} sản phẩm
-                      </Button>
-                    </div>
-                  )}
 
-                  <Divider style={{ margin: '10px 0' }} />
-
-                  {/* Voucher pills */}
-                  <div
-                    style={{
-                      marginTop: 6,
-                      marginBottom: 8,
-                      display: 'flex',
-                      gap: 8,
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    {applied.global && (
-                      <div className="voucher-pill" title={`Voucher sàn: ${applied.global.code} • ${badge(applied.global)}`}>
-                        <span className="voucher-label">Voucher sàn:</span>
-                        <span className="voucher-code">{applied.global.code}</span>
-                        <span className="voucher-dot">•</span>
-                        <span className="voucher-benefit">{badge(applied.global)}</span>
-                        <button
-                          type="button"
-                          className="voucher-close"
-                          aria-label="Bỏ voucher sàn"
-                          onClick={(e) => { e.preventDefault(); clearVoucher(null); }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
-
-                    {shopVoucher && (
-                      <div className="voucher-pill" title={`Voucher shop: ${shopVoucher.code} • ${badge(shopVoucher)}`}>
-                        <span className="voucher-label">Voucher shop:</span>
-                        <span className="voucher-code">{shopVoucher.code}</span>
-                        <span className="voucher-dot">•</span>
-                        <span className="voucher-benefit">{badge(shopVoucher)}</span>
-                        <button
-                          type="button"
-                          className="voucher-close"
-                          aria-label="Bỏ voucher shop"
-                          onClick={(e) => { e.preventDefault(); clearVoucher(g.shop_id); }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
-
-                    <Button size="small" onClick={() => openVoucherModal(g.shop_id)}>
-                      Voucher
-                    </Button>
-                  </div>
-
-                  {/* Tóm tắt per shop */}
-                  <div style={{ fontSize: 13 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Tạm tính</span>
-                      <strong>{VND(money.subTotal)}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Giảm voucher shop</span>
-                      <span style={{ color: '#d0302f' }}>-{VND(money.voucherDiscount)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Phí vận chuyển</span>
-                      <span>{VND(money.shipping)}</span>
-                    </div>
-                  </div>
-                </Panel>
-              );
-            })}
-          </Collapse>
+          
         )}
+        
       </Card>
 
       {/* Modal xem toàn bộ sản phẩm của 1 shop */}

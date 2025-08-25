@@ -668,4 +668,8 @@ a {
   display: inline-block;
   animation: fireCombo 2s ease-in-out infinite;
 }
-
+@media (min-width: 768px) {
+  .mobile-summary {
+    display: none !important;
+  }
+}
