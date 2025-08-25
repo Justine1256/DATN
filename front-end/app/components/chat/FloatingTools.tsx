@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useCallback, useEffect, useState, useRef, useMemo } from "react"
-import { MessageCircle, X, Plus, Send, MoreVertical, Bot } from "lucide-react"
+import { MessageCircle, X, Plus, Send, MoreVertical, Bot, AlignJustify } from "lucide-react"
 import Image from "next/image"
 import axios from "axios"
 import Cookies from "js-cookie"
@@ -117,6 +117,7 @@ export default function EnhancedChatTools() {
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [isContactListOpen, setIsContactListOpen] = useState(false)
 
   const myId = useMemo(() => Number(currentUser?.id ?? -999), [currentUser])
 
@@ -377,7 +378,7 @@ export default function EnhancedChatTools() {
     }
 
     // Đã đăng nhập → chọn cuộc trước để FETCH API
-    ;(async () => {
+    ; (async () => {
       // 1) Ưu tiên server last_conversation_id
       let targetId: number | null =
         (typeof currentUser.last_conversation_id === "number"
@@ -540,7 +541,7 @@ export default function EnhancedChatTools() {
           typeof (payload as any).has_more === "boolean"
             ? (payload as any).has_more
             : ((payload as any).current_page ?? pageToFetch) <
-              ((payload as any).last_page ?? pageToFetch)
+            ((payload as any).last_page ?? pageToFetch)
 
         setHasMoreMessages(hasMore)
       } catch (err: unknown) {
@@ -646,7 +647,7 @@ export default function EnhancedChatTools() {
                     msg.message === message.message &&
                     Math.abs(
                       new Date(msg.created_at).getTime() -
-                        new Date(message.created_at).getTime()
+                      new Date(message.created_at).getTime()
                     ) < 5000
                   ) {
                     return {
@@ -997,9 +998,9 @@ export default function EnhancedChatTools() {
   const formatTime = (dateStr: string) =>
     mounted
       ? new Date(dateStr).toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
+        hour: "2-digit",
+        minute: "2-digit",
+      })
       : ""
 
   const handleNotificationClick = (notification: NotificationMessage) => {
@@ -1023,10 +1024,19 @@ export default function EnhancedChatTools() {
   }
 
   const handleContactClick = (user: User) => {
+    console.log("Contact clicked:", user);
+
     setReceiver(user)
     setLastReceiver(user.id)
     setActiveChat(true)
     setIsInitialLoad(true)
+  }
+
+  const toggleContactList = () => {
+    console.log("Toggling contact list");
+    setIsContactListOpen(!isContactListOpen);
+    console.log('isContactListOpen', !isContactListOpen);
+
   }
 
   return (
@@ -1078,17 +1088,18 @@ export default function EnhancedChatTools() {
         <div
           className="fixed z-[9998] inset-x-2 bottom-2 md:inset-auto md:bottom-5 md:right-24
                      w-auto md:w-[760px] max-w-[95vw]
-                     h-[75vh] md:h-[620px]
+                     h-[75vh] md:h-[500px]
                      bg-white/95 backdrop-blur
                      rounded-2xl md:rounded-2xl border border-gray-200/70
                      shadow-[0_10px_40px_-10px_rgba(219,68,68,0.35)] overflow-hidden"
         >
-          <div className="flex h-full flex-col md:flex-row">
+          <div className="flex max-h-full h-full flex-col md:flex-row">
             {/* ========== Contact List (responsive) ========== */}
-            <div className="w-full md:w-[290px] border-b md:border-b-0 md:border-r bg-gray-50/70 flex flex-col max-h-[40%] md:max-h-none">
+            <div className={`w-full md:w-[290px] border-b md:border-b-0 md:border-r bg-gray-50/70 sm:flex flex-col max-h-full md:max-h-none ${isContactListOpen ? "flex" : "hidden"}`}>
               {/* Header */}
               <div className="px-4 py-3 bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
                 <div className="flex items-center justify-between">
+                  <AlignJustify className="block md:hidden mr-2" onClick={toggleContactList} />
                   <span className="font-semibold">Liên hệ gần đây</span>
                   <span className="text-[11px] bg-white/25 px-2 py-0.5 rounded-full">
                     {contactQuery ? filteredContacts.length : recentContacts.length}
@@ -1125,16 +1136,15 @@ export default function EnhancedChatTools() {
                 </div>
               </div>
 
-              {/* List */}
-              <div className="overflow-y-auto flex-1">
+              {/* List - desktop */}
+              <div className="hidden md:block overflow-y-auto flex-1">
                 {filteredContacts.map((user) => (
                   <button
                     type="button"
                     key={`contact-${user.id}`}
                     onClick={() => handleContactClick(user)}
-                    className={`w-full text-left flex items-center gap-3 px-3 py-3 border-b transition-colors hover:bg-white ${
-                      receiver?.id === user.id ? "bg-white/90 border-l-4 border-l-[#db4444]" : ""
-                    }`}
+                    className={`w-full text-left flex items-center gap-3 px-3 py-3 border-b transition-colors hover:bg-white ${receiver?.id === user.id ? "bg-white/90 border-l-4 border-l-[#db4444]" : ""
+                      }`}
                   >
                     <div className="relative">
                       {user.isBot ? (
@@ -1147,8 +1157,62 @@ export default function EnhancedChatTools() {
                             user.avatar?.startsWith("http") || user.avatar?.startsWith("/")
                               ? (user.avatar as string)
                               : user.avatar
-                              ? `${STATIC_BASE_URL}/${user.avatar}`
-                              : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+                                ? `${STATIC_BASE_URL}/${user.avatar}`
+                                : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+                          }
+                          alt={user.name}
+                          width={40}
+                          height={40}
+                          className="rounded-full object-cover w-10 h-10 ring-2 ring-white/70 shadow"
+                        />
+                      )}
+                      {user.online && (
+                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 ring-2 ring-white" />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm font-medium truncate">{user.name}</p>
+                        {user.isBot && <Bot size={12} className="text-blue-500" />}
+                      </div>
+                      <p className="text-[12px] text-gray-500 truncate">
+                        {user.last_message || "Chưa có tin nhắn"}
+                      </p>
+                      {user.last_time && (
+                        <p className="text-[11px] text-gray-400">{formatTime(user.last_time)}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* List - mobile */}
+              <div className="block md:hidden overflow-y-auto flex-1">
+                {filteredContacts.map((user) => (
+                  <button
+                    type="button"
+                    key={`contact-${user.id}`}
+                    onClick={() => {
+                      handleContactClick(user);
+                      toggleContactList();
+                    }}
+                    className={`w-full text-left flex items-center gap-3 px-3 py-3 border-b transition-colors hover:bg-white ${receiver?.id === user.id ? "bg-white/90 border-l-4 border-l-[#db4444]" : ""
+                      }`}
+                  >
+                    <div className="relative">
+                      {user.isBot ? (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <Bot size={18} className="text-white" />
+                        </div>
+                      ) : (
+                        <Image
+                          src={
+                            user.avatar?.startsWith("http") || user.avatar?.startsWith("/")
+                              ? (user.avatar as string)
+                              : user.avatar
+                                ? `${STATIC_BASE_URL}/${user.avatar}`
+                                : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
                           }
                           alt={user.name}
                           width={40}
@@ -1179,9 +1243,10 @@ export default function EnhancedChatTools() {
             </div>
 
             {/* ========== Chat Area ========== */}
-            <div className="flex-1 flex flex-col">
+            <div className={`${isContactListOpen ? "hidden" : "flex"} flex-1 flex flex-col max-h-full`}>
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
+                <AlignJustify className="block md:hidden mr-2" onClick={toggleContactList} />
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     {receiver?.isBot ? (
@@ -1216,14 +1281,14 @@ export default function EnhancedChatTools() {
                       {receiver?.isBot
                         ? "AI Assistant — Luôn sẵn sàng hỗ trợ"
                         : connectionStatus === "connected"
-                        ? isReceiverTyping
-                          ? `${receiver?.name} đang nhập…`
-                          : "Đang hoạt động"
-                        : connectionStatus === "connecting"
-                        ? "Đang kết nối WebSocket…"
-                        : connectionStatus === "error"
-                        ? "Lỗi WebSocket — dùng API"
-                        : "WebSocket mất kết nối"}
+                          ? isReceiverTyping
+                            ? `${receiver?.name} đang nhập…`
+                            : "Đang hoạt động"
+                          : connectionStatus === "connecting"
+                            ? "Đang kết nối WebSocket…"
+                            : connectionStatus === "error"
+                              ? "Lỗi WebSocket — dùng API"
+                              : "WebSocket mất kết nối"}
                     </p>
                   </div>
                 </div>
@@ -1264,22 +1329,21 @@ export default function EnhancedChatTools() {
               {!receiver?.isBot && (
                 <div className="flex items-center gap-2 text-[12px] text-gray-500 px-4 py-2">
                   <span
-                    className={`w-2 h-2 rounded-full ${
-                      connectionStatus === "connected"
-                        ? "bg-green-500"
-                        : connectionStatus === "connecting"
+                    className={`w-2 h-2 rounded-full ${connectionStatus === "connected"
+                      ? "bg-green-500"
+                      : connectionStatus === "connecting"
                         ? "bg-yellow-500 animate-pulse"
                         : "bg-red-500"
-                    }`}
+                      }`}
                   />
                   <span>
                     {connectionStatus === "connected"
                       ? "WebSocket đã kết nối"
                       : connectionStatus === "connecting"
-                      ? "Đang kết nối WebSocket…"
-                      : connectionStatus === "error"
-                      ? "Lỗi WebSocket — chỉ dùng API"
-                      : "WebSocket mất kết nối"}
+                        ? "Đang kết nối WebSocket…"
+                        : connectionStatus === "error"
+                          ? "Lỗi WebSocket — chỉ dùng API"
+                          : "WebSocket mất kết nối"}
                   </span>
                 </div>
               )}
@@ -1327,14 +1391,14 @@ export default function EnhancedChatTools() {
                             ? "Chat Bot đang nhập…"
                             : "AI Assistant — Luôn sẵn sàng hỗ trợ"
                           : connectionStatus === "connected"
-                          ? isReceiverTyping
-                            ? `${receiver?.name} đang nhập…`
-                            : "Đang hoạt động"
-                          : connectionStatus === "connecting"
-                          ? "Đang kết nối WebSocket…"
-                          : connectionStatus === "error"
-                          ? "Lỗi WebSocket — dùng API"
-                          : "WebSocket mất kết nối"}
+                            ? isReceiverTyping
+                              ? `${receiver?.name} đang nhập…`
+                              : "Đang hoạt động"
+                            : connectionStatus === "connecting"
+                              ? "Đang kết nối WebSocket…"
+                              : connectionStatus === "error"
+                                ? "Lỗi WebSocket — dùng API"
+                                : "WebSocket mất kết nối"}
                       </div>
                     ) : (
                       <>
@@ -1377,9 +1441,8 @@ export default function EnhancedChatTools() {
                               )}
 
                               <div
-                                className={`max-w-[85%] md:max-w-[70%] ${
-                                  isCurrentUser ? "order-first" : ""
-                                }`}
+                                className={`max-w-[85%] md:max-w-[70%] ${isCurrentUser ? "order-first" : ""
+                                  }`}
                               >
                                 <div
                                   className={[
@@ -1387,8 +1450,8 @@ export default function EnhancedChatTools() {
                                     isCurrentUser
                                       ? "bg-rose-50 text-black border border-rose-200 rounded-br-md"
                                       : isBotMessage
-                                      ? "bg-gradient-to-r from-blue-50 to-purple-50 text-gray-900 rounded-bl-md border border-blue-200/60"
-                                      : "bg-white text-gray-900 rounded-bl-md border border-gray-200/70",
+                                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-gray-900 rounded-bl-md border border-blue-200/60"
+                                        : "bg-white text-gray-900 rounded-bl-md border border-gray-200/70",
                                   ].join(" ")}
                                 >
                                   {!!msg.message && (
@@ -1429,8 +1492,8 @@ export default function EnhancedChatTools() {
                                                     alt={product.name}
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                                                     onError={(e) =>
-                                                      ((e.target as HTMLImageElement).src =
-                                                        "/modern-tech-product.png")
+                                                    ((e.target as HTMLImageElement).src =
+                                                      "/modern-tech-product.png")
                                                     }
                                                   />
                                                 ) : (
@@ -1507,9 +1570,8 @@ export default function EnhancedChatTools() {
                                 </div>
 
                                 <p
-                                  className={`text-[11px] text-gray-500 mt-1 ${
-                                    isCurrentUser ? "text-right" : "text-left"
-                                  }`}
+                                  className={`text-[11px] text-gray-500 mt-1 ${isCurrentUser ? "text-right" : "text-left"
+                                    }`}
                                 >
                                   {isCurrentUser ? "Bạn" : userName} •{" "}
                                   {new Date(msg.created_at).toLocaleTimeString("vi-VN", {
@@ -1635,11 +1697,10 @@ export default function EnhancedChatTools() {
                   <button
                     onClick={sendMessage}
                     disabled={(!input.trim() && images.length === 0) || !receiver?.id}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                      (!input.trim() && images.length === 0) || !receiver?.id
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105"
-                    }`}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${(!input.trim() && images.length === 0) || !receiver?.id
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105"
+                      }`}
                     title="Gửi"
                   >
                     <Send size={16} />
