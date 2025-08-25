@@ -57,7 +57,9 @@ export default function SearchPageClient() {
                     variants: p.variants ?? [],
 
                     // --- sale info ---
-                    sale_price: p.sale_price ?? null,
+                    sale_price: p.sale_price && p.sale_price < p.price ? p.sale_price : null,
+
+                    // sale_price: p.sale_price ?? null,
                     sale_starts_at: p.sale_starts_at ?? null,
                     sale_ends_at: p.sale_ends_at ?? null,
 
