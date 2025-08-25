@@ -97,13 +97,13 @@ export default function Page() {
                         <p className="text-xs text-slate-500 mt-1">Cập nhật lần cuối: {new Date().toLocaleDateString('vi-VN')}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="relative">
+                        <div className="relative w-full">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                             <input
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 placeholder="Tìm kiếm trong chính sách..."
-                                className="w-72 rounded-xl border bg-white pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-4"
+                                className="md:w-72 rounded-xl border bg-white pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-4"
                                 style={{
                                     borderColor: BRAND,
                                     boxShadow: searchTerm ? '0 0 0 4px rgba(219,68,68,0.12)' : undefined,
@@ -112,7 +112,7 @@ export default function Page() {
                         </div>
                         <button
                             onClick={() => window.print()}
-                            className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm bg-white hover:bg-slate-50"
+                            className="w-fit inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm bg-white hover:bg-slate-50"
                             style={{ borderColor: BRAND, color: BRAND }}
                         >
                             <Printer className="h-4 w-4" /> In
