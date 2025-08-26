@@ -271,10 +271,7 @@ export default function ChatbotWidget() {
                   </div>
                 </div>
 
-                <div className="leading-tight">
-                  <p className="text-sm font-semibold">AI Assistant</p>
-                  <p className="text-[11px] opacity-90">{typing ? "Đang nhập…" : "Sẵn sàng hỗ trợ"}</p>
-                </div>
+           
               </div>
               <button
                 onClick={() => setOpen(false)}
