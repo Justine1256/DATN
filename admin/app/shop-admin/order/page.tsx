@@ -286,8 +286,10 @@ const uiPaymentStatusToApi = (v: string) =>
   v === "refunded"? "Refunded" : undefined
 
 const uiPaymentMethodToApi = (v: string) =>
-  v === "cod"          ? "COD" :
-  v === "vnpay"       ? "VNPAY" : undefined
+  v === "cod" ? "COD"
+  : v === "e_wallet" ? "VNPAY"
+  : undefined
+
 
 const orderService = {
   // ================= SERVER FILTER =================
@@ -802,32 +804,7 @@ export default function OrderManagementPage() {
     setDateRange(null)
   }
 
-  const handleDeleteOrder = async (orderId: string, orderNumber: string) => {
-    Modal.confirm({
-      title: "Xác nhận xóa đơn hàng",
-      content: (
-        <div>
-          <p>Bạn có chắc chắn muốn xóa đơn hàng "{orderNumber}"?</p>
-          <p style={{ color: "red", fontWeight: "bold" }}>Hành động này không thể hoàn tác!</p>
-        </div>
-      ),
-      okText: "Xóa",
-      okType: "danger",
-      onOk: async () => {
-        try {
-          setActionLoading(orderId)
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          // Sau khi xóa ở BE (nếu có), gọi lại list để đồng bộ phân trang
-          await fetchOrders(serverPage, serverPageSize)
-          message.success("Xóa đơn hàng thành công")
-        } catch {
-          message.error("Lỗi khi xóa đơn hàng")
-        } finally {
-          setActionLoading(null)
-        }
-      },
-    })
-  }
+
 
   const handleCancelOrder = async () => {
     if (!orderToCancel) return
@@ -916,19 +893,18 @@ export default function OrderManagementPage() {
     } as const
     return (texts as any)[status] || status
   }
-
 const getPaymentMethodText = (method: OrderData["paymentMethod"]) => {
   const texts = {
     cod: "COD",
-    vnpay: "VNPAY",               // ⬅️ đổi từ “Ví điện tử” -> “VNPAY”
+    e_wallet: "VNPAY",
   } as const
   return (texts as any)[method] || method
 }
 
 
+
   const getActionItems = (record: OrderData): MenuProps["items"] => [
     { key: "view", icon: <EyeOutlined />, label: "Xem chi tiết", onClick: () => showOrderDetail(record) },
-    { key: "edit", icon: <EditOutlined />, label: "Chỉnh sửa", disabled: ["delivered", "cancelled", "returned"].includes(record.status) },
     {
       key: "cancel",
       icon: <DeleteOutlined />,
@@ -938,7 +914,6 @@ const getPaymentMethodText = (method: OrderData["paymentMethod"]) => {
     },
     { key: "print", icon: <PrinterOutlined />, label: "In đơn hàng" },
     { type: "divider" },
-    { key: "delete", icon: <DeleteOutlined />, label: "Xóa đơn hàng", danger: true, onClick: () => handleDeleteOrder(record.id, record.orderNumber) },
   ]
 
   // Dropdown cho TRẠNG THÁI XỬ LÝ
@@ -1345,6 +1320,7 @@ const getPaymentMethodText = (method: OrderData["paymentMethod"]) => {
   <Option value="cod">COD</Option>
   <Option value="e_wallet">VNPAY</Option>
 </Select>
+
 
           </Col>
           <Col xs={24} sm={12} md={6} lg={4}>
