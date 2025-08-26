@@ -16,6 +16,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'files.marketo.info.vn' }, // ảnh reviews
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'salt.tikicdn.com' },
+      { protocol: 'https', hostname: 'marketo.info.vn', pathname: '/**' },
       { protocol: 'https', hostname: 'via.placeholder.com' },
       { protocol: 'https', hostname: 'img4.thuthuatphanmem.vn' },
       { protocol: 'https', hostname: 'thietbidiengiadung.io.vn' },
