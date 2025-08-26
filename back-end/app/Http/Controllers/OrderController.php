@@ -19,6 +19,7 @@ use App\Models\Notification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use App\Models\OrderReturnPhoto;
+use Carbon\Carbon;
 
 class OrderController extends Controller
 {
@@ -612,6 +613,8 @@ class OrderController extends Controller
             'order' => $response
         ]);
     }
+
+
 public function ShopOrderList(Request $request)
 {
     $user = Auth::user();
@@ -629,21 +632,21 @@ public function ShopOrderList(Request $request)
                 'orders' => [],
                 'pagination' => [
                     'current_page' => 1,
-                    'last_page' => 1,
-                    'total' => 0,
+                    'last_page'   => 1,
+                    'total'       => 0,
                 ],
                 'summary' => [
-                    'total_orders' => 0,
-                    'revenue_total' => 0,
+                    'total_orders'              => 0,
+                    'revenue_total'             => 0,
                     'order_admin_status_counts' => [],
-                    'order_status_counts' => [],
+                    'order_status_counts'       => [],
                 ],
             ]);
         }
         $scoped->where('shop_id', $shop->id);
     }
 
-    /** -------- Tính tổng hợp (KHÔNG áp dụng filter status của list) -------- */
+    /** -------- Tính tổng hợp (KHÔNG áp dụng filter list) -------- */
     $totalOrders  = (clone $scoped)->count();
     $totalRevenue = (clone $scoped)->sum('final_amount');
 
@@ -653,63 +656,125 @@ public function ShopOrderList(Request $request)
         ->groupBy('order_admin_status')
         ->pluck('c', 'order_admin_status');
 
-    // Tuỳ chọn: đếm theo order_status (nếu không cần có thể bỏ)
     $orderStatusCounts = (clone $scoped)
         ->select('order_status')
         ->selectRaw('COUNT(*) as c')
         ->groupBy('order_status')
         ->pluck('c', 'order_status');
 
-    /** -------- Query list (áp dụng filter status nếu có) -------- */
+    /** -------- Query list (áp dụng các filter của FE) -------- */
     $query = (clone $scoped)->with(['user', 'shop', 'orderDetails']);
 
     if ($request->boolean('with_products')) {
         $query->with(['orderDetails.product']);
     }
 
+    // per_page (mặc định 20, tối đa 200)
+    $perPage = (int) $request->input('per_page', 20);
+    $perPage = max(1, min(200, $perPage));
+
+    // sort
+    $sortBy  = $request->input('sort_by', 'created_at');
+    $sortDir = strtolower($request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+    $allowedSorts = ['created_at', 'final_amount', 'delivered_at', 'id'];
+    if (!in_array($sortBy, $allowedSorts, true)) $sortBy = 'created_at';
+
+    // --- FILTERS ---
+
+    // 1) status (admin) – đã có
     if ($request->filled('status')) {
-        // filter theo order_admin_status
         $query->where('order_admin_status', $request->input('status'));
     }
 
-    $orders = $query->latest()->paginate(20);
+    // 2) order_status (nếu cần lọc theo trạng thái hiển thị khách)
+    if ($request->filled('order_status')) {
+        $query->where('order_status', $request->input('order_status'));
+    }
+
+    // 3) payment_status: Pending|Completed|Failed|Refunded (không phân biệt hoa thường)
+    if ($request->filled('payment_status')) {
+        $query->whereRaw('LOWER(payment_status) = ?', [strtolower($request->input('payment_status'))]);
+    }
+
+    // 4) payment_method: COD|VNPAY|... (không phân biệt hoa thường)
+    if ($request->filled('payment_method')) {
+        $query->whereRaw('LOWER(payment_method) = ?', [strtolower($request->input('payment_method'))]);
+    }
+
+    // 5) shipping_status / reconciliation_status (tùy nhu cầu)
+    if ($request->filled('shipping_status')) {
+        $query->where('shipping_status', $request->input('shipping_status'));
+    }
+    if ($request->filled('reconciliation_status')) {
+        $query->where('reconciliation_status', $request->input('reconciliation_status'));
+    }
+
+    // 6) Khoảng thời gian tạo đơn
+    if ($request->filled('date_from')) {
+        $from = Carbon::parse($request->input('date_from'))->startOfDay();
+        $query->where('created_at', '>=', $from);
+    }
+    if ($request->filled('date_to')) {
+        $to = Carbon::parse($request->input('date_to'))->endOfDay();
+        $query->where('created_at', '<=', $to);
+    }
+
+    // 7) Search: id / transaction_id / shipping_address / user.name|phone|email
+    if ($request->filled('search')) {
+        $search = trim($request->input('search'));
+        $query->where(function ($q) use ($search) {
+            if (is_numeric($search)) {
+                $q->orWhere('id', (int) $search);
+            }
+            $q->orWhere('transaction_id', 'like', "%{$search}%")
+              ->orWhere('shipping_address', 'like', "%{$search}%")
+              ->orWhereHas('user', function ($uq) use ($search) {
+                  $uq->where('name', 'like', "%{$search}%")
+                     ->orWhere('phone', 'like', "%{$search}%")
+                     ->orWhere('email', 'like', "%{$search}%");
+              });
+        });
+    }
+
+    // Lấy danh sách
+    $orders = $query->orderBy($sortBy, $sortDir)->paginate($perPage);
 
     $data = $orders->map(function ($order) use ($request) {
         $orderData = [
             'id' => $order->id,
             'buyer' => [
-                'id' => $order->user?->id,
-                'name' => $order->user?->name,
+                'id'    => $order->user?->id,
+                'name'  => $order->user?->name,
                 'email' => $order->user?->email,
                 'phone' => $order->user?->phone,
-                'avatar' => $order->user?->avatar,
+                'avatar'=> $order->user?->avatar,
             ],
             'shop' => [
-                'id' => $order->shop?->id,
+                'id'   => $order->shop?->id,
                 'name' => $order->shop?->name,
             ],
-            'final_amount' => $order->final_amount,
-            'payment_method' => $order->payment_method,
-            'payment_status' => $order->payment_status,
-            'order_status' => $order->order_status,
-            'order_admin_status' => $order->order_admin_status,
-            'shipping_status' => $order->shipping_status,
-            'shipping_address' => $order->shipping_address,
-            'transaction_id' => $order->transaction_id,
-            'canceled_by' => $order->canceled_by,
+            'final_amount'          => $order->final_amount,
+            'payment_method'        => $order->payment_method,
+            'payment_status'        => $order->payment_status,
+            'order_status'          => $order->order_status,
+            'order_admin_status'    => $order->order_admin_status,
+            'shipping_status'       => $order->shipping_status,
+            'shipping_address'      => $order->shipping_address,
+            'transaction_id'        => $order->transaction_id,
+            'canceled_by'           => $order->canceled_by,
             'reconciliation_status' => $order->reconciliation_status,
-            'return_status' => $order->return_status,
-            'cancel_status' => $order->cancel_status,
-            'cancel_reason' => $order->cancel_reason,
-            'rejection_reason' => $order->rejection_reason,
-            'created_at' => $order->created_at,
-            'confirmed_at' => $order->confirmed_at,
-            'shipping_started_at' => $order->shipping_started_at,
-            'canceled_at' => $order->canceled_at,
-            'return_confirmed_at' => $order->return_confirmed_at,
-            'reconciled_at' => $order->reconciled_at,
-            'delivered_at' => $order->delivered_at,
-            'total_products' => $order->orderDetails->sum('quantity'),
+            'return_status'         => $order->return_status,
+            'cancel_status'         => $order->cancel_status,
+            'cancel_reason'         => $order->cancel_reason,
+            'rejection_reason'      => $order->rejection_reason,
+            'created_at'            => $order->created_at,
+            'confirmed_at'          => $order->confirmed_at,
+            'shipping_started_at'   => $order->shipping_started_at,
+            'canceled_at'           => $order->canceled_at,
+            'return_confirmed_at'   => $order->return_confirmed_at,
+            'reconciled_at'         => $order->reconciled_at,
+            'delivered_at'          => $order->delivered_at,
+            'total_products'        => $order->orderDetails->sum('quantity'),
         ];
 
         if ($request->boolean('with_products')) {
@@ -720,12 +785,12 @@ public function ShopOrderList(Request $request)
                 if (is_array($images) && count($images) > 0) $firstImage = $images[0];
 
                 return [
-                    'id' => $detail->product->id ?? null,
-                    'name' => $detail->product->name ?? null,
-                    'price_at_time' => $detail->price_at_time,
-                    'quantity' => $detail->quantity,
-                    'subtotal' => $detail->subtotal,
-                    'image' => $firstImage,
+                    'id'           => $detail->product->id ?? null,
+                    'name'         => $detail->product->name ?? null,
+                    'price_at_time'=> $detail->price_at_time,
+                    'quantity'     => $detail->quantity,
+                    'subtotal'     => $detail->subtotal,
+                    'image'        => $firstImage,
                 ];
             });
         }
@@ -737,17 +802,19 @@ public function ShopOrderList(Request $request)
         'orders' => $data,
         'pagination' => [
             'current_page' => $orders->currentPage(),
-            'last_page' => $orders->lastPage(),
-            'total' => $orders->total(),
+            'last_page'    => $orders->lastPage(),
+            'total'        => $orders->total(),
+            'per_page'     => $orders->perPage(),
         ],
         'summary' => [
-            'total_orders' => (int) $totalOrders,
-            'revenue_total' => (float) $totalRevenue,
+            'total_orders'              => (int) $totalOrders,
+            'revenue_total'             => (float) $totalRevenue,
             'order_admin_status_counts' => $orderAdminStatusCounts,
-            'order_status_counts' => $orderStatusCounts, // bỏ nếu không cần
+            'order_status_counts'       => $orderStatusCounts,
         ],
     ]);
 }
+
 
 
 

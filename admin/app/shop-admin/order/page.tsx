@@ -1,5 +1,6 @@
 "use client"
 
+import type React from "react"
 import { useState, useMemo, useEffect } from "react"
 import {
   Table,
@@ -53,11 +54,11 @@ import dayjs from "dayjs"
 import Cookies from "js-cookie"
 import { API_BASE_URL, STATIC_BASE_URL } from "@/utils/api"
 
-const { Title, Text } = Typography
+const { Text } = Typography
 const { Option } = Select
 const { RangePicker } = DatePicker
 
-// API Response interfaces
+// ===================== API types =====================
 interface APIBuyer {
   id: number
   name: string
@@ -112,14 +113,22 @@ interface APIOrder {
 
 interface PaginationMeta {
   current_page: number
-  per_page: number
   last_page: number
   total: number
+  per_page?: number
+}
+
+// ⬇️ summary từ BE
+interface APISummary {
+  total_orders: number
+  revenue_total: number
+  order_status_counts: Record<string, number>
 }
 
 interface APIResponse {
   orders: APIOrder[]
   pagination: PaginationMeta
+  summary?: APISummary
 }
 
 interface OrderDetailAPI {
@@ -167,7 +176,7 @@ interface OrderDetailAPI {
   }>
 }
 
-// Internal interfaces (converted from API)
+// ===================== Internal types =====================
 interface OrderItem {
   id: string
   productName: string
@@ -223,20 +232,11 @@ interface CancelOrderData {
   cancel_type: "Seller" | "Payment Gateway" | "Customer Refused Delivery" | "System"
 }
 
+// ===================== Helpers =====================
 const parseShippingAddress = (raw: string | APIShippingAddress | null | undefined) => {
-  const empty = {
-    fullName: "",
-    phone: "",
-    address: "",
-    ward: "",
-    district: "",
-    province: "",
-    email: "",
-  }
-
+  const empty = { fullName: "", phone: "", address: "", ward: "", district: "", province: "", email: "" }
   if (!raw) return empty
 
-  // object từ backend
   if (typeof raw === "object") {
     const a = raw as APIShippingAddress
     return {
@@ -250,7 +250,6 @@ const parseShippingAddress = (raw: string | APIShippingAddress | null | undefine
     }
   }
 
-  // JSON string
   const s = raw.trim()
   if (s.startsWith("{") && s.endsWith("}")) {
     try {
@@ -264,12 +263,9 @@ const parseShippingAddress = (raw: string | APIShippingAddress | null | undefine
         province: a.province ?? a.city ?? "",
         email: a.email ?? "",
       }
-    } catch {
-      // rơi xuống fallback
-    }
+    } catch {}
   }
 
-  // Fallback: chuỗi thường "địa chỉ, phường, quận, tỉnh"
   const parts = s.split(",").map((p) => p.trim())
   return {
     fullName: "",
@@ -282,7 +278,6 @@ const parseShippingAddress = (raw: string | APIShippingAddress | null | undefine
   }
 }
 
-// ===== API Service (có phân trang server) =====
 const orderService = {
   async fetchOrders(params: {
     page?: number
@@ -300,7 +295,6 @@ const orderService = {
     if (withProducts) qs.set("with_products", "1")
 
     const url = `${API_BASE_URL}/shopadmin/show/orders?${qs.toString()}`
-
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -309,13 +303,8 @@ const orderService = {
       },
       credentials: "include",
     })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = (await response.json()) as APIResponse
-    return data
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return (await response.json()) as APIResponse
   },
 
   async updateOrderStatus(orderId: number, orderAdminStatus: string, reconciliationStatus?: string): Promise<any> {
@@ -335,7 +324,6 @@ const orderService = {
       credentials: "include",
       body: JSON.stringify(body),
     })
-
     if (!response.ok) {
       const text = await response.text()
       try {
@@ -345,7 +333,6 @@ const orderService = {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
     }
-
     const responseText = await response.text()
     try {
       return JSON.parse(responseText)
@@ -354,9 +341,33 @@ const orderService = {
     }
   },
 
+  // ⬇️ Thử cập nhật payment_status (BE chưa hỗ trợ => FE sẽ bắt lỗi và báo)
+  async updatePaymentStatus(orderId: number, paymentStatus: "Pending" | "Completed" | "Failed") {
+    const token = Cookies.get("authToken")
+    const response = await fetch(`${API_BASE_URL}/shop/orders/${orderId}/status`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "include",
+      body: JSON.stringify({ payment_status: paymentStatus }),
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      try {
+        const j = JSON.parse(text)
+        throw new Error(j.message || `HTTP error! status: ${response.status}`)
+      } catch {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+    }
+    return await response.json().catch(() => ({}))
+  },
+
   async cancelOrder(orderId: number, cancelData: CancelOrderData): Promise<any> {
     const token = Cookies.get("authToken")
-
     const response = await fetch(`${API_BASE_URL}/shop/orders/${orderId}/cancel`, {
       method: "POST",
       headers: {
@@ -367,18 +378,15 @@ const orderService = {
       credentials: "include",
       body: JSON.stringify(cancelData),
     })
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
-
     return await response.json()
   },
 
   async fetchOrderDetail(orderId: number): Promise<OrderDetailAPI> {
     const token = Cookies.get("authToken")
-
     const response = await fetch(`${API_BASE_URL}/showdh/${orderId}`, {
       method: "GET",
       headers: {
@@ -387,17 +395,12 @@ const orderService = {
       },
       credentials: "include",
     })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
-    return data
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return await response.json()
   },
 }
 
-// Generate items based on total_products
+// Generate items based on total_products (placeholder nếu BE không trả products)
 const generateMockItems = (totalProducts: number, totalAmount: number, orderId: number): OrderItem[] => {
   const items: OrderItem[] = []
   for (let i = 0; i < totalProducts; i++) {
@@ -416,7 +419,6 @@ const generateMockItems = (totalProducts: number, totalAmount: number, orderId: 
 
 const formatAddress = (a: ShippingAddress) => [a.address, a.ward, a.district, a.province].filter(Boolean).join(", ")
 
-// Conversion functions
 const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
   const addr = parseShippingAddress(apiOrder.shipping_address as any)
 
@@ -507,8 +509,9 @@ const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
   }
 }
 
-// ===== Map tab → order_admin_status (filter server) =====
+// map tab -> order_admin_status (filter server)
 const adminStatusByTab: Record<string, string | undefined> = {
+  all: undefined,
   pending: "Pending Processing",
   confirmed: "Processing",
   processing: "Ready for Shipment",
@@ -516,9 +519,30 @@ const adminStatusByTab: Record<string, string | undefined> = {
   delivered: "Delivered",
   cancelled: "Cancelled by Seller",
   returned: "Returned - Completed",
-  all: undefined,
 }
 
+// meta để hiển thị order_status_counts từ BE
+const orderStatusMeta: Record<string, { label: string; color: string; icon?: React.ReactNode }> = {
+  Delivered: { label: "Đã giao", color: "#52c41a", icon: <CheckCircleOutlined /> },
+  Pending: { label: "Chờ xác nhận", color: "#faad14", icon: <ClockCircleOutlined /> },
+  Shipped: { label: "Đang giao", color: "#722ed1", icon: <TruckOutlined /> },
+  Canceled: { label: "Đã hủy", color: "#f5222d", icon: <DeleteOutlined /> },
+  Returning: { label: "Đang hoàn hàng", color: "#722ed1", icon: <TruckOutlined /> },
+  Refunded: { label: "Đã hoàn tiền", color: "#722ed1", icon: <DollarOutlined /> },
+  "Return Requested": { label: "Yêu cầu trả hàng", color: "#eb2f96", icon: <ExclamationCircleOutlined /> },
+}
+
+const toApiPayment: Record<OrderData["paymentStatus"], "Pending" | "Completed" | "Failed" | "Refunded"> = {
+  pending: "Pending",
+  paid: "Completed",
+  failed: "Failed",
+  refunded: "Refunded",
+}
+
+const canEditPayment = (status: OrderData["status"]) =>
+  ["processing", "shipping", "delivered"].includes(status)
+
+// ===================== Component =====================
 export default function OrderManagementPage() {
   const [allOrders, setAllOrders] = useState<OrderData[]>([])
   const [loading, setLoading] = useState(true)
@@ -529,15 +553,10 @@ export default function OrderManagementPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<string>("all")
+  const [activeTab, setActiveTab] = useState<string>("pending") // mặc định "Chờ xác nhận"
   const [cancelModalVisible, setCancelModalVisible] = useState(false)
   const [orderToCancel, setOrderToCancel] = useState<OrderData | null>(null)
-  const [cancelForm, setCancelForm] = useState<CancelOrderData>({
-    cancel_reason: "",
-    cancel_type: "Seller",
-  })
-
-  // Confirm modal state
+  const [cancelForm, setCancelForm] = useState<CancelOrderData>({ cancel_reason: "", cancel_type: "Seller" })
   const [confirmModalVisible, setConfirmModalVisible] = useState(false)
   const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{
     orderId: string
@@ -545,65 +564,58 @@ export default function OrderManagementPage() {
     adminStatus: string
     orderNumber: string
   } | null>(null)
-
   const [orderDetail, setOrderDetail] = useState<OrderDetailAPI | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
 
-  // ===== Server pagination state =====
+  // server pagination
   const [serverPage, setServerPage] = useState(1)
   const [serverPageSize, setServerPageSize] = useState(20)
   const [serverTotal, setServerTotal] = useState(0)
   const [serverLastPage, setServerLastPage] = useState(1)
 
-  // Check token on mount
+  // summary từ server
+  const [serverSummary, setServerSummary] = useState<APISummary | null>(null)
+
   useEffect(() => {
     const token = Cookies.get("authToken")
-    if (!token) {
-      message.error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.")
-    }
+    if (!token) message.error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.")
   }, [])
 
-  // Fetch data from API (server pagination)
   const fetchOrders = async (page = 1, perPage = serverPageSize) => {
     setLoading(true)
     try {
-      const statusParam = adminStatusByTab[activeTab] // undefined nếu tab "all"
-      const apiResponse = await orderService.fetchOrders({
-        page,
-        perPage,
-        status: statusParam,
-        withProducts: false,
-      })
+      const statusParam = adminStatusByTab[activeTab]
+      const apiResponse = await orderService.fetchOrders({ page, perPage, status: statusParam, withProducts: false })
 
       const convertedOrders = apiResponse.orders.map(convertAPIToOrderData)
       setAllOrders(convertedOrders)
 
       setServerPage(apiResponse.pagination.current_page)
-      setServerPageSize(apiResponse.pagination.per_page)
+      setServerPageSize(apiResponse.pagination.per_page ?? perPage ?? serverPageSize)
       setServerTotal(apiResponse.pagination.total)
       setServerLastPage(apiResponse.pagination.last_page)
+
+      setServerSummary(apiResponse.summary ?? null)
     } catch (error: any) {
       message.error(`Lỗi khi tải dữ liệu đơn hàng: ${error.message}`)
       setAllOrders([])
       setServerTotal(0)
+      setServerSummary(null)
     } finally {
       setLoading(false)
     }
   }
 
-  // Initialize data
   useEffect(() => {
     fetchOrders(1, serverPageSize)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Reload when switching status tab (server-side filter)
   useEffect(() => {
     fetchOrders(1, serverPageSize)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
 
-  // Handle status update
   const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderData["status"]) => {
     const order = allOrders.find((o) => o.id === orderId)
     if (!order || !order.originalData) {
@@ -627,16 +639,10 @@ export default function OrderManagementPage() {
       return
     }
 
-    setPendingStatusUpdate({
-      orderId,
-      newStatus,
-      adminStatus,
-      orderNumber: order.orderNumber,
-    })
+    setPendingStatusUpdate({ orderId, newStatus, adminStatus, orderNumber: order.orderNumber })
     setConfirmModalVisible(true)
   }
 
-  // Execute status update
   const executeStatusUpdate = async (
     orderId: string,
     newStatus: OrderData["status"],
@@ -646,18 +652,11 @@ export default function OrderManagementPage() {
     try {
       setActionLoading(orderId)
       await orderService.updateOrderStatus(order.originalData!.id, adminStatus)
-
-      // Update local (nhanh) + refetch để đồng bộ
-      setAllOrders((prevOrders) =>
-        prevOrders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)),
-      )
+      setAllOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)))
       message.success("Cập nhật trạng thái thành công")
-
-      // refetch trang hiện tại
       fetchOrders(serverPage, serverPageSize)
     } catch (error: any) {
-      let errorMessage = error.message || "Không thể cập nhật trạng thái"
-      message.error(errorMessage)
+      message.error(error.message || "Không thể cập nhật trạng thái")
     } finally {
       setActionLoading(null)
     }
@@ -667,9 +666,7 @@ export default function OrderManagementPage() {
     if (!pendingStatusUpdate) return
     const { orderId, newStatus, adminStatus } = pendingStatusUpdate
     const order = allOrders.find((o) => o.id === orderId)
-    if (order) {
-      await executeStatusUpdate(orderId, newStatus, adminStatus, order)
-    }
+    if (order) await executeStatusUpdate(orderId, newStatus, adminStatus, order)
     setConfirmModalVisible(false)
     setPendingStatusUpdate(null)
   }
@@ -679,7 +676,31 @@ export default function OrderManagementPage() {
     setPendingStatusUpdate(null)
   }
 
-  // Client-side filter on current page
+  // =========== Payment status update ===========
+  const handleUpdatePaymentStatus = async (record: OrderData, next: OrderData["paymentStatus"]) => {
+    // Không cho set "refunded" tại đây (BE chưa có)
+    if (next === "refunded") {
+      message.info("Trạng thái 'Đã hoàn tiền' không thể cập nhật trực tiếp tại đây.")
+      return
+    }
+    try {
+      setActionLoading(record.id)
+      const apiVal = toApiPayment[next] as "Pending" | "Completed" | "Failed"
+
+      // Gọi API (BE hiện chưa hỗ trợ -> sẽ báo lỗi 400, FE hiển thị thông điệp rõ ràng)
+      await orderService.updatePaymentStatus(record.originalData!.id, apiVal)
+
+      // Nếu BE sau này hỗ trợ, đoạn dưới sẽ chạy:
+      setAllOrders(prev => prev.map(o => (o.id === record.id ? { ...o, paymentStatus: next } : o)))
+      message.success("Cập nhật trạng thái thanh toán thành công")
+    } catch (e: any) {
+      message.warning(e?.message || "BE chưa hỗ trợ cập nhật thanh toán qua endpoint này.")
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // filter client cho trang hiện tại (chỉ để lọc bảng, không dùng cho overview)
   const filteredData = useMemo(() => {
     return allOrders.filter((order) => {
       const matchesSearch =
@@ -832,7 +853,7 @@ export default function OrderManagementPage() {
   const getPaymentMethodText = (method: OrderData["paymentMethod"]) => {
     const texts = {
       cod: "Thanh toán khi nhận hàng",
-      bank_transfer: "Chuyển khoản ngân hàng",
+      bank_transfer: "Chuyển khoản",
       e_wallet: "Ví điện tử",
       credit_card: "Thẻ tín dụng",
     } as const
@@ -840,18 +861,8 @@ export default function OrderManagementPage() {
   }
 
   const getActionItems = (record: OrderData): MenuProps["items"] => [
-    {
-      key: "view",
-      icon: <EyeOutlined />,
-      label: "Xem chi tiết",
-      onClick: () => showOrderDetail(record),
-    },
-    {
-      key: "edit",
-      icon: <EditOutlined />,
-      label: "Chỉnh sửa",
-      disabled: ["delivered", "cancelled", "returned"].includes(record.status),
-    },
+    { key: "view", icon: <EyeOutlined />, label: "Xem chi tiết", onClick: () => showOrderDetail(record) },
+    { key: "edit", icon: <EditOutlined />, label: "Chỉnh sửa", disabled: ["delivered", "cancelled", "returned"].includes(record.status) },
     {
       key: "cancel",
       icon: <DeleteOutlined />,
@@ -859,30 +870,15 @@ export default function OrderManagementPage() {
       disabled: ["delivered", "cancelled", "returned"].includes(record.status),
       onClick: () => showCancelModal(record),
     },
-    {
-      key: "print",
-      icon: <PrinterOutlined />,
-      label: "In đơn hàng",
-    },
-    {
-      type: "divider",
-    },
-    {
-      key: "delete",
-      icon: <DeleteOutlined />,
-      label: "Xóa đơn hàng",
-      danger: true,
-      onClick: () => handleDeleteOrder(record.id, record.orderNumber),
-    },
+    { key: "print", icon: <PrinterOutlined />, label: "In đơn hàng" },
+    { type: "divider" },
+    { key: "delete", icon: <DeleteOutlined />, label: "Xóa đơn hàng", danger: true, onClick: () => handleDeleteOrder(record.id, record.orderNumber) },
   ]
 
-  // Status dropdown
+  // Dropdown cho TRẠNG THÁI XỬ LÝ
   const renderStatusDropdown = (record: OrderData) => {
     const isDisabled = ["delivered", "cancelled", "returned"].includes(record.status)
-
-    const handleStatusClick = (newStatus: OrderData["status"]) => {
-      handleUpdateOrderStatus(record.id, newStatus)
-    }
+    const handleStatusClick = (newStatus: OrderData["status"]) => handleUpdateOrderStatus(record.id, newStatus)
 
     return (
       <Dropdown
@@ -912,6 +908,51 @@ export default function OrderManagementPage() {
         >
           {getStatusText(record.status)}
           {!isDisabled && <DownOutlined style={{ fontSize: "10px" }} />}
+        </Tag>
+      </Dropdown>
+    )
+  }
+
+  // Dropdown cho THANH TOÁN
+  const renderPaymentDropdown = (record: OrderData) => {
+    const editable = canEditPayment(record.status)
+
+    const items: MenuProps["items"] = [
+      {
+        key: "pending",
+        label: "Chờ thanh toán",
+        disabled: record.paymentStatus === "pending",
+        onClick: () => handleUpdatePaymentStatus(record, "pending"),
+      },
+      {
+        key: "paid",
+        label: "Đã thanh toán",
+        disabled: record.paymentStatus === "paid",
+        onClick: () => handleUpdatePaymentStatus(record, "paid"),
+      },
+      {
+        key: "failed",
+        label: "Thanh toán thất bại",
+        disabled: record.paymentStatus === "failed",
+        onClick: () => handleUpdatePaymentStatus(record, "failed"),
+      },
+    ]
+
+    return (
+      <Dropdown menu={{ items }} trigger={["click"]} disabled={!editable}>
+        <Tag
+          color={getPaymentStatusColor(record.paymentStatus)}
+          style={{
+            cursor: editable ? "pointer" : "default",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            width: "fit-content",
+            opacity: editable ? 1 : 0.7,
+          }}
+        >
+          {getPaymentStatusText(record.paymentStatus)}
+          {editable && <DownOutlined style={{ fontSize: 10 }} />}
         </Tag>
       </Dropdown>
     )
@@ -971,24 +1012,12 @@ export default function OrderManagementPage() {
         </div>
       ),
     },
-    {
-      title: "Trạng thái xử lý",
-      key: "orderStatus",
-      width: 100,
-      render: (_, record) => renderStatusDropdown(record),
-    },
-    {
-      title: "Thanh toán",
-      key: "paymentStatus",
-      width: 100,
-      render: (_, record) => (
-        <Tag color={getPaymentStatusColor(record.paymentStatus)}>{getPaymentStatusText(record.paymentStatus)}</Tag>
-      ),
-    },
+    { title: "Trạng thái xử lý", key: "orderStatus", width: 120, render: (_, record) => renderStatusDropdown(record) },
+    { title: "Thanh toán", key: "paymentStatus", width: 120, render: (_, record) => renderPaymentDropdown(record) },
     {
       title: "Tổng tiền",
       key: "total",
-      width: 100,
+      width: 110,
       render: (_, record) => (
         <div>
           <div style={{ fontWeight: "bold", color: "#f5222d" }}>
@@ -1008,7 +1037,7 @@ export default function OrderManagementPage() {
     {
       title: "Địa chỉ",
       key: "address",
-      width: 120,
+      width: 140,
       render: (_, record) => {
         const full = formatAddress(record.shippingAddress)
         const short =
@@ -1017,7 +1046,6 @@ export default function OrderManagementPage() {
           record.shippingAddress.ward ||
           record.shippingAddress.address ||
           "-"
-
         return (
           <div>
             <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 2 }}>{record.shippingAddress.fullName}</div>
@@ -1045,7 +1073,6 @@ export default function OrderManagementPage() {
     setSelectedOrder(order)
     setIsModalVisible(true)
     setDetailLoading(true)
-
     try {
       if (order.originalData?.id) {
         const detail = await orderService.fetchOrderDetail(order.originalData.id)
@@ -1068,22 +1095,9 @@ export default function OrderManagementPage() {
     fetchOrders(serverPage, serverPageSize)
   }
 
-  // Statistics (trên trang hiện tại sau filter client)
-  const stats = useMemo(() => {
-    const total = filteredData.length
-    const pending = filteredData.filter((o) => o.status === "pending").length
-    const processing = filteredData.filter((o) => o.status === "processing" || o.status === "confirmed").length
-    const shipping = filteredData.filter((o) => o.status === "shipping").length
-    const delivered = filteredData.filter((o) => o.status === "delivered").length
-    const cancelled = filteredData.filter((o) => o.status === "cancelled").length
-    const totalRevenue = filteredData.reduce((sum, order) => sum + order.total, 0)
-    const avgOrderValue = total > 0 ? totalRevenue / total : 0
-    return { total, pending, processing, shipping, delivered, cancelled, totalRevenue, avgOrderValue }
-  }, [filteredData])
-
   const handlePrintOrder = () => {
     if (isModalVisible && selectedOrder) {
-      const printContent = document.querySelector(".ant-modal-body")?.innerHTML
+      const printContent = (document.querySelector(".ant-modal-body") as HTMLElement | null)?.innerHTML
       const printWindow = window.open("", "_blank")
       if (printWindow && printContent) {
         printWindow.document.write(`
@@ -1097,11 +1111,6 @@ export default function OrderManagementPage() {
                 .ant-card-body { padding: 16px; }
                 .ant-row { display: flex; margin-bottom: 8px; }
                 .ant-col { flex: 1; }
-                .ant-descriptions-item { margin-bottom: 8px; }
-                .ant-descriptions-item-label { font-weight: bold; margin-right: 8px; }
-                .ant-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-                .ant-timeline-item { margin-bottom: 12px; }
-                .ant-image { border: 1px solid #d9d9d9; }
                 .ant-image img, img {
                   max-width: 50px !important;
                   max-height: 50px !important;
@@ -1184,53 +1193,53 @@ export default function OrderManagementPage() {
         }
       `}</style>
 
-      {/* Statistics Overview */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={4}>
-          <Card size="small">
-            <Statistic title="Tổng đơn (trang này)" value={stats.total} prefix={<ShoppingCartOutlined />} valueStyle={{ color: "#1890ff" }} />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card size="small">
-            <Statistic title="Chờ xử lý" value={stats.pending} prefix={<ClockCircleOutlined />} valueStyle={{ color: "#faad14" }} />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card size="small">
-            <Statistic title="Đang xử lý" value={stats.processing} prefix={<ExclamationCircleOutlined />} valueStyle={{ color: "#1890ff" }} />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card size="small">
-            <Statistic title="Đang giao" value={stats.shipping} prefix={<TruckOutlined />} valueStyle={{ color: "#722ed1" }} />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card size="small">
-            <Statistic title="Hoàn thành" value={stats.delivered} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#52c41a" }} />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card size="small">
-            <Statistic
-              title="Doanh thu (trang này)"
-              value={
-                stats.totalRevenue > 1_000_000_000
-                  ? `${(stats.totalRevenue / 1_000_000_000).toFixed(1)}B`
-                  : stats.totalRevenue > 1_000_000
-                  ? `${(stats.totalRevenue / 1_000_000).toFixed(1)}M`
-                  : `${(stats.totalRevenue / 1_000).toFixed(0)}K`
-              }
-              prefix={<DollarOutlined />}
-              suffix="₫"
-              valueStyle={{ color: "#f5222d" }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {/* ====== SERVER SUMMARY (không tính FE) ====== */}
+      {serverSummary && (
+        <>
+          {/* Hàng 1: Tổng đơn + Tổng doanh thu */}
+          <Row gutter={16} style={{ marginBottom: 16 }}>
+            <Col xs={24} md={12}>
+              <Card size="small">
+                <Statistic
+                  title="Tổng đơn"
+                  value={serverSummary.total_orders ?? 0}
+                  prefix={<ShoppingCartOutlined />}
+                  valueStyle={{ color: "#1890ff" }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} md={12}>
+              <Card size="small">
+                <Statistic
+                  title="Tổng doanh thu"
+                  value={serverSummary.revenue_total ?? 0}
+                  prefix={<DollarOutlined />}
+                  suffix="₫"
+                  valueStyle={{ color: "#f5222d" }}
+                  formatter={(val) => <span>{(Number(val) || 0).toLocaleString("vi-VN")}</span>}
+                />
+              </Card>
+            </Col>
+          </Row>
 
-      {/* Filters */}
+          {/* Hàng 2: 5 trạng thái */}
+          <Row gutter={16} wrap style={{ marginBottom: 24 }}>
+            {["Delivered", "Pending", "Return Requested", "Canceled", "Returning"].map((key) => {
+              const meta = orderStatusMeta[key] ?? { label: key, color: "#595959", icon: null }
+              const count = serverSummary.order_status_counts?.[key] ?? 0
+              return (
+                <Col key={key} flex="1 0 20%">
+                  <Card size="small">
+                    <Statistic title={meta.label} value={count} prefix={meta.icon} valueStyle={{ color: meta.color }} />
+                  </Card>
+                </Col>
+              )
+            })}
+          </Row>
+        </>
+      )}
+
+      {/* ====== Filters ====== */}
       <Card style={{ marginBottom: 0 }}>
         <Row gutter={[8, 8]} align="middle">
           <Col xs={24} sm={12} md={6} lg={4}>
@@ -1243,12 +1252,7 @@ export default function OrderManagementPage() {
             />
           </Col>
           <Col xs={24} sm={12} md={6} lg={4}>
-            <Select
-              placeholder="Trạng thái thanh toán"
-              value={paymentStatusFilter}
-              onChange={setPaymentStatusFilter}
-              style={{ width: "100%" }}
-            >
+            <Select placeholder="Trạng thái thanh toán" value={paymentStatusFilter} onChange={setPaymentStatusFilter} style={{ width: "100%" }}>
               <Option value="all">Tất cả</Option>
               <Option value="pending">Chờ thanh toán</Option>
               <Option value="paid">Đã thanh toán</Option>
@@ -1257,12 +1261,7 @@ export default function OrderManagementPage() {
             </Select>
           </Col>
           <Col xs={24} sm={12} md={6} lg={4}>
-            <Select
-              placeholder="Phương thức thanh toán"
-              value={paymentMethodFilter}
-              onChange={setPaymentMethodFilter}
-              style={{ width: "100%" }}
-            >
+            <Select placeholder="Phương thức thanh toán" value={paymentMethodFilter} onChange={setPaymentMethodFilter} style={{ width: "100%" }}>
               <Option value="all">Tất cả</Option>
               <Option value="cod">COD</Option>
               <Option value="bank_transfer">Chuyển khoản</Option>
@@ -1278,13 +1277,7 @@ export default function OrderManagementPage() {
               <Button icon={<FilterOutlined />} onClick={handleReset}>
                 Đặt lại
               </Button>
-              <Button
-                type="primary"
-                icon={<ReloadOutlined />}
-                onClick={handleRefresh}
-                loading={loading}
-                style={{ backgroundColor: "#1890ff", borderColor: "#1890ff" }}
-              >
+              <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading} style={{ backgroundColor: "#1890ff", borderColor: "#1890ff" }}>
                 Làm mới
               </Button>
               <Button icon={<PrinterOutlined />} className="no-print" onClick={handlePrintOrder}>
@@ -1296,51 +1289,31 @@ export default function OrderManagementPage() {
 
         <Row style={{ marginTop: 16 }}>
           <Col span={24}>
-            <Text type="secondary">
-              Hiển thị {filteredData.length} / {serverTotal} đơn hàng • Trang {serverPage}/{serverLastPage}
-              {stats.totalRevenue > 0 && (
-                <span style={{ marginLeft: 16 }}>
-                  • Doanh thu (trang này):{" "}
-                  <Text strong>
-                    {stats.totalRevenue > 1_000_000_000
-                      ? `${(stats.totalRevenue / 1_000_000_000).toFixed(1)}B ₫`
-                      : stats.totalRevenue > 1_000_000
-                      ? `${(stats.totalRevenue / 1_000_000).toFixed(1)}M ₫`
-                      : `${(stats.totalRevenue / 1_000).toFixed(0)}K ₫`}
-                  </Text>
-                  • Giá trị TB:{" "}
-                  <Text strong>
-                    {stats.avgOrderValue > 1_000_000
-                      ? `${(stats.avgOrderValue / 1_000_000).toFixed(1)}M ₫`
-                      : `${(stats.avgOrderValue / 1_000).toFixed(0)}K ₫`}
-                  </Text>
-                </span>
-              )}
-            </Text>
+            <Text type="secondary">Hiển thị {filteredData.length} / {serverTotal} đơn hàng • Trang {serverPage}/{serverLastPage}</Text>
           </Col>
         </Row>
 
-        {/* Status Tabs (server-side) */}
+        {/* Status Tabs (filter server) */}
         <div style={{ marginTop: 16, borderTop: "1px solid #f0f0f0", paddingTop: 16 }}>
           <Tabs
             activeKey={activeTab}
             onChange={setActiveTab}
             tabBarStyle={{ marginBottom: 0 }}
             items={[
-              { key: "all", label: <span><span style={{ color: "#666" }}>⚪</span> Tất cả</span> },
-              { key: "pending", label: <span><span style={{ color: "#faad14" }}>🟡</span> Chờ xác nhận</span> },
-              { key: "confirmed", label: <span><span style={{ color: "#1890ff" }}>🔵</span> Đã xác nhận</span> },
+              { key: "pending",    label: <span><span style={{ color: "#faad14" }}>🟡</span> Chờ xác nhận</span> },
+              { key: "confirmed",  label: <span><span style={{ color: "#1890ff" }}>🔵</span> Đã xác nhận</span> },
               { key: "processing", label: <span><span style={{ color: "#13c2c2" }}>🟢</span> Đang xử lý</span> },
-              { key: "shipping", label: <span><span style={{ color: "#722ed1" }}>🟣</span> Đang giao</span> },
-              { key: "delivered", label: <span><span style={{ color: "#52c41a" }}>✅</span> Đã giao</span> },
-              { key: "cancelled", label: <span><span style={{ color: "#f5222d" }}>❌</span> Đã hủy</span> },
-              { key: "returned", label: <span><span style={{ color: "#eb2f96" }}>↩️</span> Đã trả</span> },
+              { key: "shipping",   label: <span><span style={{ color: "#722ed1" }}>🟣</span> Đang giao</span> },
+              { key: "delivered",  label: <span><span style={{ color: "#52c41a" }}>✅</span> Đã giao</span> },
+              { key: "cancelled",  label: <span><span style={{ color: "#f5222d" }}>❌</span> Đã hủy</span> },
+              { key: "returned",   label: <span><span style={{ color: "#eb2f96" }}>↩️</span> Đã trả</span> },
+              { key: "all",        label: <span><span style={{ color: "#666" }}>⚪</span> Tất cả</span> },
             ]}
           />
         </div>
       </Card>
 
-      {/* Orders Table */}
+      {/* ====== Orders Table ====== */}
       <Card style={{ marginTop: 0 }}>
         <Spin spinning={loading}>
           <Table
@@ -1368,7 +1341,7 @@ export default function OrderManagementPage() {
         </Spin>
       </Card>
 
-      {/* Confirm Modal */}
+      {/* ====== Confirm Modal ====== */}
       <Modal
         title="Xác nhận cập nhật trạng thái"
         open={confirmModalVisible}
@@ -1388,7 +1361,7 @@ export default function OrderManagementPage() {
         )}
       </Modal>
 
-      {/* Cancel Order Modal */}
+      {/* ====== Cancel Order Modal ====== */}
       <Modal
         title="Hủy đơn hàng"
         open={cancelModalVisible}
@@ -1441,15 +1414,7 @@ export default function OrderManagementPage() {
                 </Text>
               )}
             </div>
-            <div
-              style={{
-                padding: 12,
-                backgroundColor: "#fff2f0",
-                border: "1px solid #ffccc7",
-                borderRadius: 6,
-                marginTop: 16,
-              }}
-            >
+            <div style={{ padding: 12, backgroundColor: "#fff2f0", border: "1px solid #ffccc7", borderRadius: 6, marginTop: 16 }}>
               <Text type="danger" style={{ fontWeight: "bold" }}>
                 ⚠️ Cảnh báo: Hành động này sẽ hủy đơn hàng và không thể hoàn tác!
               </Text>
@@ -1458,7 +1423,7 @@ export default function OrderManagementPage() {
         )}
       </Modal>
 
-      {/* Order Detail Modal */}
+      {/* ====== Order Detail Modal ====== */}
       {selectedOrder && (
         <Modal
           title={
@@ -1485,15 +1450,11 @@ export default function OrderManagementPage() {
         >
           <Row gutter={24}>
             <Col span={16}>
-              {/* Order Items */}
               <Card title="Sản phẩm đặt hàng" size="small" style={{ marginBottom: 16 }}>
                 <Spin spinning={detailLoading}>
                   {orderDetail?.details
                     ? orderDetail.details.map((item) => (
-                        <Row
-                          key={item.id}
-                          style={{ marginBottom: 12, padding: 8, border: "1px solid #f0f0f0", borderRadius: 4 }}
-                        >
+                        <Row key={item.id} style={{ marginBottom: 12, padding: 8, border: "1px solid #f0f0f0", borderRadius: 4 }}>
                           <Col span={4}>
                             <Image
                               src={
@@ -1517,22 +1478,15 @@ export default function OrderManagementPage() {
                           </Col>
                           <Col span={4} style={{ textAlign: "center" }}>
                             <div>SL: {item.quantity}</div>
-                            <div style={{ fontSize: 12, color: "#666" }}>
-                              {Number(item.price_at_time).toLocaleString("vi-VN")} ₫
-                            </div>
+                            <div style={{ fontSize: 12, color: "#666" }}>{Number(item.price_at_time).toLocaleString("vi-VN")} ₫</div>
                           </Col>
                           <Col span={4} style={{ textAlign: "right" }}>
-                            <div style={{ fontWeight: "bold", color: "#f5222d" }}>
-                              {Number(item.subtotal).toLocaleString("vi-VN")} ₫
-                            </div>
+                            <div style={{ fontWeight: "bold", color: "#f5222d" }}>{Number(item.subtotal).toLocaleString("vi-VN")} ₫</div>
                           </Col>
                         </Row>
                       ))
                     : selectedOrder?.items.map((item) => (
-                        <Row
-                          key={item.id}
-                          style={{ marginBottom: 12, padding: 8, border: "1px solid #f0f0f0", borderRadius: 4 }}
-                        >
+                        <Row key={item.id} style={{ marginBottom: 12, padding: 8, border: "1px solid #f0f0f0", borderRadius: 4 }}>
                           <Col span={4}>
                             <Image src={item.productImage || "/placeholder.svg"} width={50} height={50} />
                           </Col>
@@ -1545,15 +1499,12 @@ export default function OrderManagementPage() {
                             <div style={{ fontSize: 12, color: "#666" }}>{item.price.toLocaleString("vi-VN")} ₫</div>
                           </Col>
                           <Col span={4} style={{ textAlign: "right" }}>
-                            <div style={{ fontWeight: "bold", color: "#f5222d" }}>
-                              {item.total.toLocaleString("vi-VN")} ₫
-                            </div>
+                            <div style={{ fontWeight: "bold", color: "#f5222d" }}>{item.total.toLocaleString("vi-VN")} ₫</div>
                           </Col>
                         </Row>
                       ))}
                 </Spin>
 
-                {/* Order Summary */}
                 <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 12, marginTop: 12 }}>
                   <Row justify="end">
                     <Col span={8}>
@@ -1575,22 +1526,10 @@ export default function OrderManagementPage() {
                           ₫
                         </span>
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontWeight: "bold",
-                          fontSize: 16,
-                          borderTop: "1px solid #f0f0f0",
-                          paddingTop: 8,
-                        }}
-                      >
+                      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: 16, borderTop: "1px solid #f0f0f0", paddingTop: 8 }}>
                         <span>Tổng cộng:</span>
                         <span style={{ color: "#f5222d" }}>
-                          {orderDetail?.order
-                            ? Number(orderDetail.order.final_amount).toLocaleString("vi-VN")
-                            : selectedOrder?.total.toLocaleString("vi-VN")}{" "}
-                          ₫
+                          {orderDetail?.order ? Number(orderDetail.order.final_amount).toLocaleString("vi-VN") : selectedOrder?.total.toLocaleString("vi-VN")} ₫
                         </span>
                       </div>
                     </Col>
@@ -1598,7 +1537,6 @@ export default function OrderManagementPage() {
                 </div>
               </Card>
 
-              {/* Order Timeline */}
               <Card title="Lịch sử đơn hàng" size="small">
                 <Timeline>
                   <Timeline.Item color="blue" dot={<CalendarOutlined />}>
@@ -1636,7 +1574,6 @@ export default function OrderManagementPage() {
             </Col>
 
             <Col span={8}>
-              {/* Customer Info */}
               <Card title="Thông tin khách hàng" size="small" style={{ marginBottom: 16 }}>
                 <Descriptions column={1} size="small">
                   <Descriptions.Item label="Tên khách hàng">{selectedOrder.customer.name}</Descriptions.Item>
@@ -1645,26 +1582,22 @@ export default function OrderManagementPage() {
                 </Descriptions>
               </Card>
 
-              {/* Shipping Address */}
               <Card title="Địa chỉ giao hàng" size="small" style={{ marginBottom: 16 }}>
                 <Descriptions column={1} size="small">
                   <Descriptions.Item label="Người nhận">{selectedOrder.shippingAddress.fullName}</Descriptions.Item>
                   <Descriptions.Item label="Số điện thoại">{selectedOrder.shippingAddress.phone}</Descriptions.Item>
                   <Descriptions.Item label="Địa chỉ">
-                    {selectedOrder.shippingAddress.address}, {selectedOrder.shippingAddress.ward},{" "}
-                    {selectedOrder.shippingAddress.district}, {selectedOrder.shippingAddress.province}
+                    {selectedOrder.shippingAddress.address}, {selectedOrder.shippingAddress.ward}, {selectedOrder.shippingAddress.district},{" "}
+                    {selectedOrder.shippingAddress.province}
                   </Descriptions.Item>
                 </Descriptions>
               </Card>
 
-              {/* Payment Info */}
               <Card title="Thông tin thanh toán" size="small" style={{ marginBottom: 16 }}>
                 <Descriptions column={1} size="small">
                   <Descriptions.Item label="Phương thức">{getPaymentMethodText(selectedOrder.paymentMethod)}</Descriptions.Item>
                   <Descriptions.Item label="Trạng thái">
-                    <Tag color={getPaymentStatusColor(selectedOrder.paymentStatus)}>
-                      {getPaymentStatusText(selectedOrder.paymentStatus)}
-                    </Tag>
+                    <Tag color={getPaymentStatusColor(selectedOrder.paymentStatus)}>{getPaymentStatusText(selectedOrder.paymentStatus)}</Tag>
                   </Descriptions.Item>
                   <Descriptions.Item label="Tổng tiền">
                     <Text strong style={{ color: "#f5222d" }}>{selectedOrder.total.toLocaleString("vi-VN")} ₫</Text>
@@ -1672,7 +1605,6 @@ export default function OrderManagementPage() {
                 </Descriptions>
               </Card>
 
-              {/* Notes */}
               {selectedOrder.notes && (
                 <Card title="Ghi chú" size="small">
                   <Text>{selectedOrder.notes}</Text>
