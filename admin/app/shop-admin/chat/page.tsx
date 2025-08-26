@@ -620,14 +620,11 @@ export default function HumanChatPage() {
         )}
 
       {/* Page container */}
-      <div
-         className="mx-auto max-w-[1280px] px-2 md:px-3 pt-2 pb-3"
-        style={{ ["--header-h" as any]: "40px" }}
-      >
-        <div className="h-[78vh] max-h-[680px] rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="mx-auto max-w-[1280px] px-2 md:px-3 pt-2 pb-3">
+        {/* Khung chính: dùng flex-col và min-h-0 */}
+        <div className="h-[70vh] max-h-[680px] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
 
-
-          {/* Top bar (brand area for page) */}
+          {/* Top bar */}
           <div className="flex items-center justify-between px-4 md:px-5 py-3 border-b bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
             <div className="flex items-center gap-2">
               <AlignJustify className="opacity-70" size={18} />
@@ -647,10 +644,10 @@ export default function HumanChatPage() {
             </div>
           </div>
 
-          {/* Main two-column layout */}
-          <div className="grid grid-cols-1 md:grid-cols-[320px_minmax(0,1fr)] h-[calc(100%-44px)]">
+          {/* Nội dung 2 cột */}
+          <div className="flex flex-1 min-h-0">
             {/* Sidebar */}
-            <aside className="hidden md:flex flex-col border-r bg-slate-50/60">
+            <aside className="hidden md:flex w-[320px] flex-col border-r bg-slate-50/60 min-h-0">
               {/* search header */}
               <div className="p-3 border-b bg-white/80 backdrop-blur">
                 <div className="flex items-center gap-2">
@@ -686,7 +683,7 @@ export default function HumanChatPage() {
               </div>
 
               {/* contacts */}
-              <div className="flex-1 overflow-y-auto overscroll-contain">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
                 {filteredContacts.map((user) => (
                   <button
                     type="button"
@@ -727,7 +724,7 @@ export default function HumanChatPage() {
             </aside>
 
             {/* Chat area */}
-            <section className="flex-1 flex flex-col min-w-0">
+            <section className="flex-1 flex flex-col min-w-0 min-h-0">
               {/* Chat header */}
               <div className="flex items-center justify-between px-3 md:px-4 py-1.5 border-b bg-white/90 backdrop-blur">
                 <div className="flex items-center gap-3 min-w-0">
@@ -781,7 +778,7 @@ export default function HumanChatPage() {
               {/* Messages */}
               <div
                 ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto overscroll-contain p-3 md:p-4 bg-slate-50 space-y-4 scroll-smooth"
+                className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 md:p-4 bg-slate-50 space-y-4 scroll-smooth"
               >
                 {hasMoreMessages && <div ref={topSentinelRef} className="h-10 w-full" />}
 
@@ -805,7 +802,9 @@ export default function HumanChatPage() {
 
                     {!hasMoreMessages && messages.length > PAGE_SIZE && (
                       <div className="flex items-center justify-center py-1">
-                        <span className="text-[11px] text-slate-500 bg-slate-200/60 px-3 py-1 rounded-full">Đã hiển thị tất cả tin nhắn</span>
+                        <span className="text-[11px] text-slate-500 bg-slate-200/60 px-3 py-1 rounded-full">
+                          Đã hiển thị tất cả tin nhắn
+                        </span>
                       </div>
                     )}
 
@@ -861,7 +860,8 @@ export default function HumanChatPage() {
                                 </div>
 
                                 <p className={`text-[11px] text-slate-500 mt-1 ${isCurrentUser ? "text-right" : "text-left"}`}>
-                                  {isCurrentUser ? "Bạn" : userName} • {new Date(msg.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                                  {isCurrentUser ? "Bạn" : userName} •{" "}
+                                  {new Date(msg.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
                                 </p>
                               </div>
 
@@ -952,4 +952,5 @@ export default function HumanChatPage() {
       </div>
     </div>
   );
+
 }
