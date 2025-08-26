@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect } from "react"
 import {
   Table,
   Input,
@@ -278,21 +278,55 @@ const parseShippingAddress = (raw: string | APIShippingAddress | null | undefine
   }
 }
 
+// Map UI -> BE cho filter
+const uiPaymentStatusToApi = (v: string) =>
+  v === "pending" ? "Pending" :
+  v === "paid"    ? "Completed" :
+  v === "failed"  ? "Failed" :
+  v === "refunded"? "Refunded" : undefined
+
+const uiPaymentMethodToApi = (v: string) =>
+  v === "cod"          ? "COD" :
+  v === "vnpay"       ? "VNPAY" : undefined
+
 const orderService = {
+  // ================= SERVER FILTER =================
   async fetchOrders(params: {
     page?: number
     perPage?: number
     status?: string
     withProducts?: boolean
+    search?: string
+    paymentStatus?: string
+    paymentMethod?: string
+    dateFrom?: string
+    dateTo?: string
   } = {}): Promise<APIResponse> {
     const token = Cookies.get("authToken")
-    const { page = 1, perPage = 20, status, withProducts = false } = params
+    const {
+      page = 1,
+      perPage = 20,
+      status,
+      withProducts = false,
+      search,
+      paymentStatus,
+      paymentMethod,
+      dateFrom,
+      dateTo,
+    } = params
 
     const qs = new URLSearchParams()
     qs.set("page", String(page))
     qs.set("per_page", String(perPage))
-    if (status) qs.set("status", status)
+    if (status) qs.set("status", status) // order_admin_status
     if (withProducts) qs.set("with_products", "1")
+
+    // new filters -> BE
+    if (search) qs.set("search", search)
+    if (paymentStatus) qs.set("payment_status", paymentStatus)
+    if (paymentMethod) qs.set("payment_method", paymentMethod)
+    if (dateFrom) qs.set("date_from", dateFrom)
+    if (dateTo) qs.set("date_to", dateTo)
 
     const url = `${API_BASE_URL}/shopadmin/show/orders?${qs.toString()}`
     const response = await fetch(url, {
@@ -307,11 +341,13 @@ const orderService = {
     return (await response.json()) as APIResponse
   },
 
-  async updateOrderStatus(orderId: number, orderAdminStatus: string, reconciliationStatus?: string): Promise<any> {
+  // ✅ Cho phép truyền orderAdminStatus optional; chỉ add key khi có
+  async updateOrderStatus(orderId: number, orderAdminStatus?: string, reconciliationStatus?: string): Promise<any> {
     const token = Cookies.get("authToken")
     if (!token) throw new Error("Không tìm thấy token xác thực")
 
-    const body: any = { order_admin_status: orderAdminStatus }
+    const body: any = {}
+    if (typeof orderAdminStatus !== "undefined") body.order_admin_status = orderAdminStatus
     if (reconciliationStatus) body.reconciliation_status = reconciliationStatus
 
     const response = await fetch(`${API_BASE_URL}/shop/orders/${orderId}/status`, {
@@ -341,7 +377,7 @@ const orderService = {
     }
   },
 
-  // ⬇️ Thử cập nhật payment_status (BE chưa hỗ trợ => FE sẽ bắt lỗi và báo)
+  // giữ nguyên — BE chưa hỗ trợ, FE sẽ warning nếu gọi
   async updatePaymentStatus(orderId: number, paymentStatus: "Pending" | "Completed" | "Failed") {
     const token = Cookies.get("authToken")
     const response = await fetch(`${API_BASE_URL}/shop/orders/${orderId}/status`, {
@@ -449,6 +485,10 @@ const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
         return "cod"
       case "vnpay":
         return "e_wallet"
+      case "bank_transfer":
+        return "bank_transfer"
+      case "credit_card":
+        return "credit_card"
       default:
         return "cod"
     }
@@ -462,6 +502,8 @@ const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
         return "failed"
       case "pending":
         return orderStatus.toLowerCase() === "canceled" ? "failed" : "pending"
+      case "refunded":
+        return "refunded"
       default:
         return "pending"
     }
@@ -471,6 +513,14 @@ const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
   const items = generateMockItems(apiOrder.total_products || 0, totalAmount, apiOrder.id)
   const subtotal = items.reduce((sum, item) => sum + item.total, 0)
   const shippingFee = Math.max(0, totalAmount - subtotal)
+
+  // ✅ Nếu đã đối soát -> coi như ĐÃ THANH TOÁN ở UI
+  const reconciled =
+    (apiOrder.reconciliation_status || "").toLowerCase() === "done" ||
+    apiOrder.order_admin_status === "Reconciled"
+
+  const computedPayment = convertPaymentStatus(apiOrder.payment_status, apiOrder.order_status)
+  const paymentStatusFinal: OrderData["paymentStatus"] = reconciled ? "paid" : computedPayment
 
   return {
     id: `ORDER${apiOrder.id}`,
@@ -484,7 +534,7 @@ const convertAPIToOrderData = (apiOrder: APIOrder): OrderData => {
     },
     items,
     status: convertStatus(apiOrder.order_status),
-    paymentStatus: convertPaymentStatus(apiOrder.payment_status, apiOrder.order_status),
+    paymentStatus: paymentStatusFinal,
     paymentMethod: convertPaymentMethod(apiOrder.payment_method),
     shippingAddress: {
       fullName: addr.fullName || apiOrder.buyer.name,
@@ -546,10 +596,13 @@ const canEditPayment = (status: OrderData["status"]) =>
 export default function OrderManagementPage() {
   const [allOrders, setAllOrders] = useState<OrderData[]>([])
   const [loading, setLoading] = useState(true)
+
+  // SERVER FILTER state
   const [searchText, setSearchText] = useState("")
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all")
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all")
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null)
+
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -581,11 +634,31 @@ export default function OrderManagementPage() {
     if (!token) message.error("Không tìm thấy token xác thực. Vui lòng đăng nhập lại.")
   }, [])
 
+  // Helper build params từ UI state -> BE params
+  const buildServerFilters = () => {
+    const statusParam = adminStatusByTab[activeTab]
+    const paymentStatus = uiPaymentStatusToApi(paymentStatusFilter)
+    const paymentMethod = uiPaymentMethodToApi(paymentMethodFilter)
+
+    const dateFrom = dateRange?.[0] ? dayjs(dateRange[0]).format("YYYY-MM-DD") : undefined
+    const dateTo   = dateRange?.[1] ? dayjs(dateRange[1]).format("YYYY-MM-DD") : undefined
+
+    const search = searchText.trim() || undefined
+
+    return { status: statusParam, paymentStatus, paymentMethod, dateFrom, dateTo, search }
+  }
+
+  // FETCH - dùng filter từ BE
   const fetchOrders = async (page = 1, perPage = serverPageSize) => {
     setLoading(true)
     try {
-      const statusParam = adminStatusByTab[activeTab]
-      const apiResponse = await orderService.fetchOrders({ page, perPage, status: statusParam, withProducts: false })
+      const filters = buildServerFilters()
+      const apiResponse = await orderService.fetchOrders({
+        page,
+        perPage,
+        withProducts: false,
+        ...filters, // ⬅️ SERVER FILTER
+      })
 
       const convertedOrders = apiResponse.orders.map(convertAPIToOrderData)
       setAllOrders(convertedOrders)
@@ -606,15 +679,26 @@ export default function OrderManagementPage() {
     }
   }
 
+  // lần đầu
   useEffect(() => {
     fetchOrders(1, serverPageSize)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // đổi TAB -> gọi BE
   useEffect(() => {
     fetchOrders(1, serverPageSize)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
+
+  // đổi FILTER -> gọi BE (debounce nhẹ cho search)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fetchOrders(1, serverPageSize)
+    }, 350)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText, paymentStatusFilter, paymentMethodFilter, dateRange])
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderData["status"]) => {
     const order = allOrders.find((o) => o.id === orderId)
@@ -652,9 +736,9 @@ export default function OrderManagementPage() {
     try {
       setActionLoading(orderId)
       await orderService.updateOrderStatus(order.originalData!.id, adminStatus)
-      setAllOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)))
+      // refresh list từ BE để đồng bộ phân trang / filter
+      await fetchOrders(serverPage, serverPageSize)
       message.success("Cập nhật trạng thái thành công")
-      fetchOrders(serverPage, serverPageSize)
     } catch (error: any) {
       message.error(error.message || "Không thể cập nhật trạng thái")
     } finally {
@@ -685,43 +769,31 @@ export default function OrderManagementPage() {
     }
     try {
       setActionLoading(record.id)
-      const apiVal = toApiPayment[next] as "Pending" | "Completed" | "Failed"
 
-      // Gọi API (BE hiện chưa hỗ trợ -> sẽ báo lỗi 400, FE hiển thị thông điệp rõ ràng)
-      await orderService.updatePaymentStatus(record.originalData!.id, apiVal)
+      if (next === "paid") {
+        // ✅ Gửi reconciliation lên BE (chỉ reconciliation_status, không gửi order_admin_status)
+        await orderService.updateOrderStatus(record.originalData!.id, undefined, "Done")
 
-      // Nếu BE sau này hỗ trợ, đoạn dưới sẽ chạy:
-      setAllOrders(prev => prev.map(o => (o.id === record.id ? { ...o, paymentStatus: next } : o)))
-      message.success("Cập nhật trạng thái thanh toán thành công")
+        // Optimistic UI: set paid ngay
+        setAllOrders(prev => prev.map(o => (o.id === record.id ? { ...o, paymentStatus: "paid" } : o)))
+      } else {
+        // Các trạng thái khác giữ nguyên hành vi cũ (BE có thể chưa hỗ trợ)
+        const apiVal = toApiPayment[next] as "Pending" | "Completed" | "Failed"
+        await orderService.updatePaymentStatus(record.originalData!.id, apiVal)
+      }
+
+      // Đồng bộ lại với BE để cập nhật reconciliation_status / admin_status …
+      await fetchOrders(serverPage, serverPageSize)
+
+      message.success(next === "paid"
+        ? "Đối soát thành công, đã đánh dấu ĐÃ THANH TOÁN"
+        : "Cập nhật trạng thái thanh toán thành công")
     } catch (e: any) {
-      message.warning(e?.message || "BE chưa hỗ trợ cập nhật thanh toán qua endpoint này.")
+      message.warning(e?.message || "Không thể cập nhật trạng thái thanh toán.")
     } finally {
       setActionLoading(null)
     }
   }
-
-  // filter client cho trang hiện tại (chỉ để lọc bảng, không dùng cho overview)
-  const filteredData = useMemo(() => {
-    return allOrders.filter((order) => {
-      const matchesSearch =
-        searchText === "" ||
-        order.orderNumber.toLowerCase().includes(searchText.toLowerCase()) ||
-        order.customer.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        order.customer.phone?.includes(searchText) ||
-        order.id.includes(searchText)
-
-      const matchesPaymentStatus = paymentStatusFilter === "all" || order.paymentStatus === paymentStatusFilter
-      const matchesPaymentMethod = paymentMethodFilter === "all" || order.paymentMethod === paymentMethodFilter
-      const matchesDateRange =
-        !dateRange ||
-        !dateRange[0] ||
-        !dateRange[1] ||
-        (dayjs(order.orderDate).isAfter(dateRange[0].startOf("day")) &&
-          dayjs(order.orderDate).isBefore(dateRange[1].endOf("day")))
-
-      return matchesSearch && matchesPaymentStatus && matchesPaymentMethod && matchesDateRange
-    })
-  }, [allOrders, searchText, paymentStatusFilter, paymentMethodFilter, dateRange])
 
   const handleReset = () => {
     setSearchText("")
@@ -745,7 +817,8 @@ export default function OrderManagementPage() {
         try {
           setActionLoading(orderId)
           await new Promise((resolve) => setTimeout(resolve, 1000))
-          setAllOrders((prevOrders) => prevOrders.filter((order) => order.id !== orderId))
+          // Sau khi xóa ở BE (nếu có), gọi lại list để đồng bộ phân trang
+          await fetchOrders(serverPage, serverPageSize)
           message.success("Xóa đơn hàng thành công")
         } catch {
           message.error("Lỗi khi xóa đơn hàng")
@@ -775,19 +848,13 @@ export default function OrderManagementPage() {
 
       await orderService.cancelOrder(originalOrderId, cancelData)
 
-      setAllOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderToCancel.id
-            ? { ...order, status: "cancelled", paymentStatus: "refunded", notes: cancelForm.cancel_reason }
-            : order,
-        ),
-      )
+      // refresh từ server để đúng phân trang
+      await fetchOrders(serverPage, serverPageSize)
 
       message.success("Hủy đơn hàng thành công")
       setCancelModalVisible(false)
       setOrderToCancel(null)
       setCancelForm({ cancel_reason: "", cancel_type: "Seller" })
-      fetchOrders(serverPage, serverPageSize)
     } catch (error: any) {
       message.error(error.message || "Lỗi khi hủy đơn hàng")
     } finally {
@@ -850,15 +917,14 @@ export default function OrderManagementPage() {
     return (texts as any)[status] || status
   }
 
-  const getPaymentMethodText = (method: OrderData["paymentMethod"]) => {
-    const texts = {
-      cod: "Thanh toán khi nhận hàng",
-      bank_transfer: "Chuyển khoản",
-      e_wallet: "Ví điện tử",
-      credit_card: "Thẻ tín dụng",
-    } as const
-    return (texts as any)[method] || method
-  }
+const getPaymentMethodText = (method: OrderData["paymentMethod"]) => {
+  const texts = {
+    cod: "COD",
+    vnpay: "VNPAY",               // ⬅️ đổi từ “Ví điện tử” -> “VNPAY”
+  } as const
+  return (texts as any)[method] || method
+}
+
 
   const getActionItems = (record: OrderData): MenuProps["items"] => [
     { key: "view", icon: <EyeOutlined />, label: "Xem chi tiết", onClick: () => showOrderDetail(record) },
@@ -915,7 +981,14 @@ export default function OrderManagementPage() {
 
   // Dropdown cho THANH TOÁN
   const renderPaymentDropdown = (record: OrderData) => {
-    const editable = canEditPayment(record.status)
+    const editableBase = canEditPayment(record.status)
+    // Khóa nếu UI đã paid hoặc BE đã đối soát/đã Reconciled
+    const alreadyReconciled =
+      record.originalData?.reconciliation_status === "Done" ||
+      record.originalData?.order_admin_status === "Reconciled"
+
+    const isLockedPaid = record.paymentStatus === "paid" || alreadyReconciled
+    const editable = editableBase && !isLockedPaid
 
     const items: MenuProps["items"] = [
       {
@@ -930,31 +1003,33 @@ export default function OrderManagementPage() {
         disabled: record.paymentStatus === "paid",
         onClick: () => handleUpdatePaymentStatus(record, "paid"),
       },
-      {
-        key: "failed",
-        label: "Thanh toán thất bại",
-        disabled: record.paymentStatus === "failed",
-        onClick: () => handleUpdatePaymentStatus(record, "failed"),
-      },
+      // {
+      //   key: "failed",
+      //   label: "Thanh toán thất bại",
+      //   disabled: record.paymentStatus === "failed",
+      //   onClick: () => handleUpdatePaymentStatus(record, "failed"),
+      // },
     ]
 
     return (
-      <Dropdown menu={{ items }} trigger={["click"]} disabled={!editable}>
-        <Tag
-          color={getPaymentStatusColor(record.paymentStatus)}
-          style={{
-            cursor: editable ? "pointer" : "default",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            width: "fit-content",
-            opacity: editable ? 1 : 0.7,
-          }}
-        >
-          {getPaymentStatusText(record.paymentStatus)}
-          {editable && <DownOutlined style={{ fontSize: 10 }} />}
-        </Tag>
-      </Dropdown>
+      <Tooltip title={isLockedPaid ? "Đã thanh toán/đối soát - không thể chỉnh sửa" : undefined}>
+        <Dropdown menu={{ items }} trigger={["click"]} disabled={!editable}>
+          <Tag
+            color={getPaymentStatusColor(record.paymentStatus)}
+            style={{
+              cursor: editable ? "pointer" : "default",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              width: "fit-content",
+              opacity: editable ? 1 : 0.7,
+            }}
+          >
+            {getPaymentStatusText(record.paymentStatus)}
+            {editable && <DownOutlined style={{ fontSize: 10 }} />}
+          </Tag>
+        </Dropdown>
+      </Tooltip>
     )
   }
 
@@ -1032,7 +1107,6 @@ export default function OrderManagementPage() {
           <div style={{ fontSize: "11px", color: "#666" }}>{getPaymentMethodText(record.paymentMethod)}</div>
         </div>
       ),
-      sorter: (a: OrderData, b: OrderData) => a.total - b.total,
     },
     {
       title: "Địa chỉ",
@@ -1261,13 +1335,17 @@ export default function OrderManagementPage() {
             </Select>
           </Col>
           <Col xs={24} sm={12} md={6} lg={4}>
-            <Select placeholder="Phương thức thanh toán" value={paymentMethodFilter} onChange={setPaymentMethodFilter} style={{ width: "100%" }}>
-              <Option value="all">Tất cả</Option>
-              <Option value="cod">COD</Option>
-              <Option value="bank_transfer">Chuyển khoản</Option>
-              <Option value="e_wallet">Ví điện tử</Option>
-              <Option value="credit_card">Thẻ tín dụng</Option>
-            </Select>
+<Select
+  placeholder="Phương thức thanh toán"
+  value={paymentMethodFilter}
+  onChange={setPaymentMethodFilter}
+  style={{ width: "100%" }}
+>
+  <Option value="all">Tất cả</Option>
+  <Option value="cod">COD</Option>
+  <Option value="e_wallet">VNPAY</Option>
+</Select>
+
           </Col>
           <Col xs={24} sm={12} md={6} lg={4}>
             <RangePicker value={dateRange} onChange={setDateRange} format="DD/MM/YYYY" placeholder={["Từ ngày", "Đến ngày"]} style={{ width: "100%" }} />
@@ -1289,7 +1367,7 @@ export default function OrderManagementPage() {
 
         <Row style={{ marginTop: 16 }}>
           <Col span={24}>
-            <Text type="secondary">Hiển thị {filteredData.length} / {serverTotal} đơn hàng • Trang {serverPage}/{serverLastPage}</Text>
+            <Text type="secondary">Hiển thị {allOrders.length} / {serverTotal} đơn hàng • Trang {serverPage}/{serverLastPage}</Text>
           </Col>
         </Row>
 
@@ -1297,7 +1375,7 @@ export default function OrderManagementPage() {
         <div style={{ marginTop: 16, borderTop: "1px solid #f0f0f0", paddingTop: 16 }}>
           <Tabs
             activeKey={activeTab}
-            onChange={setActiveTab}
+            onChange={(k) => { setActiveTab(k); setServerPage(1); }}
             tabBarStyle={{ marginBottom: 0 }}
             items={[
               { key: "pending",    label: <span><span style={{ color: "#faad14" }}>🟡</span> Chờ xác nhận</span> },
@@ -1318,7 +1396,7 @@ export default function OrderManagementPage() {
         <Spin spinning={loading}>
           <Table
             columns={columns}
-            dataSource={filteredData}
+            dataSource={allOrders}  // ⬅️ KHÔNG lọc FE, dữ liệu đã được BE lọc
             rowKey="id"
             pagination={{
               current: serverPage,
@@ -1333,7 +1411,7 @@ export default function OrderManagementPage() {
               const nextSize = pg.pageSize ?? serverPageSize
               setServerPage(nextPage)
               setServerPageSize(nextSize)
-              fetchOrders(nextPage, nextSize)
+              fetchOrders(nextPage, nextSize) // giữ nguyên filter server
             }}
             size="middle"
             scroll={{ x: "max-content" }}

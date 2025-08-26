@@ -698,8 +698,20 @@ public function ShopOrderList(Request $request)
 
     // 4) payment_method: COD|VNPAY|... (không phân biệt hoa thường)
     if ($request->filled('payment_method')) {
-        $query->whereRaw('LOWER(payment_method) = ?', [strtolower($request->input('payment_method'))]);
+    $pm = strtolower($request->input('payment_method'));
+
+    // alias từ FE
+    if ($pm === 'e_wallet') {
+        $pm = 'vnpay';
     }
+
+    // chỉ nhận 2 giá trị hợp lệ theo DB
+    if (in_array($pm, ['cod', 'vnpay'], true)) {
+        // canonical theo DB: 'COD' (in) và 'vnpay' (thường)
+        $canonical = $pm === 'cod' ? 'COD' : 'vnpay';
+        $query->where('payment_method', $canonical);
+    }
+}
 
     // 5) shipping_status / reconciliation_status (tùy nhu cầu)
     if ($request->filled('shipping_status')) {
