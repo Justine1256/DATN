@@ -141,33 +141,37 @@ export default function OrderSection() {
     setSelectedOrder(null)
   }
 
-  const handleCancelOrder = async (orderId: number, reason: string) => {
-    setIsCancelling(true)
-    try {
-      await axios.patch(
-        `${API_BASE_URL}/cancel/${orderId}`,
-        { reason },
-        { headers: { Authorization: `Bearer ${token}` } },
-      )
+ const handleCancelOrder = async (orderId: number, reason: string) => {
+  if (isCancelling) return;
+  setIsCancelling(true);
+  try {
+    await axios.patch(
+      `${API_BASE_URL}/cancel/${orderId}`,
+      { reason },
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
 
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.id === orderId ? { ...order, order_status: OrderStatus.Canceled } : order,
-        ),
-      )
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, order_status: OrderStatus.Canceled } : o)),
+    );
+    setSelectedOrder((prev) =>
+      prev && prev.id === orderId ? { ...prev, order_status: OrderStatus.Canceled } : prev,
+    );
 
-      setSelectedOrder((prev) =>
-        prev && prev.id === orderId ? { ...prev, order_status: OrderStatus.Canceled } : prev,
-      )
-
-      alert("Đơn hàng đã được hủy thành công!")
-    } catch (err) {
-      console.error("❌ Hủy đơn hàng thất bại:", err)
-      alert("Có lỗi xảy ra khi hủy đơn hàng. Vui lòng thử lại.")
-    } finally {
-      setIsCancelling(false)
-    }
+    // ✅ dùng popup thay cho alert
+    setPopup({ type: "success", message: "Đã hủy đơn hàng thành công!" });
+  } catch (err: any) {
+    const msg =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      "Có lỗi xảy ra khi hủy đơn hàng. Vui lòng thử lại.";
+    setPopup({ type: "error", message: msg });
+  } finally {
+    setIsCancelling(false);
+    setTimeout(() => setPopup(null), 3000);
   }
+};
+
 
   const handleRefundRequest = (order: Order) => {
     setOrderToRefund(order)
@@ -385,17 +389,7 @@ export default function OrderSection() {
         />
       )}
 
-      {popup && (
-        <div
-          className={`fixed top-[140px] right-5 z-[10001] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade ${
-            popup.type === "success"
-              ? "bg-white text-black border-green-500"
-              : "bg-white text-red-600 border-red-500"
-          }`}
-        >
-          {popup.message}
-        </div>
-      )}
+ 
     </div>
   )
 }

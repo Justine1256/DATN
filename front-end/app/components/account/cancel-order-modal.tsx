@@ -6,7 +6,7 @@ import { X, AlertTriangle } from "lucide-react"
 interface CancelOrderModalProps {
     isVisible: boolean
     onClose: () => void
-    onConfirm: (reason: string) => void
+    onConfirm: (reason: string) => Promise<void>
     isCancelling: boolean
     orderId: number
 }
@@ -179,15 +179,6 @@ export default function CancelOrderModal({
                 </div>
             </div>
 
-            {/* Popup Notification */}
-            {popup && (
-                <div
-                    className={`fixed top-20 right-5 z-[10001] px-4 py-2 rounded shadow-lg border-b-4 text-sm animate-slideInFade ${popup.type === "success" ? "bg-white text-black border-green-500" : "bg-white text-red-600 border-red-500"
-                        }`}
-                >
-                    {popup.message}
-                </div>
-            )}
         </>
     )
 }

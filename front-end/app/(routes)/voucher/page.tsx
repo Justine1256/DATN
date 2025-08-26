@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import VoucherList from "@/app/components/voucher/VoucherList";
-import VoucherByCategory from "@/app/components/voucher/VoucherByCategory";
+
 import Image from "next/image";
 
 export default function Page() {
@@ -30,10 +30,7 @@ export default function Page() {
               
 
 
-                {/* Voucher theo danh mục */}
-                <div className="w-full max-w-[1170px] px-4">
-                    <VoucherByCategory />
-                </div>
+              
             </div>
         </>
     );
