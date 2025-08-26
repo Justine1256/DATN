@@ -465,13 +465,18 @@ public function getMyShopCustomers(Request $request)
         return response()->json(['message' => 'Bạn chưa sở hữu shop nào.'], 403);
     }
 
+    // Các trạng thái admin coi là "đã hủy"
     $cancelStatuses = [
         'Cancelled by Customer',
         'Cancelled by Seller',
         'Cancelled - Payment Failed',
-        'Cancelled - Customer Refused Delivery'
+        'Cancelled - Customer Refused Delivery',
     ];
+    // chuẩn hoá so sánh (phòng DB dùng '–')
+    $normalizeDash = function ($s) { return str_replace('–', '-', $s); };
+    $cancelStatusesNorm = array_map($normalizeDash, $cancelStatuses);
 
+    // Lấy danh sách user đã mua ở shop (distinct)
     $userIds = Order::where('shop_id', $shop->id)
         ->whereNotNull('user_id')
         ->distinct()
@@ -481,126 +486,114 @@ public function getMyShopCustomers(Request $request)
         ->with('defaultAddress')
         ->get();
 
-    $data = $users->map(function ($user) use ($shop, $cancelStatuses) {
-        $orders = Order::where('shop_id', $shop->id)
-            ->where('user_id', $user->id)
+    $data = $users->map(function ($u) use ($shop, $cancelStatusesNorm, $normalizeDash) {
+        // ======= Aggregates toàn bộ lịch sử (không load full list) =======
+        $agg = Order::where('shop_id', $shop->id)
+            ->where('user_id', $u->id)
+            ->selectRaw('COUNT(*) as total_orders, COALESCE(SUM(final_amount),0) as total_spent, MAX(created_at) as last_order_at')
+            ->first();
+
+        // Đếm đơn đã hủy trên toàn bộ lịch sử
+        $cancelledCount = Order::where('shop_id', $shop->id)
+            ->where('user_id', $u->id)
+            ->where(function ($q) use ($cancelStatusesNorm, $normalizeDash) {
+                $q->where('order_status', 'Canceled')
+                  ->orWhere(function ($q2) use ($cancelStatusesNorm, $normalizeDash) {
+                      // so sánh theo biến thể dấu gạch nối
+                      $q2->whereIn(\DB::raw("REPLACE(order_admin_status, '–', '-')"), $cancelStatusesNorm);
+                  });
+            })
+            ->count();
+
+        // ======= Chỉ lấy 3 đơn mới nhất để hiển thị chi tiết =======
+        $recentOrders = Order::with(['orderDetails.product'])
+            ->where('shop_id', $shop->id)
+            ->where('user_id', $u->id)
+            ->orderByDesc('created_at')
+            ->limit(3)
             ->get();
 
-        $cancelledOrders = $orders->filter(function ($order) use ($cancelStatuses) {
-            return $order->order_status === 'Canceled' ||
-                   in_array($order->order_admin_status, $cancelStatuses);
+        // Tách trong 3 đơn này: đơn hủy & đơn đã giao
+        $recentCancelled = $recentOrders->filter(function ($o) use ($cancelStatusesNorm, $normalizeDash) {
+            return $o->order_status === 'Canceled'
+                || in_array($normalizeDash($o->order_admin_status ?? ''), $cancelStatusesNorm, true);
         });
 
-        $completedOrders = $orders->filter(function ($order) {
-            return $order->order_status === 'Delivered';
+        $recentCompleted = $recentOrders->filter(function ($o) {
+            return $o->order_status === 'Delivered';
         });
 
-        return [
-            'user_id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => optional($user->defaultAddress)?->phone,
-            'shipping_address' => optional($user->defaultAddress)?->full_address,
-            'avatar' => $user->avatar,
-            'total_orders' => $orders->count(),
-            'total_spent' => $orders->sum('final_amount'),
-            'last_order_at' => optional($orders->sortByDesc('created_at')->first())->created_at,
-            'has_cancelled_order' => $cancelledOrders->isNotEmpty(),
-            'cancelled_orders_count' => $cancelledOrders->count(),
+        // Map product cho từng order (trên tập 3 đơn)
+        $mapProducts = function ($order) {
+            return $order->orderDetails->map(function ($detail) {
+                $firstImage = null;
+                $images = $detail->product?->image;
 
-            // Đơn hủy
-            'cancel_details' => $cancelledOrders->map(function ($order) {
-                $order->loadMissing('orderDetails.product');
-
-                $products = $order->orderDetails->map(function ($detail) {
-                    $firstImage = null;
-
-                    if (!empty($detail->product?->image)) {
-                        $images = $detail->product->image;
-
-                        if (!is_array($images)) {
-                            $decoded = json_decode($images, true);
-                            if (is_array($decoded)) {
-                                $images = $decoded;
-                            }
-                        }
-
-                        if (is_array($images) && count($images) > 0) {
-                            $firstImage = $images[0];
-                        }
-                    }
-
-                    return [
-                        'id' => $detail->product->id ?? null,
-                        'name' => $detail->product->name ?? null,
-                        'price_at_time' => $detail->price_at_time,
-                        'quantity' => $detail->quantity,
-                        'subtotal' => $detail->subtotal,
-                        'image' => $firstImage,
-                    ];
-                });
+                if (!is_array($images)) {
+                    $decoded = json_decode($images ?? '[]', true);
+                    if (is_array($decoded)) $images = $decoded;
+                }
+                if (is_array($images) && count($images) > 0) $firstImage = $images[0];
 
                 return [
-                    'order_id' => $order->id,
-                    'cancel_reason' => $order->cancel_reason,
-                    'cancel_status' => $order->cancel_status,
-                    'canceled_at' => $order->canceled_at,
-                    'order_status' => $order->order_status,
-                    'order_admin_status' => $order->order_admin_status,
-                    'payment_status' => $order->payment_status,
-                    'shipping_status' => $order->shipping_status,
-                    'products' => $products,
+                    'id'            => $detail->product->id ?? null,
+                    'name'          => $detail->product->name ?? null,
+                    'price_at_time' => $detail->price_at_time,
+                    'quantity'      => $detail->quantity,
+                    'subtotal'      => $detail->subtotal,
+                    'image'         => $firstImage,
+                ];
+            });
+        };
+
+        return [
+            'user_id'          => $u->id,
+            'name'             => $u->name,
+            'email'            => $u->email,
+            'phone'            => optional($u->defaultAddress)?->phone,
+            'shipping_address' => optional($u->defaultAddress)?->full_address,
+            'avatar'           => $u->avatar,
+
+            // Tổng hợp toàn bộ lịch sử (không load hết)
+            'total_orders'           => (int) ($agg->total_orders ?? 0),
+            'total_spent'            => (float) ($agg->total_spent ?? 0),
+            'last_order_at'          => $agg->last_order_at,
+            'has_cancelled_order'    => $cancelledCount > 0,
+            'cancelled_orders_count' => $cancelledCount,
+
+            // Chỉ hiển thị chi tiết trong 3 đơn mới nhất
+            'cancel_details' => $recentCancelled->map(function ($o) use ($mapProducts) {
+                return [
+                    'order_id'           => $o->id,
+                    'cancel_reason'      => $o->cancel_reason,
+                    'cancel_status'      => $o->cancel_status,
+                    'canceled_at'        => $o->canceled_at,
+                    'order_status'       => $o->order_status,
+                    'order_admin_status' => $o->order_admin_status,
+                    'payment_status'     => $o->payment_status,
+                    'shipping_status'    => $o->shipping_status,
+                    'products'           => $mapProducts($o),
                 ];
             })->values(),
 
-            // Đơn đã giao thành công
-            'completed_orders' => $completedOrders->map(function ($order) {
-                $order->loadMissing('orderDetails.product');
-
-                $products = $order->orderDetails->map(function ($detail) {
-                    $firstImage = null;
-
-                    if (!empty($detail->product?->image)) {
-                        $images = $detail->product->image;
-
-                        if (!is_array($images)) {
-                            $decoded = json_decode($images, true);
-                            if (is_array($decoded)) {
-                                $images = $decoded;
-                            }
-                        }
-
-                        if (is_array($images) && count($images) > 0) {
-                            $firstImage = $images[0];
-                        }
-                    }
-
-                    return [
-                        'id' => $detail->product->id ?? null,
-                        'name' => $detail->product->name ?? null,
-                        'price_at_time' => $detail->price_at_time,
-                        'quantity' => $detail->quantity,
-                        'subtotal' => $detail->subtotal,
-                        'image' => $firstImage,
-                    ];
-                });
-
+            'completed_orders' => $recentCompleted->map(function ($o) use ($mapProducts) {
                 return [
-                    'order_id' => $order->id,
-                    'delivered_at' => $order->delivered_at,
-                    'order_status' => $order->order_status,
-                    'payment_status' => $order->payment_status,
-                    'shipping_status' => $order->shipping_status,
-                    'products' => $products,
+                    'order_id'        => $o->id,
+                    'delivered_at'    => $o->delivered_at,
+                    'order_status'     => $o->order_status,
+                    'payment_status'   => $o->payment_status,
+                    'shipping_status'  => $o->shipping_status,
+                    'products'         => $mapProducts($o),
                 ];
             })->values(),
         ];
     });
 
     return response()->json([
-        'data' => $data
+        'data' => $data->values(),
     ]);
 }
+
 public function stats(Request $request)
 {
     $user = Auth::user();
