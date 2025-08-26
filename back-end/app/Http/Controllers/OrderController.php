@@ -1114,6 +1114,7 @@ class OrderController extends Controller
             if ($validated['reconciliation_status'] === 'Done') {
                 $order->order_admin_status = 'Reconciled';
                 $order->order_status = 'Delivered';
+                $order->payment_status = 'Completed';
                 if (!$order->reconciled_at) {
                     $order->reconciled_at = now();
                 }
