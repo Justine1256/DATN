@@ -850,13 +850,14 @@ export default function HumanChatPage() {
                                     <img
                                       src={resolveImageUrl(msg.image) || ""}
                                       alt="Sent image"
-                                      className="mt-2 max-w-full rounded-lg cursor-pointer"
+                                      className="mt-2 max-w-[220px] max-h-[220px] rounded-lg cursor-pointer object-contain"
                                       onClick={() => {
                                         const url = resolveImageUrl(msg.image);
                                         if (url) window.open(url, "_blank");
                                       }}
                                     />
                                   )}
+
                                 </div>
 
                                 <p className={`text-[11px] text-slate-500 mt-1 ${isCurrentUser ? "text-right" : "text-left"}`}>
