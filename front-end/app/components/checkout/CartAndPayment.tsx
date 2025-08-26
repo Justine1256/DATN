@@ -166,7 +166,14 @@ const CartByShop: React.FC<Props> = ({ onPaymentInfoChange, onCartChange, onVouc
     () => (typeof window !== 'undefined' ? localStorage.getItem('token') || Cookies.get('authToken') || '' : ''),
     []
   );
+  const isLoggedIn = !!token;
 
+  // ép về COD nếu guest mà state đang ở vnpay
+  useEffect(() => {
+    if (!isLoggedIn && paymentMethod === "vnpay") {
+      setPaymentMethod("cod");
+    }
+  }, [isLoggedIn, paymentMethod]);
   /* ---------- Helpers ---------- */
   const isExpired = useCallback((v: Voucher) => {
     if (!v?.expires_at) return false;
@@ -752,15 +759,19 @@ const shopName = String(prod.shop?.name ?? raw.shop?.name ?? raw.shop_name ?? 'S
         <Radio.Group value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
           <Space direction="vertical">
             <Radio value="cod">Thanh toán khi nhận hàng (COD)</Radio>
-            <Radio value="vnpay">
-              <Space>
-                <Image src="/vnpay-logo.png" alt="VNPAY" width={24} height={24} />
-                VNPAY
-              </Space>
-            </Radio>
+
+            {isLoggedIn && (
+              <Radio value="vnpay">
+                <Space>
+                  <Image src="/vnpay-logo.png" alt="VNPAY" width={24} height={24} />
+                  VNPAY
+                </Space>
+              </Radio>
+            )}
           </Space>
         </Radio.Group>
       </Card>
+
 
       {/* Danh sách theo shop (ĐÃ LỌC THEO selectedCartIds) */}
       <Card

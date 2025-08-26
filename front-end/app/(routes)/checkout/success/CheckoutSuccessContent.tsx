@@ -5,6 +5,7 @@ import { Card, Space, Typography, Button, Tag } from "antd";
 import { CheckCircleOutlined, HomeOutlined, ShoppingOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "@/utils/api";
+import Cookies from "js-cookie";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -13,6 +14,13 @@ export default function CheckoutSuccessContent() {
     const router = useRouter();
     const orderId = p.get("order_id") || "";
     const [order, setOrder] = useState<any>(null);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        // ✅ check token có tồn tại hay không
+        const token = Cookies.get("authToken");
+        setIsLoggedIn(!!token);
+    }, []);
 
     useEffect(() => {
         if (!orderId) return;
@@ -55,15 +63,18 @@ export default function CheckoutSuccessContent() {
                     </Card>
 
                     <Space size="middle" wrap style={{ justifyContent: "center" }}>
-                        <Button
-                            type="primary"
-                            size="large"
-                            icon={<ShoppingOutlined />}
-                            onClick={() => router.push("/account?section=orders")}
-                            style={{ borderRadius: 6, background: "#db4444" }}
-                        >
-                            Xem đơn hàng của tôi
-                        </Button>
+                        {/* ✅ chỉ hiển thị khi đã đăng nhập */}
+                        {isLoggedIn && (
+                            <Button
+                                type="primary"
+                                size="large"
+                                icon={<ShoppingOutlined />}
+                                onClick={() => router.push("/account?section=orders")}
+                                style={{ borderRadius: 6, background: "#db4444" }}
+                            >
+                                Xem đơn hàng của tôi
+                            </Button>
+                        )}
                         <Button
                             size="large"
                             icon={<HomeOutlined />}
