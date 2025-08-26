@@ -134,7 +134,7 @@ export default function HumanChatPage() {
   const setLastReceiver = (rid: number | null) => {
     try {
       localStorage.setItem(lastRxKey(currentUser?.id || null), String(rid ?? ""));
-    } catch {}
+    } catch { }
   };
   const getLastReceiver = (): number | null => {
     try {
@@ -341,7 +341,7 @@ export default function HumanChatPage() {
     fetchMessages(true);
   }, [receiver?.id, fetchMessages]);
 
-  /* ===== Cuộn cuối */ 
+  /* ===== Cuộn cuối */
   useEffect(() => {
     if (messages.length > 0) {
       if (isInitialLoad) {
@@ -402,7 +402,7 @@ export default function HumanChatPage() {
           }
 
           if (Number(message.receiver_id) === Number(currentUser?.id) &&
-              Number(message.sender_id) !== Number(currentUser?.id)) {
+            Number(message.sender_id) !== Number(currentUser?.id)) {
             if (!isCurrentConversation || !activeChat) {
               setNotifications((prev) => {
                 const exists = prev.some((n) => String(n.id) === String(message.id));
@@ -602,7 +602,7 @@ export default function HumanChatPage() {
 
   /* ===== UI (Full page) ===== */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="bg-slate-50">
       {/* Notifications (toast) */}
       {mounted &&
         createPortal(
@@ -620,69 +620,78 @@ export default function HumanChatPage() {
         )}
 
       {/* Page container */}
-      <div className="bg-white"
-     style={{ ['--header-h' as any]: '72px', ['--pad-x' as any]: '16px' }}>
-  <div className="relative h-[calc(100dvh-var(--header-h))]
-                    -mx-[var(--pad-x)] -mt-[var(--pad-x)] -mb-[var(--pad-x)]
-                    overflow-hidden">
-    <div className="absolute inset-0 grid grid-cols-[360px_minmax(0,1fr)] gap-0">
+      <div
+        className="mx-auto max-w-[1400px] px-3 md:px-4 pt-3 pb-4"
+        style={{ ["--header-h" as any]: "64px" }}
+      >
+        <div className="h-[calc(100dvh-var(--header-h))] rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          {/* Top bar (brand area for page) */}
+          <div className="flex items-center justify-between px-4 md:px-5 py-3 border-b bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
+            <div className="flex items-center gap-2">
+              <AlignJustify className="opacity-70" size={18} />
+              <span className="font-semibold">Tin nhắn</span>
+              {unreadCount > 0 && (
+                <span className="ml-1 text-[11px] bg-white/25 px-2 py-0.5 rounded-full">{unreadCount} mới</span>
+              )}
+            </div>
+            <div className="text-[11px] opacity-95">
+              {connectionStatus === "connected"
+                ? "Đã kết nối"
+                : connectionStatus === "connecting"
+                  ? "Đang kết nối…"
+                  : connectionStatus === "error"
+                    ? "Lỗi WS — dùng API"
+                    : "Mất kết nối"}
+            </div>
+          </div>
 
-
-            {/* Sidebar - Contact list */}
-            <aside className="w-full md:w-80 border-r bg-gray-50/70 flex flex-col">
-              {/* Sidebar header */}
-              <div className="px-4 py-3 bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlignJustify className="md:hidden opacity-0" /> {/* giữ layout */}
-                    <span className="font-semibold">Liên hệ gần đây</span>
-                    <span className="text-[11px] bg-white/25 px-2 py-0.5 rounded-full">
-                      {contactQuery ? filteredContacts.length : recentContacts.length}
-                    </span>
+          {/* Main two-column layout */}
+          <div className="grid grid-cols-1 md:grid-cols-[360px_minmax(0,1fr)] h-[calc(100%-44px)]">
+            {/* Sidebar */}
+            <aside className="hidden md:flex flex-col border-r bg-slate-50/60">
+              {/* search header */}
+              <div className="p-3 border-b bg-white/80 backdrop-blur">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={contactQuery}
+                      onChange={(e) => setContactQuery(e.target.value)}
+                      placeholder="Tìm theo tên hoặc nội dung…"
+                      className="w-full h-9 pl-8 pr-8 text-[13px] rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/70 focus:border-transparent"
+                    />
+                    <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm8.707 1.293-3.761-3.76A10 10 0 1 0 12 22a9.95 9.95 0 0 0 5.533-1.647l3.761 3.76z" />
+                    </svg>
+                    {contactQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setContactQuery("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-[11px] grid place-items-center hover:bg-slate-300"
+                        aria-label="Xoá tìm kiếm"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                   <button
                     onClick={() => setContactQuery("")}
-                    className="hidden md:inline-block text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded"
+                    className="text-xs h-9 px-3 rounded-lg bg-white border border-slate-200 hover:bg-slate-50"
                   >
-                    Làm mới tìm kiếm
+                    Làm mới
                   </button>
-                </div>
-
-                {/* Search */}
-                <div className="mt-2 relative">
-                  <input
-                    type="text"
-                    value={contactQuery}
-                    onChange={(e) => setContactQuery(e.target.value)}
-                    placeholder="Tìm theo tên hoặc nội dung…"
-                    className="w-full h-9 pl-8 pr-7 text-xs rounded-lg bg-white/90 border border-white/50 text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#db4444] focus:border-transparent"
-                  />
-                  <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M10 18a8 8 0 1 1 5.293-14.293A8 8 0 0 1 10 18Zm8.707 1.293-3.761-3.76A10 10 0 1 0 12 22a9.95 9.95 0 0 0 5.533-1.647l3.761 3.76z" />
-                  </svg>
-                  {contactQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setContactQuery("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-200 text-gray-600 text-[11px] flex items-center justify-center hover:bg-gray-300"
-                      aria-label="Xoá tìm kiếm"
-                    >
-                      ×
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {/* Contacts */}
-              <div className="overflow-y-auto flex-1">
+              {/* contacts */}
+              <div className="flex-1 overflow-y-auto overscroll-contain">
                 {filteredContacts.map((user) => (
                   <button
                     type="button"
                     key={`contact-${user.id}`}
                     onClick={() => handleContactClick(user)}
-                    className={`w-full text-left flex items-center gap-3 px-3 py-3 border-b transition-colors hover:bg-white ${
-                      receiver?.id === user.id ? "bg-white/90 border-l-4 border-l-[#db4444]" : ""
-                    }`}
+                    className={`w-full text-left flex items-center gap-3 px-3 py-3 border-b border-slate-100 transition-colors hover:bg-white ${receiver?.id === user.id ? "bg-white border-l-4 border-l-rose-500" : ""
+                      }`}
                   >
                     <div className="relative">
                       <Image
@@ -690,8 +699,8 @@ export default function HumanChatPage() {
                           user.avatar?.startsWith("http") || user.avatar?.startsWith("/")
                             ? (user.avatar as string)
                             : user.avatar
-                            ? `${STATIC_BASE_URL}/${user.avatar}`
-                            : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
+                              ? `${STATIC_BASE_URL}/${user.avatar}`
+                              : `${STATIC_BASE_URL}/avatars/default-avatar.jpg`
                         }
                         alt={user.name}
                         width={40}
@@ -701,14 +710,14 @@ export default function HumanChatPage() {
                       {user.online && <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 ring-2 ring-white" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{user.name}</p>
-                      <p className="text-[12px] text-gray-500 truncate">{user.last_message || "Chưa có tin nhắn"}</p>
-                      {user.last_time && <p className="text-[11px] text-gray-400">{formatTime(user.last_time)}</p>}
+                      <p className="text-sm font-medium truncate text-slate-900">{user.name}</p>
+                      <p className="text-[12px] text-slate-500 truncate">{user.last_message || "Chưa có tin nhắn"}</p>
+                      {user.last_time && <p className="text-[11px] text-slate-400">{formatTime(user.last_time)}</p>}
                     </div>
                   </button>
                 ))}
                 {filteredContacts.length === 0 && (
-                  <div className="h-full grid place-items-center text-gray-500 p-6 text-sm">
+                  <div className="h-full grid place-items-center text-slate-500 p-6 text-sm">
                     <MessageCircle className="mr-2 opacity-60" /> Chưa có liên hệ nào.
                   </div>
                 )}
@@ -716,11 +725,11 @@ export default function HumanChatPage() {
             </aside>
 
             {/* Chat area */}
-            <section className="flex-1 flex flex-col">
-              {/* Header of chat */}
-              <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
+            <section className="flex-1 flex flex-col min-w-0">
+              {/* Chat header */}
+              <div className="flex items-center justify-between px-4 md:px-5 py-3 border-b bg-white/90 backdrop-blur">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative flex-shrink-0">
                     <Image
                       src={
                         receiver?.avatar
@@ -736,18 +745,18 @@ export default function HumanChatPage() {
                     />
                     {receiver?.online && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 ring-2 ring-white" />}
                   </div>
-                  <div className="leading-tight">
-                    <p className="font-semibold text-sm">{receiver?.name || "Chưa chọn người"}</p>
-                    <p className="text-[11px] opacity-90">
+                  <div className="leading-tight truncate">
+                    <p className="font-semibold text-sm text-slate-900 truncate">{receiver?.name || "Chưa chọn người"}</p>
+                    <p className="text-[11px] text-slate-500 truncate">
                       {connectionStatus === "connected"
                         ? isReceiverTyping
                           ? `${receiver?.name} đang nhập…`
                           : "Đang hoạt động"
                         : connectionStatus === "connecting"
-                        ? "Đang kết nối WebSocket…"
-                        : connectionStatus === "error"
-                        ? "Lỗi WebSocket — dùng API"
-                        : "WebSocket mất kết nối"}
+                          ? "Đang kết nối WebSocket…"
+                          : connectionStatus === "error"
+                            ? "Lỗi WebSocket — dùng API"
+                            : "WebSocket mất kết nối"}
                     </p>
                   </div>
                 </div>
@@ -755,57 +764,60 @@ export default function HumanChatPage() {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                    className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 grid place-items-center transition-colors"
                     title="Gửi ảnh"
                   >
                     <Plus size={16} />
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
-                  <button className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center" title="Tuỳ chọn">
+                  <button className="w-9 h-9 rounded-full hover:bg-slate-100 grid place-items-center" title="Tuỳ chọn">
                     <MoreVertical size={16} />
                   </button>
                 </div>
               </div>
 
               {/* Messages */}
-              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
-                {hasMoreMessages && <div ref={topSentinelRef} className="h-24 w-full" />}
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto overscroll-contain p-3 md:p-4 bg-slate-50 space-y-4 scroll-smooth"
+              >
+                {hasMoreMessages && <div ref={topSentinelRef} className="h-10 w-full" />}
 
                 {!receiver?.id ? (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                  <div className="flex flex-col items-center justify-center h-full text-slate-500">
                     <MessageCircle size={48} className="mb-3 opacity-50" />
                     <p>Chọn người để bắt đầu trò chuyện</p>
                   </div>
                 ) : loading ? (
                   <div className="flex items-center justify-center h-full">
-                    <div className="animate-spin w-8 h-8 border-b-2 border-[#db4444] rounded-full" />
+                    <div className="animate-spin w-8 h-8 border-b-2 border-rose-500 rounded-full" />
                   </div>
                 ) : (
                   <>
                     {loadingMore && (
-                      <div className="flex items-center justify-center py-3 text-sm text-gray-500">
-                        <div className="animate-spin w-5 h-5 border-b-2 border-[#db4444] rounded-full mr-2" />
-                        Đang tải thêm tin nhắn…
+                      <div className="flex items-center justify-center py-2 text-sm text-slate-500">
+                        <div className="animate-spin w-5 h-5 border-b-2 border-rose-500 rounded-full mr-2" />
+                        Đang tải thêm…
                       </div>
                     )}
 
                     {!hasMoreMessages && messages.length > PAGE_SIZE && (
                       <div className="flex items-center justify-center py-1">
-                        <span className="text-[11px] text-gray-400 bg-gray-200/60 px-3 py-1 rounded-full">Đã hiển thị tất cả tin nhắn</span>
+                        <span className="text-[11px] text-slate-500 bg-slate-200/60 px-3 py-1 rounded-full">Đã hiển thị tất cả tin nhắn</span>
                       </div>
                     )}
 
                     {messages.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                      <div className="flex flex-col items-center justify-center h-full text-slate-500">
                         {connectionStatus === "connected"
                           ? isReceiverTyping
                             ? `${receiver?.name} đang nhập…`
                             : "Đang hoạt động"
                           : connectionStatus === "connecting"
-                          ? "Đang kết nối WebSocket…"
-                          : connectionStatus === "error"
-                          ? "Lỗi WebSocket — dùng API"
-                          : "WebSocket mất kết nối"}
+                            ? "Đang kết nối WebSocket…"
+                            : connectionStatus === "error"
+                              ? "Lỗi WebSocket — dùng API"
+                              : "WebSocket mất kết nối"}
                       </div>
                     ) : (
                       <>
@@ -825,12 +837,12 @@ export default function HumanChatPage() {
                                   className={[
                                     "p-3 rounded-2xl shadow-sm",
                                     isCurrentUser
-                                      ? "bg-rose-50 text-black border border-rose-200 rounded-br-md"
-                                      : "bg-white text-gray-900 rounded-bl-md border border-gray-200/70",
+                                      ? "bg-rose-50 text-slate-900 border border-rose-200 rounded-br-md"
+                                      : "bg-white text-slate-900 rounded-bl-md border border-slate-200/70",
                                   ].join(" ")}
                                 >
                                   {!!msg.message && (
-                                    <div className="text-sm leading-relaxed break-words whitespace-pre-line">{msg.message}</div>
+                                    <div className="text-[13px] leading-relaxed break-words whitespace-pre-line">{msg.message}</div>
                                   )}
 
                                   {!!msg.image && (
@@ -846,9 +858,8 @@ export default function HumanChatPage() {
                                   )}
                                 </div>
 
-                                <p className={`text-[11px] text-gray-500 mt-1 ${isCurrentUser ? "text-right" : "text-left"}`}>
-                                  {isCurrentUser ? "Bạn" : userName} •{" "}
-                                  {new Date(msg.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                                <p className={`text-[11px] text-slate-500 mt-1 ${isCurrentUser ? "text-right" : "text-left"}`}>
+                                  {isCurrentUser ? "Bạn" : userName} • {new Date(msg.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
                                 </p>
                               </div>
 
@@ -868,14 +879,14 @@ export default function HumanChatPage() {
 
               {/* Image previews */}
               {imagePreviews.length > 0 && (
-                <div className="px-4 py-2 bg-gray-100 border-t">
+                <div className="px-4 py-2 bg-slate-100 border-t">
                   <div className="flex gap-2 overflow-x-auto">
                     {imagePreviews.map((src, i) => (
                       <div key={i} className="relative w-16 h-16 flex-shrink-0">
                         <Image src={src} alt="preview" width={64} height={64} className="rounded-lg object-cover w-full h-full" />
                         <button
                           onClick={() => handleRemoveImage(i)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] shadow"
+                          className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full w-5 h-5 grid place-items-center text-[11px] shadow"
                         >
                           ×
                         </button>
@@ -886,18 +897,18 @@ export default function HumanChatPage() {
               )}
 
               {/* Input */}
-              <div className="p-4 border-t bg-white">
+              <div className="p-3 md:p-4 border-t bg-white">
                 <div className="flex items-end gap-3">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                    className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-full grid place-items-center transition-colors"
                     title="Đính kèm ảnh"
                   >
                     <Plus size={18} />
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
 
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <textarea
                       value={input}
                       onChange={(e) => {
@@ -910,7 +921,7 @@ export default function HumanChatPage() {
                       }}
                       placeholder="Nhập tin nhắn…"
                       rows={1}
-                      className="w-full px-4 py-3 text-sm rounded-2xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#db4444] focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 text-[13px] rounded-2xl bg-slate-50 border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
@@ -923,11 +934,10 @@ export default function HumanChatPage() {
                   <button
                     onClick={sendMessage}
                     disabled={(!input.trim() && images.length === 0) || !receiver?.id}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                      (!input.trim() && images.length === 0) || !receiver?.id
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-[#db4444] text-white hover:bg-[#c93333] hover:scale-105"
-                    }`}
+                    className={`w-10 h-10 rounded-full grid place-items-center transition-all ${(!input.trim() && images.length === 0) || !receiver?.id
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                        : "bg-rose-500 text-white hover:bg-rose-600 hover:scale-105"
+                      }`}
                     title="Gửi"
                   >
                     <Send size={16} />
