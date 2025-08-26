@@ -40,6 +40,17 @@ interface Notification {
     created_at: string;
 }
 
+// === Thêm hàm format ảnh ===
+const formatImageUrl = (img: string | string[]): string => {
+    if (Array.isArray(img)) img = img[0];
+    if (typeof img !== 'string' || !img.trim()) {
+        return `${STATIC_BASE_URL}/products/default-product.png`;
+    }
+    return img.startsWith('http')
+        ? img
+        : `${STATIC_BASE_URL}/${img.startsWith('/') ? img.slice(1) : img}`;
+};
+
 function formatTime(dateString: string) {
     const date = new Date(dateString);
     const now = new Date();
@@ -243,10 +254,8 @@ export default function NotificationDropdown() {
                                 }}
                                 renderItem={(n) => {
                                     const isUnread = n.is_read === 0;
-                                    const coverSrc = n.image_url
-                                        ? `${STATIC_BASE_URL}${n.image_url}`
-                                        : '/noti-def.jpg';
-
+                                    // === Dùng formatImageUrl thay cho ghép tay ===
+                                    const coverSrc = formatImageUrl(n.image_url);
                                     const hovered = hoverId === n.id;
 
                                     return (

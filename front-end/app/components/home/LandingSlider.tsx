@@ -10,7 +10,7 @@ interface Slide {
   image: string;
   buttonText: string;
   variant: "red" | "black";
-  link: string;
+  link?: string; // không bắt buộc, để có thể ẩn nút khi không có link
 }
 
 export default function LandingSlider() {
@@ -37,17 +37,25 @@ export default function LandingSlider() {
         const res = await fetch(`${API_BASE_URL}/banner`);
         const data: any[] = await res.json();
 
-        const formatted: Slide[] = (Array.isArray(data) ? data : []).map((item: any) => {
-          const variant: Slide["variant"] =
-            Number(item?.id) % 2 === 0 ? "black" : "red";
-          return {
-            id: Number(item?.id),
-            image: `${API_BASE_URL}/image/${item?.image}`,
-            buttonText: "Mua Ngay",
-            variant,
-            link: item?.link || "/shop",
-          };
-        });
+        const formatted: Slide[] = (Array.isArray(data) ? data : []).map(
+          (item: any) => {
+            const variant: Slide["variant"] =
+              Number(item?.id) % 2 === 0 ? "black" : "red";
+
+            // Chuẩn hóa link: trim và chỉ nhận khi còn ký tự
+            const rawLink =
+              typeof item?.link === "string" ? item.link.trim() : "";
+            const link = rawLink.length > 0 ? rawLink : undefined;
+
+            return {
+              id: Number(item?.id),
+              image: `${API_BASE_URL}/image/${item?.image}`,
+              buttonText: "Mua Ngay",
+              variant,
+              link, // nếu undefined thì không render nút
+            };
+          }
+        );
 
         setSlides(formatted);
       } catch (error) {
@@ -117,7 +125,6 @@ export default function LandingSlider() {
       aria-label="Landing slider"
       aria-roledescription="carousel"
       aria-live="polite"
-      // Giữ kích thước nền: max-w 1120px, cao responsive 180/220/280/344
       className="
         relative w-full max-w-[1120px] mx-auto overflow-hidden rounded-lg
         h-[180px] sm:h-[220px] md:h-[280px] lg:h-[344px]
@@ -145,7 +152,6 @@ export default function LandingSlider() {
             ${index === current ? "opacity-100 z-10" : "opacity-0 z-0"}
           `}
         >
-          {/* Ảnh: object-cover + object-center để tự căn giữa, không méo/không lệch */}
           <Image
             src={slide.image}
             alt={`banner-${slide.id}`}
@@ -156,8 +162,8 @@ export default function LandingSlider() {
             sizes="(max-width: 768px) 100vw, 1120px"
           />
 
-          {/* Nút CTA giữ vị trí tương tự, responsive nhẹ */}
-          {index === current && (
+          {/* Chỉ hiển thị nút nếu có link */}
+          {index === current && slide.link && (
             <div
               className="
                 absolute z-20
@@ -167,23 +173,24 @@ export default function LandingSlider() {
             >
               <button
                 onClick={() => {
-                  if (slide.link.startsWith("http")) {
-                    window.open(slide.link, "_blank"); // link ngoài: mở tab mới
+                  const link = slide.link!;
+                  if (link.startsWith("http")) {
+                    window.open(link, "_blank");
                   } else {
-                    router.push(slide.link);           // link nội bộ
+                    router.push(link);
                   }
                 }}
                 className={`
-    rounded-md text-white font-semibold transition
-    w-28 h-10 sm:w-[143px] sm:h-[43px]
-    ${slide.variant === "red"
+                  rounded-md text-white font-semibold transition
+                  w-28 h-10 sm:w-[143px] sm:h-[43px]
+                  ${slide.variant === "red"
                     ? "bg-brand hover:bg-red-600"
-                    : "bg-black hover:bg-neutral-700"}
-  `}
+                    : "bg-black hover:bg-neutral-700"
+                  }
+                `}
               >
                 {slide.buttonText}
               </button>
-
             </div>
           )}
         </div>
@@ -198,7 +205,10 @@ export default function LandingSlider() {
             aria-label={`Chuyển đến slide ${index + 1}`}
             className={`
               rounded-full cursor-pointer transition-all duration-300
-              ${index === current ? "bg-brand w-2.5 h-2.5 sm:w-3 sm:h-3" : "bg-gray-300 w-2 h-2 sm:w-2.5 sm:h-2.5"}
+              ${index === current
+                ? "bg-brand w-2.5 h-2.5 sm:w-3 sm:h-3"
+                : "bg-gray-300 w-2 h-2 sm:w-2.5 sm:h-2.5"
+              }
             `}
           />
         ))}
