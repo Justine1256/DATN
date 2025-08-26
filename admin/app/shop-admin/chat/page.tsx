@@ -621,10 +621,11 @@ export default function HumanChatPage() {
 
       {/* Page container */}
       <div
-        className="mx-auto max-w-[1400px] px-3 md:px-4 pt-3 pb-4"
-        style={{ ["--header-h" as any]: "64px" }}
+         className="mx-auto max-w-[1280px] px-2 md:px-3 pt-2 pb-3"
+        style={{ ["--header-h" as any]: "40px" }}
       >
-        <div className="h-[calc(100dvh-var(--header-h))] rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="h-[78vh] max-h-[700px] rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+
           {/* Top bar (brand area for page) */}
           <div className="flex items-center justify-between px-4 md:px-5 py-3 border-b bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
             <div className="flex items-center gap-2">
@@ -646,7 +647,7 @@ export default function HumanChatPage() {
           </div>
 
           {/* Main two-column layout */}
-          <div className="grid grid-cols-1 md:grid-cols-[360px_minmax(0,1fr)] h-[calc(100%-44px)]">
+          <div className="grid grid-cols-1 md:grid-cols-[320px_minmax(0,1fr)] h-[calc(100%-44px)]">
             {/* Sidebar */}
             <aside className="hidden md:flex flex-col border-r bg-slate-50/60">
               {/* search header */}
@@ -727,7 +728,7 @@ export default function HumanChatPage() {
             {/* Chat area */}
             <section className="flex-1 flex flex-col min-w-0">
               {/* Chat header */}
-              <div className="flex items-center justify-between px-4 md:px-5 py-3 border-b bg-white/90 backdrop-blur">
+              <div className="flex items-center justify-between px-3 md:px-4 py-1.5 border-b bg-white/90 backdrop-blur">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="relative flex-shrink-0">
                     <Image
