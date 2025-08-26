@@ -249,7 +249,7 @@ export default function AdminDashboardAntD() {
                         <Title level={3} style={{ margin: 0 }}>
                           <AnimatedCurrency value={parseFloat(data.total_sales)} duration={1800} />
                         </Title>
-                        <Text type="secondary">Tổng thu (gross)</Text>
+                        <Text type="secondary">Tổng thu </Text>
                       </div>
 
                       <Divider style={{ margin: "10px 0" }} />
@@ -265,7 +265,7 @@ export default function AdminDashboardAntD() {
 
                       {/* Net */}
                       <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                        <Text strong> Tổng nhận (net) </Text>
+                        <Text strong> Tổng nhận </Text>
                         <Text strong style={{ color: "#16a34a" }}>{VND.format(Number(data.shop_revenue))}</Text>
                       </Space>
                     </Card>
