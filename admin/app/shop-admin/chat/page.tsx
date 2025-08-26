@@ -624,7 +624,8 @@ export default function HumanChatPage() {
          className="mx-auto max-w-[1280px] px-2 md:px-3 pt-2 pb-3"
         style={{ ["--header-h" as any]: "40px" }}
       >
-        <div className="h-[78vh] max-h-[700px] rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="h-[70vh] max-h-[640px] rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+
 
           {/* Top bar (brand area for page) */}
           <div className="flex items-center justify-between px-4 md:px-5 py-3 border-b bg-gradient-to-r from-[#db4444] to-rose-500 text-white">
